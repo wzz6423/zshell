@@ -17,7 +17,10 @@ class DisplayLinkDriverHelperBase: Identifiable {
     final func delegate(_ object: DisplayLinkDriver) {
         assert(Thread.isMainThread)
         var shouldStartDisplayLink = false
-        defer { if shouldStartDisplayLink { startDisplayLink() } }
+        defer {
+            if shouldStartDisplayLink { startDisplayLink() }
+            frameRatePreferencesDidChange()
+        }
 
         referenceHolder = referenceHolder
             .filter { $0.object != nil }
@@ -27,10 +30,18 @@ class DisplayLinkDriverHelperBase: Identifiable {
         shouldStartDisplayLink = !referenceHolder.isEmpty
     }
 
-    final func remove(_ object: DisplayLinkDriver) {
+    /// Takes the id rather than the driver: this runs from the driver's
+    /// `deinit`, where weak references to it already read `nil`.
+    final func remove(id: DisplayLinkDriver.ID) {
         assert(Thread.isMainThread)
 
-        referenceHolder = referenceHolder.filter { $0.object?.id != object.id }
+        referenceHolder = referenceHolder.filter { $0.object != nil && $0.object?.id != id }
+        frameRatePreferencesDidChange()
+        reclaimComputeResourceIfPossible()
+    }
+
+    final var hasLiveDrivers: Bool {
+        referenceHolder.contains { $0.object != nil }
     }
 
     final func reclaimComputeResourceIfPossible() {
@@ -47,6 +58,25 @@ class DisplayLinkDriverHelperBase: Identifiable {
         for box in referenceHolder {
             box.object?.synchronize(context: context)
         }
+    }
+
+    /// The union of every live driver's request — what the platform link
+    /// should actually run at. Falls back to the library default when no
+    /// driver is alive (the link is about to stop anyway).
+    final func resolvedFrameRateRange() -> DisplayLinkFrameRateRange {
+        var ranges = referenceHolder.compactMap { $0.object?.preferredFrameRateRange.normalized }
+        guard let first = ranges.popLast() else { return .default }
+        return ranges.reduce(first) { $0.union($1) }.normalized
+    }
+
+    /// Called whenever a driver joins, leaves, or changes its request.
+    /// Platform helpers that can steer their link's rate re-apply it here;
+    /// the base does nothing (CVDisplayLink runs at the display's rate).
+    func frameRatePreferencesDidChange() {}
+
+    /// Whether the platform link currently exists and ticks.
+    var isDisplayLinkRunning: Bool {
+        fatalError("Subclasses need to implement `isDisplayLinkRunning`.")
     }
 
     func startDisplayLink() {

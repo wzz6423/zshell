@@ -109,23 +109,42 @@ extension LanguageConfiguration {
 }
 
 extension LanguageConfiguration {
-	static let bundleContainerURL: URL? = {
-		let mainBundle = Bundle.main
-
-		guard mainBundle.isXCTestRunner else {
-			return mainBundle.resourceURL
-		}
-
-		// we have to go up one directory, because Xcode puts SPM dependency bundles
-		return Bundle.testBundle?.bundleURL.deletingLastPathComponent()
-	}()
-
 	static func bundleQueriesDirectoryURL(for bundleName: String) -> URL? {
-        let bundlePath = bundleContainerURL?.appendingPathComponent("\(bundleName).bundle", isDirectory: true)
-#if os(iOS) || os(tvOS) || os(visionOS) || os(watchOS)
+#if DEBUG
+		if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+			let bundles = Bundle.allBundles + Bundle.allFrameworks
+
+			for bundle in bundles {
+				if let bundlePath = bundle.url(forResource: bundleName, withExtension: "bundle") {
+					let short = bundlePath.appendingPathComponent("queries", isDirectory: true)
+					if FileManager.default.fileExists(atPath: short.path) {
+						return short
+					}
+					return bundlePath.appendingPathComponent("Contents/Resources/queries", isDirectory: true)
+				}
+			}
+		}
+#endif
+
+#if os(macOS) || targetEnvironment(macCatalyst)
+		let bundlePath = Bundle.main.url(forResource: bundleName, withExtension: "bundle")
+		guard let bundlePath else { return nil }
+
+		// Depending on how you compile a macOS executable, this path varies.
+		// Couldn't nail down when with compiler flags
+		//     (Xcode seems to create the longer paths, SwiftPM the shorter ones)
+		let shortQueriesPath = bundlePath.appendingPathComponent("queries", isDirectory: true)
+		if FileManager.default.fileExists(atPath: shortQueriesPath.path) {
+			return shortQueriesPath
+		}
+		return bundlePath.appendingPathComponent("Contents/Resources/queries", isDirectory: true)
+#elseif os(iOS) || os(tvOS) || os(visionOS) || os(watchOS)
+		let bundlePath = Bundle.main.url(forResource: bundleName, withExtension: "bundle")
         return bundlePath?.appendingPathComponent("queries", isDirectory: true)
 #else
-        return bundlePath?.appendingPathComponent("Contents/Resources/queries", isDirectory: true)
+		// Linux and Windows use .resources instead of .bundle
+		let resourcePath = Bundle.main.url(forResource: bundleName, withExtension: "resources")
+		return resourcePath?.appendingPathComponent("queries", isDirectory: true)
 #endif
 	}
 }
@@ -142,18 +161,39 @@ extension Query {
 	}
 
 	static func queries(for language: Language, in url: URL) throws -> [Query.Definition: Query] {
+		guard let enumerator = FileManager.default.enumerator(at: url,
+															  includingPropertiesForKeys: [.isReadableKey],
+															  options: [.skipsHiddenFiles]) else {
+			return [:]
+		}
+
 		var queries = [Query.Definition: Query]()
+		for case let fileURL as URL in enumerator {
+			guard fileURL.pathExtension == "scm" else {
+				continue
+			}
+			guard try fileURL.resourceValues(forKeys: [.isReadableKey]).isReadable == true else {
+				continue
+			}
 
-		if let query = try Self.query(definition: .injections, for: language, in: url) {
-			queries[.injections] = query
-		}
+			let query = try Query(language: language, url: fileURL)
+			let definition: Query.Definition
+			switch fileURL.lastPathComponent {
+			case Query.Definition.injections.filename:
+				definition = .injections
 
-		if let query = try Self.query(definition: .highlights, for: language, in: url) {
-			queries[.highlights] = query
-		}
+			case Query.Definition.highlights.filename:
+				definition = .highlights
 
-		if let query = try Self.query(definition: .locals, for: language, in: url) {
-			queries[.locals] = query
+			case Query.Definition.locals.filename:
+				definition = .locals
+
+			default:
+				let filename = fileURL.lastPathComponent.replacingOccurrences(of: ".scm", with: "")
+				definition = .custom(filename)
+			}
+
+			queries[definition] = query
 		}
 
 		return queries

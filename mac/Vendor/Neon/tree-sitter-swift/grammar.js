@@ -37,6 +37,7 @@ const PRECS = {
   block: 2,
   loop: 1,
   keypath: 1,
+  parameter_pack: 1,
   control_transfer: 0,
   as: -1,
   tuple: -1,
@@ -45,7 +46,7 @@ const PRECS = {
   do: -1,
   fully_open_range: -1,
   range: -1,
-  navigation: -1,
+  navigation: 12,
   expr: -1,
   ty: -1,
   call: -2,
@@ -55,6 +56,8 @@ const PRECS = {
   range_suffix: -2,
   ternary_binary_suffix: -2,
   await: -2,
+  consume: -2,
+  unsafe: -2,
   assignment: -3,
   comment: -3,
   lambda: -3,
@@ -70,6 +73,7 @@ const HEX_DIGITS = token(sep1(/[0-9a-fA-F]+/, /_+/));
 const OCT_DIGITS = token(sep1(/[0-7]+/, /_+/));
 const BIN_DIGITS = token(sep1(/[01]+/, /_+/));
 const REAL_EXPONENT = token(seq(/[eE]/, optional(/[+-]/), DEC_DIGITS));
+const HEX_REAL_EXPONENT = token(seq(/[pP]/, optional(/[+-]/), DEC_DIGITS));
 
 var LEXICAL_IDENTIFIER;
 
@@ -105,7 +109,6 @@ module.exports = grammar({
     [$._additive_operator, $._prefix_unary_operator],
     [$._referenceable_operator, $._prefix_unary_operator],
     // `{ [self, b, c] ...` could be a capture list or an array literal depending on what else happens.
-    [$.capture_list_item, $.self_expression],
     [$.capture_list_item, $._expression],
     [$.capture_list_item, $._expression, $._simple_user_type],
     [$._primary_expression, $.capture_list_item],
@@ -119,9 +122,24 @@ module.exports = grammar({
     // all the options and pick the best one that doesn't error out.
     [$.try_expression, $._unary_expression],
     [$.try_expression, $._expression],
+    // `try await foo()!` is ambiguous between `(try await foo())!` and `try (await foo())!` until the postfix
+    // operator is consumed; parse both and pick the survivor.
+    [$.try_expression, $._primary_expression],
     // await {expression} has the same special cases as `try`.
     [$.await_expression, $._unary_expression],
     [$.await_expression, $._expression],
+    // `await unsafe foo()!` is ambiguous between `(await unsafe foo())!` and `await (unsafe foo())!` until the
+    // postfix operator is consumed, same as `try await foo()!` above.
+    [$.await_expression, $._primary_expression],
+    // consume {expression} has the same special cases as `try` and `await`.
+    [$.consume_expression, $._unary_expression],
+    [$.consume_expression, $._expression],
+    // unsafe {expression} has the same special cases as `try`, `await`, and `consume`.
+    [$.unsafe_expression, $._unary_expression],
+    [$.unsafe_expression, $._expression],
+    // `unsafe try foo()!` / `unsafe await foo()!` have the same postfix-operator ambiguity as `try await foo()!`
+    // above.
+    [$.unsafe_expression, $._primary_expression],
     // In a computed property, when you see an @attribute, it's not yet clear if that's going to be for a
     // locally-declared class or a getter / setter specifier.
     [
@@ -133,21 +151,11 @@ module.exports = grammar({
       $.computed_modify,
       $.computed_setter,
     ],
-    // In a lambda literal's capture list, same problem with class attributes vs capture specifier attributes.
-    [
-      $.capture_list,
-      $._local_property_declaration,
-      $._local_typealias_declaration,
-      $._local_function_declaration,
-      $._local_class_declaration,
-    ],
     // The `class` modifier is legal in many of the same positions that a class declaration itself would be.
     [$._bodyless_function_declaration, $.property_modifier],
-    [$._local_class_declaration, $.modifiers],
+    [$.init_declaration, $.property_modifier],
     // Patterns, man
     [$._navigable_type_expression, $._case_pattern],
-    [$._no_expr_pattern_already_bound, $._binding_pattern_with_expr],
-    [$._no_expr_pattern_already_bound, $._expression],
     [$._no_expr_pattern_already_bound, $._binding_pattern_no_expr],
 
     // On encountering a closure starting with `{ @Foo ...`, we don't yet know if that attribute applies to the closure
@@ -171,14 +179,26 @@ module.exports = grammar({
     // `actor` is allowed to be an identifier, even though it is also a locally permitted declaration. If we encounter
     // it, the only way to know what it's meant to be is to keep going.
     [$._modifierless_class_declaration, $.property_modifier],
-    [$._modifierless_class_declaration, $.simple_identifier],
     [$._fn_call_lambda_arguments],
+
+    // `borrowing` and `consuming` are legal as identifiers, but are also legal modifiers
+    [$.parameter_modifiers],
+
+    // These are keywords sometimes, but simple identifiers other times, and it just depends on the rest of their usage.
+    [$._contextual_simple_identifier, $._modifierless_class_declaration],
+    [$._contextual_simple_identifier, $.property_behavior_modifier],
+    [$._contextual_simple_identifier, $.parameter_modifier],
+    [$._contextual_simple_identifier, $.type_parameter_pack],
+    [$._contextual_simple_identifier, $.type_pack_expansion],
+    [$._contextual_simple_identifier, $.visibility_modifier],
+    // `consume` is a contextual keyword: identifier in most positions, operator in `consume x`.
+    [$._contextual_simple_identifier, $._consume_operator],
+    // `unsafe` is a contextual keyword: identifier in most positions, operator in `unsafe x`.
+    [$._contextual_simple_identifier, $._unsafe_operator],
   ],
   extras: ($) => [
     $.comment,
     $.multiline_comment,
-    $.directive,
-    $.diagnostic,
     /\s+/, // Whitespace
   ],
   externals: ($) => [
@@ -215,11 +235,12 @@ module.exports = grammar({
     $._conjunction_operator_custom,
     $._disjunction_operator_custom,
     $._nil_coalescing_operator_custom,
+    $._double_optional_custom,
     $._eq_custom,
     $._eq_eq_custom,
     $._plus_then_ws,
     $._minus_then_ws,
-    $.bang,
+    $._bang_custom,
     $._throws_keyword,
     $._rethrows_keyword,
     $.default_keyword,
@@ -231,6 +252,15 @@ module.exports = grammar({
     $._as_bang_custom,
     $._async_keyword_custom,
     $._custom_operator,
+    $._hash_symbol_custom,
+    $._directive_if,
+    $._directive_elseif,
+    $._directive_else,
+    $._directive_endif,
+
+    // Fake operator that will never get triggered, but follows the sequence of characters for `try!`. Tracked by the
+    // custom scanner so that it can avoid triggering `$.bang` for that case.
+    $._fake_try_bang,
   ],
   inline: ($) => [$._locally_permitted_modifiers],
   rules: {
@@ -249,7 +279,7 @@ module.exports = grammar({
         )
       ),
     _semi: ($) => choice($._implicit_semi, $._explicit_semi),
-    shebang_line: ($) => seq("#!", /[^\r\n]*/),
+    shebang_line: ($) => seq($._hash_symbol, "!", /[^\r\n]*/),
     ////////////////////////////////
     // Lexical Structure - https://docs.swift.org/swift-book/ReferenceManual/LexicalStructure.html
     ////////////////////////////////
@@ -258,10 +288,26 @@ module.exports = grammar({
     simple_identifier: ($) =>
       choice(
         LEXICAL_IDENTIFIER,
-        /`[^\r\n` ]*`/,
+        /`[^\r\n`]+`/,
         /\$[0-9]+/,
         token(seq("$", LEXICAL_IDENTIFIER)),
-        "actor"
+        $._contextual_simple_identifier
+      ),
+    // Keywords that were added after they were already legal as identifiers. `tree-sitter` will prefer exact matches
+    // when parsing so unless we explicitly say that these are legal, the parser will interpret them as their keyword.
+    _contextual_simple_identifier: ($) =>
+      choice(
+        "actor",
+        "async",
+        "consume",
+        "copy",
+        "discard",
+        "each",
+        "lazy",
+        "repeat",
+        "package",
+        "unsafe",
+        $._parameter_ownership_modifier
       ),
     identifier: ($) => sep1($.simple_identifier, $._dot),
     // Literals
@@ -275,14 +321,19 @@ module.exports = grammar({
         $.boolean_literal,
         $._string_literal,
         $.regex_literal,
-        "nil"
+        $.nil_literal
       ),
-    // TODO: Hex exponents
     real_literal: ($) =>
       token(
         choice(
           seq(DEC_DIGITS, REAL_EXPONENT),
-          seq(optional(DEC_DIGITS), ".", DEC_DIGITS, optional(REAL_EXPONENT))
+          seq(optional(DEC_DIGITS), ".", DEC_DIGITS, optional(REAL_EXPONENT)),
+          seq(
+            "0x",
+            HEX_DIGITS,
+            optional(seq(".", HEX_DIGITS)),
+            HEX_REAL_EXPONENT
+          )
         )
       ),
     integer_literal: ($) => token(seq(optional(/[1-9]/), DEC_DIGITS)),
@@ -290,6 +341,7 @@ module.exports = grammar({
     oct_literal: ($) => token(seq("0", /[oO]/, OCT_DIGITS)),
     bin_literal: ($) => token(seq("0", /[bB]/, BIN_DIGITS)),
     boolean_literal: ($) => choice("true", "false"),
+    nil_literal: ($) => "nil",
     // String literals
     _string_literal: ($) =>
       choice(
@@ -334,7 +386,7 @@ module.exports = grammar({
       choice($.multi_line_str_text, $.str_escaped_char, '"'),
     _interpolation: ($) => seq("\\(", $._interpolation_contents, ")"),
     _interpolation_contents: ($) =>
-      sep1(
+      sep1Opt(
         field(
           "interpolation",
           alias($.value_argument, $.interpolated_expression)
@@ -352,9 +404,12 @@ module.exports = grammar({
         $._oneline_regex_literal
       ),
 
-    _extended_regex_literal: ($) => /#\/((\/[^#])|[^\n])+\/#/,
+    _extended_regex_literal: ($) =>
+      seq($._hash_symbol, /\/((\/[^#])|[^\n])+\/#/),
 
-    _multiline_regex_literal: ($) => seq(/#\/\n/, /(\/[^#]|[^/])*?\n\/#/),
+    _multiline_regex_literal: ($) =>
+      // The closing `/#` may be indented, as it is in practice.
+      seq($._hash_symbol, /\/\n/, /(\/[^#]|[^/])*?\n[ \t]*\/#/),
 
     _oneline_regex_literal: ($) =>
       token(
@@ -390,9 +445,13 @@ module.exports = grammar({
           $.dictionary_type,
           $.optional_type,
           $.metatype,
+          $.bracket_qualified_type,
           $.opaque_type,
           $.existential_type,
-          $.protocol_composition_type
+          $.protocol_composition_type,
+          $.type_parameter_pack,
+          $.type_pack_expansion,
+          $.suppressed_constraint
         )
       ),
     // The grammar just calls this whole thing a `type-identifier` but that's a bit confusing.
@@ -406,7 +465,14 @@ module.exports = grammar({
         )
       ),
     tuple_type: ($) =>
-      seq("(", optional(sep1(field("element", $.tuple_type_item), ",")), ")"),
+      choice(
+        seq(
+          "(",
+          optional(sep1Opt(field("element", $.tuple_type_item), ",")),
+          ")"
+        ),
+        alias($._parenthesized_type, $.tuple_type_item)
+      ),
     tuple_type_item: ($) =>
       prec(
         PRECS.expr,
@@ -429,11 +495,21 @@ module.exports = grammar({
       seq(
         field("params", choice($.tuple_type, $._unannotated_type)),
         optional($._async_keyword),
-        optional($.throws),
+        optional(choice($.throws_clause, $.throws)),
         $._arrow_operator,
         field("return_type", $._type)
       ),
-    array_type: ($) => seq("[", field("element", $._type), "]"),
+    array_type: ($) =>
+      choice(
+        seq("[", field("element", $._type), "]"),
+        seq(
+          "[",
+          field("count", choice($.integer_literal, $.simple_identifier)),
+          "of",
+          field("element", $._type),
+          "]"
+        )
+      ),
     dictionary_type: ($) =>
       seq("[", field("key", $._type), ":", field("value", $._type), "]"),
     optional_type: ($) =>
@@ -441,21 +517,57 @@ module.exports = grammar({
         seq(
           field(
             "wrapped",
-            choice($.user_type, $.tuple_type, $.array_type, $.dictionary_type)
+            choice(
+              $.user_type,
+              $.tuple_type,
+              $.array_type,
+              $.dictionary_type,
+              $.bracket_qualified_type
+            )
           ),
-          repeat1(alias($._immediate_quest, "?"))
+          repeat1(
+            choice(
+              alias($._immediate_quest, "?"),
+              // The scanner keeps an immediate `??` type suffix distinct from a
+              // nil-coalescing operator that follows whitespace.
+              alias($._double_optional, "??")
+            )
+          )
         )
       ),
     metatype: ($) => seq($._unannotated_type, ".", choice("Type", "Protocol")),
+    // `[Element].Index` and `[Key: Value].Index` are equivalent to
+    // `Array<Element>.Index` and `Dictionary<Key, Value>.Index`. The grammar
+    // already models `Array<T>.Index` via `user_type` (nested identifiers via
+    // `_dot`), but the bracket-literal form needs its own rule. Narrow the
+    // left-hand side to just the two bracket forms to avoid conflicts with
+    // tuple types, parameter packs, and other constructs.
+    bracket_qualified_type: ($) =>
+      prec.left(
+        PRECS.ty,
+        seq(
+          choice($.array_type, $.dictionary_type),
+          repeat1(seq(".", alias($.simple_identifier, $.type_identifier)))
+        )
+      ),
     _quest: ($) => "?",
     _immediate_quest: ($) => token.immediate("?"),
     opaque_type: ($) => prec.right(seq("some", $._unannotated_type)),
     existential_type: ($) => prec.right(seq("any", $._unannotated_type)),
+    type_parameter_pack: ($) => prec.left(seq("each", $._unannotated_type)),
+    type_pack_expansion: ($) => prec.left(seq("repeat", $._unannotated_type)),
     protocol_composition_type: ($) =>
       prec.left(
         seq(
           $._unannotated_type,
           repeat1(seq("&", prec.right($._unannotated_type)))
+        )
+      ),
+    suppressed_constraint: ($) =>
+      prec.right(
+        seq(
+          "~",
+          field("suppressed", alias($.simple_identifier, $.type_identifier))
         )
       ),
     ////////////////////////////////
@@ -470,9 +582,12 @@ module.exports = grammar({
           $._binary_expression,
           $.ternary_expression,
           $._primary_expression,
+          $.if_statement,
+          $.switch_statement,
           $.assignment,
-          seq($._expression, alias($._immediate_quest, "?")),
-          alias("async", $.simple_identifier)
+          $.value_parameter_pack,
+          $.value_pack_expansion,
+          seq($._expression, alias($._immediate_quest, "?"))
         )
       ),
     // Unary expressions
@@ -480,13 +595,16 @@ module.exports = grammar({
       choice(
         $.postfix_expression,
         $.call_expression,
+        $.macro_invocation,
         $.constructor_expression,
         $.navigation_expression,
         $.prefix_expression,
         $.as_expression,
         $.selector_expression,
         $.open_start_range_expression,
-        $.open_end_range_expression
+        $.open_end_range_expression,
+        $.directive,
+        $.diagnostic
       ),
     postfix_expression: ($) =>
       prec.left(
@@ -507,11 +625,27 @@ module.exports = grammar({
           $.constructor_suffix
         )
       ),
+    _parenthesized_type: ($) =>
+      seq(
+        "(",
+        field(
+          "element",
+          choice($.opaque_type, $.existential_type, $.dictionary_type)
+        ),
+        ")"
+      ),
     navigation_expression: ($) =>
       prec.left(
         PRECS.navigation,
         seq(
-          field("target", choice($._navigable_type_expression, $._expression)),
+          field(
+            "target",
+            choice(
+              $._navigable_type_expression,
+              $._expression,
+              $._parenthesized_type
+            )
+          ),
           field("suffix", $.navigation_suffix)
         )
       ),
@@ -537,7 +671,13 @@ module.exports = grammar({
         PRECS.prefix_operations,
         seq(
           field("operation", $._prefix_unary_operator),
-          field("target", $._expression)
+          field(
+            "target",
+            choice(
+              $._expression,
+              alias(choice("async", "if", "switch"), $._expression)
+            )
+          )
         )
       ),
     as_expression: ($) =>
@@ -547,7 +687,8 @@ module.exports = grammar({
       ),
     selector_expression: ($) =>
       seq(
-        "#selector",
+        $._hash_symbol,
+        "selector",
         "(",
         optional(choice("getter:", "setter:")),
         $._expression,
@@ -694,15 +835,28 @@ module.exports = grammar({
         )
       ),
     _constructor_value_arguments: ($) =>
-      seq("(", optional(sep1($.value_argument, ",")), ")"),
+      seq("(", optional(sep1Opt($.value_argument, ",")), ")"),
     _fn_call_lambda_arguments: ($) =>
       sep1($.lambda_literal, seq(field("name", $.simple_identifier), ":")),
-    type_arguments: ($) => prec.left(seq("<", sep1($._type, ","), ">")),
+    type_arguments: ($) =>
+      prec.left(
+        seq("<", sep1Opt(choice($._type, $.integer_literal), ","), ">")
+      ),
     value_arguments: ($) =>
       seq(
         choice(
-          seq("(", optional(sep1($.value_argument, ",")), ")"),
-          seq("[", optional(sep1($.value_argument, ",")), "]")
+          seq("(", optional(sep1Opt($.value_argument, ",")), ")"),
+          seq("[", optional(sep1Opt($.value_argument, ",")), "]")
+        )
+      ),
+    value_argument_label: ($) =>
+      prec.left(
+        choice(
+          $.simple_identifier,
+          // We don't rely on $._contextual_simple_identifier here because
+          // these don't usually fall into that category.
+          alias("if", $.simple_identifier),
+          alias("switch", $.simple_identifier)
         )
       ),
     value_argument: ($) =>
@@ -711,21 +865,10 @@ module.exports = grammar({
           optional($.type_modifiers),
           choice(
             repeat1(
-              seq(field("reference_specifier", $.simple_identifier), ":")
+              seq(field("reference_specifier", $.value_argument_label), ":")
             ),
             seq(
-              optional(
-                seq(
-                  field(
-                    "name",
-                    choice(
-                      $.simple_identifier,
-                      alias("async", $.simple_identifier)
-                    )
-                  ),
-                  ":"
-                )
-              ),
+              optional(seq(field("name", $.value_argument_label), ":")),
               field("value", $._expression)
             )
           )
@@ -735,7 +878,7 @@ module.exports = grammar({
       prec.right(
         PRECS["try"],
         seq(
-          $._try_operator,
+          $.try_operator,
           field(
             "expr",
             choice(
@@ -745,6 +888,12 @@ module.exports = grammar({
               prec.right(-2, $._expression),
               prec.left(0, $._binary_expression),
               prec.left(0, $.call_expression),
+              // Also special-case `try await foo()`: without this, the `await_expression` is only reachable through
+              // the low-precedence `_expression` branch, so `if let x = try await foo() { ... }` resolves the `{` as
+              // a trailing closure on `foo()` instead of the if-body.
+              prec.left(0, $.await_expression),
+              // Also special-case `try unsafe foo()`, for the same reason as `try await foo()` above.
+              prec.left(0, $.unsafe_expression),
               // Similarly special case the ternary expression, where `try` may come earlier than it is actually needed.
               // When the parser just encounters some identifier after a `try`, it should prefer the `call_expression` (so
               // this should be lower in priority than that), but when we encounter an ambiguous expression that might be
@@ -766,13 +915,60 @@ module.exports = grammar({
               // Prefer direct calls over indirect (same as with `try`).
               prec.right(-2, $._expression),
               prec.left(0, $.call_expression),
+              // Also special-case `await unsafe foo()`, for the same reason as `try await foo()` above.
+              prec.left(0, $.unsafe_expression),
               // Special case ternary to `await` the whole thing (same as with `try`).
               prec.dynamic(1, prec.left(-1, $.ternary_expression))
             )
           )
         )
       ),
-    _await_operator: ($) => "await",
+    _await_operator: ($) => alias("await", "await"),
+    consume_expression: ($) =>
+      prec.right(
+        PRECS.consume,
+        seq(
+          $._consume_operator,
+          field(
+            "expr",
+            choice(
+              // Prefer direct calls over indirect (same as with `try`).
+              prec.right(-2, $._expression),
+              prec.left(0, $.call_expression),
+              // Special case ternary to `consume` the whole thing (same as with `try`).
+              prec.dynamic(1, prec.left(-1, $.ternary_expression))
+            )
+          )
+        )
+      ),
+    _consume_operator: ($) =>
+      choice(alias("consume", "consume"), alias("copy", "copy")),
+    // `unsafe` marks an expression as containing unsafe constructs, e.g. `unsafe someBuffer[i]`. Composes with `try`
+    // and `await` in either order, exactly like a Swift 6.2 strict-memory-safety `unsafe` expression: `try unsafe
+    // f()`, `unsafe try f()`, `await unsafe f()`, and `try await unsafe f()` all keep the real callee intact.
+    unsafe_expression: ($) =>
+      prec.right(
+        PRECS.unsafe,
+        seq(
+          $._unsafe_operator,
+          field(
+            "expr",
+            choice(
+              // Prefer direct calls over indirect (same as with `try`/`consume`).
+              prec.right(-2, $._expression),
+              prec.left(0, $.call_expression),
+              // Also special-case `unsafe try foo()` and `unsafe await foo()`, for the same reason `try` special-cases
+              // `await`: without this, `try_expression`/`await_expression` are only reachable through the
+              // low-precedence `_expression` branch, which loses to trailing-closure ambiguity.
+              prec.left(0, $.try_expression),
+              prec.left(0, $.await_expression),
+              // Special case ternary to `unsafe` the whole thing (same as with `try`).
+              prec.dynamic(1, prec.left(-1, $.ternary_expression))
+            )
+          )
+        )
+      ),
+    _unsafe_operator: ($) => alias("unsafe", "unsafe"),
     ternary_expression: ($) =>
       prec.right(
         PRECS.ternary,
@@ -804,19 +1000,36 @@ module.exports = grammar({
         PRECS.call,
         prec.dynamic(DYNAMIC_PRECS.call, seq($._expression, $.call_suffix))
       ),
+    macro_invocation: ($) =>
+      prec.right(
+        PRECS.call,
+        prec.dynamic(
+          DYNAMIC_PRECS.call,
+          seq(
+            $._hash_symbol,
+            $.simple_identifier,
+            optional($.type_parameters),
+            // A freestanding macro may take no arguments at all: `#isolation`
+            optional($.call_suffix)
+          )
+        )
+      ),
     _primary_expression: ($) =>
       choice(
         $.tuple_expression,
         $._basic_literal,
         $.lambda_literal,
-        $._special_literal,
-        $._playground_literal,
+        $.special_literal,
+        $.playground_literal,
         $.array_literal,
         $.dictionary_literal,
         $.self_expression,
         $.super_expression,
         $.try_expression,
         $.await_expression,
+        $.consume_expression,
+        $.unsafe_expression,
+        $.discard_statement,
         $._referenceable_operator,
         $.key_path_expression,
         $.key_path_string_expression,
@@ -830,7 +1043,7 @@ module.exports = grammar({
         PRECS.tuple,
         seq(
           "(",
-          sep1(
+          sep1Opt(
             seq(
               optional(seq(field("name", $.simple_identifier), ":")),
               field("value", $._expression)
@@ -841,36 +1054,35 @@ module.exports = grammar({
         )
       ),
     array_literal: ($) =>
-      seq(
-        "[",
-        optional(sep1(field("element", $._expression), ",")),
-        optional(","),
-        "]"
-      ),
+      seq("[", optional(sep1Opt(field("element", $._expression), ",")), "]"),
     dictionary_literal: ($) =>
       seq(
         "[",
-        choice(":", sep1($._dictionary_literal_item, ",")),
+        choice(":", sep1Opt($._dictionary_literal_item, ",")),
         optional(","),
         "]"
       ),
     _dictionary_literal_item: ($) =>
       seq(field("key", $._expression), ":", field("value", $._expression)),
-    _special_literal: ($) =>
-      choice(
-        "#file",
-        "#fileID",
-        "#filePath",
-        "#line",
-        "#column",
-        "#function",
-        "#dsohandle"
-      ),
-    _playground_literal: ($) =>
+    special_literal: ($) =>
       seq(
-        choice("#colorLiteral", "#fileLiteral", "#imageLiteral"),
+        $._hash_symbol,
+        choice(
+          "file",
+          "fileID",
+          "filePath",
+          "line",
+          "column",
+          "function",
+          "dsohandle"
+        )
+      ),
+    playground_literal: ($) =>
+      seq(
+        $._hash_symbol,
+        choice("colorLiteral", "fileLiteral", "imageLiteral"),
         "(",
-        sep1(seq($.simple_identifier, ":", $._expression), ","),
+        sep1Opt(seq($.simple_identifier, ":", $._expression), ","),
         ")"
       ),
     lambda_literal: ($) =>
@@ -890,7 +1102,7 @@ module.exports = grammar({
         optional(field("type", $.lambda_function_type)),
         "in"
       ),
-    capture_list: ($) => seq("[", sep1($.capture_list_item, ","), "]"),
+    capture_list: ($) => seq("[", sep1Opt($.capture_list_item, ","), "]"),
     capture_list_item: ($) =>
       choice(
         field("name", $.self_expression),
@@ -912,16 +1124,17 @@ module.exports = grammar({
             seq("(", optional($.lambda_function_type_parameters), ")")
           ),
           optional($._async_keyword),
-          optional($.throws),
+          optional(choice($.throws_clause, $.throws)),
           optional(
             seq(
               $._arrow_operator,
+              optional($.parameter_modifiers),
               field("return_type", $._possibly_implicitly_unwrapped_type)
             )
           )
         )
       ),
-    lambda_function_type_parameters: ($) => sep1($.lambda_parameter, ","),
+    lambda_function_type_parameters: ($) => sep1Opt($.lambda_parameter, ","),
     lambda_parameter: ($) =>
       seq(
         choice(
@@ -987,11 +1200,13 @@ module.exports = grammar({
         choice(
           seq(
             "case",
-            seq(
-              $.switch_pattern,
-              optional(seq($.where_keyword, $._expression))
-            ),
-            repeat(seq(",", $.switch_pattern))
+            sep1(
+              seq(
+                $.switch_pattern,
+                optional(seq($.where_keyword, $._expression))
+              ),
+              ","
+            )
           ),
           $.default_keyword
         ),
@@ -1001,7 +1216,15 @@ module.exports = grammar({
       ),
     switch_pattern: ($) => alias($._binding_pattern_with_expr, $.pattern),
     do_statement: ($) =>
-      prec.right(PRECS["do"], seq("do", $._block, repeat($.catch_block))),
+      prec.right(
+        PRECS["do"],
+        seq(
+          "do",
+          optional(choice($.throws_clause, $.throws)),
+          $._block,
+          repeat($.catch_block)
+        )
+      ),
     catch_block: ($) =>
       seq(
         $.catch_keyword,
@@ -1022,7 +1245,7 @@ module.exports = grammar({
         )
       ),
     key_path_string_expression: ($) =>
-      prec.left(seq("#keyPath", "(", $._expression, ")")),
+      prec.left(seq($._hash_symbol, "keyPath", "(", $._expression, ")")),
     _key_path_component: ($) =>
       prec.left(
         choice(
@@ -1037,8 +1260,14 @@ module.exports = grammar({
         "self",
         seq("[", optional(sep1($.value_argument, ",")), "]")
       ),
-    _try_operator: ($) => choice("try", "try!", "try?"),
-    _assignment_and_operator: ($) => choice("+=", "-=", "*=", "/=", "%=", "="),
+    try_operator: ($) =>
+      prec.right(
+        seq("try", choice(optional($._try_operator_type), $._fake_try_bang))
+      ),
+    _try_operator_type: ($) =>
+      choice(token.immediate("!"), token.immediate("?")),
+    _assignment_and_operator: ($) =>
+      choice("+=", "-=", "*=", "/=", "%=", $._equal_sign),
     _equality_operator: ($) => choice("!=", "!==", $._eq_eq, "==="),
     _comparison_operator: ($) => choice("<", ">", "<=", ">="),
     _three_dot_operator: ($) => alias("...", "..."), // Weird alias to satisfy highlight queries
@@ -1072,15 +1301,8 @@ module.exports = grammar({
       ),
     _bitwise_binary_operator: ($) => choice("&", "|", "^", "<<", ">>"),
     _postfix_unary_operator: ($) => choice("++", "--", $.bang),
-    directly_assignable_expression: ($) =>
-      choice(
-        $.simple_identifier,
-        $.navigation_expression,
-        $.call_expression,
-        $.tuple_expression,
-        $.self_expression,
-        $.postfix_expression // Since `x[...]! = y` is legal
-      ),
+    directly_assignable_expression: ($) => $._expression,
+
     ////////////////////////////////
     // Statements - https://docs.swift.org/swift-book/ReferenceManual/Statements.html
     ////////////////////////////////
@@ -1127,16 +1349,31 @@ module.exports = grammar({
         PRECS.loop,
         seq(
           "for",
-          optional($._try_operator),
+          optional($.try_operator),
           optional($._await_operator),
+          optional($._unsafe_operator),
           field("item", alias($._binding_pattern_no_expr, $.pattern)),
           optional($.type_annotation),
           "in",
-          field("collection", $._expression),
+          field("collection", $._for_statement_collection),
           optional($.where_clause),
           $._block
         )
       ),
+    _for_statement_collection: ($) =>
+      // If this expression has "await" or "unsafe", this triggers some special-cased logic to prefer function calls.
+      // We prefer the opposite, though, since function calls may contain trailing code blocks, which are undesirable
+      // here.
+      //
+      // To fix that, we simply undo the special casing by defining our own `await_expression`/`unsafe_expression`.
+      choice(
+        $._expression,
+        alias($.for_statement_await, $.await_expression),
+        alias($.for_statement_unsafe, $.unsafe_expression)
+      ),
+    for_statement_await: ($) => seq($._await_operator, $._expression),
+    for_statement_unsafe: ($) => seq($._unsafe_operator, $._expression),
+
     while_statement: ($) =>
       prec(
         PRECS.loop,
@@ -1156,6 +1393,8 @@ module.exports = grammar({
           "{",
           optional($.statements),
           "}",
+          // Make sure we make it to the `while` before assuming this is a parameter pack.
+          repeat($._implicit_semi),
           "while",
           sep1(field("condition", $._if_condition_sequence_item), ",")
         )
@@ -1175,6 +1414,9 @@ module.exports = grammar({
     throw_keyword: ($) => "throw",
     _optionally_valueful_control_keyword: ($) =>
       choice("return", "continue", "break", "yield"),
+    discard_statement: ($) =>
+      prec.right(PRECS.consume, seq($._discard_operator, $.self_expression)),
+    _discard_operator: ($) => alias("discard", "discard"),
     assignment: ($) =>
       prec.left(
         PRECS.assignment,
@@ -1184,8 +1426,18 @@ module.exports = grammar({
           field("result", $._expression)
         )
       ),
+    value_parameter_pack: ($) =>
+      prec.left(PRECS.parameter_pack, seq("each", $._expression)),
+    value_pack_expansion: ($) =>
+      prec.left(PRECS.parameter_pack, seq("repeat", $._expression)),
     availability_condition: ($) =>
-      seq("#available", "(", sep1($._availability_argument, ","), ")"),
+      seq(
+        $._hash_symbol,
+        choice("available", "unavailable"),
+        "(",
+        sep1Opt($._availability_argument, ","),
+        ")"
+      ),
     _availability_argument: ($) =>
       choice(seq($.identifier, sep1($.integer_literal, ".")), "*"),
     ////////////////////////////////
@@ -1197,11 +1449,13 @@ module.exports = grammar({
         $.property_declaration,
         $.typealias_declaration,
         $.function_declaration,
+        $.init_declaration,
         $.class_declaration,
         $.protocol_declaration,
         $.operator_declaration,
         $.precedence_group_declaration,
-        $.associatedtype_declaration
+        $.associatedtype_declaration,
+        $.macro_declaration
       ),
     _type_level_declaration: ($) =>
       choice(
@@ -1209,6 +1463,7 @@ module.exports = grammar({
         $.property_declaration,
         $.typealias_declaration,
         $.function_declaration,
+        $.init_declaration,
         $.class_declaration,
         $.protocol_declaration,
         $.deinit_declaration,
@@ -1284,16 +1539,50 @@ module.exports = grammar({
         )
       ),
     _single_modifierless_property_declaration: ($) =>
-      seq(
-        field("name", alias($._no_expr_pattern_already_bound, $.pattern)),
-        optional($.type_annotation),
-        optional($.type_constraints),
-        optional(
-          choice(
-            seq($._equal_sign, field("value", $._expression)),
-            field("computed_value", $.computed_property)
+      prec.left(
+        seq(
+          field("name", alias($._no_expr_pattern_already_bound, $.pattern)),
+          optional($.type_annotation),
+          optional($.type_constraints),
+          optional(
+            choice(
+              $._expression_with_willset_didset,
+              $._expression_without_willset_didset,
+              $.willset_didset_block,
+              field("computed_value", $.computed_property)
+            )
           )
         )
+      ),
+    _expression_with_willset_didset: ($) =>
+      prec.dynamic(
+        1,
+        seq(
+          $._equal_sign,
+          field("value", $._expression),
+          $.willset_didset_block
+        )
+      ),
+    _expression_without_willset_didset: ($) =>
+      seq($._equal_sign, field("value", $._expression)),
+    willset_didset_block: ($) =>
+      choice(
+        seq("{", $.willset_clause, optional($.didset_clause), "}"),
+        seq("{", $.didset_clause, optional($.willset_clause), "}")
+      ),
+    willset_clause: ($) =>
+      seq(
+        optional($.modifiers),
+        "willSet",
+        optional(seq("(", $.simple_identifier, ")")),
+        $._block
+      ),
+    didset_clause: ($) =>
+      seq(
+        optional($.modifiers),
+        "didSet",
+        optional(seq("(", $.simple_identifier, ")")),
+        $._block
       ),
     typealias_declaration: ($) =>
       seq(optional($.modifiers), $._modifierless_typealias_declaration),
@@ -1325,17 +1614,15 @@ module.exports = grammar({
     _modifierless_function_declaration_no_body: ($) =>
       prec.right(
         seq(
-          choice(
-            $._constructor_function_decl,
-            $._non_constructor_function_decl
-          ),
+          $._non_constructor_function_decl,
           optional($.type_parameters),
           $._function_value_parameters,
           optional($._async_keyword),
-          optional($.throws),
+          optional(choice($.throws_clause, $.throws)),
           optional(
             seq(
               $._arrow_operator,
+              optional($.parameter_modifiers),
               field("return_type", $._possibly_implicitly_unwrapped_type)
             )
           ),
@@ -1343,6 +1630,30 @@ module.exports = grammar({
         )
       ),
     function_body: ($) => $._block,
+    macro_declaration: ($) =>
+      seq(
+        $._macro_head,
+        $.simple_identifier,
+        optional($.type_parameters),
+        $._macro_signature,
+        optional(field("definition", $.macro_definition)),
+        optional($.type_constraints)
+      ),
+    _macro_head: ($) => seq(optional($.modifiers), "macro"),
+    _macro_signature: ($) =>
+      seq(
+        $._function_value_parameters,
+        optional(seq($._arrow_operator, $._unannotated_type))
+      ),
+    macro_definition: ($) =>
+      seq(
+        $._equal_sign,
+        field("body", choice($._expression, $.external_macro_definition))
+      ),
+
+    external_macro_definition: ($) =>
+      seq($._hash_symbol, "externalMacro", $.value_arguments),
+
     class_declaration: ($) =>
       seq(optional($.modifiers), $._modifierless_class_declaration),
     _modifierless_class_declaration: ($) =>
@@ -1379,43 +1690,73 @@ module.exports = grammar({
     _inheritance_specifiers: ($) =>
       prec.left(sep1($._annotated_inheritance_specifier, choice(",", "&"))),
     inheritance_specifier: ($) =>
-      prec.left(field("inherits_from", choice($.user_type, $.function_type))),
+      prec.left(
+        field(
+          "inherits_from",
+          choice($.user_type, $.function_type, $.suppressed_constraint)
+        )
+      ),
     _annotated_inheritance_specifier: ($) =>
       seq(repeat($.attribute), $.inheritance_specifier),
     type_parameters: ($) =>
-      seq("<", sep1($.type_parameter, ","), optional($.type_constraints), ">"),
+      seq(
+        "<",
+        sep1Opt($.type_parameter, ","),
+        optional($.type_constraints),
+        ">"
+      ),
     type_parameter: ($) =>
       seq(
         optional($.type_parameter_modifiers),
-        alias($.simple_identifier, $.type_identifier),
+        optional("let"),
+        $._type_parameter_possibly_packed,
         optional(seq(":", $._type))
       ),
+    _type_parameter_possibly_packed: ($) =>
+      choice(
+        alias($.simple_identifier, $.type_identifier),
+        $.type_parameter_pack
+      ),
+
     type_constraints: ($) =>
-      prec.right(seq($.where_keyword, sep1($.type_constraint, ","))),
+      prec.right(seq($.where_keyword, sep1Opt($.type_constraint, ","))),
     type_constraint: ($) =>
       choice($.inheritance_constraint, $.equality_constraint),
     inheritance_constraint: ($) =>
       seq(
         repeat($.attribute),
-        field("constrained_type", $.identifier),
+        field("constrained_type", $._constrained_type),
         ":",
         field("inherits_from", $._possibly_implicitly_unwrapped_type)
       ),
     equality_constraint: ($) =>
       seq(
         repeat($.attribute),
-        field("constrained_type", $.identifier),
+        field("constrained_type", $._constrained_type),
         choice($._equal_sign, $._eq_eq),
         field("must_equal", $._type)
+      ),
+    _constrained_type: ($) =>
+      choice(
+        $.identifier,
+        seq(
+          $._unannotated_type,
+          optional(seq(".", sep1($.simple_identifier, ".")))
+        )
       ),
     _class_member_separator: ($) => choice($._semi, $.multiline_comment),
     _class_member_declarations: ($) =>
       seq(
-        sep1($._type_level_declaration, $._class_member_separator),
+        sep1(
+          choice($._type_level_declaration, $.directive),
+          $._class_member_separator
+        ),
         optional($._class_member_separator)
       ),
     _function_value_parameters: ($) =>
-      repeat1(seq("(", optional(sep1($._function_value_parameter, ",")), ")")),
+      repeat1(
+        seq("(", optional(sep1Opt($._function_value_parameter, ",")), ")")
+      ),
     _function_value_parameter: ($) =>
       seq(
         optional($.attribute),
@@ -1431,8 +1772,6 @@ module.exports = grammar({
         field("type", $._possibly_implicitly_unwrapped_type),
         optional($._three_dot_operator)
       ),
-    _constructor_function_decl: ($) =>
-      seq(field("name", "init"), optional(choice($._quest, $.bang))),
     _non_constructor_function_decl: ($) =>
       seq(
         "func",
@@ -1454,7 +1793,8 @@ module.exports = grammar({
         "|",
         "^",
         "<<",
-        ">>"
+        ">>",
+        "&"
       ),
     // Hide the fact that certain symbols come from the custom scanner by aliasing them to their
     // string variants. This keeps us from having to see them in the syntax tree (which would be
@@ -1468,14 +1808,23 @@ module.exports = grammar({
     _disjunction_operator: ($) => alias($._disjunction_operator_custom, "||"),
     _nil_coalescing_operator: ($) =>
       alias($._nil_coalescing_operator_custom, "??"),
+    _double_optional: ($) => alias($._double_optional_custom, "??"),
     _as: ($) => alias($._as_custom, "as"),
     _as_quest: ($) => alias($._as_quest_custom, "as?"),
     _as_bang: ($) => alias($._as_bang_custom, "as!"),
+    _hash_symbol: ($) => alias($._hash_symbol_custom, "#"),
+    bang: ($) => choice($._bang_custom, "!"),
     _async_keyword: ($) => alias($._async_keyword_custom, "async"),
     _async_modifier: ($) => token("async"),
     throws: ($) => choice($._throws_keyword, $._rethrows_keyword),
+    throws_clause: ($) =>
+      seq($._throws_keyword, "(", field("type", $._unannotated_type), ")"),
     enum_class_body: ($) =>
-      seq("{", repeat(choice($.enum_entry, $._type_level_declaration)), "}"),
+      seq(
+        "{",
+        repeat(choice($.enum_entry, $._type_level_declaration, $.directive)),
+        "}"
+      ),
     enum_entry: ($) =>
       seq(
         optional($.modifiers),
@@ -1527,7 +1876,10 @@ module.exports = grammar({
     protocol_body: ($) =>
       seq("{", optional($._protocol_member_declarations), "}"),
     _protocol_member_declarations: ($) =>
-      seq(sep1($._protocol_member_declaration, $._semi), optional($._semi)),
+      seq(
+        sep1(choice($._protocol_member_declaration, $.directive), $._semi),
+        optional($._semi)
+      ),
     _protocol_member_declaration: ($) =>
       choice(
         alias(
@@ -1537,11 +1889,27 @@ module.exports = grammar({
           ),
           $.protocol_function_declaration
         ),
+        $.init_declaration,
         $.deinit_declaration,
         $.protocol_property_declaration,
         $.typealias_declaration,
         $.associatedtype_declaration,
         $.subscript_declaration
+      ),
+    init_declaration: ($) =>
+      prec.right(
+        seq(
+          optional($.modifiers),
+          optional("class"),
+          field("name", "init"),
+          optional(choice($._quest, $.bang)),
+          optional($.type_parameters),
+          $._function_value_parameters,
+          optional($._async_keyword),
+          optional(choice($.throws_clause, $.throws)),
+          optional($.type_constraints),
+          optional(field("body", $.function_body))
+        )
       ),
     deinit_declaration: ($) =>
       prec.right(
@@ -1557,6 +1925,7 @@ module.exports = grammar({
           optional(
             seq(
               $._arrow_operator,
+              optional($.parameter_modifiers),
               field("return_type", $._possibly_implicitly_unwrapped_type)
             )
           ),
@@ -1590,7 +1959,8 @@ module.exports = grammar({
       seq(optional($.mutation_modifier), "get", optional($._getter_effects)),
     setter_specifier: ($) => seq(optional($.mutation_modifier), "set"),
     modify_specifier: ($) => seq(optional($.mutation_modifier), "_modify"),
-    _getter_effects: ($) => repeat1(choice($._async_keyword, $.throws)),
+    _getter_effects: ($) =>
+      repeat1(choice($._async_keyword, $.throws_clause, $.throws)),
     operator_declaration: ($) =>
       seq(
         choice("prefix", "infix", "postfix"),
@@ -1634,7 +2004,7 @@ module.exports = grammar({
         "@",
         $.user_type,
         // attribute arguments are a mess of special cases, maybe this is good enough?
-        optional(seq("(", sep1($._attribute_argument, ","), ")"))
+        optional(seq("(", optional(sep1Opt($._attribute_argument, ",")), ")"))
       ),
     _attribute_argument: ($) =>
       choice(
@@ -1645,7 +2015,14 @@ module.exports = grammar({
         // References to param names (used in `@objc(foo:bar:)`)
         repeat1(seq($.simple_identifier, ":")),
         // Version restrictions (iOS 3.4.5, Swift 5.0.0)
-        seq(repeat1($.simple_identifier), sep1($.integer_literal, "."))
+        seq(repeat1($.simple_identifier), sep1($.integer_literal, ".")),
+        // Labeled version restrictions (`@backDeployed(before: macOS 14)`)
+        seq(
+          $.simple_identifier,
+          ":",
+          repeat1($.simple_identifier),
+          sep1($.integer_literal, ".")
+        )
       ),
     ////////////////////////////////
     // Patterns - https://docs.swift.org/swift-book/ReferenceManual/Patterns.html
@@ -1695,9 +2072,9 @@ module.exports = grammar({
         ),
         optional($.type_annotation)
       ),
-    _binding_pattern_kind: ($) => field("mutability", choice("var", "let")),
+    value_binding_pattern: ($) => field("mutability", choice("var", "let")),
     _possibly_async_binding_pattern_kind: ($) =>
-      seq(optional($._async_modifier), $._binding_pattern_kind),
+      seq(optional($._async_modifier), $.value_binding_pattern),
     _binding_kind_and_pattern: ($) =>
       seq(
         $._possibly_async_binding_pattern_kind,
@@ -1712,7 +2089,7 @@ module.exports = grammar({
         ),
         alias($._binding_pattern_with_expr, $.pattern)
       ),
-    _tuple_pattern: ($) => seq("(", sep1($._tuple_pattern_item, ","), ")"),
+    _tuple_pattern: ($) => seq("(", sep1Opt($._tuple_pattern_item, ","), ")"),
     _case_pattern: ($) =>
       seq(
         optional("case"),
@@ -1728,7 +2105,7 @@ module.exports = grammar({
       ),
     _binding_pattern: ($) =>
       seq(
-        seq(optional("case"), $._binding_pattern_kind),
+        seq(optional("case"), $.value_binding_pattern),
         $._no_expr_pattern_already_bound
       ),
 
@@ -1737,7 +2114,9 @@ module.exports = grammar({
     // ==========
     modifiers: ($) =>
       repeat1(
-        choice($._non_local_scope_modifier, $._locally_permitted_modifiers)
+        prec.left(
+          choice($._non_local_scope_modifier, $._locally_permitted_modifiers)
+        )
       ),
     _locally_permitted_modifiers: ($) =>
       repeat1(choice($.attribute, $._locally_permitted_modifier)),
@@ -1751,28 +2130,57 @@ module.exports = grammar({
         $.function_modifier,
         $.mutation_modifier,
         $.property_modifier,
-        $.parameter_modifier,
-        $.property_behavior_modifier
+        $.parameter_modifier
       ),
     _locally_permitted_modifier: ($) =>
-      choice($.ownership_modifier, $.inheritance_modifier),
+      choice(
+        $.ownership_modifier,
+        $.inheritance_modifier,
+        $.property_behavior_modifier
+      ),
     property_behavior_modifier: ($) => "lazy",
     type_modifiers: ($) => repeat1($.attribute),
     member_modifier: ($) =>
-      choice("override", "convenience", "required", "nonisolated"),
+      choice(
+        "override",
+        "convenience",
+        "required",
+        // `nonisolated` may optionally take a parenthesized argument: `nonisolated(unsafe)`
+        // (SE-0414-style escape hatch) or `nonisolated(nonsending)` (SE-0461).
+        seq(
+          "nonisolated",
+          optional(seq("(", choice("unsafe", "nonsending"), ")"))
+        )
+      ),
     visibility_modifier: ($) =>
       seq(
-        choice("public", "private", "internal", "fileprivate", "open"),
+        choice(
+          "public",
+          "private",
+          "internal",
+          "fileprivate",
+          "open",
+          "package"
+        ),
         optional(seq("(", "set", ")"))
       ),
     type_parameter_modifiers: ($) => repeat1($.attribute),
     function_modifier: ($) => choice("infix", "postfix", "prefix"),
     mutation_modifier: ($) => choice("mutating", "nonmutating"),
-    property_modifier: ($) => choice("static", "dynamic", "optional", "class"),
+    property_modifier: ($) =>
+      choice("static", "dynamic", "optional", "class", "distributed"),
     inheritance_modifier: ($) => choice("final"),
-    parameter_modifier: ($) => choice("inout", "@escaping", "@autoclosure"),
+    parameter_modifier: ($) =>
+      choice(
+        "inout",
+        "@escaping",
+        "@autoclosure",
+        $._parameter_ownership_modifier
+      ),
     ownership_modifier: ($) =>
       choice("weak", "unowned", "unowned(safe)", "unowned(unsafe)"),
+    _parameter_ownership_modifier: ($) =>
+      choice("borrowing", "consuming", "sending", "isolated"),
     use_site_target: ($) =>
       seq(
         choice(
@@ -1787,34 +2195,80 @@ module.exports = grammar({
         ":"
       ),
     directive: ($) =>
-      token(
-        prec(
-          PRECS.comment,
-          choice(
-            seq("#if", /.*/),
-            seq("#elseif", /.*/),
-            seq("#else", /.*/),
-            seq("#endif", /.*/),
-            seq(/#sourceLocation([^\r\n]*)/)
+      prec.right(
+        PRECS.comment,
+        choice(
+          seq(alias($._directive_if, "#if"), $._compilation_condition),
+          seq(alias($._directive_elseif, "#elseif"), $._compilation_condition),
+          seq(alias($._directive_else, "#else")),
+          seq(alias($._directive_endif, "#endif"))
+        )
+      ),
+    _compilation_condition: ($) =>
+      prec.right(
+        choice(
+          seq("os", "(", $.simple_identifier, ")"),
+          seq("arch", "(", $.simple_identifier, ")"),
+          seq(
+            "swift",
+            "(",
+            $._comparison_operator,
+            sep1($.integer_literal, "."),
+            ")"
+          ),
+          seq(
+            "compiler",
+            "(",
+            $._comparison_operator,
+            sep1($.integer_literal, "."),
+            ")"
+          ),
+          seq("canImport", "(", sep1($.simple_identifier, "."), ")"),
+          seq("targetEnvironment", "(", $.simple_identifier, ")"),
+          $.boolean_literal,
+          $.simple_identifier,
+          seq("(", $._compilation_condition, ")"),
+          seq("!", $._compilation_condition),
+          seq(
+            $._compilation_condition,
+            $._conjunction_operator,
+            $._compilation_condition
+          ),
+          seq(
+            $._compilation_condition,
+            $._disjunction_operator,
+            $._compilation_condition
           )
         )
       ),
     diagnostic: ($) =>
-      token(
-        prec(
-          PRECS.comment,
+      prec(
+        PRECS.comment,
+        seq(
+          $._hash_symbol,
           choice(
             // Using regexes here, rather than actually validating the string literal, because complex string literals
             // cannot be used inside `token()` and we need that to ensure we get the right precedence.
-            seq(/#error([^\r\n]*)/),
-            seq(/#warning([^\r\n]*)/)
+            seq(/error([^\r\n]*)/),
+            seq(/warning([^\r\n]*)/),
+            seq(/sourceLocation([^\r\n]*)/)
           )
         )
       ),
+    // Dumping ground for any nodes that used to exist in the grammar, but have since been removed for whatever
+    // reason.
+    // Neovim applies updates non-atomically to the parser and the queries. Meanwhile, `tree-sitter` rejects any query
+    // that contains any unrecognized nodes. Putting those two facts together, we see that we must never remove nodes
+    // that once existed.
+    unused_for_backward_compatibility: ($) =>
+      choice(alias("unused1", "try?"), alias("unused2", "try!")),
   },
 });
 function sep1(rule, separator) {
   return seq(rule, repeat(seq(separator, rule)));
+}
+function sep1Opt(rule, separator) {
+  return seq(rule, repeat(seq(separator, rule)), optional(separator));
 }
 
 function tree_sitter_version_supports_emoji() {

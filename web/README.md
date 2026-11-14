@@ -1,5 +1,7 @@
 # Zshell — website
 
+**English** | [简体中文](README.zh-CN.md)
+
 Landing page and documentation for **Zshell**, the native terminal workspace for
 macOS.
 

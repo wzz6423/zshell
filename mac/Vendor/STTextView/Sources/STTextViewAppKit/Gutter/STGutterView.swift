@@ -180,8 +180,6 @@ open class STGutterView: NSView, NSDraggingSource {
     }
 
     override open func layout() {
-        super.layout()
-
         // Workaround
         // FB21059465: NSScrollView horizontal floating subview does not respect insets
         // https://gist.github.com/krzyzanowskim/d2c5d41b86096ccb19b110cf7a5514c8
@@ -189,22 +187,22 @@ open class STGutterView: NSView, NSDraggingSource {
             var offsetY: CGFloat = 0
 
             if enclosingScrollView.automaticallyAdjustsContentInsets {
-                let topContentInset = enclosingScrollView.contentView.contentInsets.top
+                let topContentInset = enclosingScrollView.contentInsets.top
                 if !topContentInset.isAlmostZero(), !topContentInset.isAlmostEqual(to: -topContentInset) {
                     offsetY = -topContentInset
                 }
             }
 
-            // The find bar displaces floating subviews by its own height, but
-            // leaves the document where it is, so the line numbers would sit a
-            // find bar lower than the lines they label. Take that height back
-            // out to keep them level.
+            // The find bar displaces floating subviews without moving the
+            // document, so its height must be removed from the gutter offset.
             if enclosingScrollView.isFindBarVisible, let findBarView = enclosingScrollView.findBarView {
                 offsetY -= findBarView.frame.height
             }
 
             self.frame.origin.y = offsetY
         }
+
+        super.layout()
     }
 
     fileprivate func updateBackgroundColor() {
@@ -242,7 +240,7 @@ open class STGutterView: NSView, NSDraggingSource {
                 marker.view.frame.size.height = lineNumberCell.textSize.height
                 marker.view.frame.origin.x = lineNumberCell.frame.size.width - marker.view.frame.size.width - 1.5 /* separator */
                 // Center marker vertically on the line number text
-                marker.view.frame.origin.y = lineNumberCell.frame.origin.y + lineNumberCell.textVisualCenter - (marker.view.frame.size.height / 2)
+                marker.view.frame.origin.y = lineNumberCell.frame.origin.y + lineNumberCell.textCenterY - (marker.view.frame.size.height / 2)
                 markerContainerView.addSubview(marker.view)
             }
         }

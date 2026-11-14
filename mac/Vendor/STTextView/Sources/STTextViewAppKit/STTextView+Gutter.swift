@@ -84,20 +84,12 @@ extension STTextView {
             if let selectionFrame = textLayoutManager.textSegmentFrame(at: textLayoutManager.documentRange.location, type: .standard) {
                 let lineNumber = 1
 
-                // Use typingAttributes to calculate baseline position for empty document.
-                // The cell is sized for typingLineHeight, so baseline calculation should use typing font metrics
-                // to match where text baseline would be. Line number is still drawn with gutter font.
-                let ctNumberLine = CTLineCreateWithAttributedString(NSAttributedString(string: "\(lineNumber)", attributes: typingAttributes))
-                let baselineParagraphStyle = typingAttributes[.paragraphStyle] as? NSParagraphStyle ?? defaultParagraphStyle
-                let baselineOffset = -(ctNumberLine.typographicHeight() * (baselineParagraphStyle.stLineHeightMultiple - 1.0) / 2)
-
                 var effectiveLineTextAttributes = lineTextAttributes
                 if gutterView.highlightSelectedLine /* , isLineSelected */, !selectedLineTextAttributes.isEmpty {
                     effectiveLineTextAttributes.merge(selectedLineTextAttributes, uniquingKeysWith: { (_, new) in new })
                 }
 
                 let numberCell = STGutterLineNumberCell(
-                    firstBaseline: ctNumberLine.typographicBounds().ascent - baselineOffset,
                     attributes: effectiveLineTextAttributes,
                     number: lineNumber
                 )
@@ -120,22 +112,20 @@ extension STTextView {
                         height: selectionFrame.height
                     )
                 ).pixelAligned
+                numberCell.textCenterY = numberCell.bounds.midY
 
                 gutterView.containerView.addSubview(numberCell)
             }
         } else if let viewportRange = textLayoutManager.textViewportLayoutController.viewportRange {
-            // Get visible fragment views from the map and sort by document order
-            // zshell patch: after an attribute change (font/color) invalidates layout,
-            // fragmentViewMap briefly holds both the old and new NSTextLayoutFragment
-            // for the same range (the old one is kept alive by its detached fragment
-            // view until the weak map purges). Numbering those stale entries shifts
-            // every line number. Detached views are never visible, so drop them.
-            let visibleFragmentViews = STGutterCalculations.visibleFragmentViewsInViewport(
+            // Get visible layout fragments from the map and sort by document order
+            // zshell patch: detached fragment views can retain stale layout fragments
+            // after restyling; only attached views contribute visible line numbers.
+            let visibleLayoutFragments = STGutterCalculations.visibleLayoutFragmentsInViewport(
                 fragmentViewMap: fragmentViewMap,
                 viewportRange: viewportRange
-            ).filter { $0.1.superview != nil }
+            ).filter { fragmentViewMap.object(forKey: $0)?.superview != nil }
 
-            guard !visibleFragmentViews.isEmpty else {
+            guard !visibleLayoutFragments.isEmpty else {
                 return
             }
 
@@ -151,7 +141,7 @@ extension STTextView {
             let startLineIndex = textElementsBeforeViewport.count
             var linesCount = 0
 
-            for (layoutFragment, fragmentView) in visibleFragmentViews {
+            for layoutFragment in visibleLayoutFragments {
                 let contentRangeInElement = (layoutFragment.textElement as? NSTextParagraph)?.paragraphContentRange ?? layoutFragment.rangeInElement
 
                 // Only show line numbers for the first line fragment or extra line fragments
@@ -166,12 +156,13 @@ extension STTextView {
                         textLayoutManager: textLayoutManager
                     )
 
-                    // Calculate positioning metrics
-                    // Get the actual fragment view frame for pixel-perfect alignment
-                    let (baselineYOffset, locationForFirstCharacter, cellFrame) = STGutterCalculations.calculateLineNumberMetrics(
+                    let lineNumberFrame = STGutterCalculations.lineNumberFrame(
                         for: textLineFragment,
-                        in: layoutFragment,
-                        fragmentViewFrame: fragmentView.frame
+                        in: layoutFragment
+                    )
+                    let textLineFrame = STGutterCalculations.textLineFragmentFrame(
+                        for: textLineFragment,
+                        in: layoutFragment
                     )
 
                     // Prepare text attributes
@@ -185,7 +176,6 @@ extension STTextView {
 
                     // Create and configure line number cell
                     let numberCell = STGutterLineNumberCell(
-                        firstBaseline: locationForFirstCharacter.y + baselineYOffset,
                         attributes: effectiveLineTextAttributes,
                         number: lineNumber
                     )
@@ -202,13 +192,14 @@ extension STTextView {
                     numberCell.frame = CGRect(
                         origin: CGPoint(
                             x: 0,
-                            y: cellFrame.origin.y
+                            y: lineNumberFrame.origin.y
                         ),
                         size: CGSize(
                             width: gutterView.containerView.frame.width,
-                            height: cellFrame.size.height
+                            height: lineNumberFrame.size.height
                         )
                     ).pixelAligned
+                    numberCell.textCenterY = textLineFrame.midY - numberCell.frame.minY
 
                     gutterView.containerView.addSubview(numberCell)
                     requiredWidthFitText = max(requiredWidthFitText, numberCell.intrinsicContentSize.width)
@@ -221,6 +212,7 @@ extension STTextView {
                 let newGutterWidth = max(requiredWidthFitText, gutterView.minimumThickness)
                 if !newGutterWidth.isAlmostEqual(to: gutterView.frame.size.width, tolerance: .ulpOfOne), newGutterWidth > gutterView.frame.size.width {
                     gutterView.frame.size.width = newGutterWidth
+                    setNeedsLayoutSafe()
                 }
             }
         }

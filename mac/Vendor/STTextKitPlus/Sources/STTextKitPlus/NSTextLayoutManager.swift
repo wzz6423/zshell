@@ -77,7 +77,18 @@ extension NSTextLayoutManager {
     }
 
     public func textLineFragment(at point: CGPoint) -> NSTextLineFragment? {
-        textLayoutFragment(for: point)?.textLineFragment(at: point)
+        textLayoutFragment(interactingAt: point)?.textLineFragment(at: point)
+    }
+
+    /// Returns the text layout fragment at the point.
+    ///
+    /// Unlike `textLayoutFragment(for: CGPoint)`, does not ensure layout from the start of the document,
+    /// which would move fragments positioned by estimate.
+    public func textLayoutFragment(interactingAt point: CGPoint) -> NSTextLayoutFragment? {
+        guard let lineFragmentRange = lineFragmentRange(for: point, inContainerAt: documentRange.location) else {
+            return nil
+        }
+        return textLayoutFragment(for: lineFragmentRange.location)
     }
 
 }
@@ -116,7 +127,7 @@ extension NSTextLayoutManager {
 
         if !options.contains(.allowOutside) {
             // Is point outside the frame?
-            if let layoutFragmentFrame = textLayoutFragment(for: point)?.layoutFragmentFrame, !layoutFragmentFrame.contains(point) {
+            if let layoutFragmentFrame = textLayoutFragment(for: lineFragmentRange.location)?.layoutFragmentFrame, !layoutFragmentFrame.contains(point) {
                 return nil
             }
         }

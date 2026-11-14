@@ -1,5 +1,7 @@
 # TreeSitterTSX
 
+**English** | [简体中文](README.zh-CN.md)
+
 The tree-sitter **TSX** grammar — TypeScript *with* JSX — exposed as a local
 SwiftPM package so zshell can link `tree_sitter_tsx()`.
 
@@ -7,8 +9,8 @@ SwiftPM package so zshell can link `tree_sitter_tsx()`.
 
 tree-sitter-typescript ships **two separate grammars**: `typescript` and `tsx`.
 They aren't dialects of one parser — `typescript` has no JSX node types at all
-(`jsx_opening_element` appears 0 times in its `parser.c`, 508 times in the TSX
-one), because JSX's `<tag>` is ambiguous with TypeScript's `<T>x` type
+(the TypeScript parser has no `jsx_opening_element`), because JSX's `<tag>` is
+ambiguous with TypeScript's `<T>x` type
 assertion and the grammar has to pick one. So parsing a `.tsx` file with the
 `typescript` grammar turns every element into a parse error and the whole JSX
 body of the file renders miscolored.
@@ -29,18 +31,20 @@ three.
 
 ## Provenance
 
-Copied verbatim from `STTextView-Plugin-Neon` 0.8.1 (commit `5a30db4`),
-`Sources/TreeSitterTSX/` — the same revision zshell pins in
-`zshell.xcodeproj/project.pbxproj`, so the grammar matches the queries and the
-tree-sitter runtime the rest of the highlighting stack uses (grammar ABI
-`LANGUAGE_VERSION 13`). `Package.swift` mirrors that package's target
-declaration (`cSettings: [.headerSearchPath("src")]`) and adds the library
-product that upstream is missing.
+The generated parser and scanner come from
+[tree-sitter-typescript](https://github.com/tree-sitter/tree-sitter-typescript)
+tag `v0.23.2`, commit `f975a621f4e7f532fe322e13c4f79495e0a7b2e7`
+(grammar ABI `LANGUAGE_VERSION 14`). The MIT license is retained beside the
+sources. The shared upstream `common/scanner.h` is stored as `src/scanner.h`,
+and the scanner's include uses that local path; the parser is unmodified.
 
-To update, re-copy `include/` and `src/` from the plugin checkout at the
-revision zshell pins:
+The TypeScript and TSX targets in `STTextView-Plugin-Neon` use the same grammar
+revision. Its TypeScript query resources are copied from that tag too, so the
+app's merged TypeScript and JSX highlight queries match the grammar. The local
+Swift package retains the `TreeSitterTSX` library product, `tree_sitter_tsx()`
+symbol and existing public header.
 
-```sh
-cp -R "$CHECKOUTS/STTextView-Plugin-Neon/Sources/TreeSitterTSX/"{include,src} \
-  Vendor/TreeSitterTSX/Sources/TreeSitterTSX/
-```
+To update, copy `tsx/src/` and `common/scanner.h` from a fixed upstream tag,
+rewrite the scanner include, and refresh the plugin's TypeScript/TSX parsers
+and query resources together. Verify query compilation, TSX parsing and the
+app's highlighting on the vendored Tree-sitter runtime.
