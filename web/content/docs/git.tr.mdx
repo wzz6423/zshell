@@ -44,7 +44,7 @@ Fark üstündeki denetimler tercihlerinizi uygulama genelinde hatırlar:
 - **Birleşik / Yan Yana**, tek sütun ve karşılıklı görünüm arasında geçer.
 - **İncele / Düzenle**, canlı çalışma ağacındaki hazırlanmamış dosyalarda görünür. Yeni tarafı doğrudan düzenleyip <kbd>Cmd</kbd>+<kbd>S</kbd> ile kaydedin; kaydedilmemiş dosyayı kapatma davranışı normal düzenleyiciyle aynıdır.
 
-Araç çubuğundaki **Satırları fark genişliğine kaydır** ile uzun satırları yatay kaydırmadan okuyun. Aynı anahtar **Ayarlar → Düzenleyici** altında bulunur (`editor.diff-wrap-lines`, varsayılan `false`). Geçmiş commitler, düzenlenebilir değişiklikler ve PR yorumları dahil açık ve yeni tüm farklara uygulanır ve düzenleme taslağını korur.
+Araç çubuğundaki **Satırları fark genişliğine kaydır** ile uzun satırları yatay kaydırmadan okuyun. Aynı anahtar **Ayarlar → Düzenleyici** altında bulunur (`editor.diff-wrap-lines`, varsayılan `true`). Geçmiş commitler, düzenlenebilir değişiklikler ve PR yorumları dahil açık ve yeni tüm farklara uygulanır ve düzenleme taslağını korur.
 
 Hazırlanmış ve geçmiş commit farkları salt okunurdur; bunlar Zshell’in güvenle yazabileceği dosyalar değil, anlık görüntülerdir. Bir farkı Düzenle veya Yan Yana yapmak diğer açık farkların tercihini günceller ama uygun olmayan farkları düzenlenebilir yapmaz.
 
@@ -118,6 +118,8 @@ Pull bilinçli olarak yalnızca fast-forward yapar. Gerçek merge veya rebase ge
 **Ayarlar → Genel → Git** içindeki **Çekme isteği durumunu göster** varsayılan olarak açıktır (`git.pull-request-status = true`). Kapatmak Git panelindeki pull request durumunu gizler.
 
 Yerel bir deponun Git panelinde geçerli dalın pull request numarasını ve durumunu görmek için GitHub CLI yükleyip `gh auth login` ile oturum açın. Açmak için tıklayın veya sağ tıklayıp **Pull request durumunu yenile** seçeneğini kullanın. GitHub dışındaki uzak depolarda pull request gösterilmez.
+
+Arka plan kontrolleri mevcut sonucu görünür tutar. Dal veya uzak depo değişikliği durumu yeniler; bunları değiştirmeyen derlemeler ve diğer Git işlemleri sonucu korur.
 
 ### Proxy [#proxy]
 

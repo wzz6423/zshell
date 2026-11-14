@@ -30,6 +30,16 @@ Apri **Terminale → Cronologia comandi…** per cercare i comandi eseguiti in Z
 
 La cronologia viene salvata localmente in background, fino a 2.000 comandi e 8 MiB. **Elimina** rimuove il record selezionato; **Cancella cronologia…** rimuove la lista salvata. L’output del terminale e la cronologia della shell restano disponibili.
 
+## Completamento della shell [#shell-completion]
+
+Attiva **Impostazioni → Terminale → Input → Completamento della shell** (`terminal.shell-completions`, attivo per impostazione predefinita) per suggerimenti in linea di comandi, argomenti e percorsi. Vale per nuove shell zsh locali e nuove sessioni zsh remote condivise con un server Zshell compatibile. Apri una nuova sessione dopo aver cambiato l’interruttore.
+
+Con i tasti predefiniti di zsh, premi Freccia destra alla fine dell’input per accettare il suggerimento. Tab apre o scorre il menu dei candidati; le frecce e Invio ne scelgono uno senza eseguire il comando. Esc chiude il suggerimento o il menu.
+
+Plugin di completamento e scorciatoie personalizzate esistenti mantengono la priorità.
+
+I plugin inclusi non modificano `.zshrc`. I programmi a schermo intero ricevono il proprio input. Con zshell-server compatibile e zsh, i progetti remoti condivisi usano comandi e percorsi remoti; le altre shell mantengono il completamento nativo. `terminal.shell-completions = false` disattiva la funzione.
+
 ## La tua shell, invariata [#your-shell-unchanged]
 
 Ogni sessione avvia la shell di login del tuo account, quindi prompt, alias, funzioni e dotfile vengono caricati come in qualsiasi terminale. Zshell aggiunge variabili che ne indicano identità e capacità:
@@ -243,9 +253,3 @@ L'elenco completo dei comandi comuni resta disponibile; cambia solo la priorità
 Gli editor locali vengono identificati tramite l'eseguibile in primo piano. Dentro SSH, Mosh o un multiplexer del terminale, il rilevamento usa la riga visibile di modalità/stato di Vim e la disposizione dello schermo, senza installare plugin remoti. Mantieni attivo `showmode` di Vim o una riga di stato riconoscibile. Le configurazioni che nascondono o rinominano le etichette delle modalità possono mostrare i suggerimenti della modalità Normale o impedire il rilevamento remoto; le mappature personalizzate non vengono interpretate. Viene campionato solo il pannello Info attivo e i suggerimenti scompaiono quando cambia il programma in primo piano o l'editor non è più riconoscibile.
 
 Puoi attivare la funzione anche nel file di configurazione con `terminal.vim-command-hints = true`.
-
-## Completamento della shell
-
-Attiva **Impostazioni → Terminale → Input → Completamento della shell** (attivo per impostazione predefinita) e apri un nuovo terminale zsh. Comandi, sottocomandi, argomenti e percorsi usano le funzioni della shell, con suggerimenti grigi. **Freccia destra** accetta a fine input; **Tab** apre le opzioni, le frecce selezionano, **Invio** accetta senza eseguire, **Esc** o **Ctrl+G** annulla il menu. **Esc** chiude anche il suggerimento. Plugin e scorciatoie esistenti sono conservati.
-
-I plugin inclusi non modificano `.zshrc`. I programmi a schermo intero mantengono il proprio input. Con zshell-server compatibile e zsh, i progetti remoti usano comandi e percorsi remoti; le altre shell mantengono il completamento nativo. Si applica a nuove shell e sessioni remote. Disattiva con `terminal.shell-completions = false`.

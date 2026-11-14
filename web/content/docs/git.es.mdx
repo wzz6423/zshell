@@ -44,7 +44,7 @@ Los controles sobre la vista de diferencias recuerdan tus preferencias globalmen
 - **Unificado / Dividido** cambia entre una columna y una disposición en paralelo.
 - **Revisar / Editar** aparece para un archivo sin preparar del árbol de trabajo actual. Edita directamente el lado nuevo y guarda con <kbd>Cmd</kbd>+<kbd>S</kbd>; al cerrar un archivo con cambios sin guardar se aplica el mismo tratamiento que en el editor normal.
 
-Usa **Ajustar líneas al ancho de la diferencia** en la barra para leer líneas largas sin desplazamiento horizontal. El mismo interruptor está en **Ajustes → Editor** (`editor.diff-wrap-lines`, predeterminado `false`). Se aplica a las diferencias abiertas y nuevas, incluidos commits históricos, cambios editables y comentarios de PR, y conserva el borrador de edición.
+Usa **Ajustar líneas al ancho de la diferencia** en la barra para leer líneas largas sin desplazamiento horizontal. El mismo interruptor está en **Ajustes → Editor** (`editor.diff-wrap-lines`, predeterminado `true`). Se aplica a las diferencias abiertas y nuevas, incluidos commits históricos, cambios editables y comentarios de PR, y conserva el borrador de edición.
 
 Las diferencias preparadas y las de commits históricos siguen siendo de solo lectura porque son instantáneas, no archivos que Zshell pueda escribir con seguridad. Cambiar una vista a Editar o Dividido actualiza la preferencia de otras vistas abiertas, sin convertir en editable una que no cumpla los requisitos.
 
@@ -118,6 +118,8 @@ La actualización usa exclusivamente avance rápido de forma deliberada. Si hace
 **Mostrar estado de las solicitudes de incorporación** en **Ajustes → General → Git** está activado por defecto (`git.pull-request-status = true`). Desactivarlo oculta el estado de la pull request en el panel de Git.
 
 Instala GitHub CLI e inicia sesión con `gh auth login` para ver en el panel Git de un repositorio local el número y el estado de la pull request de la rama actual. Haz clic para abrirla o haz clic derecho y elige **Actualizar estado de la pull request**. Los remotos que no son de GitHub no muestran una pull request.
+
+Las comprobaciones en segundo plano mantienen visible el resultado actual. Cambiar de rama o remoto actualiza el estado; las compilaciones y otras operaciones de Git que no los cambian conservan el resultado.
 
 ### Proxy [#proxy]
 

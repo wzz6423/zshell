@@ -44,7 +44,7 @@ I controlli sopra il diff ricordano le tue scelte globalmente:
 - **Unificato / Affiancato** alterna tra una colonna e due viste affiancate.
 - **Revisione / Modifica** compare per file non in staging nel worktree corrente. Modifica direttamente il lato nuovo e salva con <kbd>Cmd</kbd>+<kbd>S</kbd>; la chiusura di file non salvati funziona come nell'editor normale.
 
-Usa **Adatta le righe alla larghezza del diff** nella barra per leggere righe lunghe senza scorrere orizzontalmente. Lo stesso interruttore si trova in **Impostazioni → Editor** (`editor.diff-wrap-lines`, predefinito `false`). Vale per i diff aperti e nuovi, inclusi commit storici, modifiche editabili e commenti PR, mantenendo la bozza di modifica.
+Usa **Adatta le righe alla larghezza del diff** nella barra per leggere righe lunghe senza scorrere orizzontalmente. Lo stesso interruttore si trova in **Impostazioni → Editor** (`editor.diff-wrap-lines`, predefinito `true`). Vale per i diff aperti e nuovi, inclusi commit storici, modifiche editabili e commenti PR, mantenendo la bozza di modifica.
 
 I diff in staging e dei commit storici restano in sola lettura perché sono snapshot, non file scrivibili in sicurezza. Passare un diff a Modifica o Affiancato aggiorna la preferenza degli altri diff aperti senza rendere modificabile un diff non idoneo.
 
@@ -118,6 +118,8 @@ Il pull è volutamente solo fast-forward. Se serve un vero merge o rebase, Git l
 **Mostra lo stato delle richieste di pull** in **Impostazioni → Generale → Git** è attivo per impostazione predefinita (`git.pull-request-status = true`). Disattivarlo nasconde lo stato della pull request nel pannello Git.
 
 Installa GitHub CLI e accedi con `gh auth login` per vedere nel pannello Git di un repository locale numero e stato della pull request del ramo corrente. Fai clic per aprirla oppure fai clic destro e scegli **Aggiorna stato della pull request**. I remoti diversi da GitHub non mostrano una pull request.
+
+I controlli in background mantengono visibile il risultato attuale. Cambiare ramo o remoto aggiorna lo stato; le compilazioni e altre operazioni Git che non li cambiano conservano il risultato.
 
 ### Proxy [#proxy]
 

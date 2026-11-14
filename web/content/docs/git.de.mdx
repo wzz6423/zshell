@@ -44,7 +44,7 @@ Die Steuerelemente über dem Diff speichern deine Auswahl global:
 - **Vereinheitlicht / Geteilt** wechselt zwischen einer Spalte und der Gegenüberstellung.
 - **Prüfen / Bearbeiten** erscheint bei einer nicht gestagten Datei im aktuellen Arbeitsbaum. Bearbeiten Sie die neue Seite direkt und speichern Sie mit <kbd>Cmd</kbd>+<kbd>S</kbd>. Beim Schließen ungespeicherter Dateien gilt dasselbe Verhalten wie im normalen Editor.
 
-Mit **Zeilen an Diffbreite umbrechen** in der Werkzeugleiste lassen sich lange Zeilen ohne horizontales Scrollen lesen. Derselbe Schalter steht unter **Einstellungen → Editor** (`editor.diff-wrap-lines`, Standard `false`). Er gilt für offene und neue Diffs einschließlich historischer Commits, bearbeitbarer Änderungen und PR-Kommentare. Der aktuelle Bearbeitungsentwurf bleibt erhalten.
+Mit **Zeilen an Diffbreite umbrechen** in der Werkzeugleiste lassen sich lange Zeilen ohne horizontales Scrollen lesen. Derselbe Schalter steht unter **Einstellungen → Editor** (`editor.diff-wrap-lines`, Standard `true`). Er gilt für offene und neue Diffs einschließlich historischer Commits, bearbeitbarer Änderungen und PR-Kommentare. Der aktuelle Bearbeitungsentwurf bleibt erhalten.
 
 Gestagte Diffs und Diffs früherer Commits bleiben schreibgeschützt, da sie Momentaufnahmen sind. Wenn Sie einen Diff auf Bearbeiten oder Geteilt umstellen, übernehmen andere geöffnete Diffs diese Voreinstellung. Schreibgeschützte Diffs werden dadurch nicht bearbeitbar.
 
@@ -118,6 +118,8 @@ Pull verwendet bewusst nur Fast-Forward. Ist ein echter Merge oder Rebase nötig
 **Pull-Request-Status anzeigen** unter **Einstellungen → Allgemein → Git** ist standardmäßig eingeschaltet (`git.pull-request-status = true`). Ausschalten verbirgt den Pull-Request-Status im Git-Panel.
 
 Installieren Sie GitHub CLI und melden Sie sich mit `gh auth login` an. Der Git-Bereich eines lokalen Repositorys zeigt dann Nummer und Status des Pull Requests für den aktuellen Branch. Ein Klick öffnet ihn; per Rechtsklick lässt sich **Pull-Request-Status aktualisieren** wählen. Für andere Remotes als GitHub wird kein Pull Request angezeigt.
+
+Hintergrundprüfungen lassen das aktuelle Ergebnis sichtbar. Ein Wechsel des Branches oder Remotes aktualisiert den Status; Builds und andere Git-Aktivitäten ohne solche Änderungen behalten das Ergebnis bei.
 
 ### Proxy [#proxy]
 

@@ -44,7 +44,7 @@ De bediening boven een diff onthoudt je keuzes voor de hele app:
 - **Gecombineerd / Gesplitst** wisselt tussen één kolom en een indeling naast elkaar.
 - **Beoordelen / Bewerken** verschijnt voor een niet-gestaged bestand in de actuele worktree. Bewerk de nieuwe kant rechtstreeks en sla op met <kbd>Cmd</kbd>+<kbd>S</kbd>. Sluiten met niet-opgeslagen wijzigingen werkt zoals in de gewone editor.
 
-Gebruik **Regels afbreken op diffbreedte** in de werkbalk om lange regels zonder horizontaal scrollen te lezen. Dezelfde schakelaar staat onder **Instellingen → Editor** (`editor.diff-wrap-lines`, standaard `false`). Deze geldt voor open en nieuwe diffs, inclusief historische commits, bewerkbare wijzigingen en PR-opmerkingen, en bewaart je bewerkingsconcept.
+Gebruik **Regels afbreken op diffbreedte** in de werkbalk om lange regels zonder horizontaal scrollen te lezen. Dezelfde schakelaar staat onder **Instellingen → Editor** (`editor.diff-wrap-lines`, standaard `true`). Deze geldt voor open en nieuwe diffs, inclusief historische commits, bewerkbare wijzigingen en PR-opmerkingen, en bewaart je bewerkingsconcept.
 
 Gestagede diffs en diffs van historische commits blijven alleen-lezen: het zijn momentopnamen en geen bestanden die Zshell veilig kan schrijven. Als je één diff op Bewerken of Gesplitst zet, wordt de voorkeur voor andere geopende diffs bijgewerkt zonder een ongeschikte diff bewerkbaar te maken.
 
@@ -118,6 +118,8 @@ Pullen is bewust beperkt tot fast-forward. Als een echte merge of rebase nodig i
 **Status van pull requests tonen** onder **Instellingen → Algemeen → Git** staat standaard aan (`git.pull-request-status = true`). Uitschakelen verbergt de pullrequeststatus in het Git-paneel.
 
 Installeer GitHub CLI en meld je aan met `gh auth login` om in het Git-paneel van een lokale repository het nummer en de status van de pullrequest voor de huidige branch te zien. Klik om deze te openen of klik met de rechtermuisknop en kies **Pullrequeststatus vernieuwen**. Andere remotes dan GitHub tonen geen pullrequest.
+
+Controles op de achtergrond houden het huidige resultaat zichtbaar. Een andere branch of remote vernieuwt de status; builds en andere Git-activiteiten zonder zo’n wijziging behouden het resultaat.
 
 ### Proxy [#proxy]
 

@@ -44,7 +44,7 @@ Os controles acima do diff lembram suas escolhas globalmente:
 - **Unificado / Dividido** alterna entre uma coluna e visualização lado a lado.
 - **Revisão / Edição** aparece para arquivos não preparados no worktree atual. Edite o lado novo diretamente e salve com <kbd>Cmd</kbd>+<kbd>S</kbd>; o tratamento ao fechar arquivos modificados é igual ao editor normal.
 
-Use **Ajustar linhas à largura do diff** na barra para ler linhas longas sem rolagem horizontal. O mesmo controle fica em **Ajustes → Editor** (`editor.diff-wrap-lines`, padrão `false`). Ele se aplica a diffs abertos e novos, incluindo commits históricos, alterações editáveis e comentários de PR, preservando o rascunho da edição.
+Use **Ajustar linhas à largura do diff** na barra para ler linhas longas sem rolagem horizontal. O mesmo controle fica em **Ajustes → Editor** (`editor.diff-wrap-lines`, padrão `true`). Ele se aplica a diffs abertos e novos, incluindo commits históricos, alterações editáveis e comentários de PR, preservando o rascunho da edição.
 
 Diffs preparados e de commits históricos são somente leitura porque são snapshots, não arquivos que o Zshell possa alterar com segurança. Trocar um diff para Edição ou Dividido atualiza a preferência dos outros diffs abertos sem tornar editável um diff não elegível.
 
@@ -118,6 +118,8 @@ O pull é somente fast-forward de propósito. Se for necessário merge ou rebase
 **Mostrar status dos pull requests** em **Ajustes → Geral → Git** vem ativado (`git.pull-request-status = true`). Desativar oculta o estado da pull request no painel Git.
 
 Instale o GitHub CLI e entre com `gh auth login` para ver no painel Git de um repositório local o número e o estado da pull request da ramificação atual. Clique para abri-la ou clique com o botão direito e escolha **Atualizar estado da pull request**. Remotos que não são do GitHub não exibem uma pull request.
+
+As verificações em segundo plano mantêm o resultado atual visível. Mudar de branch ou remoto atualiza o status; compilações e outras operações do Git que não os alteram preservam o resultado.
 
 ### Proxy [#proxy]
 

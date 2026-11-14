@@ -30,6 +30,16 @@ Chọn **Terminal → Lịch sử lệnh…** để tìm các lệnh đã chạy
 
 Lịch sử được lưu cục bộ ở nền, tối đa 2.000 lệnh và 8 MiB. **Xóa** bỏ bản ghi đã chọn; **Xóa lịch sử…** bỏ danh sách đã lưu. Đầu ra terminal và lịch sử riêng của shell được giữ lại.
 
+## Hoàn thành lệnh shell [#shell-completion]
+
+Bật **Cài đặt → Terminal → Nhập liệu → Hoàn thành lệnh shell** (`terminal.shell-completions`, mặc định bật) để dùng gợi ý lệnh, đối số và đường dẫn ngay trong dòng nhập. Áp dụng cho zsh cục bộ mới và phiên zsh từ xa dùng chung mới với máy chủ Zshell tương thích. Mở phiên mới sau khi đổi công tắc.
+
+Với phím mặc định của zsh, nhấn Mũi tên phải ở cuối dòng nhập để nhận gợi ý. Tab mở hoặc duyệt menu ứng viên; dùng các phím mũi tên và Return để chọn mà không chạy lệnh. Esc đóng gợi ý hoặc menu.
+
+Plugin hoàn thành và tổ hợp phím tùy chỉnh sẵn có giữ quyền ưu tiên.
+
+Plugin đi kèm không sửa `.zshrc`. Chương trình toàn màn hình nhận đầu vào riêng. Với zshell-server tương thích và zsh, dự án từ xa dùng chung sử dụng lệnh và đường dẫn từ xa; shell khác giữ hoàn thành gốc. Tắt bằng `terminal.shell-completions = false`.
+
 ## Shell của bạn không đổi [#your-shell-unchanged]
 
 Mỗi phiên mở shell đăng nhập của tài khoản, nên dấu nhắc, alias, hàm và dotfile nạp như trong terminal khác. Zshell thêm biến nhận diện và khả năng:
@@ -243,9 +253,3 @@ Toàn bộ danh sách lệnh thông dụng luôn còn; chỉ ưu tiên thay đ�
 Trình soạn thảo cục bộ được nhận diện qua chương trình tiền cảnh. Trong SSH, Mosh hoặc bộ ghép terminal, việc phát hiện dùng dòng chế độ/trạng thái Vim nhìn thấy và bố cục màn hình, không cài plugin từ xa. Giữ `showmode` hoặc dòng trạng thái dễ nhận diện. Cấu hình giấu/đổi nhãn chế độ có thể trở về gợi ý Normal hoặc ngăn nhận diện từ xa; ánh xạ phím tùy chỉnh không được diễn giải. Chỉ bảng Thông tin đang hoạt động được lấy mẫu; gợi ý biến mất khi chương trình tiền cảnh đổi hoặc không còn nhận ra trình soạn thảo.
 
 Cũng có thể bật bằng `terminal.vim-command-hints = true` trong cấu hình.
-
-## Hoàn thành lệnh shell
-
-Bật **Cài đặt → Terminal → Nhập liệu → Hoàn thành lệnh shell** (mặc định bật), rồi mở terminal zsh mới. Lệnh, lệnh con, tham số và đường dẫn dùng hàm hoàn thành của shell với gợi ý màu xám. **Mũi tên phải** chấp nhận ở cuối đầu vào; **Tab** mở lựa chọn, mũi tên chọn, **Return** chấp nhận mà không chạy, **Esc** hoặc **Ctrl+G** hủy menu. **Esc** cũng đóng gợi ý. Plugin và phím tắt hiện có được giữ nguyên.
-
-Plugin đi kèm không sửa `.zshrc`. Chương trình toàn màn hình nhận đầu vào riêng. Với zshell-server tương thích và zsh, dự án từ xa dùng lệnh và đường dẫn từ xa; shell khác giữ hoàn thành gốc. Áp dụng cho shell và phiên từ xa mới. Tắt bằng `terminal.shell-completions = false`.

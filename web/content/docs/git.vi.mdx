@@ -44,7 +44,7 @@ Diff lớn vẫn phản hồi nhanh. Tập nghìn tệp mở nhanh như thay đ�
 - **Hợp nhất / Chia đôi** đổi giữa một cột và hai cột cạnh nhau.
 - **Xem xét / Chỉnh sửa** có với tệp chưa stage trong worktree hiện hành. Sửa trực tiếp phía mới và <kbd>Cmd</kbd>+<kbd>S</kbd> để lưu; đóng tệp chưa lưu được xử lý như trình soạn thảo thường.
 
-Dùng **Ngắt dòng theo chiều rộng diff** trên thanh công cụ để đọc dòng dài mà không cuộn ngang. Cùng công tắc có trong **Cài đặt → Trình soạn thảo** (`editor.diff-wrap-lines`, mặc định `false`). Áp dụng cho diff đang mở và mới, gồm commit lịch sử, thay đổi có thể chỉnh sửa và bình luận PR, đồng thời giữ bản nháp chỉnh sửa.
+Dùng **Ngắt dòng theo chiều rộng diff** trên thanh công cụ để đọc dòng dài mà không cuộn ngang. Cùng công tắc có trong **Cài đặt → Trình soạn thảo** (`editor.diff-wrap-lines`, mặc định `true`). Áp dụng cho diff đang mở và mới, gồm commit lịch sử, thay đổi có thể chỉnh sửa và bình luận PR, đồng thời giữ bản nháp chỉnh sửa.
 
 Diff đã stage và commit lịch sử chỉ đọc vì là ảnh chụp trạng thái, không phải tệp Zshell có thể ghi an toàn. Chuyển một diff sang Chỉnh sửa hoặc Chia đôi cập nhật tùy chọn của diff đang mở khác nhưng không làm diff không đủ điều kiện trở nên sửa được.
 
@@ -118,6 +118,8 @@ Pull chỉ fast-forward là có chủ đích. Nếu cần merge hoặc rebase th
 **Hiển thị trạng thái pull request** trong **Cài đặt → Chung → Git** được bật mặc định (`git.pull-request-status = true`). Tắt tùy chọn này sẽ ẩn trạng thái pull request trong bảng Git.
 
 Cài GitHub CLI và đăng nhập bằng `gh auth login` để xem số và trạng thái pull request của nhánh hiện tại trong bảng Git của kho cục bộ. Nhấp để mở hoặc nhấp chuột phải và chọn **Làm mới trạng thái pull request**. Remote không thuộc GitHub không hiển thị pull request.
+
+Kiểm tra nền vẫn giữ kết quả hiện tại trên màn hình. Đổi nhánh hoặc remote sẽ cập nhật trạng thái; quá trình dựng và các hoạt động Git không đổi hai mục này giữ nguyên kết quả.
 
 ### Proxy [#proxy]
 

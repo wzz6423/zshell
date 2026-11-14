@@ -30,6 +30,16 @@ Unter **Terminal → Befehlsverlauf…** suchen Sie ausgeführte Zshell-Befehle 
 
 Der Verlauf wird im Hintergrund lokal gespeichert, begrenzt auf 2.000 Befehle und 8 MiB. **Löschen** entfernt den gewählten Eintrag; **Verlauf löschen…** entfernt die gespeicherte Liste. Terminalausgabe und Shell-Verlauf bleiben erhalten.
 
+## Shell-Vervollständigung [#shell-completion]
+
+Aktivieren Sie **Einstellungen → Terminal → Eingabe → Shell-Vervollständigung** (`terminal.shell-completions`, standardmäßig an), um Inline-Vorschläge für Befehle, Argumente und Pfade zu erhalten. Dies gilt für neue lokale zsh-Shells und neue geteilte entfernte zsh-Sitzungen mit einem kompatiblen Zshell-Server. Öffnen Sie nach einer Änderung eine neue Sitzung.
+
+Mit den zsh-Standardtasten übernimmt Rechtspfeil am Eingabeende den Inline-Vorschlag. Tab öffnet das Kandidatenmenü oder wechselt zum nächsten Eintrag; Pfeiltasten und Eingabetaste wählen einen Kandidaten, ohne den Befehl auszuführen. Esc schließt den Vorschlag oder das Menü.
+
+Vorhandene Vervollständigungsplugins und eigene Tastenbelegungen haben Vorrang.
+
+Die gebündelten Plugins ändern `.zshrc` nicht. Vollbildprogramme erhalten ihre eigene Eingabe. Geteilte Remote-Projekte nutzen mit kompatiblem zshell-server und zsh die entfernten Befehle und Pfade; andere Shells behalten ihre native Vervollständigung. `terminal.shell-completions = false` deaktiviert die Unterstützung.
+
 ## Ihre Shell bleibt unverändert [#your-shell-unchanged]
 
 Jede Sitzung startet die Login-Shell Ihres Kontos. Prompt, Aliasse, Funktionen und Dotfiles werden wie in jedem anderen Terminal geladen. Zshell ergänzt Variablen für Fähigkeiten und Identität:
@@ -243,9 +253,3 @@ Die vollständige Liste gängiger Befehle bleibt verfügbar; nur die Reihenfolge
 Lokale Editoren werden am Vordergrundprogramm erkannt. Innerhalb von SSH, Mosh oder einem Terminalmultiplexer nutzt die Erkennung die sichtbare Vim-Modus-/Statuszeile und Bildschirmanordnung, ohne ein entferntes Plugin zu installieren. Lassen Sie Vims `showmode` oder eine erkennbare Statuszeile aktiv. Verborgene oder umbenannte Modusnamen können zu Normal-Hinweisen führen oder die entfernte Erkennung verhindern; eigene Tastenzuordnungen werden nicht ausgewertet. Nur das aktive Infopanel wird abgetastet. Die Hinweise verschwinden, wenn das Vordergrundprogramm wechselt oder der Editor nicht mehr erkennbar ist.
 
 Alternativ aktivieren Sie die Funktion mit `terminal.vim-command-hints = true` in der Konfigurationsdatei.
-
-## Shell-Vervollständigung
-
-Aktivieren Sie **Einstellungen → Terminal → Eingabe → Shell-Vervollständigung** (standardmäßig an) und öffnen Sie ein neues zsh-Terminal. Befehle, Unterbefehle, Argumente und Pfade stammen aus den Shell-Funktionen und erscheinen als graue Vorschläge. **Rechtspfeil** übernimmt am Eingabeende, **Tab** zeigt Kandidaten, Pfeile wählen, **Return** übernimmt ohne Ausführung, **Esc** oder **Ctrl+G** bricht das Menü ab. **Esc** schließt auch den Inline-Vorschlag. Vorhandene Plugins und Tastenbelegungen bleiben erhalten.
-
-Die gebündelten Plugins ändern `.zshrc` nicht. Vollbildprogramme erhalten ihre eigene Eingabe. Remote-Projekte nutzen mit kompatiblem zshell-server und zsh die entfernten Befehle und Pfade; andere Shells behalten ihre native Vervollständigung. Gilt für neue Shells und Remote-Sitzungen. `terminal.shell-completions = false` deaktiviert die Unterstützung.

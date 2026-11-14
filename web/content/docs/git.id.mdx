@@ -49,7 +49,7 @@ Kontrol di atas diff mengingat pilihan Anda secara global:
 - **Terpadu / Terpisah (Unified / Split)** beralih antara satu kolom dan tampilan berdampingan.
 - **Tinjau / Edit (Review / Edit)** tersedia untuk berkas belum di-stage dalam pohon kerja aktif. Edit sisi baru secara langsung dan simpan dengan <kbd>Cmd</kbd>+<kbd>S</kbd>; penanganan penutupan berkas yang belum tersimpan sama seperti editor biasa.
 
-Gunakan **Bungkus baris sesuai lebar diff** di bilah alat untuk membaca baris panjang tanpa gulir horizontal. Sakelar yang sama ada di **Pengaturan → Editor** (`editor.diff-wrap-lines`, bawaan `false`). Berlaku untuk diff terbuka dan baru, termasuk commit historis, perubahan yang dapat diedit, dan komentar PR, serta mempertahankan draf edit.
+Gunakan **Bungkus baris sesuai lebar diff** di bilah alat untuk membaca baris panjang tanpa gulir horizontal. Sakelar yang sama ada di **Pengaturan → Editor** (`editor.diff-wrap-lines`, bawaan `true`). Berlaku untuk diff terbuka dan baru, termasuk commit historis, perubahan yang dapat diedit, dan komentar PR, serta mempertahankan draf edit.
 
 Diff yang sudah di-stage dan diff commit historis tetap hanya baca karena merupakan snapshot, bukan berkas yang aman ditulis Zshell.
 Mengalihkan satu diff ke Edit atau Terpisah memperbarui preferensi diff terbuka lainnya tanpa membuat diff yang tidak memenuhi syarat menjadi dapat diedit.
@@ -127,6 +127,8 @@ Pull sengaja dibatasi pada fast-forward. Jika merge atau rebase sungguhan diperl
 **Tampilkan status pull request** di **Pengaturan → Umum → Git** aktif secara bawaan (`git.pull-request-status = true`). Menonaktifkannya menyembunyikan status pull request di panel Git.
 
 Instal GitHub CLI dan masuk dengan `gh auth login` untuk melihat nomor dan status pull request cabang saat ini di panel Git repositori lokal. Klik untuk membukanya, atau klik kanan dan pilih **Segarkan status pull request**. Remote selain GitHub tidak menampilkan pull request.
+
+Pemeriksaan latar belakang tetap menampilkan hasil saat ini. Perubahan branch atau remote menyegarkan status; build dan aktivitas Git lain yang tidak mengubah keduanya mempertahankan hasil.
 
 ### Proxy [#proxy]
 

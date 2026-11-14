@@ -30,6 +30,16 @@ Zshell’de çalıştırılan komutları metin veya dizine göre aramak için **
 
 Geçmiş arka planda yerel olarak, en fazla 2.000 komut ve 8 MiB sınırıyla kaydedilir. **Sil** seçili kaydı, **Geçmişi temizle…** kayıtlı listeyi kaldırır. Terminal çıktısı ve kabuğun kendi geçmişi korunur.
 
+## Kabuk tamamlama [#shell-completion]
+
+Satır içi komut, argüman ve yol önerileri için **Ayarlar → Terminal → Girdi → Kabuk tamamlama** seçeneğini açın (`terminal.shell-completions`, varsayılan açık). Yeni yerel zsh kabuklarına ve uyumlu Zshell sunuculu yeni paylaşılan uzak zsh oturumlarına uygulanır. Anahtarı değiştirdikten sonra yeni oturum açın.
+
+Varsayılan zsh tuşlarıyla girdinin sonunda Sağ Ok öneriyi kabul eder. Tab aday menüsünü açar veya adaylar arasında dolaşır; oklar ve Return komutu çalıştırmadan adayı seçer. Esc öneriyi veya menüyü kapatır.
+
+Mevcut tamamlama eklentileri ve özel tuş atamaları önceliğini korur.
+
+Birlikte gelen eklentiler `.zshrc` dosyasını değiştirmez. Tam ekran programları kendi girdilerini alır. Uyumlu zshell-server ve zsh ile paylaşılan uzak projeler uzak komutları ve yolları kullanır; diğer kabuklar kendi tamamlamalarını korur. Kapatmak için `terminal.shell-completions = false` kullanın.
+
 ## Kabuğunuz değişmez [#your-shell-unchanged]
 
 Her oturum hesabınızın giriş kabuğunu başlatır; istem, takma adlar, işlevler ve dotfile’lar diğer terminallerdeki gibi yüklenir. Zshell yetenek ve kimlik değişkenleri ekler:
@@ -243,9 +253,3 @@ Yaygın komutların tam listesi hep erişilebilirdir; yalnızca öncelik değiş
 Yerel düzenleyici öndeki çalıştırılabilir dosyadan tanınır. SSH, Mosh veya terminal çoklayıcısında uzak eklenti kurulmadan görünür Vim mod/durum satırı ve ekran düzeni kullanılır. Vim `showmode` veya tanınabilir durum satırını açık tutun. Mod etiketlerini gizleyen/değiştiren ayarlar Normal ipuçlarına düşebilir veya uzak algılamayı engelleyebilir; özel eşlemeler yorumlanmaz. Yalnızca etkin Bilgi paneli örneklenir; öndeki program değişince veya düzenleyici tanınamaz olunca ipuçları kaybolur.
 
 Yapılandırmada `terminal.vim-command-hints = true` ile de açabilirsiniz.
-
-## Kabuk tamamlama
-
-**Ayarlar → Terminal → Girdi → Kabuk tamamlama** seçeneğini açın (varsayılan açık) ve yeni zsh terminali açın. Komutlar, alt komutlar, argümanlar ve yollar kabuk işlevlerinden gelir; öneriler gri görünür. Girdi sonunda **Sağ ok** kabul eder; **Tab** adayları açar, oklar seçer, **Return** çalıştırmadan kabul eder, **Esc** veya **Ctrl+G** menüyü iptal eder. **Esc** öneriyi de kapatır. Mevcut eklentiler ve kısayollar korunur.
-
-Birlikte gelen eklentiler `.zshrc` dosyasını değiştirmez. Tam ekran programları kendi girdilerini alır. Uyumlu zshell-server ve zsh ile uzak projeler uzak komutları ve yolları kullanır; diğer kabuklar kendi tamamlamalarını korur. Yeni kabuklara ve uzak oturumlara uygulanır. Kapatmak için `terminal.shell-completions = false` kullanın.

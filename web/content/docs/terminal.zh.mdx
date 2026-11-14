@@ -32,6 +32,16 @@ Zshell 自动使用 `xterm-256color`。如果某台主机需要其他终端类�
 
 历史在后台保存到本机，最多保留 2,000 条和 8 MiB。**删除**移除所选记录，**清空历史…**移除保存的列表；两者都会保留终端输出和 Shell 自身的历史。
 
+## Shell 补全 [#shell-completion]
+
+开启 **设置 → 终端 → 输入 → Shell 补全**（`terminal.shell-completions`，默认开启），即可使用命令、参数和路径的行内建议。它适用于新建的本地 zsh，以及使用兼容 Zshell 服务的新建共享远程 zsh 会话；修改开关后请新建会话。
+
+使用 zsh 默认按键时，在输入末尾按右方向键接受行内建议；Tab 打开或切换候选菜单，再用方向键和 Return 选择候选，选择不会执行命令。Esc 关闭建议或菜单。
+
+已有补全插件和自定义按键保留优先级。
+
+Zshell 加载内置 zsh-completions 和 zsh-autosuggestions，不修改 `.zshrc`。全屏程序接收自身输入。共享远程项目在兼容的 zshell-server 和 zsh 上使用远端命令与路径；其他 Shell 保持原生补全。可用 `terminal.shell-completions = false` 关闭内置支持。
+
 <span id="你的-shell原封不动" data-canonical-heading="your-shell-unchanged" />
 
 ## 你的 shell，原封不动 [#your-shell-unchanged]
@@ -311,9 +321,3 @@ Vim 模式行、状态栏和屏幕布局识别，无需安装远端插件。请�
 或编辑器不再可识别时，提示会消失。
 
 也可在配置文件中设置 `terminal.vim-command-hints = true`。
-
-## Shell 补全
-
-打开 **设置 → 终端 → 输入 → Shell 补全**（默认开启），再新建 zsh 终端。命令、子命令、参数和路径使用 Shell 的补全函数，并显示灰色行内建议。在输入末尾按 **右方向键**接受建议；按 **Tab**打开候选，方向键选择，**Return**接受候选但不执行，**Esc**或 **Ctrl+G**取消菜单。**Esc**也可关闭行内建议。已有补全插件和自定义按键保留原有行为。
-
-Zshell 加载内置 zsh-completions 和 zsh-autosuggestions，不修改 `.zshrc`。全屏程序接收自身输入。远程项目在兼容的 zshell-server 和 zsh 上使用远端命令与路径；其他 Shell 保持原生补全。设置只影响新建的 Shell，包括新的远端会话。可用 `terminal.shell-completions = false`关闭内置支持。

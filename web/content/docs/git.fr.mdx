@@ -44,7 +44,7 @@ Les commandes au-dessus d’un diff mémorisent vos préférences globalement :
 - **Unifié / Séparé** alterne entre une colonne unique et une présentation côte à côte.
 - **Révision / Modification** apparaît pour un fichier non indexé dans l'arbre de travail actuel. Modifiez directement la nouvelle version puis enregistrez avec <kbd>Cmd</kbd>+<kbd>S</kbd>. La fermeture d'un fichier modifié suit les mêmes règles que l'éditeur habituel.
 
-Le bouton **Renvoyer les lignes à la largeur du diff** permet de lire les longues lignes sans défilement horizontal. Le même réglage se trouve dans **Réglages → Éditeur** (`editor.diff-wrap-lines`, valeur par défaut `false`). Il s’applique aux diffs ouverts et futurs, y compris les commits historiques, les modifications éditables et les commentaires de PR, en conservant le brouillon en cours.
+Le bouton **Renvoyer les lignes à la largeur du diff** permet de lire les longues lignes sans défilement horizontal. Le même réglage se trouve dans **Réglages → Éditeur** (`editor.diff-wrap-lines`, valeur par défaut `true`). Il s’applique aux diffs ouverts et futurs, y compris les commits historiques, les modifications éditables et les commentaires de PR, en conservant le brouillon en cours.
 
 Les diffs indexés et ceux des commits historiques restent en lecture seule : ce sont des instantanés, pas des fichiers dans lesquels Zshell peut écrire sans risque. Passer un diff en mode Modification ou Séparé actualise la préférence des autres diffs ouverts, sans rendre modifiable un instantané qui ne l'est pas.
 
@@ -118,6 +118,8 @@ Le tirage est volontairement limité à l'avance rapide. Si une fusion ou un reb
 **Afficher l’état des demandes de fusion** dans **Réglages → Général → Git** est activé par défaut (`git.pull-request-status = true`). Le désactiver masque l’état de la pull request dans le panneau Git.
 
 Installez GitHub CLI et connectez-vous avec `gh auth login` pour voir le numéro et l’état de la pull request de la branche courante dans le panneau Git d’un dépôt local. Cliquez dessus pour l’ouvrir, ou faites un clic droit et choisissez **Actualiser l’état de la pull request**. Les dépôts distants hors GitHub ne l’affichent pas.
+
+Les vérifications en arrière-plan gardent le résultat actuel visible. Changer de branche ou de dépôt distant actualise le statut ; les compilations et autres opérations Git qui ne les modifient pas conservent le résultat.
 
 ### Proxy [#proxy]
 

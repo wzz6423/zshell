@@ -30,6 +30,16 @@ Abre **Terminal → Historial de comandos…** para buscar comandos ejecutados e
 
 El historial se guarda localmente en segundo plano, con un límite de 2.000 comandos y 8 MiB. **Eliminar** quita el registro seleccionado; **Borrar historial…** quita la lista guardada. Se conservan la salida del terminal y el historial propio del shell.
 
+## Autocompletado del shell [#shell-completion]
+
+Activa **Ajustes → Terminal → Entrada → Autocompletado del shell** (`terminal.shell-completions`, activado por defecto) para sugerencias en línea de comandos, argumentos y rutas. Se aplica a nuevos shells zsh locales y nuevas sesiones zsh remotas compartidas con un servidor Zshell compatible. Abre una sesión nueva después de cambiar el interruptor.
+
+Con las teclas predeterminadas de zsh, pulsa Flecha derecha al final de la entrada para aceptar la sugerencia. Tab abre o recorre el menú de candidatos; las flechas y Retorno seleccionan uno sin ejecutar el comando. Esc cierra la sugerencia o el menú.
+
+Los complementos de autocompletado y atajos personalizados existentes tienen prioridad.
+
+Los plugins incluidos no modifican `.zshrc`. Los programas de pantalla completa reciben su propia entrada. Con zshell-server compatible y zsh, los proyectos remotos compartidos usan comandos y rutas remotos; otros shells mantienen su autocompletado nativo. `terminal.shell-completions = false` desactiva la función.
+
 ## Tu shell, sin cambios [#your-shell-unchanged]
 
 Cada sesión inicia el shell de inicio de sesión de tu cuenta, así que el prompt, los alias, las funciones y los archivos de configuración se cargan igual que en cualquier terminal. Zshell añade variables de capacidades e identidad:
@@ -244,9 +254,3 @@ Las sugerencias son una referencia; nunca envían entrada al editor.
 Los editores locales se identifican por su ejecutable en primer plano. Dentro de SSH, Mosh o un multiplexor de terminal, la detección usa la línea visible de modo o estado de Vim y la distribución de pantalla, sin instalar un complemento remoto. Mantén activado `showmode` de Vim o una línea de estado reconocible. Las configuraciones que ocultan o renombran las etiquetas de modo pueden mostrar las sugerencias de Normal o impedir la detección remota; no se interpretan asignaciones de teclas personalizadas. Solo se examina el panel Información activo, y las sugerencias desaparecen cuando cambia el programa en primer plano o el editor deja de ser reconocible.
 
 También puedes activarlas en el archivo de configuración con `terminal.vim-command-hints = true`.
-
-## Autocompletado del shell
-
-Activa **Ajustes → Terminal → Entrada → Autocompletado del shell** (activado por defecto) y abre una terminal zsh nueva. Comandos, subcomandos, argumentos y rutas usan funciones del shell con sugerencias grises. **Flecha derecha** acepta al final de la entrada; **Tab** abre opciones, las flechas seleccionan y **Return** acepta sin ejecutar. **Esc** o **Ctrl+G** cancela el menú; **Esc** también cierra la sugerencia. Se conservan plugins y atajos existentes.
-
-Los plugins incluidos no modifican `.zshrc`. Los programas de pantalla completa reciben su propia entrada. Con zshell-server compatible y zsh, los proyectos remotos usan comandos y rutas remotos; otros shells mantienen su autocompletado nativo. Se aplica a nuevos shells y sesiones remotas. `terminal.shell-completions = false` desactiva la función.

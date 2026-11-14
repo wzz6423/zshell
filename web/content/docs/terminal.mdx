@@ -36,6 +36,16 @@ Choose **Terminal → Command History…** to search commands run in Zshell by c
 
 History is saved locally in the background, with a limit of 2,000 commands and 8 MiB. **Delete** removes the selected record; **Clear History…** removes the saved list. These actions leave terminal output and the shell’s own history in place.
 
+## Shell completion [#shell-completion]
+
+Enable **Settings → Terminal → Input → Shell completions** (`terminal.shell-completions`, on by default) for inline command, argument and path suggestions. It applies to new local zsh shells and new shared remote zsh sessions with a compatible Zshell server; open a new session after changing the switch.
+
+With default zsh bindings, press Right Arrow at the end of the input to accept an inline suggestion. Tab opens or cycles the candidate menu; use the arrow keys and Return to choose a candidate without running the command. Esc dismisses the suggestion or menu.
+
+Existing completion plugins and custom key bindings keep priority.
+
+Zshell loads bundled zsh-completions and zsh-autosuggestions without editing `.zshrc`. Full-screen programs receive their own input. Shared remote projects use the remote shell’s commands and paths with a compatible zshell-server and zsh; other shells retain their native completion. Set `terminal.shell-completions = false` to disable the bundled support.
+
 ## Your shell, unchanged
 
 Each session starts your account's login shell, so your prompt, aliases,
@@ -369,9 +379,3 @@ when the foreground program changes or the editor is no longer recognizable.
 
 You can also enable it in the configuration file with
 `terminal.vim-command-hints = true`.
-
-## Shell completions
-
-Enable **Settings → Terminal → Input → Shell completions** (on by default) and open a new zsh terminal. Commands, subcommands, arguments, and paths use the shell’s completion functions, with gray inline suggestions. **Right** accepts an inline suggestion at the end of the input; **Tab** opens candidates, arrow keys select, **Return** accepts a candidate without running it, and **Esc** or **Ctrl+G** cancels the menu. **Esc** dismisses an inline suggestion. Existing completion plugins and custom keys keep their behavior.
-
-Zshell loads bundled zsh-completions and zsh-autosuggestions without editing `.zshrc`. Full-screen programs receive their own input. Remote projects use the remote shell’s commands and paths when a compatible zshell-server and zsh are installed; other shells retain their native completion. Changes apply to new shells, including new remote sessions. Set `terminal.shell-completions = false` to disable the bundled support.
