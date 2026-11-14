@@ -144,6 +144,8 @@ in Finder**。
 
 安装 GitHub CLI 并使用 `gh auth login` 登录后，本地仓库的 Git 面板会显示当前分支的 Pull Request 编号和状态。点击即可打开；也可以右键选择 **刷新 Pull Request 状态**。非 GitHub 远端不显示 Pull Request。
 
+后台检查会保留当前结果。切换分支或修改远端后会更新状态；构建和其他未改变分支及远端的 Git 操作会保持当前结果。
+
 ### 代理 [#proxy]
 
 要让 Git 流量走代理，在 **设置 → 通用** 中打开 **Git 使用代理**，并确认 **代理地址**（预填 `http://127.0.0.1:7897`）。代理默认关闭。它作用于面板的拉取、Pull 和推送、Pull Request 状态，以及之后新打开终端里的 `git`；已打开的终端和远程 SSH 项目不受影响。只有 HTTP(S) 远端会走代理，`git@` 形式的 SSH 远端仍然直连。配置文件中对应 `git.proxy-enabled = true` 和 `git.proxy = "<url>"`。
