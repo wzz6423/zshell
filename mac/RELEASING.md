@@ -94,6 +94,9 @@ DMG signing, SHA-256 generation, ZIP signing, and six signed appcast generation.
 It does not contact the release APIs or publish anything. The output is
 `build/release-v<version>/`; `RELEASE_OUTPUT_DIRECTORY` can select another location.
 The architecture check covers every nested Mach-O binary, not only the launcher.
+Universal and arm64 packages require native execution. Packaging removes that
+requirement from Intel packages so older Apple silicon installs can still update
+to arm64 through Sparkle.
 
 To resume packaging from an archive recorded against the same source commit:
 

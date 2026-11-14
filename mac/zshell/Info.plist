@@ -34,6 +34,9 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<!-- Keep universal installs and their terminal processes on the native slice. -->
+	<key>LSRequiresNativeExecution</key>
+	<true/>
 
 	<!-- Remote previews use a private localhost alias behind authenticated SSH,
 	     including HTTP development servers on the remote host. -->
