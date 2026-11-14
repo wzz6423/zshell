@@ -219,7 +219,7 @@ struct BrowserWebExtensionTests {
         pane.setCategory(.browser)
         _ = pane.view
         let buttons = descendants(pane.view).compactMap { $0 as? NSButton }
-        try require(buttons.contains { $0.title == String(localized: "Manage Extensions…") }, "Native Browser settings entry missing")
+        try require(buttons.contains { $0.title == String(localized: "Manage Extensions") }, "Native Browser settings entry missing")
         manager.show(relativeTo: window)
         guard let managerWindow = window.childWindows?.first(where: { $0.title == String(localized: "Browser Extensions") }) else { throw error("Extension manager did not present") }
         try require(managerWindow.isVisible && descendants(managerWindow.contentView!).contains { ($0 as? NSButton)?.title == String(localized: "Install Extension…") }, "Extension manager's native controls missing")

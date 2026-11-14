@@ -144109,6 +144109,114 @@
         }
       }
     },
+    "Import Browser Data": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import Browser Data"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导入浏览器数据"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匯入瀏覽器資料"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブラウザーデータを読み込む"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "브라우저 데이터 가져오기"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer les données du navigateur"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browserdaten importieren"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar datos del navegador"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar dados do navegador"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importa dati del browser"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browsergegevens importeren"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Импортировать данные браузера"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استيراد بيانات المتصفح"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "นำเข้าข้อมูลเบราว์เซอร์"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impor data browser"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhập dữ liệu trình duyệt"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarayıcı verilerini içe aktar"
+          }
+        }
+      }
+    },
     "Import Browser Data…": {
       "extractionState": "manual",
       "localizations": {
@@ -154059,109 +154167,109 @@
         }
       }
     },
-    "Browser Data Access…": {
+    "Browser Data Access": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Browser Data Access…"
+            "value": "Browser Data Access"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "浏览器数据访问权限…"
+            "value": "浏览器数据访问权限"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "瀏覽器資料存取權限…"
+            "value": "瀏覽器資料存取權限"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ブラウザーデータへのアクセス…"
+            "value": "ブラウザーデータへのアクセス"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "브라우저 데이터 접근 권한…"
+            "value": "브라우저 데이터 접근 권한"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Accès aux données du navigateur…"
+            "value": "Accès aux données du navigateur"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zugriff auf Browserdaten…"
+            "value": "Zugriff auf Browserdaten"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Acceso a los datos del navegador…"
+            "value": "Acceso a los datos del navegador"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Acesso aos dados do navegador…"
+            "value": "Acesso aos dados do navegador"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Accesso ai dati del browser…"
+            "value": "Accesso ai dati del browser"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Toegang tot browsergegevens…"
+            "value": "Toegang tot browsergegevens"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Доступ к данным браузера…"
+            "value": "Доступ к данным браузера"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "الوصول إلى بيانات المتصفح…"
+            "value": "الوصول إلى بيانات المتصفح"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "สิทธิ์เข้าถึงข้อมูลเบราว์เซอร์…"
+            "value": "สิทธิ์เข้าถึงข้อมูลเบราว์เซอร์"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Akses Data Browser…"
+            "value": "Akses Data Browser"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quyền truy cập dữ liệu trình duyệt…"
+            "value": "Quyền truy cập dữ liệu trình duyệt"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tarayıcı Verilerine Erişim…"
+            "value": "Tarayıcı Verilerine Erişim"
           }
         }
       }
@@ -155874,6 +155982,114 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uyumlu WebExtensions uzantılarını bir klasör veya ZIP dosyasından yükleyin. İşlemler için sayfanın uzantılar menüsünü kullanın. Değişikliklerden sonra açık sayfaları yeniden yükleyin."
+          }
+        }
+      }
+    },
+    "Manage Extensions": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage Extensions"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理扩展"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理擴充功能"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拡張機能を管理"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "확장 프로그램 관리"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gérer les extensions"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erweiterungen verwalten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Administrar extensiones"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerenciar extensões"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestisci estensioni"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Extensies beheren"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Управление расширениями"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إدارة الإضافات"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "จัดการส่วนขยาย"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kelola ekstensi"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quản lý tiện ích"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uzantıları yönet"
           }
         }
       }

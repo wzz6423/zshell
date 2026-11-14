@@ -44,7 +44,7 @@ Os painéis de navegador mantêm cookies, sessões de login e outros dados de si
 
 Em **Visualizar → Navegador → Importar dados do navegador…**, os cookies são importados para o armazenamento do navegador do projeto selecionado ao clicar em **Import**. Cada projeto remoto tem armazenamento separado; os projetos locais compartilham o armazenamento padrão. Trocar de projeto não altera o destino. Fechar o projeto de destino interrompe o restante da importação sem gravar em outro projeto. Se nenhum projeto estiver aberto, o Zshell cria um projeto local ao iniciar a importação de cookies ou abas.
 
-As permissões dos dados do navegador ficam em **Ajustes → Navegador → Acesso aos dados do navegador…**. A janela de importação também oferece **Permitir Acesso**, **Ajustes do Sistema…** e **Atualizar**. Escolha a pasta de dados do navegador indicada no diálogo. Se o macOS continuar bloqueando o acesso, permita o app em execução, **zshell** ou **zshell Debug**, em **Ajustes do Sistema → Privacidade e Segurança → Acesso Total ao Disco**, e clique em **Atualizar**. Reinicie o app se o macOS solicitar. A lista de perfis é atualizada após a busca; uma lista vazia não permite pré-visualizar nem importar.
+As permissões dos dados do navegador ficam em **Ajustes → Navegador → Acesso aos dados do navegador**. A janela de importação também oferece **Permitir Acesso**, **Ajustes do Sistema…** e **Atualizar**. Escolha a pasta de dados do navegador indicada no diálogo. Se o macOS continuar bloqueando o acesso, permita o app em execução, **zshell** ou **zshell Debug**, em **Ajustes do Sistema → Privacidade e Segurança → Acesso Total ao Disco**, e clique em **Atualizar**. Reinicie o app se o macOS solicitar. A lista de perfis é atualizada após a busca; uma lista vazia não permite pré-visualizar nem importar.
 
 O Chrome pode continuar aberto durante a importação do histórico; seu histórico salvo não é alterado.
 
@@ -52,7 +52,7 @@ Cookies do Firefox sem SameSite são importados como Lax, inclusive de perfis an
 
 ## Extensões locais do navegador [#local-browser-extensions]
 
-Abra **Ajustes → Navegador → Gerenciar extensões…**, escolha **Instalar extensão…** e selecione uma pasta WebExtension compatível ou um ZIP com `manifest.json` na raiz. Revise as permissões de APIs e sites antes de **Instalar**. Zshell copia a extensão localmente; editar a pasta original não a atualiza.
+Abra **Ajustes → Navegador → Gerenciar extensões**, escolha **Instalar extensão…** e selecione uma pasta WebExtension compatível ou um ZIP com `manifest.json` na raiz. Revise as permissões de APIs e sites antes de **Instalar**. Zshell copia a extensão localmente; editar a pasta original não a atualiza.
 
 Clique com o botão direito em uma página e abra **Extensões** para executar uma ação ou abrir **Opções**. As ações podem mostrar pop-ups. `activeTab` dá acesso apenas à página onde a ação é executada. O gerenciador mostra as permissões e permite ativar, desativar ou remover extensões. Recarregue as páginas após as alterações. Permissões opcionais são solicitadas separadamente e podem ser pedidas novamente após reiniciar.
 

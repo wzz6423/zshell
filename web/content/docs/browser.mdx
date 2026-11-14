@@ -68,7 +68,7 @@ Zshell cookies may be replaced.
 
 Cookies are imported into the browser storage of the project selected when you choose **Import**. Remote projects keep separate storage; local projects share the default storage. Switching projects does not change the destination. Closing that project stops the remaining import without writing to another project. If no project is open, Zshell creates a local project when you start importing cookies or tabs.
 
-For browser data permissions, open **Settings → Browser → Browser Data Access…**. The import window also provides **Allow Access**, **System Settings…**, and **Refresh**. Choose the browser data folder shown in the access dialog. If macOS still blocks access, enable the running app, **zshell** or **zshell Debug**, in **System Settings → Privacy & Security → Full Disk Access**, then click **Refresh**. Restart the app if macOS asks. The profile list updates after discovery; an empty list does not enable Preview or Import.
+For browser data permissions, open **Settings → Browser → Browser Data Access**. The import window also provides **Allow Access**, **System Settings…**, and **Refresh**. Choose the browser data folder shown in the access dialog. If macOS still blocks access, enable the running app, **zshell** or **zshell Debug**, in **System Settings → Privacy & Security → Full Disk Access**, then click **Refresh**. Restart the app if macOS asks. The profile list updates after discovery; an empty list does not enable Preview or Import.
 
 Imported history is saved privately and can be searched from **View → Browser → Imported Browser History**. Up to 50,000 history entries are retained, and up to
 100 session tabs open in the current project. Partitioned cookies and Firefox
@@ -81,7 +81,7 @@ Firefox cookies without a SameSite setting are imported as Lax, including older 
 
 ## Local browser extensions
 
-Open **Settings → Browser → Manage Extensions…**, choose **Install Extension…**, and select a compatible WebExtension directory or ZIP with `manifest.json` at its root. Review the requested API and website permissions before choosing **Install**. Zshell copies the extension locally; editing the original directory does not update it.
+Open **Settings → Browser → Manage Extensions**, choose **Install Extension…**, and select a compatible WebExtension directory or ZIP with `manifest.json` at its root. Review the requested API and website permissions before choosing **Install**. Zshell copies the extension locally; editing the original directory does not update it.
 
 Right-click a page and open **Extensions** to run an extension action or open its **Options** page. Actions may show a popup. An extension with `activeTab` receives access only to the page where you invoke its action. The manager lets you view installation permissions, enable, disable, or remove extensions. Reload open pages after changes. Additional optional permissions prompt separately and may be requested again after relaunch.
 

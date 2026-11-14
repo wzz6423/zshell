@@ -44,7 +44,7 @@ Les volets conservent les cookies, les connexions et les autres données des sit
 
 Avec **Présentation → Navigateur → Importer les données du navigateur…**, les cookies sont importés dans le stockage du navigateur du projet sélectionné au clic sur **Import**. Chaque projet distant possède un stockage séparé ; les projets locaux partagent le stockage par défaut. Changer de projet ne modifie pas la destination. Fermer le projet cible arrête le reste de l’import sans écrire dans un autre projet. Si aucun projet n’est ouvert, Zshell crée un projet local au début de l’import des cookies ou des onglets.
 
-Les autorisations des données du navigateur sont accessibles dans **Réglages → Navigateur → Accès aux données du navigateur…**. La fenêtre d’import propose aussi **Autoriser l’accès**, **Réglages Système…** et **Actualiser**. Choisissez le dossier de données du navigateur indiqué dans le dialogue. Si macOS bloque toujours l’accès, autorisez l’app en cours, **zshell** ou **zshell Debug**, dans **Réglages Système → Confidentialité et sécurité → Accès complet au disque**, puis cliquez sur **Actualiser**. Redémarrez l’app si macOS le demande. La liste des profils est mise à jour après la recherche ; une liste vide ne permet ni l’aperçu ni l’import.
+Les autorisations des données du navigateur sont accessibles dans **Réglages → Navigateur → Accès aux données du navigateur**. La fenêtre d’import propose aussi **Autoriser l’accès**, **Réglages Système…** et **Actualiser**. Choisissez le dossier de données du navigateur indiqué dans le dialogue. Si macOS bloque toujours l’accès, autorisez l’app en cours, **zshell** ou **zshell Debug**, dans **Réglages Système → Confidentialité et sécurité → Accès complet au disque**, puis cliquez sur **Actualiser**. Redémarrez l’app si macOS le demande. La liste des profils est mise à jour après la recherche ; une liste vide ne permet ni l’aperçu ni l’import.
 
 Chrome peut rester ouvert pendant l’import de l’historique ; son historique enregistré reste inchangé.
 
@@ -52,7 +52,7 @@ Les cookies Firefox sans réglage SameSite sont importés en Lax, y compris depu
 
 ## Extensions locales du navigateur [#local-browser-extensions]
 
-Ouvrez **Réglages → Navigateur → Gérer les extensions…**, choisissez **Installer une extension…**, puis un dossier WebExtension compatible ou un ZIP avec `manifest.json` à la racine. Vérifiez les autorisations d’API et de sites avant de choisir **Installer**. Zshell copie l’extension localement ; modifier le dossier d’origine ne la met pas à jour.
+Ouvrez **Réglages → Navigateur → Gérer les extensions**, choisissez **Installer une extension…**, puis un dossier WebExtension compatible ou un ZIP avec `manifest.json` à la racine. Vérifiez les autorisations d’API et de sites avant de choisir **Installer**. Zshell copie l’extension localement ; modifier le dossier d’origine ne la met pas à jour.
 
 Faites un clic droit sur une page et ouvrez le menu des extensions pour exécuter une action ou ouvrir les **Options**. Une action peut afficher une fenêtre contextuelle. Avec `activeTab`, l’accès se limite à la page où vous lancez l’action. Le gestionnaire affiche les autorisations et permet d’activer, désactiver ou supprimer une extension. Rechargez les pages après les changements. Les autorisations facultatives sont demandées séparément et peuvent l’être à nouveau après un redémarrage.
 
