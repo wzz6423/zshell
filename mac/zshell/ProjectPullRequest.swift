@@ -368,6 +368,7 @@ final class ProjectPullRequestModel: ObservableObject {
     private var directory: String?
     private var snapshot: GitStatusModel.BranchSnapshot?
     private var sources: [DispatchSourceFileSystemObject] = []
+    private var scheduledProbe: DispatchWorkItem?
     private var generation: UInt = 0
     private var lastProbe = Date.distantPast
     private var lastLookup = Date.distantPast
@@ -386,7 +387,10 @@ final class ProjectPullRequestModel: ObservableObject {
         self.probe = probe
     }
 
-    isolated deinit { sources.forEach { $0.cancel() } }
+    isolated deinit {
+        scheduledProbe?.cancel()
+        sources.forEach { $0.cancel() }
+    }
 
     func sync(directory: String?, force: Bool = false) {
         if self.directory != directory {
@@ -396,6 +400,10 @@ final class ProjectPullRequestModel: ObservableObject {
             state = .hidden
             lastProbe = .distantPast
             lastLookup = .distantPast
+            refreshPending = false
+            forceLookupPending = false
+            scheduledProbe?.cancel()
+            scheduledProbe = nil
             sources.forEach { $0.cancel() }
             sources.removeAll()
         }
@@ -403,6 +411,9 @@ final class ProjectPullRequestModel: ObservableObject {
         forceLookupPending = forceLookupPending || force
         guard !isProbing else { refreshPending = true; return }
         guard force || Date().timeIntervalSince(lastProbe) >= 2 else { return }
+        scheduledProbe?.cancel()
+        scheduledProbe = nil
+        refreshPending = false
         isProbing = true
         lastProbe = Date()
         let generation = generation, probe = probe
@@ -422,9 +433,9 @@ final class ProjectPullRequestModel: ObservableObject {
         queue.async { [weak self] in
             let result = probe(directory)
             Task { @MainActor [weak self] in
-                guard let self, self.generation == generation,
-                      case .repository(let current) = result, current == expected,
-                      self.state == .pullRequest(pr) else { self?.invalidate(); return }
+                guard let self, self.generation == generation else { return }
+                guard case .repository(let current) = result, current == expected,
+                      self.state == .pullRequest(pr) else { self.invalidate(); return }
                 opener(pr.url)
             }
         }
@@ -436,6 +447,23 @@ final class ProjectPullRequestModel: ObservableObject {
         lastProbe = .distantPast
         lastLookup = .distantPast
         sync(directory: directory)
+    }
+
+    private func scheduleProbe() {
+        guard directory != nil else { return }
+        guard !isProbing else { refreshPending = true; return }
+        guard scheduledProbe == nil else { return }
+        // Directory events include index locks and other writes unrelated to
+        // PR identity. Bound probes without postponing them during a busy build.
+        let work = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.scheduledProbe = nil
+                self.sync(directory: self.directory)
+            }
+        }
+        scheduledProbe = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(0.1, 2 - Date().timeIntervalSince(lastProbe)), execute: work)
     }
 
     private func received(_ result: GitStatusModel.BranchSnapshotResult, generation: UInt) {
@@ -453,9 +481,11 @@ final class ProjectPullRequestModel: ObservableObject {
             if changed {
                 self.generation &+= 1
                 snapshot = current
-                watch(current.watchPaths)
                 state = .hidden
             }
+            // Git replaces HEAD and config atomically, even when their contents
+            // stay the same; reopen the paths instead of watching old inodes.
+            watch(current.watchPaths)
             switch ProjectPullRequestContext.resolve(current) {
             case .hidden: state = .hidden
             case .ambiguous: state = .failed(.ambiguousRemote)
@@ -466,12 +496,12 @@ final class ProjectPullRequestModel: ObservableObject {
             }
         }
         forceLookupPending = false
-        if refreshPending { refreshPending = false; lastProbe = .distantPast; sync(directory: directory) }
+        if refreshPending { refreshPending = false; scheduleProbe() }
     }
 
     private func lookup(_ context: ProjectPullRequestContext, snapshot: GitStatusModel.BranchSnapshot, force: Bool) {
         lastLookup = Date()
-        state = .loading
+        if force || state == .hidden { state = .loading }
         let generation = generation, cache = cache, probe = probe, queue = queue
         Task { [weak self] in
             let result = await cache.value(for: context, force: force)
@@ -492,7 +522,7 @@ final class ProjectPullRequestModel: ObservableObject {
             guard descriptor >= 0 else { continue }
             let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor,
                 eventMask: [.write, .delete, .rename, .revoke], queue: .main)
-            source.setEventHandler { [weak self] in MainActor.assumeIsolated { self?.invalidate() } }
+            source.setEventHandler { [weak self] in MainActor.assumeIsolated { self?.scheduleProbe() } }
             source.setCancelHandler { Darwin.close(descriptor) }
             sources.append(source)
             source.resume()

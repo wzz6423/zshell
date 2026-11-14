@@ -116,6 +116,35 @@ struct ProjectPullRequestSurfaceTests {
         root.layoutSubtreeIfNeeded()
         precondition(item.frame.height > 0 && item.bounds.contains(item.button.frame), "PR button exceeds the Git panel bar")
         precondition(item.button.isEnabled, "PR button is disabled")
+        let title = item.button.title, height = item.frame.height
+        let intrinsicHeight = item.intrinsicContentSize.height
+        let queryFile = URL(fileURLWithPath: environment["ZSHELL_PR_COUNT_FILE"]!)
+        let noiseQueryCount = (try? Data(contentsOf: queryFile).count) ?? 0
+        let lock = URL(fileURLWithPath: checkoutPath).appendingPathComponent(".git/index.lock")
+        var heightChanges = 0
+        let previousHeightChanged = item.onHeightChanged
+        item.onHeightChanged = { heightChanges += 1; previousHeightChanged?() }
+        func requireStablePRBar() {
+            root.layoutSubtreeIfNeeded()
+            precondition(!item.isHidden && item.button.title == title && item.button.isEnabled,
+                         "Git metadata events hid the PR or showed Checking PR")
+            precondition(item.frame.height == height && item.intrinsicContentSize.height == intrinsicHeight,
+                         "Git metadata events changed the PR bar height")
+        }
+        for _ in 0..<25 {
+            try! Data().write(to: lock)
+            pump(0.05)
+            requireStablePRBar()
+            try! FileManager.default.removeItem(at: lock)
+            pump(0.05)
+            requireStablePRBar()
+        }
+        let settle = Date().addingTimeInterval(2.5)
+        while Date() < settle { pump(0.02); requireStablePRBar() }
+        item.onHeightChanged = previousHeightChanged
+        precondition(heightChanges == 0, "unrelated Git events invalidated PR bar layout")
+        precondition(((try? Data(contentsOf: queryFile).count) ?? 0) == noiseQueryCount,
+                     "unrelated Git events repeated the GitHub lookup")
         let buttonPoint = NSPoint(x: item.button.frame.midX, y: item.button.frame.midY)
         precondition(item.hitTest(item.convert(buttonPoint, to: item.superview)) === item.button, "PR button is not hit-testable")
         if let path = environment["ZSHELL_PR_TEST_SCREENSHOT"],
@@ -148,7 +177,6 @@ struct ProjectPullRequestSurfaceTests {
         let refreshTitle = String(localized: "Refresh Pull Request Status")
         guard let refresh = item.menu?.items.first(where: { $0.title == refreshTitle }), refresh.isEnabled,
               item.button.menu === item.menu else { fatalError("refresh menu item missing") }
-        let queryFile = URL(fileURLWithPath: environment["ZSHELL_PR_COUNT_FILE"]!)
         let previousCount = (try? Data(contentsOf: queryFile).count) ?? 0
         _ = refresh.target?.perform(refresh.action)
         wait("refresh did not issue another query") { ((try? Data(contentsOf: queryFile).count) ?? 0) > previousCount }
@@ -159,6 +187,6 @@ struct ProjectPullRequestSurfaceTests {
         detached.update(directory: nil, fontScale: 1)
         pump(0.1)
         precondition(detached.intrinsicContentSize.height == 0 && detached.isHidden, "a folder without a PR context must take no space")
-        print("Git panel PR \(CommandLine.arguments[1]): real terminal, window, branch switch, click, refresh and Git proxy passed")
+        print("Git panel PR \(CommandLine.arguments[1]): stable metadata-event layout, real terminal, window, branch switch, click, refresh and Git proxy passed")
     }
 }

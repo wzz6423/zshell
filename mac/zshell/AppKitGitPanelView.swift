@@ -1099,12 +1099,15 @@ private final class GitPanelTrackingView: NSView {
         var trailing = bounds.width - 12
         for badge in [outgoing, incoming] where !badge.isHidden {
             let width = ceil(badge.intrinsicContentSize.width)
-            badge.frame = NSRect(x: trailing - width, y: 0, width: width, height: bounds.height)
+            let height = ceil(badge.intrinsicContentSize.height)
+            badge.frame = NSRect(x: trailing - width, y: (bounds.height - height) / 2, width: width, height: height)
             trailing -= width + 7
         }
         let icon = ceil(12 * max(1, scale))
-        imageView.frame = NSRect(x: 12, y: 0, width: icon, height: bounds.height)
-        label.frame = NSRect(x: 17 + icon, y: 0, width: max(0, trailing - icon - 17), height: bounds.height)
+        imageView.frame = NSRect(x: 12, y: (bounds.height - icon) / 2, width: icon, height: icon)
+        let labelHeight = ceil(label.intrinsicContentSize.height)
+        label.frame = NSRect(x: 17 + icon, y: (bounds.height - labelHeight) / 2,
+                             width: max(0, trailing - icon - 17), height: labelHeight)
     }
 }
 

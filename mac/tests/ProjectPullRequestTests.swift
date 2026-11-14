@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 private nonisolated func require(_ condition: @autoclosure () -> Bool, _ message: String) {
@@ -203,6 +204,188 @@ private actor Counter {
     func increment() { calls += 1 }
 }
 
+private actor LookupGate {
+    var started = false
+    var finished = false
+    private var continuation: CheckedContinuation<Void, Never>?
+
+    func wait() async {
+        started = true
+        await withCheckedContinuation { continuation = $0 }
+        finished = true
+    }
+
+    func release() { continuation?.resume(); continuation = nil }
+}
+
+private func waitForPR(_ number: Int, in model: ProjectPullRequestModel) async {
+    for _ in 0..<150 {
+        if case .pullRequest(let pr) = model.state, pr.number == number { return }
+        try? await Task.sleep(nanoseconds: 20_000_000)
+    }
+    fatalError("Expected PR #\(number), got \(model.state)")
+}
+
+private func checkWatchedGitNoise(_ repo: String) async {
+    let expected = snapshot(repo)
+    let queries = Counter()
+    let probes = QueryLog()
+    let pr = ProjectPullRequest(number: 71, status: .open,
+        url: URL(string: "https://github.com/example/base/pull/71")!)
+    let cache = ProjectPullRequestCache(lookup: { _ in await queries.increment(); return .pullRequest(pr) })
+    let model = ProjectPullRequestModel(cache: cache, probe: { directory in
+        let result = GitStatusModel.branchSnapshot(in: directory)
+        let unchanged: Bool
+        if case .repository(let current) = result { unchanged = current == expected }
+        else { unchanged = false }
+        probes.append([directory, "unchanged=\(unchanged)"])
+        return result
+    })
+    model.sync(directory: repo)
+    await waitForPR(pr.number, in: model)
+    try? await Task.sleep(nanoseconds: 100_000_000)
+    var states: [ProjectPullRequestState] = []
+    let observation = model.$state.dropFirst().sink { states.append($0) }
+    let initialProbes = probes.calls().count
+    let lock = URL(fileURLWithPath: expected.gitDirectory).appendingPathComponent("index.lock")
+    try! Data().write(to: lock)
+    try? await Task.sleep(nanoseconds: 2_400_000_000)
+    let unchanged = snapshot(repo) == expected
+    let newProbes = probes.calls().count - initialProbes
+    require(unchanged, "index.lock activity must not change the branch snapshot")
+    require(probes.calls().allSatisfy { $0.last == "unchanged=true" }, "all probes must see the same repository context")
+    require(newProbes == 1, "one unrelated metadata event must trigger one branch probe")
+    require(states.allSatisfy { $0 == .pullRequest(pr) },
+            "index.lock events must not hide the PR row or show Checking PR again")
+    let queryCount = await queries.calls
+    require(queryCount == 1, "unrelated Git metadata must not request another PR lookup")
+    states.removeAll()
+    let burstStart = probes.calls().count
+    try! FileManager.default.removeItem(at: lock)
+    let gitDirectory = URL(fileURLWithPath: expected.gitDirectory)
+    let scratch = gitDirectory.appendingPathComponent("fixture-noise")
+    for iteration in 0..<60 {
+        if iteration % 20 == 0 {
+            require(GitCommandRunner.runData(["read-tree", "HEAD"], in: repo).status == 0,
+                    "fixture index rewrite failed")
+        }
+        try! Data().write(to: lock)
+        try! FileManager.default.removeItem(at: lock)
+        try! FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: false)
+        try! FileManager.default.removeItem(at: scratch)
+        try? await Task.sleep(nanoseconds: 40_000_000)
+    }
+    try? await Task.sleep(nanoseconds: 2_400_000_000)
+    let burstProbes = probes.calls().count - burstStart
+    require(burstProbes > 0 && burstProbes <= 3, "continuous metadata events must be coalesced into bounded probes")
+    require(states.allSatisfy { $0 == .pullRequest(pr) }, "continuous Git events must preserve the visible PR state")
+    let burstQueries = await queries.calls
+    require(burstQueries == 1, "continuous Git events must reuse the existing PR lookup")
+    require(snapshot(repo) == expected, "noise events must leave the PR context unchanged")
+    observation.cancel()
+    model.detach()
+    print("Git watcher noise: unchanged snapshot, stable PR, one lock probe and \(burstProbes) continuous-event probes passed")
+}
+
+private func writeInPlace(_ data: Data, to url: URL) {
+    let handle = try! FileHandle(forWritingTo: url)
+    try! handle.truncate(atOffset: 0)
+    try! handle.write(contentsOf: data)
+    try! handle.close()
+}
+
+private func checkWatchedContextChanges(_ repo: String) async {
+    let branch = "feature/watched"
+    let created = GitCommandRunner.runData(["branch", branch, "refs/heads/feature/one"], in: repo)
+    require(created.status == 0, "fixture branch creation failed: \(created.stderr)")
+    let initial = snapshot(repo), probes = QueryLog(), queries = QueryLog()
+    let cache = ProjectPullRequestCache(lookup: { item in
+        queries.append([item.localBranch, item.headRepository.nameWithOwner])
+        let number = item.headRepository.nameWithOwner == "example/fork"
+            ? (item.localBranch == "feature/one" ? 72 : 73) : (item.localBranch == "feature/one" ? 75 : 74)
+        return .pullRequest(ProjectPullRequest(number: number, status: .open,
+            url: URL(string: "https://github.com/example/base/pull/\(number)")!))
+    })
+    let model = ProjectPullRequestModel(cache: cache, probe: { directory in
+        probes.append([directory])
+        return GitStatusModel.branchSnapshot(in: directory)
+    })
+    model.sync(directory: repo)
+    await waitForPR(72, in: model)
+    let head = URL(fileURLWithPath: initial.gitDirectory).appendingPathComponent("HEAD")
+    let config = URL(fileURLWithPath: initial.commonGitDirectory).appendingPathComponent("config")
+    let originalHead = try! Data(contentsOf: head), originalConfig = try! Data(contentsOf: config)
+    let count = probes.calls().count
+    try! originalHead.write(to: head, options: .atomic)
+    try! originalConfig.write(to: config, options: .atomic)
+    for _ in 0..<150 {
+        if probes.calls().count > count { break }
+        try? await Task.sleep(nanoseconds: 20_000_000)
+    }
+    require(probes.calls().count > count, "same-content atomic replacements must be probed")
+    try? await Task.sleep(nanoseconds: 100_000_000)
+    require(snapshot(repo) == initial, "same-content replacements must keep the PR context")
+    // In-place writes produce no directory replacement event. They must reach
+    // the reattached HEAD/config sources after their old inodes were replaced.
+    writeInPlace(Data("ref: refs/heads/\(branch)\n".utf8), to: head)
+    await waitForPR(73, in: model)
+    let changedConfig = String(decoding: originalConfig, as: UTF8.self)
+        .replacingOccurrences(of: "git@github.com:example/fork.git", with: "git@github.com:another/fork.git")
+    writeInPlace(Data(changedConfig.utf8), to: config)
+    await waitForPR(74, in: model)
+    require(model.context?.headRepository.nameWithOwner == "another/fork", "remote config change was not resolved")
+    require(GitCommandRunner.runData(["switch", "feature/one"], in: repo).status == 0, "real branch switch failed")
+    await waitForPR(75, in: model)
+    require(GitCommandRunner.runData(["remote", "set-url", "origin", "git@github.com:example/fork.git"], in: repo).status == 0,
+            "remote config restoration failed")
+    await waitForPR(72, in: model)
+    require(queries.calls() == [["feature/one", "example/fork"], [branch, "example/fork"],
+                               [branch, "another/fork"], ["feature/one", "another/fork"]],
+            "context changes must query the new branch/repository and reuse fresh results")
+    require(snapshot(repo) == initial, "fixture context must be restored")
+    model.detach()
+    print("Git watcher identity: atomic replacement, reattached HEAD/config, real branch switch and remote changes passed")
+}
+
+private func checkWatchedLookupRace(_ repo: String) async {
+    let gate = LookupGate()
+    let cache = ProjectPullRequestCache(lookup: { item in
+        if item.localBranch == "feature/one" { await gate.wait() }
+        let number = item.localBranch == "feature/one" ? 76 : 77
+        return .pullRequest(ProjectPullRequest(number: number, status: .open,
+            url: URL(string: "https://github.com/example/base/pull/\(number)")!))
+    })
+    let model = ProjectPullRequestModel(cache: cache)
+    model.sync(directory: repo)
+    for _ in 0..<150 {
+        if await gate.started { break }
+        try? await Task.sleep(nanoseconds: 20_000_000)
+    }
+    let started = await gate.started
+    require(started, "the old branch lookup must be pending before switching")
+    require(GitCommandRunner.runData(["switch", "feature/watched"], in: repo).status == 0,
+            "fixture branch switch during pending lookup failed")
+    await waitForPR(77, in: model)
+    var states: [ProjectPullRequestState] = []
+    let observation = model.$state.dropFirst().sink { states.append($0) }
+    await gate.release()
+    for _ in 0..<150 {
+        if await gate.finished { break }
+        try? await Task.sleep(nanoseconds: 20_000_000)
+    }
+    try? await Task.sleep(nanoseconds: 400_000_000)
+    require(states.allSatisfy {
+        if case .pullRequest(let pr) = $0 { return pr.number == 77 }
+        return false
+    }, "an old asynchronous result must not replace or invalidate the current PR")
+    require(model.context?.localBranch == "feature/watched", "late old lookup changed the current branch context")
+    await waitForPR(77, in: model)
+    observation.cancel()
+    model.detach()
+    require(GitCommandRunner.runData(["switch", "feature/one"], in: repo).status == 0, "fixture branch restoration failed")
+    print("Git watcher race: pending old lookup cannot overwrite the new real branch PR passed")
+}
+
 /// Runs real Git with the environments Zshell builds, so the proxy is checked
 /// the way Git resolves it rather than by inspecting dictionary keys.
 private func gitProxy(_ environment: [String: String], in directory: String) -> String {
@@ -336,6 +519,10 @@ struct ProjectPullRequestTests {
         _ = await cache.value(for: firstContext, force: true)
         let forcedCalls = await counter.calls
         require(forcedCalls == 2, "force refresh should requery")
+
+        await checkWatchedGitNoise(repo)
+        await checkWatchedContextChanges(repo)
+        await checkWatchedLookupRace(repo)
 
         let box = SnapshotBox(first)
         let switchingCache = ProjectPullRequestCache(lookup: { item in
