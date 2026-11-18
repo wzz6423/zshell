@@ -10,6 +10,7 @@ import argparse
 import os
 from pathlib import Path
 import platform
+import re
 import subprocess
 import sys
 import tempfile
@@ -22,15 +23,20 @@ ROOT = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--source-ref")
 parser.add_argument("--built-app", type=Path)
-parser.add_argument("--case", choices=("exited", "terminate", "detach", "fork", "fork-live", "recreate", "identity", "stress"), action="append")
+parser.add_argument("--case", choices=("exited", "terminate", "detach", "fork", "fork-live", "recreate", "identity", "stress",
+                                     "local-terminate", "local-fork", "local-fork-exit", "local-exited", "local-identity"), action="append")
 options = parser.parse_args()
 if options.source_ref and options.built_app:
     raise SystemExit("Choose a historical source probe or an existing Debug app")
 cases = options.case or ("exited", "terminate", "detach", "fork", "fork-live", "recreate")
 if not options.source_ref and options.case is None:
     cases += ("identity", "stress")
+    if not options.built_app:
+        cases += ("local-terminate", "local-fork", "local-fork-exit", "local-exited", "local-identity")
 if options.source_ref and any(case in ("identity", "stress") for case in cases):
     raise SystemExit("Earlier lifecycle implementations do not provide the process identity guard")
+if options.source_ref and "local-identity" in cases:
+    raise SystemExit("Earlier local teardown implementations do not provide the process identity snapshot")
 
 with tempfile.TemporaryDirectory(prefix="zshell-pty-lifecycle-", dir="/tmp") as directory:
     temporary = Path(directory)
@@ -59,6 +65,47 @@ final class PersistentTerminalState {
         previous.write_bytes(subprocess.check_output(
             ["git", "show", f"{options.source_ref}:mac/zshell/PTYMuxSession.swift"], cwd=ROOT))
         sources[sources.index(ROOT / "mac/zshell/PTYMuxSession.swift")] = previous
+    local_cases = any(case.startswith("local-") for case in cases)
+    if local_cases:
+        if options.built_app:
+            raise SystemExit("Local teardown source probes run without --built-app; use the surface integration fixture for a Debug app")
+        terminal = subprocess.check_output(
+            ["git", "show", f"{options.source_ref}:mac/zshell/TerminalSession.swift"], cwd=ROOT).decode() \
+            if options.source_ref else (ROOT / "mac/zshell/TerminalSession.swift").read_text()
+        # Keep the production close path intact; unrelated UI collaborators are
+        # inert so the fixture can own and reap its PTY without a renderer.
+        teardown = terminal[terminal.index("    private func beginTeardown("):
+                            terminal.index("    private func removeLaunchArtifacts(")]
+        teardown = re.sub(r"^        (?:cancelPromptQueueDispatch\(\)|promptQueueBar\..*|AgentAutomationMonitor\..*|"
+                          r"TerminalNotificationService\..*|terminalProfileObservation =.*|promptQueueSettingsObservation =.*|"
+                          r"surface\.splitTarget\..*|cancelClipboardPaste\(\)|recordAgentConversation\(.*|"
+                          r"AgentTurnReviewStore\..*|TerminalCommandTaskStore\..*|surface\.onBecomeFirstResponder =.*)\n",
+                          "", teardown, flags=re.MULTILINE)
+        teardown = teardown.replace("    private func beginTeardown(", "    func beginTeardown(")
+        local_support = temporary / "TerminalSession.swift"
+        local_support.write_text("""import Darwin
+import Foundation
+@MainActor final class TerminalSession {
+    final class Surface {
+        var foregroundPid: pid_t?
+        var onDetach: (() -> Void)?
+        func setSurfaceVisible(_ value: Bool) {}
+        func detach() { onDetach?() }
+    }
+    let surface = Surface()
+    var shellPid: pid_t?
+    var persistentPTY: Int?
+    var teardownTask: Task<Void, Never>?
+    var hasExited = false
+    var onExited: ((TerminalSession) -> Void)?
+    init(pid: pid_t, foreground: pid_t?) {
+        shellPid = pid
+        surface.foregroundPid = foreground
+    }
+    func clearAutomationAgentStatus() {}
+    func removeLaunchArtifacts() {}
+""" + teardown + "}\n")
+        sources.append(local_support)
     binary = temporary / "lifecycle-tests"
     command = [
         "xcrun", "swiftc", "-parse-as-library", "-swift-version", "5", "-D", "PTY_MUX_STANDALONE",
@@ -72,6 +119,10 @@ final class PersistentTerminalState {
         command += [str(ROOT / "mac/tests/PTYMuxSessionLifecycleTests.swift"), "-o", str(binary)]
     if not options.source_ref:
         command += ["-D", "PTY_MUX_IDENTITY_TEST"]
+    if local_cases:
+        command += ["-D", "TERMINAL_SESSION_TEARDOWN_TEST"]
+        if "struct PTYSessionProcesses" in (ROOT / "mac/zshell/PTYMuxSession.swift").read_text() and not options.source_ref:
+            command += ["-D", "PTY_SESSION_PROCESS_TEST"]
     subprocess.run(command, cwd=ROOT, check=True, timeout=120)
     for case in cases:
         home = temporary / case

@@ -122,6 +122,9 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
             SSHAgentEnvironment.shared.cleanup()
             await LocalRemoteSharing.shared.stop()?.value
             await TerminalNotificationService.shared.history.flush()
+            // AppKit can otherwise exit before the PTY grace-period tasks
+            // force-stop background jobs that ignored the initial hangup.
+            await TerminalManager.waitForApplicationQuitTeardown()
             sender.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater
