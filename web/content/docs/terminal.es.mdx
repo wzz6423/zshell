@@ -30,6 +30,12 @@ Abre **Terminal → Historial de comandos…** para buscar comandos ejecutados e
 
 El historial se guarda localmente en segundo plano, con un límite de 2.000 comandos y 8 MiB. **Eliminar** quita el registro seleccionado; **Borrar historial…** quita la lista guardada. Se conservan la salida del terminal y el historial propio del shell.
 
+## Guardar salida del terminal [#save-terminal-output]
+
+Elige **Terminal → Guardar salida del terminal…** o la misma acción en el menú contextual del terminal para guardar un archivo `.txt` en UTF-8. Incluye la pantalla del panel y el historial de desplazamiento conservado al abrir el diálogo, sin estilos. Cambiar de panel después mantiene esa captura original.
+
+Funciona con ambos motores y el terminal rápido. Solo incluye el búfer que el motor conserva actualmente; la salida ya descartada no está disponible. Un programa de pantalla completa exporta su búfer activo.
+
 ## Autocompletado del shell [#shell-completion]
 
 Activa **Ajustes → Terminal → Entrada → Autocompletado del shell** (`terminal.shell-completions`, activado por defecto) para sugerencias en línea de comandos, argumentos y rutas. Se aplica a nuevos shells zsh locales y nuevas sesiones zsh remotas compartidas con un servidor Zshell compatible. Abre una sesión nueva después de cambiar el interruptor.

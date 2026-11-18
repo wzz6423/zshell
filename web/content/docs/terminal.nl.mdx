@@ -30,6 +30,12 @@ Kies **Terminal → Opdrachtgeschiedenis…** om in Zshell uitgevoerde opdrachte
 
 De geschiedenis wordt lokaal op de achtergrond opgeslagen, tot 2.000 opdrachten en 8 MiB. **Verwijderen** verwijdert de gekozen regel; **Geschiedenis wissen…** verwijdert de opgeslagen lijst. Terminaluitvoer en de eigen shellgeschiedenis blijven bewaard.
 
+## Terminaluitvoer bewaren [#save-terminal-output]
+
+Kies **Terminal → Terminaluitvoer bewaren…** of dezelfde actie in het contextmenu van de terminal om een UTF-8-bestand met de extensie `.txt` te bewaren. Het bevat het scherm van het deelvenster en de bewaarde scrollgeschiedenis op het moment dat u het bewaarvenster opende, zonder opmaak. Later van deelvenster wisselen behoudt die oorspronkelijke momentopname.
+
+Beide backends en Quick Terminal ondersteunen deze actie. Alleen de buffer die de backend momenteel bewaart, wordt opgenomen; eerder verwijderde uitvoer is niet meer beschikbaar. Een programma op volledig scherm exporteert zijn actieve buffer.
+
 ## Shell-aanvulling [#shell-completion]
 
 Schakel **Instellingen → Terminal → Invoer → Shell-aanvulling** in (`terminal.shell-completions`, standaard aan) voor suggesties voor opdrachten, argumenten en paden in de invoerregel. Dit geldt voor nieuwe lokale zsh-shells en nieuwe gedeelde externe zsh-sessies met een compatibele Zshell-server. Open na een wijziging een nieuwe sessie.

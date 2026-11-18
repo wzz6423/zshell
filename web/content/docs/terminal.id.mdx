@@ -30,6 +30,12 @@ Pilih **Terminal → Riwayat perintah…** untuk mencari perintah yang dijalanka
 
 Riwayat disimpan secara lokal di latar belakang, maksimal 2.000 perintah dan 8 MiB. **Hapus** menghapus catatan terpilih; **Hapus riwayat…** menghapus daftar tersimpan. Keluaran terminal dan riwayat shell sendiri tetap disimpan.
 
+## Simpan keluaran terminal [#save-terminal-output]
+
+Pilih **Terminal → Simpan keluaran terminal…** atau tindakan yang sama di menu konteks terminal untuk menyimpan file `.txt` UTF-8. File berisi layar panel dan riwayat gulir yang masih disimpan saat dialog penyimpanan dibuka, tanpa gaya. Beralih panel setelahnya tetap menyimpan cuplikan asli itu.
+
+Kedua backend dan terminal cepat mendukung tindakan ini. Hanya buffer yang masih disimpan backend yang disertakan; keluaran yang sudah dibuang tidak tersedia. Program layar penuh mengekspor buffer aktifnya.
+
 ## Pelengkapan shell [#shell-completion]
 
 Aktifkan **Pengaturan → Terminal → Input → Pelengkapan shell** (`terminal.shell-completions`, aktif secara bawaan) untuk saran perintah, argumen, dan jalur dalam baris. Berlaku pada shell zsh lokal baru dan sesi zsh jarak jauh bersama yang baru dengan server Zshell kompatibel. Buka sesi baru setelah mengubah sakelar.

@@ -46,6 +46,7 @@ enum TerminalContextMenu {
             menu.addItem(item)
         }
         if let upload = surface.events?.terminalFileUploadMenuItem { menu.addItem(upload) }
+        menu.addItem(TerminalOutputExportController.shared.menuItem(for: surface))
         if let event, let location = surface.commandLocation(for: event),
            surface.commandRegion(at: location) != nil {
             menu.addItem(.separator())
