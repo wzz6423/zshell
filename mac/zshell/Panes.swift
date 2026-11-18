@@ -427,7 +427,10 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// terminal panes keep the process environment they were launched with.
     @Published var launchSettingsOverride = TerminalLaunchSettingsOverride()
     @Published var layout: PaneNode {
-        didSet { ZshellAutomationEventHub.shared.topologyChanged() }
+        didSet {
+            observeFilePaths()
+            ZshellAutomationEventHub.shared.topologyChanged()
+        }
     }
     @Published var focusedPaneID: UUID {
         didSet { ZshellAutomationEventHub.shared.topologyChanged() }
@@ -450,6 +453,7 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     private var isFilePreview = false
     private var filePreviewDirtyObservation: AnyCancellable?
+    private var filePathObservations: [AnyCancellable] = []
 
     /// A fresh single-pane tab wrapping one piece of content.
     init(content: PaneContent, isPinned: Bool = false, filePreview: Bool = false) {
@@ -457,6 +461,7 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
         self.isPinned = isPinned
         layout = .pane(pane)
         focusedPaneID = pane.id
+        observeFilePaths()
         if filePreview { startFilePreviewing() }
     }
 
@@ -465,6 +470,16 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
         self.isPinned = isPinned
         self.layout = layout
         self.focusedPaneID = focusedPaneID
+        observeFilePaths()
+    }
+
+    private func observeFilePaths() {
+        // Locating a missing file keeps the layout intact, so its path change
+        // must reach the workspace's existing layout autosave observation.
+        filePathObservations = allContents.compactMap { content in
+            guard case .file(let file) = content else { return nil }
+            return file.$path.dropFirst().sink { [weak self] _ in self?.objectWillChange.send() }
+        }
     }
 
     // MARK: - Derived
