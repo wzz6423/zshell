@@ -2556,7 +2556,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         guard event.type == .leftMouseDown && event.modifierFlags.contains(.control)
             || commandRouting.blocksCommands || !shouldReportMouse(event) else { return nil }
         focusForInteraction()
-        return TerminalContextMenu.make(for: self, linkTarget: linkTarget(for: event))
+        return TerminalContextMenu.make(for: self, event: event, linkTarget: linkTarget(for: event))
     }
 
     @objc func showTerminalContextMenu(_ sender: Any?) {

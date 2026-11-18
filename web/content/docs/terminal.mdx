@@ -93,6 +93,8 @@ In **Settings → Terminal → Input → Right-click action**, choose **Context 
 
 **Shift-right-click**, **Control-click**, and **Command-right-click** still open the menu. **Edit → Show Terminal Context Menu** (<kbd>Shift</kbd>+<kbd>F10</kbd>) opens it from the keyboard. Applications using mouse reporting keep receiving ordinary right-clicks unless **Block Zshell Commands** is enabled for the pane. Paste uses the same multi-line confirmation and local or remote file handling as <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+When shell integration identifies the block you right-click, the menu offers **Copy Command**, **Copy Output**, **Copy Command Block** (visible prompt, command, and output), and **Select Command Output**. **Insert at Prompt** fills a ready, empty native zsh prompt with the command for editing; press Enter yourself to run it. Empty output disables output actions. These actions use the clicked block in both backends; the keyboard menu keeps the general terminal actions.
+
 ## Terminal profiles
 
 **Apply terminal profiles automatically** is on by default (`terminal.auto-profiles = true`). Turn it off to stop automatic matching; manual profile selection remains available.

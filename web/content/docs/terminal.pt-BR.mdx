@@ -78,6 +78,8 @@ Em **Ajustes → Terminal → Entrada → Ação do clique direito**, escolha **
 
 **Shift + clique direito**, **Control + clique** e **Command + clique direito** continuam abrindo o menu. **Editar → Mostrar menu de contexto do terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) o abre pelo teclado. Aplicativos com eventos do mouse continuam recebendo cliques direitos comuns, exceto quando **Bloquear comandos do Zshell** está ativado no painel. Colar usa a mesma confirmação de várias linhas e o tratamento de arquivos locais ou remotos de <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Quando a integração do shell identifica o bloco clicado, o menu oferece **Copiar comando**, **Copiar saída**, **Copiar bloco de comando** (prompt, comando e saída visíveis) e **Selecionar saída do comando**. **Inserir no prompt** coloca o comando para edição em um prompt zsh nativo, pronto e vazio; pressione Enter para executá-lo. Saídas vazias desativam as ações de saída. Os dois backends usam o bloco clicado; o menu pelo teclado mantém as ações gerais do terminal.
+
 ## Perfis de terminal [#terminal-profiles]
 
 Crie e ordene perfis em **Ajustes → Terminal → Perfis de terminal → Gerenciar perfis de terminal…**. Eles podem corresponder ao host, usuário, diretório de trabalho e programa em primeiro plano. Todas as condições preenchidas devem corresponder; `*` aceita qualquer texto e `?` um caractere. O primeiro perfil correspondente é usado; sem correspondência, o painel volta à aparência original. **Aplicar perfis de terminal automaticamente** vem ativado (`terminal.auto-profiles = true`); a seleção manual continua disponível ao desativar.

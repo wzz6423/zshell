@@ -962,7 +962,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         guard event.type == .leftMouseDown && event.modifierFlags.contains(.control)
             || !shouldForwardRightMouse(event) else { return nil }
         focusForInteraction()
-        return TerminalContextMenu.make(for: self, linkTarget: linkTarget(for: event))
+        return TerminalContextMenu.make(for: self, event: event, linkTarget: linkTarget(for: event))
     }
 
     @objc func showTerminalContextMenu(_ sender: Any?) {

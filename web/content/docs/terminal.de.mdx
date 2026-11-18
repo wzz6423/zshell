@@ -78,6 +78,8 @@ Unter **Einstellungen → Terminal → Eingabe → Rechtsklick-Aktion** wählen 
 
 **Umschalt-Rechtsklick**, **Control-Klick** und **Command-Rechtsklick** öffnen weiterhin das Menü. **Bearbeiten → Terminal-Kontextmenü anzeigen** (<kbd>Shift</kbd>+<kbd>F10</kbd>) öffnet es per Tastatur. Anwendungen mit Mausereignissen erhalten gewöhnliche Rechtsklicks, solange **Zshell-Befehle blockieren** im Bereich ausgeschaltet ist. Einfügen verwendet dieselbe Mehrzeilenbestätigung und lokale oder entfernte Dateiverarbeitung wie <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Erkennt die Shell-Integration den angeklickten Block, bietet das Menü **Befehl kopieren**, **Ausgabe kopieren**, **Befehlsblock kopieren** (sichtbare Eingabeaufforderung, Befehl und Ausgabe) und **Befehlsausgabe auswählen**. **An Eingabeaufforderung einfügen** setzt den Befehl zum Bearbeiten in eine bereite, leere native zsh-Eingabeaufforderung ein. Zum Ausführen drücken Sie Enter. Bei leerer Ausgabe sind Ausgabeaktionen deaktiviert. Beide Backends verwenden den angeklickten Block; das Tastaturmenü behält die allgemeinen Terminalaktionen.
+
 ## Terminalprofile [#terminal-profiles]
 
 Erstellen und sortieren Sie Profile unter **Einstellungen → Terminal → Terminalprofile → Terminalprofile verwalten…**. Sie können Host, Benutzer, Arbeitsverzeichnis und Vordergrundprogramm abgleichen. Alle ausgefüllten Bedingungen müssen passen; `*` steht für beliebigen Text, `?` für ein Zeichen. Das erste passende Profil gilt; ohne Treffer erhält der Bereich seine ursprüngliche Darstellung. **Terminalprofile automatisch anwenden** ist standardmäßig eingeschaltet (`terminal.auto-profiles = true`). Manuelle Auswahl bleibt auch nach dem Ausschalten verfügbar.
