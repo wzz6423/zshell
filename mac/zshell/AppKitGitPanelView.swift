@@ -927,7 +927,7 @@ private final class GitPanelButton: NSButton {
 
     init(frame frameRect: NSRect, cell buttonCell: NSButtonCell?) {
         super.init(frame: frameRect)
-        if let buttonCell { cell = buttonCell }
+        cell = buttonCell ?? CenteredIconButtonCell(textCell: "")
         isBordered = false
         setButtonType(.momentaryChange)
         imageScaling = .scaleProportionallyDown

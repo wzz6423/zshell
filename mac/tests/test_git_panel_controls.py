@@ -450,7 +450,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-git-panel-controls-") as directo
     probe_file = temporary / "Probe.swift"
     probe_file.write_text(source("mac/zshell/AppKitGitPanelView.swift") + probe)
     executable = temporary / "git-panel-controls-tests"
-    files = ["AppKitWorktreeSectionView.swift", "AppKitGitFilterView.swift",
+    files = ["CenteredIconButtonCell.swift", "AppKitWorktreeSectionView.swift", "AppKitGitFilterView.swift",
              "AppKitGitPullRequestView.swift", "RecentCommitsView.swift", "RowButtonTableView.swift", "SidebarLayoutMetrics.swift"]
     subprocess.run(["xcrun", "swiftc", "-parse-as-library", "-swift-version", "5", "-default-isolation", "MainActor",
                     "-module-cache-path", str(temporary / "modules"), str(support_file), str(probe_file),

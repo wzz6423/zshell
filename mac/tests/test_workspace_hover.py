@@ -311,7 +311,7 @@ struct HoverRegression {
 
 with tempfile.TemporaryDirectory(prefix="zshell-hover-tests-") as directory:
     helper = Path(directory) / "HoverRegression.swift"
-    helper.write_text(source + fixture)
+    helper.write_text((ROOT / "mac/zshell/CenteredIconButtonCell.swift").read_text() + source + fixture)
     executable = Path(directory) / "hover-tests"
     subprocess.run(["xcrun", "swiftc", "-parse-as-library", str(helper), "-o", str(executable)], check=True)
     subprocess.run([str(executable)], check=True)

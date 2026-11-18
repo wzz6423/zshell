@@ -152,7 +152,7 @@ struct WorktreeHoverRegression {
 
 with tempfile.TemporaryDirectory(prefix="zshell-worktree-hover-") as directory:
     helper = Path(directory) / "WorktreeHoverRegression.swift"
-    helper.write_text(source
+    helper.write_text((ROOT / "mac/zshell/CenteredIconButtonCell.swift").read_text() + source
                       + (ROOT / "mac/zshell/RowButtonTableView.swift").read_text()
                       + (ROOT / "mac/zshell/SidebarLayoutMetrics.swift").read_text()
                       + fixture)

@@ -75,8 +75,10 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         pathLabel.textColor = .secondaryLabelColor
         badgeLabel.textColor = .secondaryLabelColor
         for button in [searchButton, revealButton, importButton] {
+            button.cell = CenteredIconButtonCell(textCell: "")
             button.isBordered = false
             button.imagePosition = .imageOnly
+            button.imageScaling = .scaleProportionallyDown
             button.target = self
             button.contentTintColor = .secondaryLabelColor
             header.addSubview(button)

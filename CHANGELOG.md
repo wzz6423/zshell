@@ -22,6 +22,11 @@ the original feature bullet instead of adding separate entries for them.
   menu, select a command's output, and insert a command into an empty zsh prompt
   for editing with either terminal backend.
 
+### Fixed
+
+- Keep action icons centered in the file tree, Git panel, workspace controls,
+  search panel, session information, and Quick Terminal at every interface scale.
+
 ## [0.1.17]
 
 ### Changed
