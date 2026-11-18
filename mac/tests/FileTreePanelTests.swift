@@ -2,6 +2,14 @@ import AppKit
 @testable import zshell
 
 @MainActor
+private final class FileTreeHoverFixtureWindow: NSWindow {
+    var pointer = NSPoint(x: -100, y: -100)
+    var fixtureKey = false
+    override var mouseLocationOutsideOfEventStream: NSPoint { pointer }
+    override var isKeyWindow: Bool { fixtureKey }
+}
+
+@MainActor
 private final class FileTreeDragFixture: NSObject, NSDraggingInfo {
     let draggingDestinationWindow: NSWindow?
     var draggingSourceOperationMask: NSDragOperation { .copy }
@@ -60,7 +68,7 @@ private final class FileTreePanelProbe {
         panel = AppKitFileTreePanel(frame: NSRect(x: 0, y: 0, width: 200, height: 500))
         panel.configure(manager: manager, git: git)
         panel.update(rootBadge: nil, currentFilePath: nil, fontScale: 1, openSearchResult: { _ in })
-        window = NSWindow(contentRect: panel.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window = FileTreeHoverFixtureWindow(contentRect: panel.frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.contentView = panel
         manager.attach(to: window)
@@ -274,6 +282,8 @@ private final class FileTreePanelProbe {
         wait("Root import finishes") { !FileTreeImportController.shared.isImporting }
         check(fm.fileExists(atPath: target.appendingPathComponent("drop-source.txt").path), "Empty area drop targets root")
 
+        try checkHover(in: target)
+
         manager.fileTree.sync(root: "")
         settle()
         check(importButton?.isEnabled == false && validate(-1) == [], "Empty model disables import and drop")
@@ -288,6 +298,99 @@ private final class FileTreePanelProbe {
         print("PASS \(CommandLine.arguments[1]): \(checks) production file-tree AppKit, keyboard, accessibility and drop checks")
         cleanup()
         exit(0)
+    }
+
+    private func checkHover(in root: URL) throws {
+        for index in 0..<60 {
+            try Data().write(to: root.appendingPathComponent(String(format: "hover-%02d.txt", index)))
+        }
+        manager.fileTree.sync(root: root.path)
+        wait("Hover fixture files become table rows") { self.manager.fileTree.items.contains { $0.name == "hover-59.txt" } }
+        guard let window = window as? FileTreeHoverFixtureWindow,
+              let scroll = table.enclosingScrollView else { fail("Hover fixture window and scroll view") }
+        window.setContentSize(NSSize(width: 320, height: 230))
+        settle()
+        let initial = row("hover-02.txt")
+        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+            window.appearance = NSAppearance(named: appearance)
+            window.fixtureKey = true
+            window.pointer = NSPoint(x: -100, y: -100)
+            table.deselectAll(nil)
+            panel.update(rootBadge: nil, currentFilePath: nil, fontScale: 1, openSearchResult: { _ in })
+            func scrollTo(_ index: Int) {
+                scroll.contentView.scroll(to: NSPoint(x: 0, y: table.rect(ofRow: index).minY))
+                scroll.reflectScrolledClipView(scroll.contentView)
+                settle()
+            }
+            func cell(_ index: Int) -> NSView {
+                guard let view = table.view(atColumn: 0, row: index, makeIfNecessary: true) else { fail("Hover row \(index)") }
+                view.layoutSubtreeIfNeeded()
+                return view
+            }
+            scrollTo(initial - 2)
+            let old = cell(initial)
+            window.pointer = old.convert(NSPoint(x: 80, y: old.bounds.midY), to: nil)
+            let enter = NSEvent.enterExitEvent(with: .mouseEntered, location: window.pointer,
+                modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber,
+                context: nil, eventNumber: 0, trackingNumber: 0, userData: nil)!
+            old.mouseEntered(with: enter)
+            check(backgroundAlpha(old) > 0, "Production file row paints hover: \(appearance)")
+            scrollTo(initial)
+            let pointerRow = initial + 2
+            let next = cell(pointerRow)
+            check(backgroundAlpha(old) == 0, "Bounds notification clears the old hover without mouse exit")
+            check(backgroundAlpha(next) > 0, "Bounds notification paints only the stationary pointer row")
+            let visible = table.rows(in: table.visibleRect)
+            for index in visible.location..<NSMaxRange(visible) {
+                check((backgroundAlpha(cell(index)) > 0) == (index == pointerRow), "No stale hover in visible production row \(index)")
+            }
+            check(table.selectedRow == -1, "Scrolling hover leaves production table unselected")
+            window.fixtureKey = false
+            NotificationCenter.default.post(name: NSWindow.didResignKeyNotification, object: window)
+            check(backgroundAlpha(next) == 0, "Window resignation clears hover through the production observer")
+            window.fixtureKey = true
+            NotificationCenter.default.post(name: NSWindow.didBecomeKeyNotification, object: window)
+            check(backgroundAlpha(next) > 0, "Window activation restores stationary pointer hover")
+            table.selectRowIndexes(IndexSet(integer: initial + 1), byExtendingSelection: false)
+            let selected = cell(initial + 1)
+            panel.update(rootBadge: nil, currentFilePath: manager.fileTree.items[initial + 3].path,
+                         fontScale: 1, openSearchResult: { _ in })
+            let current = cell(initial + 3)
+            window.fixtureKey = false
+            NotificationCenter.default.post(name: NSWindow.didResignKeyNotification, object: window)
+            check(backgroundAlpha(next) == 0, "Focus loss still clears a separate hover row")
+            check(backgroundAlpha(selected) > 0.07, "Selected production file stays highlighted after focus loss")
+            check(backgroundAlpha(current) > 0.07, "Current production file stays highlighted after focus loss")
+            window.fixtureKey = true
+            table.deselectAll(nil)
+            panel.update(rootBadge: nil, currentFilePath: nil, fontScale: 1, openSearchResult: { _ in })
+            panel.isHidden = true
+            check(backgroundAlpha(next) == 0, "Hiding production panel clears hover")
+            panel.isHidden = false
+            next.updateTrackingAreas()
+            check(backgroundAlpha(next) > 0, "Unhiding production panel restores pointer hover")
+            scrollTo(initial + 20)
+            check(backgroundAlpha(next) == 0, "Scrolling production row outside viewport clears hover")
+        }
+        window.fixtureKey = false
+        window.pointer = NSPoint(x: -100, y: -100)
+        NotificationCenter.default.post(name: NSWindow.didResignKeyNotification, object: window)
+        check(QuickTerminalOffscreen.isSafe(), "Hover replay remains offscreen and leaves desktop focus untouched")
+    }
+
+    private func backgroundAlpha(_ view: NSView) -> CGFloat {
+        let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil,
+            pixelsWide: Int(view.bounds.width), pixelsHigh: Int(view.bounds.height),
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+        let context = NSGraphicsContext(bitmapImageRep: bitmap)!
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = context
+        context.cgContext.clear(view.bounds)
+        view.effectiveAppearance.performAsCurrentDrawingAppearance { view.draw(view.bounds) }
+        context.flushGraphics()
+        NSGraphicsContext.restoreGraphicsState()
+        return bitmap.colorAt(x: Int(view.bounds.width) - 28, y: Int(view.bounds.height) / 2)!.alphaComponent
     }
 
     private func descendants(_ view: NSView) -> [NSView] { view.subviews + view.subviews.flatMap(descendants) }
