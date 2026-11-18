@@ -1,7 +1,9 @@
 """Verify remote browser routing with a private, real OpenSSH and HTTP/WS fixture.
 
-The default transport probe needs no app build or GUI. Pass --derived-data for
-the production BrowserTab/AppKit/terminal probe built in that DerivedData.
+The default transport and relay lifecycle probes need no app build or GUI.
+Pass --derived-data for the production BrowserTab/AppKit/terminal probe built
+in that DerivedData. --relay-only selects the lifecycle checks; --source-ref
+compiles them against an earlier production routing implementation.
 All servers, identities, homes and binaries are private
 temporary resources and are removed after the probe.
 """
@@ -16,6 +18,7 @@ from pathlib import Path
 import platform
 import pwd
 import re
+import selectors
 import socket
 import struct
 import subprocess
@@ -275,6 +278,379 @@ import Foundation
 '''
 
 
+def compile_relay_probe(directory, source_ref=None):
+    host = directory / "RelayRemoteHost.swift"
+    host.write_text((ROOT / "mac/zshell/RemoteHost.swift").read_text().split("nonisolated struct RemoteSessionInfo:")[0])
+    routing = directory / "BrowserRemoteRouting.swift"
+    if source_ref:
+        source = run("git", "show", f"{source_ref}:mac/zshell/BrowserRemoteRouting.swift",
+                     capture_output=True, text=True).stdout
+    else:
+        source = (ROOT / "mac/zshell/BrowserRemoteRouting.swift").read_text()
+    arguments = ["xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
+                 "-default-isolation", "MainActor", "-warnings-as-errors",
+                 "-target", f"{platform.machine()}-apple-macos15.6",
+                 "-module-cache-path", str(directory / "RelayModuleCache")]
+    if not source_ref:
+        # Exercise insertion before start and after close without exposing a
+        # production test API or replacing the registry's synchronization.
+        source += """
+extension BrowserLoopbackRelay {
+    private static let acceptedForTest = DispatchSemaphore(value: 0)
+    private static let resumeForTest = DispatchSemaphore(value: 0)
+    private static let completedForTest = DispatchSemaphore(value: 0)
+
+    func registerForTest(_ connection: NWConnection) -> Bool { connections.insert(connection) }
+
+    func pauseAcceptForTest() {
+        listener.queue!.sync {
+            let accept = listener.newConnectionHandler!
+            listener.newConnectionHandler = { connection in
+                Self.acceptedForTest.signal()
+                guard Self.resumeForTest.wait(timeout: .now() + 5) == .success else {
+                    connection.cancel()
+                    fputs("Paused relay accept timed out\\n", stderr)
+                    exit(1)
+                }
+                accept(connection)
+                Self.completedForTest.signal()
+            }
+        }
+    }
+
+    func resumeAcceptForTest() {
+        precondition(Self.acceptedForTest.wait(timeout: .now() + 5) == .success)
+        close()
+        Self.resumeForTest.signal()
+        precondition(Self.completedForTest.wait(timeout: .now() + 5) == .success)
+        listener.queue!.sync {}
+    }
+}
+"""
+        arguments += ["-D", "BROWSER_RELAY_REGISTRY_TESTS"]
+    else:
+        arguments += ["-D", "BROWSER_RELAY_HISTORICAL"]
+    routing.write_text(source)
+    binary = directory / "relay-probe"
+    arguments += [str(ROOT / "mac/zshell" / name) for name in (
+        "RemoteSSH.swift", "SSHAgentEnvironment.swift", "BrowserFaviconDownload.swift",
+        "BoundedHTTPData.swift", "MainActorIsolation.swift",
+    )]
+    arguments += [str(host), str(routing), str(ROOT / "mac/tests/BrowserLoopbackRelayTests.swift"), "-o", str(binary)]
+    run(*arguments, timeout=120)
+    return binary
+
+
+class RelayProbe:
+    def __init__(self, binary, directory, fixture, mode, port):
+        self.errors = (directory / f"relay-{mode}.log").open("w+")
+        environment = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
+        environment.update({"ZSHELL_SSH_CONFIG_FILE": str(fixture.config), "CFFIXED_USER_HOME": str(directory),
+                            "ZSHELL_SSH_AGENT_RESOLVED": "1"})
+        self.process = subprocess.Popen([str(binary), mode, str(port)], cwd=ROOT, env=environment,
+                                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.errors, text=True)
+        fixture.processes.append(self.process)
+
+    def command(self, value):
+        self.process.stdin.write(value + "\n")
+        self.process.stdin.flush()
+        return self.read_response(value)
+
+    def read_response(self, value):
+        with selectors.DefaultSelector() as selector:
+            selector.register(self.process.stdout, selectors.EVENT_READ)
+            if selector.select(10):
+                response = self.process.stdout.readline().strip()
+                if response:
+                    return response
+        self.errors.seek(0)
+        raise AssertionError(f"Relay command {value!r} failed: {self.errors.read()}")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, *_):
+        failure = None
+        try:
+            if self.process.poll() is None:
+                self.process.stdin.write("quit\n")
+                self.process.stdin.flush()
+                self.process.wait(timeout=5)
+            if self.process.returncode != 0:
+                failure = f"Relay quit exited with status {self.process.returncode}"
+        except (OSError, subprocess.TimeoutExpired) as error:
+            failure = f"Relay shutdown failed: {error}"
+            if self.process.poll() is None:
+                self.process.terminate()
+                try:
+                    self.process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
+                    self.process.wait(timeout=3)
+        finally:
+            self.errors.seek(0)
+            log = self.errors.read()
+            self.process.stdin.close()
+            self.process.stdout.close()
+            self.errors.close()
+        if failure and exception_type is None:
+            raise AssertionError(f"{failure}: {log}")
+
+
+def receive_exact(connection, count):
+    received = b""
+    while len(received) < count:
+        data = connection.recv(count - len(received))
+        assert data, (count, received)
+        received += data
+    return received
+
+
+def assert_eof(connection, label):
+    connection.settimeout(2)
+    try:
+        data = connection.recv(1)
+    except ConnectionResetError:
+        return
+    except socket.timeout:
+        raise AssertionError(f"{label}: accepted socket stayed open after relay disconnect") from None
+    assert data == b"", (label, data)
+
+
+def tcp_connections(process):
+    result = subprocess.run(["/usr/sbin/lsof", "-nP", "-a", "-p", str(process.pid), "-iTCP"],
+                            capture_output=True, text=True, timeout=5)
+    assert result.returncode in (0, 1), result.stderr
+    return [line for line in result.stdout.splitlines() if " TCP " in line]
+
+
+def wait_released(probe, listener_open=False):
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        check = probe.command("check").split()
+        sockets = tcp_connections(probe.process)
+        expected = 1 if listener_open else 0
+        if check[1:3] == ["0", "0"] and len(sockets) == expected:
+            if not listener_open:
+                if check[3:] != ["0", "0", "0"]:
+                    time.sleep(0.02)
+                    continue
+            return
+        time.sleep(0.02)
+    raise AssertionError(f"Relay retained connections or descriptors: {check}, {sockets}")
+
+
+def pending_clients(port):
+    connections = []
+    try:
+        phases = (("idle", b""), ("partial greeting", b"\x05"), ("missing methods", b"\x05\x01"),
+                  ("partial methods", b"\x05\x02\x00"))
+        for label, wire in phases:
+            connection = socket.create_connection(("127.0.0.1", port), timeout=2)
+            connections.append((label, connection))
+            if wire:
+                connection.sendall(wire)
+        name = b"zshell-remote.localhost"
+        head = b"\x05\x01\x00\x03" + bytes([len(name)])
+        for label, wire in (("missing CONNECT", b""), ("partial CONNECT", head[:3]),
+                            ("missing domain length", head[:4]), ("partial domain", head + name[:2]),
+                            ("partial destination port", head + name + b"\x1f")):
+            connection = socket.create_connection(("127.0.0.1", port), timeout=2)
+            connections.append((label, connection))
+            connection.sendall(b"\x05\x01\x00")
+            assert receive_exact(connection, 2) == b"\x05\x00"
+            if wire:
+                connection.sendall(wire)
+        return connections
+    except BaseException:
+        for _, connection in connections:
+            connection.close()
+        raise
+
+
+def verify_routing_release(binary, directory, fixture, source_ref):
+    with RelayProbe(binary, directory, fixture, "routing", fixture.ssh_port) as probe:
+        for iteration in range(4):
+            ready = probe.command("connect").split()
+            port = int(ready[1])
+            clients = pending_clients(port)
+            try:
+                captured = probe.command("capture").split()
+                if not source_ref:
+                    deadline = time.monotonic() + 5
+                    while int(captured[1]) != len(clients) and time.monotonic() < deadline:
+                        time.sleep(0.02)
+                        captured = probe.command("capture").split()
+                    assert int(captured[1]) == len(clients), captured
+                    check = probe.command("check").split()
+                    assert check[1:3] == [str(len(clients))] * 2 and check[3:] == ["1", "1", "1"], check
+                assert probe.command("release" if iteration % 2 else "unavailable") == "CLOSED"
+                for label, connection in clients:
+                    assert_eof(connection, label)
+                wait_released(probe)
+                with socket.socket() as connection:
+                    assert connection.connect_ex(("127.0.0.1", port)) != 0
+            finally:
+                for _, connection in clients:
+                    connection.close()
+        print("PASS relay: real routing availability/last-browser release, nine partial SOCKS stages, reconnect, weak references and descriptor cleanup", flush=True)
+
+
+def socks_request(connection, host="zshell-remote.localhost", port=8080):
+    connection.sendall(b"\x05\x01\x00")
+    assert receive_exact(connection, 2) == b"\x05\x00"
+    name = host.encode()
+    connection.sendall(b"\x05\x01\x00\x03" + bytes([len(name)]) + name + struct.pack("!H", port))
+
+
+def verify_relay_protocol(binary, directory, fixture, source_ref):
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        listener.listen()
+        listener.settimeout(2)
+        with RelayProbe(binary, directory, fixture, "standalone", listener.getsockname()[1]) as probe:
+            port = int(probe.command("connect").split()[1])
+            # Failed greetings and rejected destinations release their owner
+            # while the relay continues accepting valid connections.
+            for wire in (b"\x04\x01", b"\x05\x01\x02"):
+                with socket.create_connection(("127.0.0.1", port), timeout=2) as client:
+                    client.sendall(wire)
+                    assert_eof(client, "invalid greeting")
+            with socket.create_connection(("127.0.0.1", port), timeout=2) as client:
+                socks_request(client, "example.com")
+                assert receive_exact(client, 10)[1] == 2
+                assert_eof(client, "rejected destination")
+            wait_released(probe, listener_open=True)
+            for direction in ("client", "upstream"):
+                with socket.create_connection(("127.0.0.1", port), timeout=2) as client:
+                    socks_request(client, "127-0-0-2.zshell-remote.localhost", 3000)
+                    upstream, _ = listener.accept()
+                    with upstream:
+                        upstream.settimeout(2)
+                        assert receive_exact(upstream, 3) == b"\x05\x01\x00"
+                        upstream.sendall(b"\x05\x00")
+                        assert receive_exact(upstream, 10) == b"\x05\x01\x00\x01\x7f\x00\x00\x02\x0b\xb8"
+                        upstream.sendall(b"\x05\x00\x00\x01" + bytes(6))
+                        assert receive_exact(client, 10)[:2] == b"\x05\x00"
+                        captured = probe.command("capture")
+                        if not source_ref:
+                            assert captured == "CAPTURED 2", captured
+                        first, second = (client, upstream) if direction == "client" else (upstream, client)
+                        payload = b"relay-request" * 1024
+                        first.sendall(payload)
+                        first.shutdown(socket.SHUT_WR)
+                        assert receive_exact(second, len(payload)) == payload
+                        assert_eof(second, f"{direction} half-close")
+                        response = b"relay-response-after-EOF" * 1024
+                        second.sendall(response)
+                        second.shutdown(socket.SHUT_WR)
+                        assert receive_exact(first, len(response)) == response
+                        assert_eof(first, "reply after half-close")
+                        wait_released(probe, listener_open=True)
+            # A rejected upstream authentication choice must cancel both ends.
+            with socket.create_connection(("127.0.0.1", port), timeout=2) as client:
+                socks_request(client)
+                upstream, _ = listener.accept()
+                with upstream:
+                    upstream.settimeout(2)
+                    assert receive_exact(upstream, 3) == b"\x05\x01\x00"
+                    upstream.sendall(b"\x05\xff")
+                    assert receive_exact(client, 10)[1] == 2
+                    assert_eof(client, "upstream rejection")
+                    assert_eof(upstream, "rejected upstream")
+            wait_released(probe, listener_open=True)
+            print("PASS relay: malformed/rejected SOCKS, alias translation, bidirectional forwarding, both half-close directions and natural ownership release", flush=True)
+
+            # Closing during the upstream greeting also cancels the remote
+            # connection, before a forwarding Pair has been created.
+            with socket.create_connection(("127.0.0.1", port), timeout=2) as client:
+                socks_request(client)
+                upstream, _ = listener.accept()
+                with upstream:
+                    upstream.settimeout(2)
+                    assert receive_exact(upstream, 3) == b"\x05\x01\x00"
+                    captured = probe.command("capture")
+                    if not source_ref:
+                        assert captured == "CAPTURED 2", captured
+                    assert probe.command("close") == "CLOSED"
+                    assert_eof(client, "pending upstream greeting client")
+                    assert_eof(upstream, "pending upstream greeting remote")
+            assert probe.command("drop") == "DROPPED"
+            wait_released(probe)
+            print("PASS relay: close cancels the pending upstream SOCKS greeting and releases both connections", flush=True)
+
+            if not source_ref:
+                probe.command("connect")
+                assert probe.command("delayed-start") == "DELAYED"
+                assert probe.command("drop") == "DROPPED"
+                wait_released(probe)
+                listener.settimeout(0.2)
+                try:
+                    unexpected, _ = listener.accept()
+                except socket.timeout:
+                    pass
+                else:
+                    unexpected.close()
+                    raise AssertionError("A connection started after close reconnected to upstream")
+                print("PASS relay: registration before delayed start and after close cannot revive canceled connections", flush=True)
+
+
+def verify_relay_accept_race(binary, directory, fixture, source_ref):
+    with RelayProbe(binary, directory, fixture, "race", fixture.primary.server_port) as probe:
+        if not source_ref:
+            port = int(probe.command("connect").split()[1])
+            assert probe.command("pause-accept") == "PAUSING"
+            with socket.create_connection(("127.0.0.1", port), timeout=2) as client:
+                client.sendall(b"\x05\x01\x00")
+                assert probe.command("resume-accept") == "RESUMED"
+                assert_eof(client, "accept paused before registration")
+            assert probe.command("drop") == "DROPPED"
+            wait_released(probe)
+            print("PASS relay: a real accept paused before registration is rejected after close without entering SOCKS", flush=True)
+        for iteration in range(8):
+            port = int(probe.command("connect").split()[1])
+            clients = [socket.create_connection(("127.0.0.1", port), timeout=2)]
+            started = threading.Event()
+
+            def connect_while_closing(port=port, clients=clients, started=started):
+                started.set()
+                for _ in range(24):
+                    try:
+                        connection = socket.create_connection(("127.0.0.1", port), timeout=0.2)
+                    except (ConnectionRefusedError, ConnectionResetError, socket.timeout):
+                        continue
+                    try:
+                        connection.sendall(b"\x05")
+                    except OSError:
+                        connection.close()
+                        continue
+                    clients.append(connection)
+
+            thread = threading.Thread(target=connect_while_closing)
+            thread.start()
+            started.wait(timeout=2)
+            try:
+                probe.command("close")
+                thread.join(timeout=5)
+                assert not thread.is_alive()
+                for connection in clients:
+                    assert_eof(connection, f"accept/close race {iteration}")
+                assert probe.command("drop") == "DROPPED"
+                wait_released(probe)
+            finally:
+                thread.join(timeout=5)
+                for connection in clients:
+                    connection.close()
+        print("PASS relay: eight concurrent accept/close cycles leave no accepted sockets or owners", flush=True)
+
+
+def verify_relay(directory, fixture, source_ref=None):
+    binary = compile_relay_probe(directory, source_ref)
+    verify_routing_release(binary, directory, fixture, source_ref)
+    verify_relay_protocol(binary, directory, fixture, source_ref)
+    verify_relay_accept_race(binary, directory, fixture, source_ref)
+
+
 def verify_transport(directory, fixture):
     host = directory / "RemoteHost.swift"
     host.write_text((ROOT / "mac/zshell/RemoteHost.swift").read_text().split("nonisolated struct RemoteSessionInfo:")[0])
@@ -347,7 +723,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--derived-data", type=Path)
     parser.add_argument("--artifacts", type=Path)
+    parser.add_argument("--relay-only", action="store_true")
+    parser.add_argument("--source-ref")
     options = parser.parse_args()
+    if options.source_ref and options.derived_data:
+        parser.error("Choose historical relay sources or a built Debug app")
     with tempfile.TemporaryDirectory(prefix="zshell-browser-remote-", dir="/tmp") as temporary:
         directory = Path(temporary)
         fixture_directory = directory / "fixture"
@@ -355,7 +735,9 @@ def main():
         fixture = Fixture(fixture_directory)
         try:
             with fixture:
-                verify_transport(directory, fixture)
+                if not options.relay_only:
+                    verify_transport(directory, fixture)
+                verify_relay(directory, fixture, options.source_ref)
                 if options.derived_data:
                     binary = compile_app_probe(directory, options.derived_data.resolve())
                     for backend in ("ghostty", "alacritty"):
