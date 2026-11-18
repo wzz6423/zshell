@@ -42,6 +42,17 @@ class CiLayoutTest < Minitest::Test
     assert steps.any? { |step| step['run'] == 'ruby .github/scripts/ci-layout-test.rb' }
   end
 
+  def test_dependency_review_pin_uses_a_precise_release_comment
+    file = 'dependency-review.yml'
+    steps = workflow_jobs(file).fetch('review').fetch('steps')
+    uses = steps.find { |step| step.fetch('uses', '').start_with?('actions/dependency-review-action@') }.fetch('uses')
+
+    assert_match %r{\Aactions/dependency-review-action@[0-9a-f]{40}\z}, uses
+    source = File.read(File.join(ROOT, '.github/workflows', file))
+    assert_match /^\s+- uses: #{Regexp.escape(uses)} +# v\d+\.\d+\.\d+\s*$/, source,
+                 'The pinned dependency review action needs a complete release version, since major tags can advance.'
+  end
+
   def test_release_shell_and_updater_checks_still_run_after_typescript_failures
     job = workflow_jobs('release-scripts.yml').fetch('typecheck')
     steps = job.fetch('steps')
