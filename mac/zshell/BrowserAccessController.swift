@@ -270,7 +270,7 @@ final class BrowserAccessController: nonisolated ObservableObject {
                           session.remoteConnection == nil, session.remotePasteTarget == nil else { return nil }
                     return BrowserAccessSession(id: session.id,
                         project: String(decoding: project.name.utf8.prefix(128), as: UTF8.self),
-                        title: String(decoding: session.title.utf8.prefix(128), as: UTF8.self))
+                        title: String(decoding: session.title.utf8.prefix(128), as: UTF8.self), inputGate: session.browserInputGate)
                 }
             }
         }.prefix(128))
@@ -300,6 +300,7 @@ final class BrowserAccessController: nonisolated ObservableObject {
          "waiting": String(localized: "Waiting for approval…"), "denied": String(localized: "Pairing was denied or expired."),
          "connect": String(localized: "Reconnect"), "disconnect": String(localized: "Disconnect"),
          "forget": String(localized: "Forget This Browser"), "connected": String(localized: "Connected"),
+         "read_only": String(localized: "Read Only"),
          "disconnected": String(localized: "Disconnected"), "connecting": String(localized: "Connecting…"),
          "session": String(localized: "Terminal session"), "control": String(localized: "Resize terminal to browser"),
          "empty": String(localized: "Open a new terminal pane on this Mac after enabling browser access."),

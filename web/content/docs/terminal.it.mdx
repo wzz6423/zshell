@@ -112,6 +112,10 @@ Il campo di input standard di Claude Code supporta il posizionamento con un clic
 
 L'input vocale da Zisla usa l'azione Incolla del terminale. In Claude Code sostituisce anche un intervallo di input selezionato; la ripetizione intenzionale di una frase rimane supportata.
 
+## Modalità sola lettura [#read-only-mode]
+
+Scegli **Terminale → Sola lettura** o **Sola lettura** nel menu contestuale per bloccare il riquadro; il suo pulsante di blocco lo sblocca. Output, selezione, copia, ricerca e scorrimento restano disponibili. Tastiera e mouse inviati ai programmi, incolla, rilascio di file, comandi rapidi, invii della coda, input tramite accesso browser e input automatizzati sono bloccati. Bozze e coda restano intatte; lo sblocco non reinvia gli input rifiutati. Le richieste di input CLI restituiscono `terminal_read_only`. Il blocco resta cambiando scheda o nascondendo Quick Terminal. I nuovi terminali iniziano sbloccati; i blocchi non vengono ripristinati al riavvio dell’app.
+
 ## Scorciatoie dell'applicazione in primo piano [#foreground-application-shortcuts]
 
 Quando le scorciatoie di un'applicazione nel terminale entrano in conflitto con Zshell, fai clic destro sul pannello e attiva **Blocca i comandi Zshell**. Le combinazioni con modificatori, compresa <kbd>Ctrl</kbd>+<kbd>Return</kbd>, vengono inviate all'applicazione in primo piano mentre il pannello ha il focus della tastiera. Copia, Incolla e Seleziona tutto rimangono disponibili.

@@ -151,9 +151,12 @@ enum TooltipAlignment { case trailing }
 extension View {
     func tooltip(_ text: LocalizedStringKey, edge: TooltipEdge, alignment: TooltipAlignment) -> some View { self }
 }
-protocol TerminalBackendSurface: NSView { func setSurfaceVisible(_ visible: Bool) }
+protocol TerminalBackendSurface: NSView { var isReadOnly: Bool { get set }; func setSurfaceVisible(_ visible: Bool) }
+enum TerminalReadOnlyController { static let didChange = Notification.Name("read-only-test") }
+enum AppLocalization { static let didChange = Notification.Name("localization-test") }
 enum OverlayScrollbarView { static let stripWidth: CGFloat = 10 }
 final class SurfaceView: NSView, TerminalBackendSurface {
+    var isReadOnly = false
     let id: UUID
     override var isFlipped: Bool { true }
     init(id: UUID) {

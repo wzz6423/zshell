@@ -27,6 +27,32 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     let splitTarget = SplitMenuTarget()
     let commandRouting = TerminalCommandRouting()
     lazy var hintMode = TerminalHintMode(surface: self)
+    private(set) var inputGeneration: UInt64 = 0
+    private var suppressedInputKeyUps = Set<UInt16>()
+    private var pressedInputKeys = Set<UInt16>()
+    var isReadOnly = false {
+        didSet {
+            guard isReadOnly != oldValue else { return }
+            inputGeneration &+= 1
+            events?.terminalReadOnlyDidChange()
+            if isReadOnly {
+                suppressedInputKeyUps.formUnion(pressedInputKeys)
+                pressedInputKeys.removeAll()
+                aiInputEditor.cancel()
+                unmarkText()
+                pendingPromptSelectionActivation = false
+                inputSelectionDragActive = false
+                promptSelectionAnchor = nil
+                inputSelectionMouseEvent = nil
+                aiInputPointerActive = false
+                isForwardingRightMouseButton = false
+                stopSelectionAutoscroll()
+            }
+            applyAppearance()
+            NotificationCenter.default.post(name: TerminalReadOnlyController.didChange, object: self)
+        }
+    }
+    override var acceptsUserInput: Bool { !isReadOnly }
 
     /// Held strongly for the surface's lifetime; ``detach()`` drops it.
     var commandRecordState = TerminalCommandRecords()
@@ -59,6 +85,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var selectionAutoscrollModifierFlags: NSEvent.ModifierFlags = []
     private var horizontalWheelScroll = TerminalScrollAccumulator()
     private var horizontalTrackpadScroll = TerminalScrollAccumulator()
+    private var readOnlyScroll = TerminalScrollAccumulator()
     private lazy var aiInputEditor = TerminalAIInputEditor(
         readSnapshot: { [weak self] in self?.aiInputContext()?.snapshot },
         sendControl: { [weak self] in self?.sendAIInputControl($0) },
@@ -215,15 +242,18 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         applyAppearance()
     }
 
-    func sendEnter() {
+    @discardableResult
+    func sendEnter() -> Bool {
         performBindingAction("text:\\x0d")
     }
 
-    func sendPromptQueueEnter() {
+    @discardableResult
+    func sendPromptQueueEnter() -> Bool {
         performBindingAction("text:\\x1b[27;9;13~")
     }
 
-    func sendPaste(_ text: String) {
+    @discardableResult
+    func sendPaste(_ text: String) -> Bool {
         sendText(text)
     }
 
@@ -318,6 +348,22 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func scrollWheel(with event: NSEvent) {
+        if isReadOnly {
+            guard let lastScroll else { return }
+            let settings = AppSettings.shared
+            let lines = readOnlyScroll.consume(
+                event.hasPreciseScrollingDeltas
+                    ? event.scrollingDeltaY / max(viewportGridMetrics.map { CGFloat($0.cellHeightPixels) } ?? 1, 1)
+                        * (window?.backingScaleFactor ?? 1)
+                    : event.scrollingDeltaY,
+                multiplier: event.hasPreciseScrollingDeltas ? settings.trackpadScrollMultiplier : settings.mouseScrollMultiplier,
+                limit: TerminalScrollSettings.maximumScrollbackLines
+            )
+            let lastTop = lastScroll.totalRows > lastScroll.viewportRows ? lastScroll.totalRows - lastScroll.viewportRows : 0
+            let row = min(max(Int64(clamping: lastScroll.topRow) - Int64(lines), 0), Int64(clamping: lastTop))
+            _ = scrollToRow(UInt(clamping: row))
+            return
+        }
         guard let grid = viewportGridMetrics, grid.cellHeightPixels > 0, grid.cellWidthPixels > 0 else { return }
         let precise = event.hasPreciseScrollingDeltas
         let settings = AppSettings.shared
@@ -364,7 +410,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     func sendApplicationScroll(lines: Int) -> Bool {
-        guard lines != 0, let grid = viewportGridMetrics, grid.cellHeightPixels > 0 else { return false }
+        guard !isReadOnly, lines != 0, let grid = viewportGridMetrics, grid.cellHeightPixels > 0 else { return false }
         // Automation's existing three-row wheel ticks must not inherit device preferences.
         let limit = TerminalScrollSettings.maximumApplicationLines
         let rows = Double(min(max(lines, -limit), limit)) * TerminalScrollSettings.ghosttyWheelMultiplier
@@ -444,7 +490,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func accessibilityHelp() -> String? {
-        String(localized: "Type to enter terminal text.")
+        isReadOnly ? String(localized: "Read Only") : String(localized: "Type to enter terminal text.")
     }
 
     override func accessibilityValue() -> Any? { "" }
@@ -484,7 +530,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         if selector == #selector(setAccessibilitySelectedText(_:)) {
             // Keep the setter discoverable while Zshell is inactive, but never
             // advertise a parked or otherwise unfocused terminal as writable.
-            return isSurfaceVisible && window?.firstResponder === self
+            return !isReadOnly && isSurfaceVisible && window?.firstResponder === self
         }
         return super.isAccessibilitySelectorAllowed(selector)
     }
@@ -492,7 +538,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     /// AXSelectedText inserts at the live caret without replacing a document.
     private func insertAccessibilityText(_ value: Any?) {
         let text = (value as? String) ?? (value as? NSAttributedString)?.string ?? ""
-        guard isSurfaceVisible, hasEffectiveTerminalFocus else { return }
+        guard !isReadOnly, isSurfaceVisible, hasEffectiveTerminalFocus else { return }
         guard !text.isEmpty else { return }
         finalizePointerSelectionBeforeInput()
         recordPromptInputStart()
@@ -718,8 +764,23 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func keyDown(with event: NSEvent) {
-        events?.terminalDidCancelAgentInterrupt()
         if hintMode.consumesKeyDown(event) { return }
+        if isReadOnly, event.modifierFlags.intersection([.command, .control, .option]) == .command {
+            let action: String? = switch Int(event.keyCode) {
+            case 115: "scroll_to_top"
+            case 119: "scroll_to_bottom"
+            case 116: "scroll_page_up"
+            case 121: "scroll_page_down"
+            default: nil
+            }
+            if let action { performBindingAction(action); return }
+        }
+        guard !isReadOnly else {
+            suppressedInputKeyUps.insert(event.keyCode)
+            return
+        }
+        pressedInputKeys.insert(event.keyCode)
+        events?.terminalDidCancelAgentInterrupt()
         finalizePointerSelectionBeforeInput()
         recordPromptInputStart()
         if !hasMarkedText(),
@@ -734,6 +795,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func insertText(_ string: Any, replacementRange range: NSRange) {
+        guard !isReadOnly else { return }
         events?.terminalDidCancelAgentInterrupt()
         guard !hintMode.isPresented else { return }
         let text = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
@@ -752,16 +814,25 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     override func keyUp(with event: NSEvent) {
         if hintMode.handleKeyUp(event) { return }
+        pressedInputKeys.remove(event.keyCode)
+        if suppressedInputKeyUps.remove(event.keyCode) != nil || isReadOnly { return }
         super.keyUp(with: event)
     }
 
+    override func flagsChanged(with event: NSEvent) {
+        guard !isReadOnly else { return }
+        super.flagsChanged(with: event)
+    }
+
     override func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        guard !isReadOnly else { return }
         events?.terminalDidCancelAgentInterrupt()
         finalizePointerSelectionBeforeInput()
         super.setMarkedText(string, selectedRange: selectedRange, replacementRange: replacementRange)
     }
 
     override func paste(_ sender: Any?) {
+        guard !isReadOnly else { return }
         finalizePointerSelectionBeforeInput()
         recordPromptInputStart()
         if aiInputEditor.deferWhileBusy({ [weak self] in self?.paste(sender) }) { return }
@@ -770,10 +841,11 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         }) == true { return }
         if aiInputEditor.hasSelection, let text = NSPasteboard.general.string(forType: .string) {
             if text.contains("\n") || text.contains("\r") {
+                let generation = inputGeneration
                 events?.terminalDidRequestClipboardConfirmation(
                     TerminalClipboardRequest(kind: .unsafePaste, contents: text) { [weak self] approved in
-                        guard approved else { return }
-                        self?.pasteAIInput(text)
+                        guard approved, let self, !self.isReadOnly, self.inputGeneration == generation else { return }
+                        self.pasteAIInput(text)
                     }
                 )
             } else {
@@ -786,12 +858,14 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     private func pasteAIInput(_ text: String) {
+        guard !isReadOnly else { return }
         if !aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) }) {
             sendText(text)
         }
     }
 
     private func sendAIInputControl(_ text: String) {
+        guard !isReadOnly else { return }
         var remaining = text[...]
         if remaining.hasPrefix("\u{1b}[3~"), let event = NSEvent.keyEvent(
             with: .keyDown, location: .zero, modifierFlags: [],
@@ -812,7 +886,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private func aiInputContext(for event: NSEvent? = nil, clampingDrag: Bool = false) -> (
         snapshot: TerminalAIInputSnapshot, caret: TerminalAIInputCaret?
     )? {
-        guard !hasMarkedText(), hasEffectiveTerminalFocus,
+        guard !isReadOnly, !hasMarkedText(), hasEffectiveTerminalFocus,
               lastScroll?.position ?? 1 >= 1,
               let foregroundPid, ZshellAgentKind.recognizeBuiltin(processID: foregroundPid) == .claude,
               let viewport = readViewportTextSnapshot(), viewport.cursorColumn >= 2,
@@ -922,7 +996,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     private var canEditPromptSelection: Bool {
-        guard supportsInputSelection, events?.terminalPromptSelectionIsReady == true,
+        guard !isReadOnly, supportsInputSelection, events?.terminalPromptSelectionIsReady == true,
               !isMouseCaptured,
               lastScroll?.position ?? 1 >= 1,
               let foregroundPid else { return false }
@@ -971,7 +1045,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     private func shouldForwardRightMouse(_ event: NSEvent) -> Bool {
-        !commandRouting.blocksCommands
+        !isReadOnly && !commandRouting.blocksCommands
             && isMouseCaptured
             && event.modifierFlags.intersection([.shift, .command]).isEmpty
     }
@@ -988,24 +1062,38 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     // MARK: - File drops
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        events?.terminalAllowsFileDrop != false && canReadFileURLs(sender) ? .copy : []
+        !isReadOnly && events?.terminalAllowsFileDrop != false && canReadFileURLs(sender) ? .copy : []
     }
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        events?.terminalAllowsFileDrop != false && canReadFileURLs(sender) ? .copy : []
+        !isReadOnly && events?.terminalAllowsFileDrop != false && canReadFileURLs(sender) ? .copy : []
     }
 
     /// Inserts dropped absolute paths, shell-escaped and space-separated, at
     /// the active prompt exactly as a paste would.
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        guard let urls = fileURLs(sender), !urls.isEmpty else { return false }
+        guard !isReadOnly, let urls = fileURLs(sender), !urls.isEmpty else { return false }
         focusForInteraction()
         if events?.terminalHandleFileDrop(urls, paste: { [weak self] text in
             self?.sendPaste(text + " ")
         }) == true { return true }
         let text = urls.map { Self.shellToken(for: $0.path) }.joined(separator: " ")
-        sendPaste(text + " ")
-        return true
+        return sendPaste(text + " ")
+    }
+
+    override func otherMouseDown(with event: NSEvent) {
+        guard !isReadOnly else { return }
+        super.otherMouseDown(with: event)
+    }
+
+    override func otherMouseUp(with event: NSEvent) {
+        guard !isReadOnly else { return }
+        super.otherMouseUp(with: event)
+    }
+
+    override func otherMouseDragged(with event: NSEvent) {
+        guard !isReadOnly else { return }
+        super.otherMouseDragged(with: event)
     }
 
     private func canReadFileURLs(_ sender: NSDraggingInfo) -> Bool {

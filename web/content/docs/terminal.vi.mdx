@@ -112,6 +112,10 @@ Nếu shell lồng nhau hoặc shell thay thế chưa nạp hỗ trợ sửa d�
 
 Nhập giọng nói Zisla dùng thao tác dán của terminal. Trong Claude Code, nó cũng thay vùng nhập đang chọn; lặp lại một câu có chủ ý vẫn được hỗ trợ.
 
+## Chế độ chỉ đọc [#read-only-mode]
+
+Chọn **Terminal → Chỉ đọc** hoặc **Chỉ đọc** trong menu ngữ cảnh để khóa ngăn; nút khóa trong ngăn dùng để mở khóa. Đầu ra, chọn, sao chép, tìm kiếm và cuộn vẫn dùng được. Đầu vào bàn phím và chuột gửi tới chương trình, dán, thả tệp, lệnh nhanh, gửi hàng đợi, đầu vào qua truy cập trình duyệt và đầu vào tự động bị chặn. Bản nháp và hàng đợi được giữ lại; mở khóa không gửi lại đầu vào đã bị từ chối. Yêu cầu nhập CLI trả về `terminal_read_only`. Khóa vẫn còn khi đổi thẻ hoặc ẩn Quick Terminal. Terminal mới bắt đầu không khóa; khóa không được khôi phục khi khởi động lại ứng dụng.
+
 ## Phím tắt ứng dụng tiền cảnh [#foreground-application-shortcuts]
 
 Khi phím tắt terminal xung đột với Zshell, nhấp phải ô rồi bật **Chặn lệnh Zshell**. Khi ô có tiêu điểm bàn phím, phím có bổ trợ, gồm <kbd>Ctrl</kbd>+<kbd>Return</kbd>, đi tới ứng dụng tiền cảnh. Sao chép, dán và chọn tất cả vẫn dùng được.

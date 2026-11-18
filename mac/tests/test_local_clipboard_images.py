@@ -27,7 +27,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-local-images-", dir="/tmp") as d
     wire = (ROOT / "mac/zshell/PTYMux.swift").read_text()
     wire_source = temporary / "PTYMuxWire.swift"
     wire_source.write_text(
-        wire[:wire.index("struct PTYMuxRequest:")]
+        wire[:wire.index("nonisolated struct PTYMuxRequest:")]
         + wire[wire.index("nonisolated enum PTYMuxError:"):wire.index("enum PTYMuxPaths {")]
         + wire[wire.index("private extension Data {"):wire.index("private final class PTYMuxDaemon")]
     )

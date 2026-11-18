@@ -15,12 +15,15 @@
         /// key translation). Use this for synthetic input like `\x1b[Z`
         /// (Shift+Tab / CSI Z) or multi-line paste-style injections.
         /// No-op when the surface has not been created yet.
-        public func sendText(_ text: String) {
-            surface?.sendText(text)
+        @discardableResult
+        public func sendText(_ text: String) -> Bool {
+            guard acceptsUserInput else { return false }
+            return surface?.sendText(text) ?? false
         }
 
         /// Forward scroll deltas while preserving their precision and momentum.
         public func sendMouseScroll(x: Double, y: Double, modifiers: TerminalScrollModifiers) {
+            guard acceptsUserInput else { return }
             surface?.sendMouseScroll(x: x, y: y, mods: modifiers.rawValue)
         }
 
@@ -28,7 +31,12 @@
         /// "clear_screen"). Returns true when the action dispatched.
         @discardableResult
         public func performBindingAction(_ action: String) -> Bool {
-            surface?.performBindingAction(action) ?? false
+            let kind = action.split(separator: ":", maxSplits: 1).first.map(String.init) ?? action
+            if !acceptsUserInput,
+               ["text", "esc", "csi", "paste_from_clipboard", "paste_from_selection"].contains(kind) {
+                return false
+            }
+            return surface?.performBindingAction(action) ?? false
         }
 
         /// Jump the viewport by a number of shell prompts.

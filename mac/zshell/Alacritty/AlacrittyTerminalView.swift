@@ -26,6 +26,27 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     let splitTarget = SplitMenuTarget()
     let commandRouting = TerminalCommandRouting()
     lazy var hintMode = TerminalHintMode(surface: self)
+    private(set) var inputGeneration: UInt64 = 0
+    var isReadOnly = false {
+        didSet {
+            guard isReadOnly != oldValue else { return }
+            inputGeneration &+= 1
+            events?.terminalReadOnlyDidChange()
+            if isReadOnly {
+                aiInputEditor.cancel()
+                unmarkText()
+                inputSelectionAnchor = nil
+                inputSelectionMouseEvent = nil
+                pendingPromptSelectionActivation = false
+                pendingPromptCaret = nil
+                activePromptSelection = nil
+                reportingMouseButton = false
+                reportingRightMouseButton = false
+                stopSelectionAutoscroll()
+            }
+            NotificationCenter.default.post(name: TerminalReadOnlyController.didChange, object: self)
+        }
+    }
 
     /// Matches the window padding Zshell's Ghostty panes use, so a pane looks
     /// the same whichever backend drew it.
@@ -1328,24 +1349,28 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     // MARK: - TerminalBackendSurface
 
-    func sendText(_ text: String) {
+    @discardableResult
+    func sendText(_ text: String) -> Bool {
         write(Array(text.utf8))
     }
 
-    func sendPaste(_ text: String) {
+    @discardableResult
+    func sendPaste(_ text: String) -> Bool {
         write(AlacrittyKeyMap.paste(text, mode: terminalMode))
     }
 
-    func sendEnter() {
+    @discardableResult
+    func sendEnter() -> Bool {
         write([0x0d])
     }
 
-    func sendPromptQueueEnter() {
+    @discardableResult
+    func sendPromptQueueEnter() -> Bool {
         write(Array("\u{1b}[27;9;13~".utf8))
     }
 
     func sendApplicationScroll(lines: Int) -> Bool {
-        guard lines != 0 else { return false }
+        guard !isReadOnly, lines != 0 else { return false }
         let mode = terminalMode
         if mode.contains(.mouseReporting) {
             let code = lines > 0 ? 64 : 65
@@ -1567,12 +1592,15 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     // MARK: - Input
 
-    private func write(_ bytes: [UInt8]) {
-        guard let handle, !bytes.isEmpty else { return }
+    @discardableResult
+    private func write(_ bytes: [UInt8]) -> Bool {
+        guard !isReadOnly, let handle else { return false }
+        guard !bytes.isEmpty else { return true }
         bytes.withUnsafeBufferPointer { pointer in
             zshell_alacritty_write(handle, pointer.baseAddress, pointer.count)
         }
         resetCursorBlink()
+        return true
     }
 
     private func activatePendingPromptSelection(for event: NSEvent? = nil) {
@@ -1699,12 +1727,14 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func keyDown(with event: NSEvent) {
-        events?.terminalDidCancelAgentInterrupt()
         if hintMode.consumesKeyDown(event) { return }
-        finalizePointerSelectionBeforeInput()
-        if !hasMarkedText(),
-           aiInputEditor.handleKeyDown(event, replay: { [weak self] in self?.keyDown(with: event) }) { return }
-        activatePendingPromptSelection(for: event)
+        if !isReadOnly {
+            events?.terminalDidCancelAgentInterrupt()
+            finalizePointerSelectionBeforeInput()
+            if !hasMarkedText(),
+               aiInputEditor.handleKeyDown(event, replay: { [weak self] in self?.keyDown(with: event) }) { return }
+            activatePendingPromptSelection(for: event)
+        }
         pendingPromptCaret = nil
         clearActivePromptSelection()
         if event.modifierFlags.contains(.command), let handle {
@@ -1734,6 +1764,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             }
         }
 
+        guard !isReadOnly else { return }
         // While an IME is composing, every key belongs to the input context —
         // including arrows, Enter, and Escape that select or cancel.
         if hasMarkedText() {
@@ -1765,6 +1796,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     override func keyUp(with event: NSEvent) {
         if hintMode.handleKeyUp(event) { return }
+        guard !isReadOnly else { return }
         super.keyUp(with: event)
     }
 
@@ -2020,8 +2052,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     override func scrollWheel(with event: NSEvent) {
         guard let handle else { return }
         let mode = terminalMode
-        let applicationScroll = mode.contains(.mouseReporting)
-            || (mode.contains(.alternateScreen) && mode.contains(.alternateScroll))
+        let applicationScroll = !isReadOnly && (mode.contains(.mouseReporting)
+            || (mode.contains(.alternateScreen) && mode.contains(.alternateScroll)))
         let limit = applicationScroll
             ? TerminalScrollSettings.maximumApplicationLines
             : TerminalScrollSettings.maximumScrollbackLines
@@ -2040,7 +2072,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             columns = wheelScrollX.consume(deltaX, multiplier: multiplier, limit: limit)
         }
 
-        if mode.contains(.mouseReporting) {
+        if !isReadOnly, mode.contains(.mouseReporting) {
             for _ in 0..<abs(lines) {
                 sendMouse(code: lines > 0 ? 64 : 65, event: event, released: false)
             }
@@ -2050,7 +2082,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             return
         }
         guard lines != 0 else { return }
-        if mode.contains(.alternateScreen), mode.contains(.alternateScroll) {
+        if !isReadOnly, mode.contains(.alternateScreen), mode.contains(.alternateScroll) {
             let sequence = AlacrittyKeyMap.cursor(up: lines > 0, mode: mode)
             for _ in 0..<abs(lines) {
                 writeControl(sequence)
@@ -2240,7 +2272,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // Cursor keys are only a cursor move while zsh's line editor is the one
         // reading them. Anything else — a pager, a TUI, a command reading
         // stdin — would receive them as its own input.
-        guard let handle,
+        guard !isReadOnly, let handle,
               supportsInputSelection,
               events?.terminalPromptSelectionIsReady == true,
               isShellInputActive,
@@ -2308,7 +2340,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     )? {
         // VTE buffers synchronized redraws, so the committed input grid still
         // accepts gestures while the next frame is pending.
-        guard let handle, !hasMarkedText(),
+        guard !isReadOnly, let handle, !hasMarkedText(),
               hasEffectiveTerminalFocus,
               let foregroundPid, ZshellAgentKind.recognizeBuiltin(processID: foregroundPid) == .claude
         else { return nil }
@@ -2371,13 +2403,13 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     private func shouldReportMouse(_ event: NSEvent) -> Bool {
-        terminalMode.contains(.mouseReporting)
+        !isReadOnly && terminalMode.contains(.mouseReporting)
             && event.modifierFlags.intersection([.shift, .command]).isEmpty
     }
 
     private func sendMouse(code: Int, event: NSEvent, released: Bool) {
         let mode = terminalMode
-        guard mode.contains(.mouseReporting) else { return }
+        guard !isReadOnly, mode.contains(.mouseReporting) else { return }
         let point = gridPoint(for: event)
         let modifiers =
             (event.modifierFlags.contains(.shift) ? 4 : 0)
@@ -2400,7 +2432,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         released: Bool
     ) {
         let mode = terminalMode
-        guard mode.contains(.mouseReporting) else { return }
+        guard !isReadOnly, mode.contains(.mouseReporting) else { return }
         let x = column + 1
         let y = row + 1
 
@@ -2462,6 +2494,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     @objc func paste(_ sender: Any?) {
+        guard !isReadOnly else { return }
         finalizePointerSelectionBeforeInput()
         if aiInputEditor.deferWhileBusy({ [weak self] in self?.paste(sender) }) { return }
         if events?.terminalHandleUserPaste(NSPasteboard.general, paste: { [weak self] text in
@@ -2485,10 +2518,11 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             pasteAIInput(text)
             return
         }
+        let generation = inputGeneration
         events?.terminalDidRequestClipboardConfirmation(
             TerminalClipboardRequest(kind: .unsafePaste, contents: text) {
                 [weak self] approved in
-                guard approved, let self else { return }
+                guard approved, let self, !self.isReadOnly, self.inputGeneration == generation else { return }
                 // Erase at approval time: the prompt selection may have gone
                 // stale while the sheet was up, and the helper is a no-op then.
                 self.pasteAIInput(text)
@@ -2497,6 +2531,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     private func pasteAIInput(_ text: String) {
+        guard !isReadOnly else { return }
         if !aiInputEditor.replaceSelection(then: { [weak self] in
             guard let self else { return }
             self.write(AlacrittyKeyMap.paste(text, mode: self.terminalMode))
@@ -2515,10 +2550,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         switch item.action {
         case #selector(copy(_:)): hasSelection
         case #selector(paste(_:)):
-            Self.pasteboardString(from: .general) != nil
+            !isReadOnly && (Self.pasteboardString(from: .general) != nil
                 || NSPasteboard.general.canReadObject(
                     forClasses: [NSImage.self], options: nil
-                )
+                ))
         default: true
         }
     }
@@ -2573,15 +2608,15 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     // MARK: - File drops
 
     override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
-        events?.terminalAllowsFileDrop != false && fileURLs(sender) != nil ? .copy : []
+        !isReadOnly && events?.terminalAllowsFileDrop != false && fileURLs(sender) != nil ? .copy : []
     }
 
     override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
-        events?.terminalAllowsFileDrop != false && fileURLs(sender) != nil ? .copy : []
+        !isReadOnly && events?.terminalAllowsFileDrop != false && fileURLs(sender) != nil ? .copy : []
     }
 
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
-        guard let urls = fileURLs(sender), !urls.isEmpty else { return false }
+        guard !isReadOnly, let urls = fileURLs(sender), !urls.isEmpty else { return false }
         focusForInteraction()
         if events?.terminalHandleFileDrop(urls, paste: { [weak self] text in
             self?.sendPaste(text + " ")
@@ -2591,8 +2626,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // A drop is semantically a paste, not simulated typing. Image-aware
         // TUIs such as Grok only inspect dropped paths when bracketed paste
         // identifies the complete payload as one event.
-        sendPaste(text + " ")
-        return true
+        return sendPaste(text + " ")
     }
 
     private func fileURLs(_ sender: any NSDraggingInfo) -> [URL]? {
@@ -2634,7 +2668,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func accessibilityHelp() -> String? {
-        String(localized: "Type to enter terminal text.")
+        isReadOnly ? String(localized: "Read Only") : String(localized: "Type to enter terminal text.")
     }
 
     override func accessibilityValue() -> Any? { "" }
@@ -2674,14 +2708,14 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         if selector == #selector(setAccessibilitySelectedText(_:)) {
             // Keep the setter discoverable while Zshell is inactive, but never
             // advertise a parked or otherwise unfocused terminal as writable.
-            return isSurfaceVisible && window?.firstResponder === self
+            return !isReadOnly && isSurfaceVisible && window?.firstResponder === self
         }
         return super.isAccessibilitySelectorAllowed(selector)
     }
 
     /// AXSelectedText inserts at the live caret without replacing a document.
     private func insertAccessibilityText(_ value: Any?) {
-        guard isSurfaceVisible, hasEffectiveTerminalFocus else { return }
+        guard !isReadOnly, isSurfaceVisible, hasEffectiveTerminalFocus else { return }
         let text = (value as? String) ?? (value as? NSAttributedString)?.string ?? ""
         guard !text.isEmpty else { return }
         finalizePointerSelectionBeforeInput()
@@ -2700,6 +2734,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 /// cursor and only committed text reaches the PTY.
 extension AlacrittyTerminalView: NSTextInputClient {
     func insertText(_ string: Any, replacementRange: NSRange) {
+        guard !isReadOnly else { return }
         events?.terminalDidCancelAgentInterrupt()
         guard !hintMode.isPresented else { return }
         let text = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
@@ -2720,6 +2755,7 @@ extension AlacrittyTerminalView: NSTextInputClient {
     }
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        guard !isReadOnly else { return }
         events?.terminalDidCancelAgentInterrupt()
         finalizePointerSelectionBeforeInput()
         markedText = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""

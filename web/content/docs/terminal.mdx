@@ -158,6 +158,10 @@ Applications that capture the mouse continue to handle their own input.
 Voice input from Zisla uses the terminal's paste action. In Claude Code, it also
 replaces a selected input range; repeating a phrase intentionally remains supported.
 
+## Read-only mode [#read-only-mode]
+
+Choose **Terminal → Read Only** or **Read Only** in the terminal context menu to lock that pane. Click its lock button to unlock. Output, selection, copy, search, and scrollback remain available; keyboard and mouse input to terminal programs, paste, file drops, quick commands, queued sends, browser access input, and automation input are blocked. Drafts and queued prompts stay in place, and unlocking does not resend rejected input. CLI input requests return `terminal_read_only`. The lock stays with the same pane across tab changes and Quick Terminal hiding; new terminals start unlocked, and locks are not restored after app restarts.
+
 ## Foreground application shortcuts
 
 When a terminal application's shortcuts conflict with Zshell, right-click its

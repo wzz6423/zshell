@@ -23,6 +23,7 @@
   let resizeTimer;
   let lastSize = '';
   let stream = '';
+  let readOnly = false;
   const text = key => strings[key] || key;
   const setStatus = key => { $('status').textContent = text(key); };
 
@@ -56,13 +57,13 @@
     // answering queries; browser-generated replies are filtered to avoid echoes.
     const isReply = data => /^\x1b(?:\[(?:\?|>|=)?[0-9;:]*[cnR]|\][0-9]+;|P[01]\$r)/.test(data);
     terminal.onData(data => {
-      if (!ready || isReply(data) || !socket || socket.readyState !== WebSocket.OPEN) return;
+      if (!ready || readOnly || isReply(data) || !socket || socket.readyState !== WebSocket.OPEN) return;
       const bytes = encoder.encode(data);
       if (bytes.length > 16 * 1024 || socket.bufferedAmount > 64 * 1024) { socket.close(); return; }
       socket.send(bytes);
     });
     terminal.onBinary(data => {
-      if (!ready || !socket || socket.readyState !== WebSocket.OPEN) return;
+      if (!ready || readOnly || !socket || socket.readyState !== WebSocket.OPEN) return;
       if (data.length > 16 * 1024 || socket.bufferedAmount > 64 * 1024) { socket.close(); return; }
       socket.send(Uint8Array.from(data, char => char.charCodeAt(0) & 255));
     });
@@ -146,6 +147,8 @@
           }
           if (sessions.some(session => session.id === previous)) $('sessions').value = previous;
           selected = $('sessions').value;
+          readOnly = sessions.find(session => session.id === selected)?.read_only === true;
+          if (ready) setStatus(readOnly ? 'read_only' : 'connected');
           $('empty').hidden = sessions.length !== 0;
           if (selected && selected !== attached) select();
           break;
@@ -166,14 +169,21 @@
           break;
         case 'ready':
           if (message.session !== selected) return;
+          readOnly = message.read_only === true;
           attached = selected;
           const readyStream = stream;
           terminal.write('', () => {
             if (current !== epoch || message.session !== selected || readyStream !== stream) return;
             ready = true;
+            setStatus(readOnly ? 'read_only' : 'connected');
             terminal.focus();
             resize();
           });
+          break;
+        case 'read_only':
+          if (message.session !== selected) return;
+          readOnly = message.read_only === true;
+          setStatus(readOnly ? 'read_only' : 'connected');
           break;
         case 'unavailable':
           ready = false;

@@ -47,6 +47,9 @@
         /// Hosts that render a relay can report the original PTY's foreground job.
         public var foregroundProcessProvider: (() -> pid_t?)?
 
+        /// Hosts can reject synthetic input without suppressing PTY protocol replies.
+        open var acceptsUserInput: Bool { true }
+
         open func setSurfaceVisible(_ visible: Bool) {
             core.setDisplayVisible(visible)
         }

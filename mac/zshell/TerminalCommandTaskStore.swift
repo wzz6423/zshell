@@ -29,6 +29,10 @@ final class TerminalCommandTaskStore {
             projectID: projectID, paneID: paneID, terminalID: session.id, argv: argv
         )
         tasks[task.id] = task
+        guard !session.isReadOnly else {
+            stop(task.id, state: .unavailable, code: "terminal_read_only", message: TerminalReadOnlyController.rejectionMessage)
+            return tasks[task.id]!
+        }
         guard !hasActiveTask(terminalID: session.id) else {
             stop(task.id, state: .unavailable, code: "shell_busy",
                  message: String(localized: "This terminal already has a pending or running command task."))
@@ -125,6 +129,11 @@ final class TerminalCommandTaskStore {
              message: String(localized: "The task's terminal was closed before the command finished."))
     }
 
+    func terminalBecameReadOnly(id: UUID) {
+        guard let taskID = activeByTerminal[id], tasks[taskID]?.state == .pending else { return }
+        stop(taskID, state: .unavailable, code: "terminal_read_only", message: TerminalReadOnlyController.rejectionMessage)
+    }
+
     func terminalClosed(in session: TerminalSession) {
         observeCompletion(in: session, captureImmediately: true)
         terminalClosed(id: session.id)
@@ -148,6 +157,10 @@ final class TerminalCommandTaskStore {
 
     private func start(_ id: UUID, session: TerminalSession) {
         guard var task = tasks[id], task.state == .pending else { return }
+        guard !session.isReadOnly else {
+            stop(id, state: .unavailable, code: "terminal_read_only", message: TerminalReadOnlyController.rejectionMessage)
+            return
+        }
         guard ZshellAutomationRouter.commandTaskIsInOriginalProject(task) else {
             stop(id, state: .unavailable, code: "task_scope_changed",
                  message: String(localized: "The command's terminal moved to another project before its result was captured."))
@@ -173,8 +186,10 @@ final class TerminalCommandTaskStore {
         session.cancelPromptQueueDispatch()
         let command = (["_zshell_command_task", id.uuidString] + task.argv)
             .map(TerminalSession.shellQuote).joined(separator: " ")
-        session.sendCommand(command)
-        session.sendEnter()
+        guard session.sendCommand(command), session.sendEnter() else {
+            stop(id, state: .unavailable, code: "terminal_unavailable", message: String(localized: "The task's terminal was closed before the command finished."))
+            return
+        }
     }
 
     private func stop(_ id: UUID, state: TerminalCommandTask.State, code: String, message: String) {

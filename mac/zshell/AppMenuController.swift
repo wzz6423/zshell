@@ -152,6 +152,9 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         }, action: #selector(NSWindow.toggleFullScreen(_:)), key: "f", modifiers: [.command, .control])
 
         let terminal = addMenu(to: menu, identifier: .terminal, title: { String(localized: "Terminal") })
+        let readOnly = TerminalReadOnlyController.shared.menuItem()
+        terminal.addItem(readOnly)
+        titleUpdates.append { readOnly.title = String(localized: "Read Only") }
         terminal.addItem(.separator())
         _ = addMenu(to: terminal, identifier: .agents, title: { String(localized: "Agents") })
         _ = addMenu(to: terminal, identifier: .notifications, title: { String(localized: "Notifications") })
