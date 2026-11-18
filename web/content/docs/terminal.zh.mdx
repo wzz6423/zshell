@@ -127,6 +127,10 @@ Vim 普通/可视模式、对话框、附件或折叠粘贴内容的占位符，
 
 Zisla 的语音输入通过终端粘贴插入文字，也可替换 Claude Code 输入框中的选区；主动重复输入同一句话仍会正常保留。
 
+## 只读模式 [#read-only-mode]
+
+选择 **终端 → 只读** 或终端右键菜单中的 **只读**，即可锁定该窗格；点击窗格内的锁定按钮解锁。输出、选区、复制、搜索和历史滚动继续可用，发送给终端程序的键盘与鼠标输入、粘贴、文件拖放、快捷命令、队列发送、浏览器访问输入和自动化输入会被阻止。草稿和队列保留，解锁不会补发被拒绝的输入；CLI 输入请求返回 `terminal_read_only`。切换标签或隐藏 Quick Terminal 时，同一窗格保持锁定；新终端默认解锁，应用重启后不保留锁定状态。
+
 <span id="前台程序快捷键" data-canonical-heading="foreground-application-shortcuts" />
 
 ## 前台程序快捷键 [#foreground-application-shortcuts]

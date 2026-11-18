@@ -102,7 +102,7 @@ extension TerminalSession {
         guard AppSettings.shared.promptQueueEnabled,
               promptQueue.isEnabled,
               AppSettings.shared.promptQueueAutoDispatch,
-              !hasExited, !promptQueue.commands.isEmpty else { return }
+              !isReadOnly, !hasExited, !promptQueue.commands.isEmpty else { return }
         let generation = promptQueueDispatchGeneration
         promptQueueDispatchTask = Task { [weak self] in
             defer {
@@ -136,7 +136,7 @@ extension TerminalSession {
     var canSendQueuedPrompt: Bool {
         guard AppSettings.shared.promptQueueEnabled,
               promptQueue.isEnabled,
-              !hasExited,
+              !isReadOnly, !hasExited,
               let shellPID = shellPid, shellPID > 0,
               surface.foregroundPid == shellPID,
               !TerminalCommandTaskStore.shared.hasActiveTask(terminalID: id),
@@ -164,9 +164,8 @@ extension TerminalSession {
         } else if hostManagerID != nil { return false }
         let command = promptQueue.commands[index]
         guard reservePromptQueueSend(for: command) else { return false }
+        guard sendCommand(command), surface.sendPromptQueueEnter() else { return false }
         promptQueue.remove(at: index)
-        sendCommand(command)
-        surface.sendPromptQueueEnter()
         return true
     }
 }

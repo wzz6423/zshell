@@ -112,6 +112,10 @@ Kotak input standar Claude Code mendukung klik untuk memindahkan kursor dan sere
 
 Input suara Zisla memakai tindakan tempel terminal. Dalam Claude Code, input itu juga mengganti rentang terpilih; pengulangan frasa yang disengaja tetap didukung.
 
+## Mode hanya baca [#read-only-mode]
+
+Pilih **Terminal → Hanya baca** atau **Hanya baca** di menu konteks untuk mengunci panel; tombol kunci di dalamnya membuka kunci. Output, pemilihan, penyalinan, pencarian, dan pengguliran tetap tersedia. Input keyboard dan mouse ke program, tempel, seret file, perintah cepat, pengiriman antrean, input melalui akses browser, dan input otomatis diblokir. Draf dan antrean tetap tersimpan; membuka kunci tidak mengirim ulang input yang ditolak. Permintaan input CLI mengembalikan `terminal_read_only`. Kunci tetap saat berpindah tab atau menyembunyikan Quick Terminal. Terminal baru dimulai tanpa kunci; kunci tidak dipulihkan setelah aplikasi dimulai ulang.
+
 ## Pintasan aplikasi latar depan [#foreground-application-shortcuts]
 
 Jika pintasan aplikasi terminal bertentangan dengan Zshell, klik kanan panelnya dan aktifkan **Blokir Perintah Zshell**. Tombol dengan modifier, termasuk <kbd>Ctrl</kbd>+<kbd>Return</kbd>, diteruskan ke aplikasi latar depan selama panel memiliki fokus keyboard. Salin, tempel, dan pilih semua tetap tersedia.

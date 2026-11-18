@@ -180,6 +180,10 @@ protocol TerminalBackendSurface: NSView {
     /// Per-pane command routing, retained when the surface is reparented.
     var commandRouting: TerminalCommandRouting { get }
 
+    /// Input admission belongs to this surface, including when it is reparented.
+    var isReadOnly: Bool { get set }
+    var inputGeneration: UInt64 { get }
+
     var hintMode: TerminalHintMode { get }
 
     /// True only while Zshell is active, its window is key, and this exact
@@ -220,17 +224,17 @@ protocol TerminalBackendSurface: NSView {
     /// under the layout mid-frame.
     func detach()
 
-    func sendText(_ text: String)
+    @discardableResult func sendText(_ text: String) -> Bool
 
     /// Let each backend apply its existing bracketed-paste encoding once.
-    func sendPaste(_ text: String)
+    @discardableResult func sendPaste(_ text: String) -> Bool
 
     /// Submits the current terminal input as a Return key rather than pasted text.
-    func sendEnter()
+    @discardableResult func sendEnter() -> Bool
 
     /// The private ZLE submit key acknowledges a queued line independently
     /// of ordinary Return presses and readiness redraws.
-    func sendPromptQueueEnter()
+    @discardableResult func sendPromptQueueEnter() -> Bool
 
     /// Sends line-oriented wheel input to the foreground terminal application.
     /// Returns false when the current terminal mode would consume scrolling as
@@ -398,6 +402,7 @@ protocol TerminalBackendEvents: AnyObject {
     func terminalDidClose(processAlive: Bool)
     func terminalDidResignFocus()
     func terminalDidCancelAgentInterrupt()
+    func terminalReadOnlyDidChange()
     func terminalWillSendKey(_ event: NSEvent)
 
     func terminalDidRequestDesktopNotification(title: String, body: String)
@@ -426,6 +431,7 @@ extension TerminalBackendEvents {
     func terminalDidUpdateCommandRecords(_ records: [TerminalCommandRecord]) {}
     func terminalDidResignFocus() {}
     func terminalDidCancelAgentInterrupt() {}
+    func terminalReadOnlyDidChange() {}
     func terminalWillSendKey(_ event: NSEvent) {}
     func terminalHandleUserPaste(_ pasteboard: NSPasteboard, paste: @escaping (String) -> Void) -> Bool { false }
     var terminalAllowsFileDrop: Bool { true }
@@ -522,7 +528,7 @@ final class TerminalClipboardRequest {
     /// or what the program would receive for ``Kind/programRead``.
     let contents: String
 
-    private let resolve: @MainActor (Bool) -> Void
+    private var resolve: (@MainActor (Bool) -> Void)?
 
     init(kind: Kind, contents: String, resolve: @escaping @MainActor (Bool) -> Void) {
         self.kind = kind
@@ -530,6 +536,12 @@ final class TerminalClipboardRequest {
         self.resolve = resolve
     }
 
-    func approve() { resolve(true) }
-    func deny() { resolve(false) }
+    func approve() { finish(approved: true) }
+    func deny() { finish(approved: false) }
+
+    private func finish(approved: Bool) {
+        let resolve = resolve
+        self.resolve = nil
+        resolve?(approved)
+    }
 }

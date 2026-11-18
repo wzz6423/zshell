@@ -1,9 +1,40 @@
 import Darwin
 import Foundation
 
+nonisolated final class BrowserAccessInputGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var readOnly = false
+    private var generation: UInt64 = 0
+
+    var isReadOnly: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return readOnly }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            guard readOnly != newValue else { return }
+            readOnly = newValue
+            generation &+= 1
+        }
+    }
+
+    func reserve() -> UInt64? {
+        lock.lock()
+        defer { lock.unlock() }
+        return readOnly ? nil : generation
+    }
+
+    func perform<T>(generation expected: UInt64, _ operation: () -> T) -> T? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !readOnly, generation == expected else { return nil }
+        return operation()
+    }
+}
+
 /// One observed pane per browser socket. The reader pauses until xterm has
 /// consumed output; the daemon's existing bounded queue disconnects slow peers.
 nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
+    enum WriteResult: Sendable { case written, readOnly, failed }
     private let io = DispatchQueue(label: "sh.zshell.browser-access.mux")
     private let input = DispatchQueue(label: "sh.zshell.browser-access.mux.input")
     private let lock = NSLock()
@@ -15,15 +46,20 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
     private var outstanding = 0
     private var lastAcknowledgment = Date()
     let sessionID: UUID
+    let inputGate: BrowserAccessInputGate
 
-    init(sessionID: UUID) { self.sessionID = sessionID }
+    init(sessionID: UUID, inputGate: BrowserAccessInputGate = .init()) {
+        self.sessionID = sessionID
+        self.inputGate = inputGate
+    }
 
     /// Attach a connected mux socket that already has `SO_NOSIGPIPE`.
     /// `start` dials the daemon; tests pass a socketpair so `write` can be
     /// observed without the browser server.
-    init(sessionID: UUID, descriptor: Int32) {
+    init(sessionID: UUID, descriptor: Int32, inputGate: BrowserAccessInputGate = .init()) {
         self.sessionID = sessionID
         self.descriptor = descriptor
+        self.inputGate = inputGate
     }
 
     func start(queue: DispatchQueue,
@@ -118,7 +154,8 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
         return true
     }
 
-    func write(_ data: Data, completed: @escaping @Sendable (Bool) -> Void) -> Bool {
+    func write(_ data: Data, completed: @escaping @Sendable (WriteResult) -> Void) -> Bool {
+        guard let generation = inputGate.reserve() else { completed(.readOnly); return true }
         lock.lock()
         guard !stopped, descriptor >= 0, data.count <= BrowserAccessLimits.frameBytes,
               pendingInputBytes + data.count <= BrowserAccessLimits.sendQueueBytes,
@@ -126,25 +163,25 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
             lock.unlock()
             return false
         }
-        guard !data.isEmpty else { lock.unlock(); completed(true); return true }
+        guard !data.isEmpty else { lock.unlock(); completed(.written); return true }
         pendingInputBytes += data.count
         pendingInputFrames += 1
         // A stalled PTY must leave browser ACK, detach and revoke on the
         // server queue responsive. Bound queue entries as well as payloads.
         input.async { [self] in
-            let written = writeAll(data)
-            if !written { close() }
+            let written = writeAll(data, generation: generation)
+            if written == false { close() }
             lock.lock()
             pendingInputBytes -= data.count
             pendingInputFrames -= 1
             lock.unlock()
-            completed(written)
+            completed(written.map { $0 ? .written : .failed } ?? .readOnly)
         }
         lock.unlock()
         return true
     }
 
-    private func writeAll(_ data: Data) -> Bool {
+    private func writeAll(_ data: Data, generation: UInt64) -> Bool? {
         // The reader owns the original fd. Duplicate it under the same lock
         // used for closing so a pending send cannot hit a reused fd number.
         lock.lock()
@@ -172,6 +209,7 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
             guard let base = raw.baseAddress else { return raw.count == 0 }
             while offset < raw.count {
                 guard isActive else { return false }
+                guard inputGate.perform(generation: generation, { true }) == true else { return nil }
 
                 var ready = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
                 let polled = poll(&ready, 1, 50)
@@ -182,7 +220,11 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
                 if polled == 0 { continue }
                 if ready.revents & Int16(POLLOUT) == 0 { return false }
 
-                let sent = Darwin.send(fd, base.advanced(by: offset), raw.count - offset, MSG_DONTWAIT)
+                // Poll stays outside the gate; only the 1 ms bounded send is
+                // serialized with locking. Unlock never revives an older frame.
+                guard let sent = inputGate.perform(generation: generation, {
+                    Darwin.send(fd, base.advanced(by: offset), raw.count - offset, MSG_DONTWAIT)
+                }) else { return nil }
                 if sent > 0 {
                     offset += sent
                 } else if sent < 0, errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK {

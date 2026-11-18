@@ -112,6 +112,10 @@ Le champ de saisie standard de Claude Code accepte également le positionnement 
 
 La saisie vocale de Zisla utilise le collage du terminal. Dans Claude Code, elle remplace aussi la plage sélectionnée. Une phrase répétée volontairement reste acceptée.
 
+## Mode lecture seule [#read-only-mode]
+
+Choisissez **Terminal → Lecture seule** ou **Lecture seule** dans le menu contextuel du terminal pour verrouiller le volet ; son bouton de verrouillage le déverrouille. Sortie, sélection, copie, recherche et défilement restent disponibles. Les entrées clavier et souris aux programmes, collage, dépôt de fichiers, commandes rapides, envois de la file, entrées via l’accès navigateur et entrées automatisées sont bloqués. Brouillons et file sont conservés ; le déverrouillage ne renvoie aucune entrée refusée. Les requêtes de saisie CLI renvoient `terminal_read_only`. Le verrouillage reste lors du changement d’onglet ou du masquage de Quick Terminal. Les nouveaux terminaux sont déverrouillés et les verrouillages ne sont pas restaurés au redémarrage de l’application.
+
 ## Raccourcis de l'application au premier plan [#foreground-application-shortcuts]
 
 Si les raccourcis d'un programme du terminal entrent en conflit avec Zshell, faites un clic droit sur son volet et activez **Bloquer les commandes Zshell**. Les combinaisons de touches, dont <kbd>Ctrl</kbd>+<kbd>Return</kbd>, sont transmises au programme au premier plan lorsque ce volet possède le focus. Copier, coller et tout sélectionner restent disponibles.

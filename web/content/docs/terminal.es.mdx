@@ -112,6 +112,10 @@ El cuadro de entrada estándar de Claude Code admite colocar el cursor con un cl
 
 La entrada de voz de Zisla usa la acción de pegar del terminal. En Claude Code también sustituye el intervalo de entrada seleccionado; repetir una frase de forma intencionada sigue siendo posible.
 
+## Modo de solo lectura [#read-only-mode]
+
+Elige **Terminal → Solo lectura** o **Solo lectura** en el menú contextual para bloquear el panel; su botón de bloqueo lo desbloquea. La salida, selección, copia, búsqueda y desplazamiento siguen disponibles. Se bloquean el teclado y ratón enviados a programas, pegado, archivos arrastrados, comandos rápidos, envíos de la cola, entrada desde el acceso del navegador y entrada automatizada. Los borradores y la cola se conservan; desbloquear no reenvía entradas rechazadas. Las solicitudes de entrada CLI devuelven `terminal_read_only`. El bloqueo permanece al cambiar de pestaña u ocultar Quick Terminal. Los terminales nuevos comienzan desbloqueados; los bloqueos no se restauran al reiniciar la aplicación.
+
 ## Atajos de la aplicación en primer plano [#foreground-application-shortcuts]
 
 Si los atajos de una aplicación de terminal entran en conflicto con Zshell, haz clic derecho en su panel y activa **Bloquear comandos de Zshell**. Las teclas con modificadores, incluido <kbd>Ctrl</kbd>+<kbd>Return</kbd>, se envían a la aplicación en primer plano mientras ese panel tenga el foco del teclado. Copiar, pegar y seleccionar todo siguen disponibles.

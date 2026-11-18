@@ -132,7 +132,7 @@ struct BrowserAccessWriteHarness {
             let finished = DispatchSemaphore(value: 0)
             queue.async {
                 guard bridge.write(payload, completed: { written in
-                    if written { Darwin.exit(1) }
+                    if written != .failed { Darwin.exit(1) }
                     finished.signal()
                 }) else { Darwin.exit(1) }
             }
@@ -177,7 +177,7 @@ struct BrowserAccessWriteHarness {
                 let end = min(payload.count, offset + BrowserAccessLimits.frameBytes)
                 finished.enter()
                 guard bridge.write(payload.subdata(in: offset..<end), completed: { written in
-                    guard written else { Darwin.exit(1) }
+                    guard written == .written else { Darwin.exit(1) }
                     finished.leave()
                 }) else { Darwin.exit(1) }
             }
@@ -187,7 +187,7 @@ struct BrowserAccessWriteHarness {
         } else {
             let finished = DispatchSemaphore(value: 0)
             let accepted = bridge.write(payload) { written in
-                fputs(written ? "true\n" : "false\n", stdout)
+                fputs(written == .written ? "true\n" : "false\n", stdout)
                 fflush(stdout)
                 finished.signal()
             }
@@ -259,8 +259,9 @@ struct BrowserAccessWriteServerHarness {
         setvbuf(stdout, nil, _IOLBF, 0)
         let directory = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         let id = UUID()
+        let inputGate = BrowserAccessInputGate()
         let server = try BrowserAccessServer(directory: directory.appendingPathComponent("authorization"), assets: [:],
-            sessions: { [BrowserAccessSession(id: id, project: "Fixture", title: "Fixture")] }, changed: { snapshot in
+            sessions: { [BrowserAccessSession(id: id, project: "Fixture", title: "Fixture", inputGate: inputGate)] }, changed: { snapshot in
                 if let url = snapshot.localURL {
                     output(["type": "endpoint", "url": url.absoluteString, "session": id.uuidString])
                 }
@@ -274,6 +275,12 @@ struct BrowserAccessWriteServerHarness {
                 Task { @MainActor in
                     let parts = line.split(separator: " ")
                     switch parts.first {
+                    case "lock":
+                        inputGate.isReadOnly = true
+                        output(["type": "locked"])
+                    case "unlock":
+                        inputGate.isReadOnly = false
+                        output(["type": "unlocked"])
                     case "approve":
                         guard parts.count == 2, let id = UUID(uuidString: String(parts[1])) else { return }
                         server.approve(id) { error in output(["type": "approved", "error": error ?? ""]) }
@@ -560,6 +567,52 @@ def check_server_controls(binary, temporary):
             assert ws.receive() == (10, b""), "server queue could not process a ping behind PTY input"
 
         ws, peer, output = attach()
+        ws.send({"type": "ack", "stream": ws.stream, "bytes": len(output)})
+        command("lock")
+        event("locked", timeout=0.5)
+        ws.send(b"locked input\r", binary=True)
+        assert ws.expect("read_only")["read_only"] is True
+        assert not select.select([peer], [], [], 0.1)[0], "locked browser input reached the same terminal"
+        continued = b"output while locked"
+        peer.sendall(struct.pack(">I", len(continued) + 1) + bytes([1]) + continued)
+        assert ws.receive() == (2, continued), "read-only mode stopped browser output"
+        ws.send({"type": "ack", "stream": ws.stream, "bytes": len(continued)})
+        ping(ws)
+        command("unlock")
+        event("unlocked", timeout=0.5)
+        ws.send(b"fresh input\r", binary=True)
+        assert ObserverFixture.read_exact(peer, 12) == b"fresh input\r", "unlock failed to accept a fresh browser frame"
+        ws.close()
+        assert drain_peer(peer) == b""
+        print("locked WebSocket rejected input while output, ACK and ping continued; unlock accepted only fresh input")
+
+        ws, peer, output = attach()
+        ws.send({"type": "ack", "stream": ws.stream, "bytes": len(output)})
+        stall(ws, peer)
+        ws.send(b"queued stale input\r", binary=True)
+        ping(ws)
+        command("lock")
+        event("locked", timeout=0.5)
+        command("unlock")
+        event("unlocked", timeout=0.5)
+        time.sleep(0.1)
+        ws.send(b"new generation\r", binary=True)
+        received = bytearray()
+        deadline = time.monotonic() + 2
+        while not received.endswith(b"new generation\r") and time.monotonic() < deadline:
+            received.extend(peer.recv(8192))
+        assert received.endswith(b"new generation\r")
+        previous = bytes(received[:-len(b"new generation\r")])
+        assert previous == payload_bytes()[:len(previous)] and len(previous) <= SEND_BUFFER, "lock/unlock replayed a stalled or queued browser frame"
+        # Both the in-flight prefix and the queued frame report cancellation.
+        for _ in range(2):
+            assert ws.expect("read_only")["read_only"] is False
+        ping(ws)
+        ws.close()
+        assert drain_peer(peer) == b""
+        print("locking a full mux buffer cancelled old queued frames without blocking the next input generation")
+
+        ws, peer, output = attach()
         stall(ws, peer)
         ws.send({"type": "ack", "stream": ws.stream, "bytes": len(output)})
         ping(ws)
@@ -668,7 +721,7 @@ struct BrowserAccessFDHarness {
         }, ended: { _ in ended.signal() })
         guard ready.wait(timeout: .now() + 2) == .success,
               bridge.write(Data(repeating: 7, count: 16 * 1024), completed: { written in
-                  if written { Darwin.exit(1) }
+                  if written != .failed { Darwin.exit(1) }
                   finished.signal()
               }), probe.paused.wait(timeout: .now() + 2) == .success else { Darwin.exit(1) }
         fputs("paused\n", stdout)

@@ -1,4 +1,6 @@
 import AppKit
+import GhosttyKit
+@testable import GhosttyTerminal
 @testable import zshell
 
 private enum CommandBlockFailure: Error { case failed(String) }
@@ -51,6 +53,7 @@ struct TerminalCommandBlockSurfaceTests {
         settings.promptQueueAutoDispatch = false
         settings.copyOnSelect = false
         settings.notifyOnError = false
+        if backend == "ghostty" { try verifyGhosttyCommandCallbacks(directory: root.path) }
         let manager = TerminalManager()
         manager.projects.forEach { manager.close($0) }
         let project = Project(fallbackName: "Command block fixture", manager: manager, createInitialSession: false)
@@ -323,6 +326,65 @@ struct TerminalCommandBlockSurfaceTests {
         print("Command block \(backend) surfaces: \(checks) checks passed")
     }
 
+    private static func verifyGhosttyCommandCallbacks(directory: String) throws {
+        let launch = TerminalLaunch(program: "/bin/cat", arguments: [], commandLine: "/bin/cat",
+                                    interactiveShell: nil, workingDirectory: directory,
+                                    environment: ["TERM": "xterm-256color"])
+        let view = ZshellTerminalView(launch: launch)
+        let window = NSPanel(contentRect: NSRect(x: -100_000, y: -100_000, width: 800, height: 400),
+                             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = view
+        view.setSurfaceVisible(false)
+        let recorder = CommandCallbackRecorder(view: view)
+        view.delegate = recorder
+        defer { view.delegate = view; view.detach(); window.contentView = nil; window.close() }
+        let bridge = view.core.bridge
+        try check(bridge.rawSurface != nil, "callback fixture uses a live native surface")
+        func render() {
+            recorder.inNativeCallback = true
+            _ = bridge.handleAction(ghostty_action_s(tag: GHOSTTY_ACTION_RENDER, action: ghostty_action_u()))
+            recorder.inNativeCallback = false
+        }
+        func finish(_ exit: Int16, _ duration: UInt64) {
+            var payload = ghostty_action_u()
+            payload.command_finished = ghostty_action_command_finished_s(exit_code: exit, duration: duration)
+            recorder.inNativeCallback = true
+            _ = bridge.handleAction(ghostty_action_s(tag: GHOSTTY_ACTION_COMMAND_FINISHED, action: payload))
+            recorder.inNativeCallback = false
+        }
+        render(); render(); render()
+        finish(7, 101); finish(-1, 202); finish(255, 303)
+        try check(recorder.finishExits.isEmpty && recorder.recordUpdates == 0,
+                  "record readers do not run inside the native action callback")
+        try wait("all native completion payloads are delivered") { recorder.finishExits.count == 3 }
+        try check(recorder.finishExits == [7, nil, 255] && recorder.finishDurations == [101, 202, 303],
+                  "command completions retain FIFO order, exit codes and durations")
+        try check(recorder.recordUpdates == 1 && recorder.successfulReads == 4 && !recorder.reenteredCallback,
+                  "render updates coalesce while completion observers can synchronously read native records")
+        let updateCount = recorder.recordUpdates
+        render(); finish(88, 404)
+        view.detach()
+        pump(0.05)
+        try check(recorder.recordUpdates == updateCount && recorder.finishExits.count == 3,
+                  "teardown cancels queued record and completion callbacks")
+        view.start(launch: launch)
+        view.delegate = recorder
+        try check(view.core.bridge === bridge && bridge.rawSurface != nil,
+                  "the callback bridge is reused by a new native surface")
+        finish(99, 505)
+        view.detach()
+        view.start(launch: launch)
+        view.delegate = recorder
+        pump(0.05)
+        try check(recorder.finishExits.count == 3,
+                  "an old completion is never delivered to a replacement surface")
+        finish(0, 606)
+        try wait("replacement surface delivers fresh completion callbacks") { recorder.finishExits.count == 4 }
+        try check(recorder.finishExits.last == 0 && recorder.finishDurations.last == 606,
+                  "teardown cancellation does not suppress the new surface's completion")
+    }
+
     private static func control(_ text: String, in session: TerminalSession) {
         if let ghostty = session.surface as? ZshellTerminalView {
             ghostty.performBindingAction("text:" + text.utf8.map { String(format: "\\x%02x", $0) }.joined())
@@ -342,5 +404,33 @@ struct TerminalCommandBlockSurfaceTests {
     private static func pump(_ seconds: TimeInterval) {
         let deadline = Date().addingTimeInterval(seconds)
         while Date() < deadline { _ = RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.005)) }
+    }
+}
+
+@MainActor
+private final class CommandCallbackRecorder: TerminalSurfaceCommandFinishedDelegate, TerminalSurfaceCommandRecordsDelegate {
+    weak var view: ZshellTerminalView?
+    var inNativeCallback = false
+    var reenteredCallback = false
+    var recordUpdates = 0
+    var successfulReads = 0
+    var finishExits: [Int?] = []
+    var finishDurations: [UInt64] = []
+
+    init(view: ZshellTerminalView) { self.view = view }
+
+    func terminalCommandRecordsDidChange() { recordUpdates += 1; readRecords() }
+
+    func terminalDidFinishCommand(exitCode: Int?, durationNanos: UInt64) {
+        readRecords()
+        finishExits.append(exitCode)
+        finishDurations.append(durationNanos)
+    }
+
+    private func readRecords() {
+        reenteredCallback = reenteredCallback || inNativeCallback
+        guard let view else { return }
+        _ = view.semanticCommandRevision
+        if view.semanticCommandRecords() != nil { successfulReads += 1 }
     }
 }

@@ -112,6 +112,10 @@ Claude Code’un standart giriş kutusu her iki arka uçta da tıklayarak konuml
 
 Zisla sesli girişi terminalin yapıştırma eylemini kullanır. Claude Code’da seçili giriş aralığını da değiştirir; ifadeyi bilerek tekrarlama desteklenir.
 
+## Salt okunur mod [#read-only-mode]
+
+Bölmeyi kilitlemek için **Terminal → Salt okunur** veya bağlam menüsündeki **Salt okunur** seçeneğini seçin; bölmedeki kilit düğmesi kilidi açar. Çıktı, seçme, kopyalama, arama ve kaydırma kullanılabilir. Programlara gönderilen klavye ve fare girdisi, yapıştırma, dosya bırakma, hızlı komutlar, kuyruk gönderimleri, tarayıcı erişimi girdisi ve otomatik girdiler engellenir. Taslaklar ve kuyruk korunur; kilidi açmak reddedilen girdileri yeniden göndermez. CLI girdi istekleri `terminal_read_only` döndürür. Sekme değiştirirken veya Quick Terminal’i gizlerken kilit korunur. Yeni terminaller kilitsiz başlar; uygulama yeniden başlatıldığında kilitler geri yüklenmez.
+
 ## Öndeki uygulamanın kısayolları [#foreground-application-shortcuts]
 
 Terminal uygulamasının kısayolları Zshell ile çakışırsa bölmeye sağ tıklayıp **Zshell Komutlarını Engelle**’yi açın. Bölme klavye odağındayken <kbd>Ctrl</kbd>+<kbd>Return</kbd> dâhil değiştiricili tuşlar öndeki uygulamaya gider. Kopyala, yapıştır ve tümünü seç kullanılabilir kalır.

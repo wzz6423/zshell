@@ -112,6 +112,10 @@ Het standaardinvoerveld van Claude Code ondersteunt klikken om de cursor te plaa
 
 Spraakinvoer van Zisla gebruikt de plakactie van de terminal. In Claude Code vervangt die ook een geselecteerd invoerbereik; bewust een zin herhalen blijft ondersteund.
 
+## Alleen-lezenmodus [#read-only-mode]
+
+Kies **Terminal → Alleen-lezen** of **Alleen-lezen** in het contextmenu om het paneel te vergrendelen; de vergrendelknop ontgrendelt het. Uitvoer, selectie, kopiëren, zoeken en scrollen blijven beschikbaar. Toetsenbord- en muisinvoer naar programma’s, plakken, bestanden slepen, snelle opdrachten, wachtrijverzendingen, invoer via browsertoegang en geautomatiseerde invoer worden geblokkeerd. Concepten en wachtrij blijven behouden; ontgrendelen verstuurt geweigerde invoer niet opnieuw. CLI-invoerverzoeken retourneren `terminal_read_only`. De vergrendeling blijft bij tabwissels of het verbergen van Quick Terminal. Nieuwe terminals beginnen ontgrendeld; vergrendelingen worden niet hersteld wanneer de app opnieuw start.
+
 ## Sneltoetsen voor de voorgrondapplicatie [#foreground-application-shortcuts]
 
 Als de sneltoetsen van een terminalapplicatie met Zshell botsen, klik je met de rechtermuisknop op het deelvenster en schakel je **Zshell-opdrachten blokkeren** in. Toetscombinaties met modificatietoetsen, waaronder <kbd>Ctrl</kbd>+<kbd>Return</kbd>, gaan dan naar de voorgrondapplicatie zolang dat deelvenster toetsenbordfocus heeft. Kopiëren, plakken en alles selecteren blijven beschikbaar.

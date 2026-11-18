@@ -63,6 +63,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// changing the setting only affects terminals opened afterwards.
     let backend: TerminalBackend
     let surface: any TerminalBackendSurface
+    var isReadOnly: Bool { surface.isReadOnly }
     let reconnectedToPersistentPTY: Bool
     var persistentSessionID: UUID? { persistentPTY == nil ? nil : id }
     let remoteConnection: RemoteSessionConnection?
@@ -104,6 +105,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     var acknowledgedRemoteAgentGeneration: UInt64?
     private var clipboardPasteTask: Task<Void, Never>?
     private var clipboardPasteGeneration: UInt64 = 0
+    private var unsafePasteConfirmations: [ObjectIdentifier: (TerminalClipboardRequest, NSAlert)] = [:]
+    let browserInputGate = BrowserAccessInputGate()
     /// Alternate-screen transcript paging must begin at the live prompt, never
     /// from text the user has scrolled back to inspect.
     var terminalIsAtLiveBottom = true
@@ -639,11 +642,13 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         return processWorkingDirectory(pid: foreground)
     }
 
-    func sendCommand(_ text: String, asPaste: Bool = false) {
+    @discardableResult
+    func sendCommand(_ text: String, asPaste: Bool = false) -> Bool {
+        guard !isReadOnly else { return false }
         agentObservation.pendingInterrupt = nil
         remoteConnection?.takeControl()
-        if asPaste { surface.sendPaste(text) }
-        else { surface.sendText(text) }
+        if asPaste { return surface.sendPaste(text) }
+        return surface.sendText(text)
     }
 
     /// Reserve the exact submitted line until the shell acknowledges its
@@ -674,10 +679,12 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         return UUID(uuidString: String(fields[1]))
     }
 
-    func sendEnter() {
+    @discardableResult
+    func sendEnter() -> Bool {
+        guard !isReadOnly else { return false }
         agentObservation.pendingInterrupt = nil
         remoteConnection?.takeControl()
-        surface.sendEnter()
+        return surface.sendEnter()
     }
 
     func terminalDidBecomeFocused() {
@@ -1409,6 +1416,21 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 // MARK: - Terminal surface callbacks
 
 extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
+    func terminalReadOnlyDidChange() {
+        browserInputGate.isReadOnly = isReadOnly
+        objectWillChange.send()
+        guard isReadOnly else { return }
+        cancelPromptQueueDispatch()
+        cancelClipboardPaste()
+        TerminalCommandTaskStore.shared.terminalBecameReadOnly(id: id)
+        let pending = Array(unsafePasteConfirmations.values)
+        unsafePasteConfirmations.removeAll()
+        for (request, alert) in pending {
+            request.deny()
+            if let window = alert.window.sheetParent { window.endSheet(alert.window, returnCode: .alertSecondButtonReturn) }
+        }
+    }
+
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         menuItem.action != #selector(uploadFiles(_:)) || canUploadFiles
     }
@@ -1729,6 +1751,7 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
     }
 
     func terminalHandleUserPaste(_ pasteboard: NSPasteboard, paste: @escaping (String) -> Void) -> Bool {
+        guard !isReadOnly else { return true }
         agentObservation.pendingInterrupt = nil
         let isRemote = remoteConnection != nil || remotePasteTarget != nil
         // Local file URLs already have backend-specific quoting and drag/paste
@@ -1749,11 +1772,12 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
     }
 
     var terminalAllowsFileDrop: Bool {
-        remoteConnection == nil && remotePasteTarget == nil
-            || AppSettings.shared.remoteDropUpload && canUploadFiles
+        !isReadOnly && (remoteConnection == nil && remotePasteTarget == nil
+            || AppSettings.shared.remoteDropUpload && canUploadFiles)
     }
 
     func terminalHandleFileDrop(_ urls: [URL], paste: @escaping (String) -> Void) -> Bool {
+        guard !isReadOnly else { return true }
         guard remoteConnection != nil || remotePasteTarget != nil else { return false }
         guard AppSettings.shared.remoteDropUpload else { return true }
         agentObservation.pendingInterrupt = nil
@@ -1769,7 +1793,7 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
     }
 
     private var canUploadFiles: Bool {
-        !isTerminating && !hasExited && clipboardPasteTask == nil && remotePasteTarget != .unavailable
+        !isReadOnly && !isTerminating && !hasExited && clipboardPasteTask == nil && remotePasteTarget != .unavailable
             && (remoteConnection != nil || remotePasteTarget != nil)
             && (remoteConnection == nil || remoteConnection?.status.state == .connected && remoteConnection?.isActiveClient == true)
     }
@@ -1780,6 +1804,7 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
         let generation = connection?.pasteGeneration
         let managerID = hostManagerID
         let panel = NSOpenPanel()
+        let inputGeneration = surface.inputGeneration
         panel.title = String(localized: "Upload Files…")
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
@@ -1791,7 +1816,7 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
             // Wait until AppKit restores the terminal's window after the sheet.
             DispatchQueue.main.async {
                 guard let self, let window, self.surface.window === window, window.isKeyWindow,
-                      self.hostManagerID == managerID, self.canUploadFiles,
+                      self.hostManagerID == managerID, self.canUploadFiles, self.surface.inputGeneration == inputGeneration,
                       self.remoteConnection === connection, connection?.pasteGeneration == generation else { return }
                 window.makeFirstResponder(self.surface)
                 self.agentObservation.pendingInterrupt = nil
@@ -1810,7 +1835,7 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
         let connection = remoteConnection
         let target = remotePasteTarget
         let isRemote = connection != nil || target != nil
-        guard !isTerminating, !hasExited, surface.hasEffectiveTerminalFocus else { return true }
+        guard !isReadOnly, !isTerminating, !hasExited, surface.hasEffectiveTerminalFocus else { return true }
         guard target != .unavailable,
               connection == nil || connection?.status.state == .connected && connection?.isActiveClient == true else {
             showClipboardPasteError(RemoteHostError.message(String(localized: "Reconnect and take control of the remote terminal before pasting files.")), remote: true)
@@ -1825,6 +1850,7 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
         let managerID = hostManagerID
         clipboardPasteGeneration &+= 1
         let pasteGeneration = clipboardPasteGeneration
+        let inputGeneration = surface.inputGeneration
         clipboardPasteTask = Task { @MainActor [weak self, weak connection] in
             let worker = Task.detached(priority: .userInitiated) {
                 if let host, let project, let sessionID, let clientID {
@@ -1850,7 +1876,8 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
                 // pane and control generation before inserting into a prompt.
                 guard let self, self.clipboardPasteGeneration == pasteGeneration else { return }
                 self.clipboardPasteTask = nil
-                guard !Task.isCancelled, !self.isTerminating, !self.hasExited,
+                guard !Task.isCancelled, !self.isReadOnly, self.surface.inputGeneration == inputGeneration,
+                      !self.isTerminating, !self.hasExited,
                       self.hostManagerID == managerID, self.remotePasteTarget == target,
                       self.surface.hasEffectiveTerminalFocus else { return }
                 if let connection {
@@ -1889,6 +1916,7 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
     }
 
     func terminalDidRequestClipboardConfirmation(_ request: TerminalClipboardRequest) {
+        guard request.kind != .unsafePaste || !isReadOnly else { request.deny(); return }
         guard let window = surface.window else {
             request.deny()
             return
@@ -1916,10 +1944,23 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
                 : String(localized: "Deny")
         )
         cancel.keyEquivalent = "\u{1b}"
+        let inputGeneration = surface.inputGeneration
+        let id = ObjectIdentifier(request)
+        if request.kind == .unsafePaste { unsafePasteConfirmations[id] = (request, alert) }
 
-        Task { @MainActor in
+        Task { @MainActor [weak self] in
+            if request.kind == .unsafePaste {
+                guard let self, !self.isReadOnly, self.surface.inputGeneration == inputGeneration,
+                      self.unsafePasteConfirmations[id] != nil else {
+                    self?.unsafePasteConfirmations[id] = nil
+                    request.deny()
+                    return
+                }
+            }
             let response = await alert.beginSheetModal(for: window)
-            if response == .alertFirstButtonReturn {
+            self?.unsafePasteConfirmations[id] = nil
+            if response == .alertFirstButtonReturn, let self,
+               request.kind != .unsafePaste || !self.isReadOnly && self.surface.inputGeneration == inputGeneration {
                 request.approve()
             } else {
                 request.deny()

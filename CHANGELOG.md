@@ -18,6 +18,10 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Per-pane **Read Only** mode prevents terminal input while output, selection,
+  copy, search, and scrollback stay available. Unlock from the pane or Terminal
+  menu; drafts and queued prompts are preserved on both backends and Quick Terminal.
+
 - Copy commands, output, or complete command blocks from the terminal context
   menu, select a command's output, and insert a command into an empty zsh prompt
   for editing with either terminal backend.

@@ -5,6 +5,32 @@ nonisolated struct BrowserAccessSession: Codable, Equatable, Sendable {
     let id: UUID
     let project: String
     let title: String
+    let readOnly: Bool
+    let inputGate: BrowserAccessInputGate
+
+    init(id: UUID, project: String, title: String, inputGate: BrowserAccessInputGate = .init()) {
+        self.id = id
+        self.project = project
+        self.title = title
+        self.inputGate = inputGate
+        readOnly = inputGate.isReadOnly
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, project, title, readOnly = "read_only" }
+
+    init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        project = try values.decode(String.self, forKey: .project)
+        title = try values.decode(String.self, forKey: .title)
+        readOnly = try values.decodeIfPresent(Bool.self, forKey: .readOnly) ?? false
+        inputGate = .init()
+        inputGate.isReadOnly = readOnly
+    }
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id && lhs.project == rhs.project && lhs.title == rhs.title && lhs.readOnly == rhs.readOnly
+    }
 }
 
 nonisolated struct BrowserAccessPendingClient: Equatable, Identifiable, Sendable {
@@ -250,13 +276,13 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
     fileprivate func select(session id: UUID, connection: BrowserAccessConnection, generation: UUID) {
         let provider = sessions
         Task { @MainActor [weak connection, weak self] in
-            let available = provider().contains { $0.id == id }
+            let available = provider().first { $0.id == id }
             guard let self else { return }
             queue.async { [weak connection, weak self] in
                 guard let self, let connection, connection.generation == generation,
                       !connection.isClosed, isAuthorized(connection) else { return }
-                guard available else { connection.sendJSON(["type": "unavailable"]); return }
-                connection.attach(id)
+                guard let available else { connection.sendJSON(["type": "unavailable"]); return }
+                connection.attach(id, inputGate: available.inputGate)
             }
         }
     }
@@ -427,12 +453,17 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
         if frame.opcode == 2 {
             guard ready, let bridge else { return false }
             let generation = generation
-            return bridge.write(frame.payload) { [weak self, weak bridge, weak server] written in
-                guard !written, let server else { return }
+            return bridge.write(frame.payload) { [weak self, weak bridge, weak server] result in
+                guard result != .written, let server else { return }
                 server.queue.async { [weak self, weak bridge] in
                     guard let self, let bridge, self.bridge === bridge,
                           self.generation == generation, !self.isClosed else { return }
-                    self.close()
+                    if result == .readOnly {
+                        self.sendJSON(["type": "read_only", "session": bridge.sessionID.uuidString,
+                                       "read_only": bridge.inputGate.isReadOnly])
+                    } else {
+                        self.close()
+                    }
                 }
             }
         }
@@ -465,10 +496,10 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
         return true
     }
 
-    func attach(_ id: UUID) {
+    func attach(_ id: UUID, inputGate: BrowserAccessInputGate) {
         guard let server, server.isAuthorized(self), !isClosed else { return }
         let generation = generation
-        let bridge = BrowserAccessMuxBridge(sessionID: id)
+        let bridge = BrowserAccessMuxBridge(sessionID: id, inputGate: inputGate)
         self.bridge = bridge
         bridge.start(queue: server.queue, frame: { [weak self, weak bridge] kind, bytes in
             guard let self, let bridge, self.bridge === bridge, self.generation == generation,
@@ -483,7 +514,7 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
                           "columns": Int(values[0]) * 256 + Int(values[1]), "rows": Int(values[2]) * 256 + Int(values[3])])
             case .ready:
                 ready = true
-                sendJSON(["type": "ready", "session": id.uuidString])
+                sendJSON(["type": "ready", "session": id.uuidString, "read_only": inputGate.isReadOnly])
             }
         }, ended: { [weak self, weak bridge] stalled in
             guard let self, let bridge, self.bridge === bridge, self.generation == generation, !isClosed else { return }

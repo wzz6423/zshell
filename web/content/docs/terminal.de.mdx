@@ -112,6 +112,10 @@ Das normale Eingabefeld von Claude Code unterstützt auf beiden Backends Klickpo
 
 Spracheingaben aus Zisla verwenden die Einfügeaktion des Terminals. In Claude Code ersetzen sie ebenfalls einen markierten Eingabebereich. Absichtliche Wiederholungen einer Phrase bleiben möglich.
 
+## Schreibgeschützter Modus [#read-only-mode]
+
+Wählen Sie **Terminal → Schreibgeschützt** oder **Schreibgeschützt** im Kontextmenü, um den Bereich zu sperren; seine Schloss-Schaltfläche entsperrt ihn. Ausgabe, Auswahl, Kopieren, Suche und Scrollen bleiben verfügbar. Tastatur- und Mauseingaben an Programme, Einfügen, abgelegte Dateien, Schnellbefehle, Warteschlangenversand, Eingaben über den Browserzugriff und automatisierte Eingaben werden blockiert. Entwürfe und Warteschlange bleiben erhalten; Entsperren sendet abgelehnte Eingaben nicht erneut. CLI-Eingabeanfragen geben `terminal_read_only` zurück. Die Sperre bleibt beim Tabwechsel oder Ausblenden von Quick Terminal erhalten. Neue Terminals beginnen entsperrt; beim App-Neustart werden Sperren nicht wiederhergestellt.
+
 ## Tastenkürzel des Vordergrundprogramms [#foreground-application-shortcuts]
 
 Wenn Tastenkürzel eines Terminalprogramms mit Zshell kollidieren, aktivieren Sie im Kontextmenü seines Bereichs **Zshell-Befehle blockieren**. Tastenkombinationen mit Zusatztasten, darunter <kbd>Ctrl</kbd>+<kbd>Return</kbd>, gehen dann an das Vordergrundprogramm, solange der Bereich den Tastaturfokus hat. Kopieren, Einfügen und Alles auswählen bleiben verfügbar.
