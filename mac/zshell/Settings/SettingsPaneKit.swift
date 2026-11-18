@@ -19,15 +19,15 @@ enum SettingsMetrics {
     /// Numeric readout beside a slider, wide enough for "100%".
     static let sliderValueWidth: CGFloat = 44
     static let rowTitleFont = NSFont.systemFont(ofSize: NSFont.systemFontSize)
-    static let rowIconSize = ceil((rowTitleFont.ascender - rowTitleFont.descender) * 1.25)
-    static let rowSymbolSize = ceil((rowTitleFont.ascender - rowTitleFont.descender) * 0.85)
+    static let rowIconSize: CGFloat = 32
+    static let rowSymbolSize: CGFloat = 15
     static let iconLabelGap: CGFloat = 12
     /// Baseline constraints measure down from the first line's typographic center.
     static let rowIconBaselineOffset = -(rowTitleFont.ascender + rowTitleFont.descender) / 2
     /// Sidebar row height and the width reserved for its symbol, so titles line
     /// up whatever glyph precedes them.
     static let sidebarRowHeight: CGFloat = 36
-    static let sidebarSymbolWidth = rowIconSize
+    static let sidebarSymbolWidth: CGFloat = 24
 }
 
 enum SettingsRowSymbols {
@@ -175,22 +175,18 @@ enum SettingsIconColors {
 final class SettingsIconView: NSView {
     private static var visibleSymbolBounds: [String: NSRect] = [:]
     private let color: NSColor
-    private let symbol = NSImageView()
+    private let symbol: NSImage?
     private let visibleBounds: NSRect
 
     init(symbolName: String, color: NSColor, size: CGFloat) {
         self.color = color
         let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
-            .withSymbolConfiguration(.init(pointSize: SettingsMetrics.rowTitleFont.pointSize, weight: .medium))
+            .withSymbolConfiguration(.init(pointSize: SettingsMetrics.rowSymbolSize, weight: .medium)
+                .applying(.init(paletteColors: [.white]))
+                .applying(.preferringMonochrome()))
         visibleBounds = image.map { Self.visibleBounds(of: $0, named: symbolName) } ?? .zero
+        symbol = image
         super.init(frame: .zero)
-        // SF Symbols include asymmetric drawing padding beyond their alignment rect.
-        image?.alignmentRect = NSRect(origin: .zero, size: image?.size ?? .zero)
-        symbol.image = image
-        symbol.contentTintColor = .white
-        symbol.imageScaling = .scaleProportionallyUpOrDown
-        symbol.setAccessibilityElement(false)
-        addSubview(symbol)
         translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             widthAnchor.constraint(equalToConstant: size),
@@ -208,17 +204,13 @@ final class SettingsIconView: NSView {
         color.setFill()
         let radius = bounds.width / 4
         NSBezierPath(roundedRect: bounds, xRadius: radius, yRadius: radius).fill()
-    }
-
-    override func layout() {
-        super.layout()
-        guard let image = symbol.image, !visibleBounds.isEmpty else { return }
-        let scale = SettingsMetrics.rowSymbolSize / max(visibleBounds.width, visibleBounds.height)
-        symbol.frame = NSRect(
-            x: bounds.midX - visibleBounds.midX * scale,
-            y: bounds.midY - visibleBounds.midY * scale,
-            width: image.size.width * scale, height: image.size.height * scale
-        )
+        guard let image = symbol, !visibleBounds.isEmpty else { return }
+        // NSImageView rounds its drawing origin, shifting some glyphs by a pixel.
+        image.draw(in: NSRect(
+            x: bounds.midX - visibleBounds.midX,
+            y: bounds.midY - visibleBounds.midY,
+            width: image.size.width, height: image.size.height
+        ))
     }
 
     private static func visibleBounds(of image: NSImage, named name: String) -> NSRect {
@@ -228,8 +220,9 @@ final class SettingsIconView: NSView {
         }
         let bitmap = NSBitmapImageRep(cgImage: cgImage)
         var minX = bitmap.pixelsWide, minY = bitmap.pixelsHigh, maxX = -1, maxY = -1
+        // Ignore the antialiased fringe when finding the glyph's visual center.
         for y in 0..<bitmap.pixelsHigh {
-            for x in 0..<bitmap.pixelsWide where (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.1 {
+            for x in 0..<bitmap.pixelsWide where (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.5 {
                 minX = min(minX, x); maxX = max(maxX, x)
                 minY = min(minY, y); maxY = max(maxY, y)
             }
