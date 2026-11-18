@@ -78,6 +78,8 @@ En **Ajustes → Terminal → Entrada → Acción del clic derecho**, elige **Me
 
 **Mayús + clic derecho**, **Control + clic** y **Comando + clic derecho** siguen abriendo el menú. **Edición → Mostrar menú contextual del terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) lo abre con el teclado. Las aplicaciones con informes del ratón siguen recibiendo los clics derechos normales, salvo si activas **Bloquear comandos de Zshell** en el panel. Pegar conserva la confirmación multilínea y el manejo de archivos locales o remotos de <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Cuando la integración del shell identifica el bloque pulsado, el menú ofrece **Copiar comando**, **Copiar salida**, **Copiar bloque de comando** (prompt, comando y salida visibles) y **Seleccionar salida del comando**. **Insertar en el prompt** coloca el comando para editarlo en un prompt zsh nativo, listo y vacío; pulsa Enter para ejecutarlo. Una salida vacía desactiva las acciones de salida. Ambos motores usan el bloque pulsado; el menú de teclado conserva las acciones generales del terminal.
+
 ## Perfiles de terminal [#terminal-profiles]
 
 Crea y ordena perfiles en **Ajustes → Terminal → Perfiles de terminal → Administrar perfiles de terminal…**. Pueden coincidir con el host, usuario, directorio de trabajo y programa en primer plano. Todas las condiciones indicadas deben cumplirse; `*` coincide con cualquier texto y `?` con un carácter. Se usa el primer perfil coincidente; sin coincidencias, el panel vuelve a su apariencia original. **Aplicar perfiles de terminal automáticamente** está activado por defecto (`terminal.auto-profiles = true`); la selección manual sigue disponible si lo desactivas.

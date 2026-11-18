@@ -78,6 +78,8 @@ Dans **Réglages → Terminal → Saisie → Action du clic droit**, choisissez 
 
 **Maj + clic droit**, **Contrôle + clic** et **Commande + clic droit** ouvrent toujours le menu. **Édition → Afficher le menu contextuel du terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) permet de l’ouvrir au clavier. Les applications utilisant le suivi de la souris continuent de recevoir les clics droits ordinaires, sauf si **Bloquer les commandes Zshell** est activé dans le volet. Le collage conserve la confirmation multiligne et le traitement des fichiers locaux ou distants de <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Si l’intégration shell identifie le bloc cliqué, le menu propose **Copier la commande**, **Copier la sortie**, **Copier le bloc de commande** (invite, commande et sortie visibles) et **Sélectionner la sortie de la commande**. **Insérer à l’invite** remplit une invite zsh native, prête et vide, pour modifier la commande ; appuyez sur Entrée pour l’exécuter. Une sortie vide désactive les actions de sortie. Les deux moteurs utilisent le bloc cliqué ; le menu au clavier conserve les actions générales du terminal.
+
 ## Profils de terminal [#terminal-profiles]
 
 Créez et ordonnez les profils dans **Réglages → Terminal → Profils de terminal → Gérer les profils de terminal…**. Ils peuvent correspondre à l’hôte, l’utilisateur, le répertoire de travail et le programme au premier plan. Toutes les conditions renseignées doivent correspondre ; `*` accepte tout texte et `?` un caractère. Le premier profil correspondant est utilisé, sinon le volet retrouve son apparence initiale. **Appliquer automatiquement les profils de terminal** est activé par défaut (`terminal.auto-profiles = true`) ; la sélection manuelle reste disponible si vous le désactivez.

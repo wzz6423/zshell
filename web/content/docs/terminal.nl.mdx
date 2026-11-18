@@ -78,6 +78,8 @@ Kies bij **Instellingen → Terminal → Invoer → Rechtsklikactie** voor **Con
 
 **Shift-rechtsklik**, **Control-klik** en **Command-rechtsklik** openen nog steeds het menu. **Wijzig → Terminalcontextmenu tonen** (<kbd>Shift</kbd>+<kbd>F10</kbd>) opent het met het toetsenbord. Apps met muisrapportage blijven gewone rechtsklikken ontvangen, tenzij **Zshell-opdrachten blokkeren** voor het paneel aanstaat. Plakken gebruikt dezelfde bevestiging voor meerdere regels en lokale of externe bestandsafhandeling als <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Als shellintegratie het aangeklikte blok herkent, biedt het menu **Opdracht kopiëren**, **Uitvoer kopiëren**, **Opdrachtblok kopiëren** (zichtbare prompt, opdracht en uitvoer) en **Opdrachtuitvoer selecteren**. **Bij de prompt invoegen** zet de opdracht ter bewerking in een gereedstaande, lege native zsh-prompt; druk op Enter om deze uit te voeren. Bij lege uitvoer zijn de uitvoeracties uitgeschakeld. Beide backends gebruiken het aangeklikte blok; het toetsenbordmenu behoudt de algemene terminalacties.
+
 ## Terminalprofielen [#terminal-profiles]
 
 Maak en orden profielen onder **Instellingen → Terminal → Terminalprofielen → Terminalprofielen beheren…**. Ze kunnen host, gebruiker, werkmap en voorgrondprogramma vergelijken. Alle ingevulde voorwaarden moeten passen; `*` past bij elke tekst en `?` bij één teken. Het eerste passende profiel wordt gebruikt; zonder match keert het paneel terug naar zijn oorspronkelijke uiterlijk. **Terminalprofielen automatisch toepassen** staat standaard aan (`terminal.auto-profiles = true`); handmatig kiezen blijft mogelijk na uitschakelen.
