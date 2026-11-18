@@ -16,7 +16,7 @@ import uuid
 
 
 root = Path(__file__).resolve().parents[2]
-build = Path(os.environ.get("ZSHELL_TEST_DERIVED_DATA", root / "mac/build/debug")) / "Build"
+build = Path(os.environ.get("ZSHELL_TEST_DERIVED_DATA", root / "mac/build/debug")).resolve() / "Build"
 products = build / "Products/Debug"
 bundle = products / "zshell Debug.app"
 library = bundle / "Contents/MacOS/zshell.debug.dylib"
