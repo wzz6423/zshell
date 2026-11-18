@@ -135,7 +135,7 @@ private final class TerminalCommandBlockMenuTarget: NSObject, NSMenuItemValidati
 
     @objc private func insertCommand(_ sender: NSMenuItem) {
         guard let entry = insertionEntry() else { return }
-        TerminalCommandHistoryActions.insert(entry)
+        _ = TerminalCommandHistoryActions.insert(entry)
     }
 
     private func insertionEntry() -> TerminalCommandHistoryEntry? {
