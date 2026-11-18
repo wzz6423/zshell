@@ -107,6 +107,16 @@ OpenSSH configuration. The terminal and remote Files/Git operations share this
 `-F` override; host-key verification remains enabled. Remote server and production
 CLI checks are documented in [remote/README.md](remote/README.md).
 
+### Remote browser lifecycle checks
+
+Run `python3 mac/tests/test_browser_remote_routing.py` to verify authenticated
+SSH forwarding and the production SOCKS relay with private local servers. Use
+`--relay-only` for disconnect/reconnect, partial handshakes, half-close and
+connection cleanup checks; add `--source-ref <commit>` to reproduce an earlier
+relay implementation. `--derived-data <directory>` also exercises the built
+AppKit browser with Ghostty and Alacritty. The fixture removes its servers,
+keys, binaries and module caches.
+
 ### PTY session lifecycle checks
 
 Run `python3 mac/tests/test_pty_mux_session_lifecycle.py` for the persistent PTY

@@ -89,6 +89,14 @@ Debug 构建的 bundle id 是 `sh.zshell.dev`，状态独立保存，因此可�
 并存而不互相覆盖：设置写入 `~/.config/zshell-dev/config.toml`，会话快照、侧栏宽度和
 Sparkle 偏好都存在这个独立 bundle id 下。
 
+### 远程浏览器生命周期检查
+
+运行 `python3 mac/tests/test_browser_remote_routing.py`，用私有本地服务器检查 SSH
+认证转发和生产 SOCKS relay。`--relay-only` 只检查断开与重连、部分握手、half-close
+和连接清理；加上 `--source-ref <commit>` 可以复现旧版 relay。
+`--derived-data <directory>` 还会在构建好的 AppKit 浏览器中检查 Ghostty 与 Alacritty。
+fixture 会清理服务器、密钥、binary 和模块缓存。
+
 仓库级 skill 位于 [`skills/`](skills/)。实现和验证用
 [应用开发](skills/zshell-app-development/SKILL.md)，发布准备或发布用
 [release](skills/zshell-release/SKILL.md)。随应用打包的 `zshell-automation` skill 仍在
