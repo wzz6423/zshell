@@ -303,10 +303,10 @@ private enum SettingsSidebarSection: CaseIterable {
 
     var categories: [SettingsCategory] {
         switch self {
-        case .basics: [.general, .appearance, .shortcuts]
+        case .basics: [.general, .appearance, .shortcuts, .permissions]
         case .workspace: [.terminal, .editor, .browser]
-        case .tools: [.automation, .recommendations]
-        case .about: [.updates]
+        case .tools: [.automation]
+        case .about: [.recommendations, .updates]
         }
     }
 }

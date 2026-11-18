@@ -61,6 +61,9 @@ enum SettingsSearchIndex {
         }
 
         var result = SettingsCategory.allCases.filter { $0 != .automation && $0 != .browserAccess }.map { item($0, $0.title) }
+        result += SettingsPermission.allCases.map {
+            item(.permissions, $0.title, description: $0.explanation, keywords: $0.searchKeywords)
+        }
         result += [
             item(.browser, String(localized: "Browser Access"), section: String(localized: "Browser Access"), keywords: "browserAccess remote web terminal LAN Tailscale"),
             item(.browser, String(localized: "Enable browser access"), section: String(localized: "Browser Access"), keywords: "browser-access.enabled remote web terminal LAN Tailscale"),
