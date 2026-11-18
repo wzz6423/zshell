@@ -368,6 +368,7 @@ final class TerminalSurfaceCoordinator {
         controller?.onWakeup = nil
         controller?.shouldProcessWakeup = nil
         bridge.rawSurface = nil
+        bridge.invalidatePendingCommandCallbacks()
         let hadSurface = surface != nil
         surface?.setFocus(false)
         surface?.free()

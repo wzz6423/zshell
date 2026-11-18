@@ -263,6 +263,12 @@ import GhosttyTerminal
         try wait("fixture returns to shell scrollback") { visible().contains("READ_ONLY_READY_plain") }
         try command("lines", root: root)
         try wait("locked output expands real scrollback") { (events.lastScroll?.totalRows ?? 0) > (events.lastScroll?.viewportRows ?? .max) }
+        surface.scroll(toFraction: 1)
+        try wait("locked history starts at the complete output's bottom") {
+            guard let scroll = events.lastScroll else { return false }
+            return visible().contains("READ_ONLY_SCROLL_119") && scroll.topRow > 0
+                && scroll.topRow == scroll.totalRows - scroll.viewportRows
+        }
         let previousTop = events.lastScroll?.topRow ?? 0
         surface.scrollWheel(with: wheel(3))
         try wait("locked mouse wheel scrolls host history") { (events.lastScroll?.topRow ?? previousTop) < previousTop }
