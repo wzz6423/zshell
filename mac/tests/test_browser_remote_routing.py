@@ -298,6 +298,7 @@ def compile_relay_probe(directory, source_ref=None):
 extension BrowserLoopbackRelay {
     private static let acceptedForTest = DispatchSemaphore(value: 0)
     private static let resumeForTest = DispatchSemaphore(value: 0)
+    private static let completedForTest = DispatchSemaphore(value: 0)
 
     func registerForTest(_ connection: NWConnection) -> Bool { connections.insert(connection) }
 
@@ -308,9 +309,11 @@ extension BrowserLoopbackRelay {
                 Self.acceptedForTest.signal()
                 guard Self.resumeForTest.wait(timeout: .now() + 5) == .success else {
                     connection.cancel()
-                    return
+                    fputs("Paused relay accept timed out\\n", stderr)
+                    exit(1)
                 }
                 accept(connection)
+                Self.completedForTest.signal()
             }
         }
     }
@@ -319,6 +322,7 @@ extension BrowserLoopbackRelay {
         precondition(Self.acceptedForTest.wait(timeout: .now() + 5) == .success)
         close()
         Self.resumeForTest.signal()
+        precondition(Self.completedForTest.wait(timeout: .now() + 5) == .success)
         listener.queue!.sync {}
     }
 }
@@ -473,6 +477,10 @@ def verify_routing_release(binary, directory, fixture, source_ref):
             try:
                 captured = probe.command("capture").split()
                 if not source_ref:
+                    deadline = time.monotonic() + 5
+                    while int(captured[1]) != len(clients) and time.monotonic() < deadline:
+                        time.sleep(0.02)
+                        captured = probe.command("capture").split()
                     assert int(captured[1]) == len(clients), captured
                     check = probe.command("check").split()
                     assert check[1:3] == [str(len(clients))] * 2 and check[3:] == ["1", "1", "1"], check
@@ -524,7 +532,9 @@ def verify_relay_protocol(binary, directory, fixture, source_ref):
                         assert receive_exact(upstream, 10) == b"\x05\x01\x00\x01\x7f\x00\x00\x02\x0b\xb8"
                         upstream.sendall(b"\x05\x00\x00\x01" + bytes(6))
                         assert receive_exact(client, 10)[:2] == b"\x05\x00"
-                        assert probe.command("capture") == f"CAPTURED {0 if source_ref else 2}"
+                        captured = probe.command("capture")
+                        if not source_ref:
+                            assert captured == "CAPTURED 2", captured
                         first, second = (client, upstream) if direction == "client" else (upstream, client)
                         payload = b"relay-request" * 1024
                         first.sendall(payload)
@@ -559,7 +569,9 @@ def verify_relay_protocol(binary, directory, fixture, source_ref):
                 with upstream:
                     upstream.settimeout(2)
                     assert receive_exact(upstream, 3) == b"\x05\x01\x00"
-                    assert probe.command("capture") == f"CAPTURED {0 if source_ref else 2}"
+                    captured = probe.command("capture")
+                    if not source_ref:
+                        assert captured == "CAPTURED 2", captured
                     assert probe.command("close") == "CLOSED"
                     assert_eof(client, "pending upstream greeting client")
                     assert_eof(upstream, "pending upstream greeting remote")
