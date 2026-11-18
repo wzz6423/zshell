@@ -113,8 +113,9 @@ Run `python3 mac/tests/test_browser_remote_routing.py` to verify authenticated
 SSH forwarding and the production SOCKS relay with private local servers. Use
 `--relay-only` for disconnect/reconnect, partial handshakes, half-close and
 connection cleanup checks; add `--source-ref <commit>` to reproduce an earlier
-relay implementation. `--derived-data <directory>` also exercises the built
-AppKit browser with Ghostty and Alacritty. The fixture removes its servers,
+relay implementation. In a separate run, `--derived-data <directory>` exercises
+the built AppKit browser with Ghostty and Alacritty; it cannot be combined with
+`--source-ref`. The fixture removes its servers,
 keys, binaries and module caches.
 
 ### PTY session lifecycle checks

@@ -45,18 +45,21 @@ struct BrowserLoopbackRelayTests {
                     relay = try await BrowserLoopbackRelay.start(upstreamPort: upstreamPort)
                     emit("READY \(relay!.port) \(upstreamPort)")
                 }
+                guard let relay else { throw failure("Relay owner missing") }
                 observedRelay = relay
-                observedListener = relay.flatMap {
-                    Mirror(reflecting: $0).children.first(where: { $0.label == "listener" })?.value as? NWListener
-                }
-                observedRegistry = relay.flatMap {
-                    Mirror(reflecting: $0).children.first(where: { $0.label == "connections" })?.value as AnyObject?
+                observedListener = try listener(for: relay)
+                if let registry = Mirror(reflecting: relay).children.first(where: { $0.label == "connections" })?.value {
+                    observedRegistry = registry as AnyObject
+                } else {
+#if !BROWSER_RELAY_HISTORICAL
+                    throw failure("Registry owner missing")
+#endif
                 }
             case "capture":
-                observedConnections = snapshot(relay).map(WeakConnection.init)
+                observedConnections = try snapshot(relay).map(WeakConnection.init)
                 emit("CAPTURED \(observedConnections.count)")
             case "check":
-                emit("CHECK \(snapshot(relay).count) \(observedConnections.filter { $0.value != nil }.count) \(observedRelay == nil ? 0 : 1) \(observedListener == nil ? 0 : 1) \(observedRegistry == nil ? 0 : 1)")
+                emit("CHECK \(try snapshot(relay).count) \(observedConnections.filter { $0.value != nil }.count) \(observedRelay == nil ? 0 : 1) \(observedListener == nil ? 0 : 1) \(observedRegistry == nil ? 0 : 1)")
             case "unavailable", "release":
                 guard let routing else { throw failure("Routing caller required") }
                 if command == "release" { routing.release(browserID) }
@@ -73,8 +76,16 @@ struct BrowserLoopbackRelayTests {
 #if BROWSER_RELAY_REGISTRY_TESTS
             case "delayed-start":
                 guard let relay else { throw failure("Relay required") }
-                observedConnections = delayedStart(relay, upstreamPort: upstreamPort)
+                observedConnections = try delayedStart(relay, upstreamPort: upstreamPort)
                 emit("DELAYED")
+            case "pause-accept":
+                guard let relay else { throw failure("Relay required") }
+                relay.pauseAcceptForTest()
+                emit("PAUSING")
+            case "resume-accept":
+                guard let relay else { throw failure("Relay required") }
+                relay.resumeAcceptForTest()
+                emit("RESUMED")
 #endif
             case "quit":
                 relay?.close()
@@ -92,20 +103,32 @@ struct BrowserLoopbackRelayTests {
         return Mirror(reflecting: property.value).children.first?.value as? T
     }
 
-    @MainActor private static func snapshot(_ relay: BrowserLoopbackRelay?) -> [NWConnection] {
-        guard let relay,
-              let listener = Mirror(reflecting: relay).children.first(where: { $0.label == "listener" })?.value as? NWListener,
-              let queue = listener.queue else { return [] }
-        return queue.sync {
+    @MainActor private static func listener(for relay: BrowserLoopbackRelay) throws -> NWListener {
+        guard let listener = Mirror(reflecting: relay).children.first(where: { $0.label == "listener" })?.value as? NWListener else {
+            throw failure("Listener owner missing")
+        }
+        return listener
+    }
+
+    @MainActor private static func snapshot(_ relay: BrowserLoopbackRelay?) throws -> [NWConnection] {
+        guard let relay else { return [] }
+        guard let queue = try listener(for: relay).queue else { throw failure("Listener queue missing") }
+        return try queue.sync { () throws -> [NWConnection] in
             guard let registry = Mirror(reflecting: relay).children.first(where: { $0.label == "connections" })?.value,
                   let active = Mirror(reflecting: registry).children.first(where: { $0.label == "active" })?.value
-                    as? [ObjectIdentifier: NWConnection] else { return [] }
+                    as? [ObjectIdentifier: NWConnection] else {
+#if BROWSER_RELAY_HISTORICAL
+                return []
+#else
+                throw failure("Active connections missing")
+#endif
+            }
             return Array(active.values)
         }
     }
 
 #if BROWSER_RELAY_REGISTRY_TESTS
-    @MainActor private static func delayedStart(_ relay: BrowserLoopbackRelay, upstreamPort: UInt16) -> [WeakConnection] {
+    @MainActor private static func delayedStart(_ relay: BrowserLoopbackRelay, upstreamPort: UInt16) throws -> [WeakConnection] {
         let before = NWConnection(host: "127.0.0.1", port: NWEndpoint.Port(rawValue: upstreamPort)!, using: .tcp)
         let after = NWConnection(host: "127.0.0.1", port: NWEndpoint.Port(rawValue: upstreamPort)!, using: .tcp)
         let observed = [WeakConnection(before), WeakConnection(after)]
@@ -113,7 +136,7 @@ struct BrowserLoopbackRelayTests {
         relay.close()
         precondition(!relay.registerForTest(after))
         after.cancel()
-        let queue = DispatchQueue(label: "zshell.relay-delayed-start-test")
+        guard let queue = try listener(for: relay).queue else { throw failure("Listener queue missing") }
         before.start(queue: queue)
         after.start(queue: queue)
         return observed

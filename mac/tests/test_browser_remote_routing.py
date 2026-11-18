@@ -296,10 +296,36 @@ def compile_relay_probe(directory, source_ref=None):
         # production test API or replacing the registry's synchronization.
         source += """
 extension BrowserLoopbackRelay {
+    private static let acceptedForTest = DispatchSemaphore(value: 0)
+    private static let resumeForTest = DispatchSemaphore(value: 0)
+
     func registerForTest(_ connection: NWConnection) -> Bool { connections.insert(connection) }
+
+    func pauseAcceptForTest() {
+        listener.queue!.sync {
+            let accept = listener.newConnectionHandler!
+            listener.newConnectionHandler = { connection in
+                Self.acceptedForTest.signal()
+                guard Self.resumeForTest.wait(timeout: .now() + 5) == .success else {
+                    connection.cancel()
+                    return
+                }
+                accept(connection)
+            }
+        }
+    }
+
+    func resumeAcceptForTest() {
+        precondition(Self.acceptedForTest.wait(timeout: .now() + 5) == .success)
+        close()
+        Self.resumeForTest.signal()
+        listener.queue!.sync {}
+    }
 }
 """
         arguments += ["-D", "BROWSER_RELAY_REGISTRY_TESTS"]
+    else:
+        arguments += ["-D", "BROWSER_RELAY_HISTORICAL"]
     routing.write_text(source)
     binary = directory / "relay-probe"
     arguments += [str(ROOT / "mac/zshell" / name) for name in (
@@ -324,6 +350,9 @@ class RelayProbe:
     def command(self, value):
         self.process.stdin.write(value + "\n")
         self.process.stdin.flush()
+        return self.read_response(value)
+
+    def read_response(self, value):
         with selectors.DefaultSelector() as selector:
             selector.register(self.process.stdout, selectors.EVENT_READ)
             if selector.select(10):
@@ -336,18 +365,32 @@ class RelayProbe:
     def __enter__(self):
         return self
 
-    def __exit__(self, *_):
-        if self.process.poll() is None:
-            self.process.stdin.write("quit\n")
-            self.process.stdin.flush()
-            try:
+    def __exit__(self, exception_type, *_):
+        failure = None
+        try:
+            if self.process.poll() is None:
+                self.process.stdin.write("quit\n")
+                self.process.stdin.flush()
                 self.process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
+            if self.process.returncode != 0:
+                failure = f"Relay quit exited with status {self.process.returncode}"
+        except (OSError, subprocess.TimeoutExpired) as error:
+            failure = f"Relay shutdown failed: {error}"
+            if self.process.poll() is None:
                 self.process.terminate()
-                self.process.wait(timeout=3)
-        self.process.stdin.close()
-        self.process.stdout.close()
-        self.errors.close()
+                try:
+                    self.process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
+                    self.process.wait(timeout=3)
+        finally:
+            self.errors.seek(0)
+            log = self.errors.read()
+            self.process.stdin.close()
+            self.process.stdout.close()
+            self.errors.close()
+        if failure and exception_type is None:
+            raise AssertionError(f"{failure}: {log}")
 
 
 def receive_exact(connection, count):
@@ -421,7 +464,7 @@ def pending_clients(port):
         raise
 
 
-def verify_routing_release(binary, directory, fixture):
+def verify_routing_release(binary, directory, fixture, source_ref):
     with RelayProbe(binary, directory, fixture, "routing", fixture.ssh_port) as probe:
         for iteration in range(4):
             ready = probe.command("connect").split()
@@ -429,8 +472,10 @@ def verify_routing_release(binary, directory, fixture):
             clients = pending_clients(port)
             try:
                 captured = probe.command("capture").split()
-                if captured[1] != "0":
+                if not source_ref:
                     assert int(captured[1]) == len(clients), captured
+                    check = probe.command("check").split()
+                    assert check[1:3] == [str(len(clients))] * 2 and check[3:] == ["1", "1", "1"], check
                 assert probe.command("release" if iteration % 2 else "unavailable") == "CLOSED"
                 for label, connection in clients:
                     assert_eof(connection, label)
@@ -479,7 +524,7 @@ def verify_relay_protocol(binary, directory, fixture, source_ref):
                         assert receive_exact(upstream, 10) == b"\x05\x01\x00\x01\x7f\x00\x00\x02\x0b\xb8"
                         upstream.sendall(b"\x05\x00\x00\x01" + bytes(6))
                         assert receive_exact(client, 10)[:2] == b"\x05\x00"
-                        assert probe.command("capture") in ("CAPTURED 0", "CAPTURED 2")
+                        assert probe.command("capture") == f"CAPTURED {0 if source_ref else 2}"
                         first, second = (client, upstream) if direction == "client" else (upstream, client)
                         payload = b"relay-request" * 1024
                         first.sendall(payload)
@@ -497,6 +542,7 @@ def verify_relay_protocol(binary, directory, fixture, source_ref):
                 socks_request(client)
                 upstream, _ = listener.accept()
                 with upstream:
+                    upstream.settimeout(2)
                     assert receive_exact(upstream, 3) == b"\x05\x01\x00"
                     upstream.sendall(b"\x05\xff")
                     assert receive_exact(client, 10)[1] == 2
@@ -511,8 +557,9 @@ def verify_relay_protocol(binary, directory, fixture, source_ref):
                 socks_request(client)
                 upstream, _ = listener.accept()
                 with upstream:
+                    upstream.settimeout(2)
                     assert receive_exact(upstream, 3) == b"\x05\x01\x00"
-                    assert probe.command("capture") in ("CAPTURED 0", "CAPTURED 2")
+                    assert probe.command("capture") == f"CAPTURED {0 if source_ref else 2}"
                     assert probe.command("close") == "CLOSED"
                     assert_eof(client, "pending upstream greeting client")
                     assert_eof(upstream, "pending upstream greeting remote")
@@ -536,14 +583,24 @@ def verify_relay_protocol(binary, directory, fixture, source_ref):
                 print("PASS relay: registration before delayed start and after close cannot revive canceled connections", flush=True)
 
 
-def verify_relay_accept_race(binary, directory, fixture):
+def verify_relay_accept_race(binary, directory, fixture, source_ref):
     with RelayProbe(binary, directory, fixture, "race", fixture.primary.server_port) as probe:
+        if not source_ref:
+            port = int(probe.command("connect").split()[1])
+            assert probe.command("pause-accept") == "PAUSING"
+            with socket.create_connection(("127.0.0.1", port), timeout=2) as client:
+                client.sendall(b"\x05\x01\x00")
+                assert probe.command("resume-accept") == "RESUMED"
+                assert_eof(client, "accept paused before registration")
+            assert probe.command("drop") == "DROPPED"
+            wait_released(probe)
+            print("PASS relay: a real accept paused before registration is rejected after close without entering SOCKS", flush=True)
         for iteration in range(8):
             port = int(probe.command("connect").split()[1])
             clients = [socket.create_connection(("127.0.0.1", port), timeout=2)]
             started = threading.Event()
 
-            def connect_while_closing():
+            def connect_while_closing(port=port, clients=clients, started=started):
                 started.set()
                 for _ in range(24):
                     try:
@@ -577,9 +634,9 @@ def verify_relay_accept_race(binary, directory, fixture):
 
 def verify_relay(directory, fixture, source_ref=None):
     binary = compile_relay_probe(directory, source_ref)
-    verify_routing_release(binary, directory, fixture)
+    verify_routing_release(binary, directory, fixture, source_ref)
     verify_relay_protocol(binary, directory, fixture, source_ref)
-    verify_relay_accept_race(binary, directory, fixture)
+    verify_relay_accept_race(binary, directory, fixture, source_ref)
 
 
 def verify_transport(directory, fixture):

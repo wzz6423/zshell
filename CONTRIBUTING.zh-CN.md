@@ -94,7 +94,8 @@ Sparkle 偏好都存在这个独立 bundle id 下。
 运行 `python3 mac/tests/test_browser_remote_routing.py`，用私有本地服务器检查 SSH
 认证转发和生产 SOCKS relay。`--relay-only` 只检查断开与重连、部分握手、half-close
 和连接清理；加上 `--source-ref <commit>` 可以复现旧版 relay。
-`--derived-data <directory>` 还会在构建好的 AppKit 浏览器中检查 Ghostty 与 Alacritty。
+另一次运行可用 `--derived-data <directory>` 在构建好的 AppKit 浏览器中检查 Ghostty 与
+Alacritty；该选项不能与 `--source-ref` 合用。
 fixture 会清理服务器、密钥、binary 和模块缓存。
 
 仓库级 skill 位于 [`skills/`](skills/)。实现和验证用
