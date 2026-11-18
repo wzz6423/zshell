@@ -1,6 +1,81 @@
 import Darwin
 import Foundation
 
+nonisolated struct PTYSessionProcesses: Sendable {
+    let root: pid_t
+    let processes: [ZshellAgentProcessIdentity]
+
+    init?(root: pid_t?, foreground: pid_t? = nil) {
+        let leader = root.flatMap(ZshellAgentProcessIdentity.init(pid:))
+        guard let member = leader ?? foreground.flatMap(ZshellAgentProcessIdentity.init(pid:)) else { return nil }
+        let session = getsid(member.pid)
+        guard session > 1, session != getsid(getpid()), leader != nil || root == nil || root == session else { return nil }
+        self.root = session
+        processes = [member] + Self.sessionProcesses(root: session)
+    }
+
+    init(root: pid_t, processes: [ZshellAgentProcessIdentity]) {
+        self.root = root
+        self.processes = processes
+    }
+
+    func refreshing() -> Self {
+        // A backend may reap the leader during the grace period. Only an
+        // original member or the unreaped leader can reserve the old session ID.
+        guard hasSessionAnchor else { return self }
+        let current = Self.sessionProcesses(root: root)
+        guard hasSessionAnchor else { return self }
+        return Self(root: root, processes: processes + current)
+    }
+
+    private var hasSessionAnchor: Bool {
+        processes.contains { Self.isCurrentSessionProcess($0, root: root) || isUnreapedLeader($0) }
+    }
+
+    func signal(_ signal: Int32) {
+        var groups: [pid_t: ZshellAgentProcessIdentity] = [:]
+        for process in processes where Self.isCurrentSessionProcess(process, root: root) {
+            let group = getpgid(process.pid)
+            if group > 1 && group != getpgrp() { groups[group] = process }
+        }
+        for (group, process) in groups where Self.isCurrentSessionProcess(process, root: root)
+            && getpgid(process.pid) == group {
+            _ = Darwin.kill(-group, signal)
+        }
+        for process in processes where Self.isCurrentSessionProcess(process, root: root) {
+            _ = Darwin.kill(process.pid, signal)
+        }
+    }
+
+    static func isCurrentSessionProcess(_ process: ZshellAgentProcessIdentity, root: pid_t) -> Bool {
+        process.pid != getpid() && process.isAlive && getsid(process.pid) == root
+    }
+
+    static func sessionProcesses(root: pid_t) -> [ZshellAgentProcessIdentity] {
+        let bytes = proc_listallpids(nil, 0)
+        guard bytes > 0 else { return ZshellAgentProcessIdentity(pid: root).map { [$0] } ?? [] }
+        var pids = [pid_t](repeating: 0, count: Int(bytes) + 32)
+        let count = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
+        guard count > 0 else { return ZshellAgentProcessIdentity(pid: root).map { [$0] } ?? [] }
+        return pids.prefix(Int(count)).filter { $0 > 1 && getsid($0) == root }
+            .compactMap { ZshellAgentProcessIdentity(pid: $0) }
+    }
+
+    private func isUnreapedLeader(_ process: ZshellAgentProcessIdentity) -> Bool {
+        guard process.pid == root, root > 1, root != getpid() else { return false }
+        // proc_pidinfo excludes zombies on macOS, but sysctl preserves their
+        // start time until waitpid releases the PID. Never accept a new occupant.
+        var info = kinfo_proc()
+        var size = MemoryLayout<kinfo_proc>.size
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, root]
+        guard sysctl(&mib, UInt32(mib.count), &info, &size, nil, 0) == 0,
+              size == MemoryLayout<kinfo_proc>.size, info.kp_proc.p_stat == Int8(SZOMB) else { return false }
+        let started = info.kp_proc.p_un.__p_starttime
+        return UInt64(exactly: started.tv_sec) == process.startedSeconds
+            && UInt64(exactly: started.tv_usec) == process.startedMicroseconds
+    }
+}
+
 final class PTYMuxAttachment {
     let descriptor: Int32
     private let lock = NSLock()
@@ -215,45 +290,20 @@ final class PTYMuxSession: @unchecked Sendable {
             terminationStarted = true
             // Job control creates a new process group for agents and servers.
             // Signal every group in this PTY session, including background jobs.
-            let processes = Self.sessionProcesses(root: pid)
-            signal(processes, SIGHUP)
+            let processes = PTYSessionProcesses(root: pid)
+            processes?.signal(SIGHUP)
             io.asyncAfter(deadline: .now() + .milliseconds(250)) { [self] in
                 // Reaping already ended the jobs and released the leader PID.
                 // Do not rescan a reused ID or delete a replacement's files.
                 guard !processExited else { return }
-                signal(processes + Self.sessionProcesses(root: pid), SIGKILL)
+                processes?.refreshing().signal(SIGKILL)
                 cleanupFiles()
             }
         }
     }
 
-    private func signal(_ processes: [ZshellAgentProcessIdentity], _ signal: Int32) {
-        var groups: [pid_t: ZshellAgentProcessIdentity] = [:]
-        for process in processes where Self.isCurrentSessionProcess(process, root: pid) {
-            let group = getpgid(process.pid)
-            if group > 1 && group != getpgrp() { groups[group] = process }
-        }
-        for (group, process) in groups where Self.isCurrentSessionProcess(process, root: pid)
-            && getpgid(process.pid) == group {
-            _ = Darwin.kill(-group, signal)
-        }
-        for process in processes where Self.isCurrentSessionProcess(process, root: pid) {
-            _ = Darwin.kill(process.pid, signal)
-        }
-    }
-
     static func isCurrentSessionProcess(_ process: ZshellAgentProcessIdentity, root: pid_t) -> Bool {
-        process.pid != getpid() && process.isAlive && getsid(process.pid) == root
-    }
-
-    private static func sessionProcesses(root: pid_t) -> [ZshellAgentProcessIdentity] {
-        let bytes = proc_listallpids(nil, 0)
-        guard bytes > 0 else { return ZshellAgentProcessIdentity(pid: root).map { [$0] } ?? [] }
-        var pids = [pid_t](repeating: 0, count: Int(bytes) + 32)
-        let count = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
-        guard count > 0 else { return ZshellAgentProcessIdentity(pid: root).map { [$0] } ?? [] }
-        return pids.prefix(Int(count)).filter { $0 > 1 && getsid($0) == root }
-            .compactMap { ZshellAgentProcessIdentity(pid: $0) }
+        PTYSessionProcesses.isCurrentSessionProcess(process, root: root)
     }
 
     private func drainOutput() {
@@ -319,7 +369,7 @@ final class PTYMuxSession: @unchecked Sendable {
     private func reap() {
         // The unreaped leader still reserves this session ID, so its remaining
         // jobs can be ended before any unrelated process reuses the number.
-        signal(Self.sessionProcesses(root: pid), SIGKILL)
+        PTYSessionProcesses(root: pid, processes: PTYSessionProcesses.sessionProcesses(root: pid)).signal(SIGKILL)
         var status: Int32 = 0
         var result: pid_t
         repeat { result = waitpid(pid, &status, 0) } while result < 0 && errno == EINTR

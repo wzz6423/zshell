@@ -245,6 +245,7 @@ final class TerminalManager: nonisolated ObservableObject {
     /// Set on app termination so window teardown can't re-save a partial
     /// snapshot over the final full one.
     private static var isQuitting = false
+    private static var quittingSessions: [TerminalSession] = []
     private static var isConfirmingApplicationQuit = false
     private static var quitEndsAllSessions = false
     private static var didReopenWindows = false
@@ -2025,6 +2026,8 @@ final class TerminalManager: nonisolated ObservableObject {
     static func prepareForApplicationQuit(endAll: Bool = false) {
         guard !isQuitting else { return }
         isQuitting = true
+        quittingSessions = registry.flatMap { $0.projects.flatMap(\.sessions) }
+            + GlobalTerminalOverlay.shared.allSessions
         saveAll(captureTerminalHistory: true)
         let endAll = endAll || quitEndsAllSessions
         quitEndsAllSessions = false
@@ -2041,6 +2044,13 @@ final class TerminalManager: nonisolated ObservableObject {
         AgentConversationHistoryStore.shared.flush()
         TerminalCommandHistoryStore.shared.flush()
         EditorDraftStore.shared.flush()
+    }
+
+    static func waitForApplicationQuitTeardown() async {
+        let sessions = quittingSessions + registry.flatMap { $0.projects.flatMap(\.sessions) }
+            + GlobalTerminalOverlay.shared.allSessions
+        quittingSessions.removeAll()
+        for session in sessions { await session.waitForTeardown() }
     }
 
     /// Builds this window's layout snapshot and, alongside it, the scrollback

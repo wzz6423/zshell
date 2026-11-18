@@ -22,6 +22,232 @@ private func wait(_ label: String, until condition: () -> Bool) throws {
     }
 }
 
+#if TERMINAL_SESSION_TEARDOWN_TEST
+private final class LocalPTY {
+    let pid: pid_t
+    let master: Int32
+    private var reaped = false
+    private var jobs: [ZshellAgentProcessIdentity] = []
+
+    init(_ script: String) throws {
+        var master: Int32 = -1
+        var slave: Int32 = -1
+        guard openpty(&master, &slave, nil, nil, nil) == 0 else { throw PTYMuxWire.errnoError("openpty") }
+        defer { Darwin.close(slave) }
+        var actions: posix_spawn_file_actions_t?
+        guard posix_spawn_file_actions_init(&actions) == 0 else { throw PTYMuxWire.errnoError("spawn actions") }
+        defer { posix_spawn_file_actions_destroy(&actions) }
+        for descriptor in [STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO] {
+            guard posix_spawn_file_actions_adddup2(&actions, slave, descriptor) == 0 else {
+                throw PTYMuxWire.errnoError("dup2")
+            }
+        }
+        var attributes: posix_spawnattr_t?
+        guard posix_spawnattr_init(&attributes) == 0 else { throw PTYMuxWire.errnoError("spawn attributes") }
+        defer { posix_spawnattr_destroy(&attributes) }
+        guard posix_spawnattr_setflags(&attributes, Int16(POSIX_SPAWN_CLOEXEC_DEFAULT | POSIX_SPAWN_SETSID)) == 0 else {
+            throw PTYMuxWire.errnoError("setsid")
+        }
+        let command = [CommandLine.arguments[0], PTYMuxCommandLine.childArgument, "/bin/sh", "-c", script]
+        let argv = command.map { strdup($0) }
+        let env = ProcessInfo.processInfo.environment.map { strdup("\($0.key)=\($0.value)") }
+        defer { for pointer in argv + env { free(pointer) } }
+        var arguments = argv + [nil]
+        var variables = env + [nil]
+        var pid: pid_t = 0
+        guard posix_spawn(&pid, command[0], &actions, &attributes, &arguments, &variables) == 0 else {
+            Darwin.close(master)
+            throw PTYMuxWire.errnoError("spawn")
+        }
+        self.pid = pid
+        self.master = master
+    }
+
+    func observe(_ file: URL) throws -> ZshellAgentProcessIdentity {
+        try wait("local job publishes its identity") {
+            guard let text = try? String(contentsOf: file, encoding: .utf8),
+                  let pid = pid_t(text.trimmingCharacters(in: .whitespacesAndNewlines)) else { return false }
+            return ZshellAgentProcessIdentity(pid: pid) != nil
+        }
+        let pid = pid_t(try String(contentsOf: file, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines))!
+        let job = ZshellAgentProcessIdentity(pid: pid)!
+        jobs.append(job)
+        return job
+    }
+
+    func reap() {
+        guard !reaped else { return }
+        var status: Int32 = 0
+        var result: pid_t
+        repeat { result = waitpid(pid, &status, 0) } while result < 0 && errno == EINTR
+        reaped = result == pid || errno == ECHILD
+    }
+
+    func cleanup() {
+        if !reaped {
+            jobs += PTYSessionCleanupCapture.members(root: pid)
+            _ = Darwin.kill(pid, SIGKILL)
+        } else if jobs.contains(where: { $0.isAlive && getsid($0.pid) == pid }) {
+            jobs += PTYSessionCleanupCapture.members(root: pid)
+        }
+        for job in jobs where job.isAlive && getsid(job.pid) == pid { _ = Darwin.kill(job.pid, SIGKILL) }
+        reap()
+    }
+
+    deinit {
+        // waitpid has not released this owned child's PID, even if it exited
+        // before a failing test managed to observe its new background jobs.
+        cleanup()
+        Darwin.close(master)
+    }
+}
+
+private enum PTYSessionCleanupCapture {
+    static func members(root: pid_t) -> [ZshellAgentProcessIdentity] {
+        let count = proc_listallpids(nil, 0)
+        guard count > 0 else { return [] }
+        var pids = [pid_t](repeating: 0, count: Int(count) + 32)
+        let written = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
+        guard written > 0 else { return [] }
+        return pids.prefix(Int(written)).filter { $0 > 1 && getsid($0) == root }
+            .compactMap { ZshellAgentProcessIdentity(pid: $0) }
+    }
+}
+
+@MainActor private func waitLocal(_ label: String, until condition: () -> Bool) throws {
+    let deadline = Date().addingTimeInterval(5)
+    while !condition() {
+        guard Date() < deadline else { throw TestFailure(description: "Timed out: \(label)") }
+        _ = RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.005))
+    }
+}
+
+@MainActor private func localTeardown(_ root: URL, mode: String) throws {
+    let ready = root.appendingPathComponent("local.ready")
+    let jobFile = root.appendingPathComponent("local.pid")
+    let successorFile = root.appendingPathComponent("local-successor.pid")
+    let forkGate = root.appendingPathComponent("local-fork.continue")
+    let exitGate = root.appendingPathComponent("local.exit")
+    let forks = mode == "local-fork" || mode == "local-fork-exit"
+    let handler = """
+    trap '' HUP
+    (trap '' HUP; exec /bin/sleep 60) &
+    echo $! > '\(successorFile.path)'
+    while [ ! -f '\(forkGate.path)' ]; do /bin/sleep 0.005; done
+    \(mode == "local-fork-exit" ? "exit 0" : "")
+    """.replacingOccurrences(of: "'", with: "'\\''")
+    let pty = try LocalPTY("""
+    set -m
+    \(forks ? "trap '\(handler)' HUP" : "trap '' HUP")
+    (trap '' HUP; : > '\(ready.path)'; exec /bin/sleep 60) &
+    echo $! > '\(jobFile.path)'
+    \(mode == "local-exited" ? "while [ ! -f '\(exitGate.path)' ]; do /bin/sleep 0.005; done; exit 7" : "while :; do read -r line || :; done")
+    """)
+    let job = try pty.observe(jobFile)
+    try wait("local HUP-ignoring job starts") { FileManager.default.fileExists(atPath: ready.path) }
+    try check(getsid(job.pid) == pty.pid && getpgid(job.pid) != pty.pid,
+              "local background job has a separate group in the same PTY session")
+    let session = TerminalSession(pid: pty.pid, foreground: pty.pid)
+    session.surface.onDetach = { pty.reap() }
+    if mode == "local-exited" {
+        try Data().write(to: exitGate)
+        pty.reap()
+        session.beginTeardown(processAlive: false, notifyExit: true)
+        try waitLocal("natural local close completes") { session.hasExited }
+        try check(job.isAlive, "natural local exit preserves its existing background-job semantics")
+        return
+    }
+    session.beginTeardown(processAlive: true, notifyExit: false)
+    if forks {
+        let successor = try pty.observe(successorFile)
+        try check(getsid(successor.pid) == pty.pid && getpgid(successor.pid) != pty.pid,
+                  "local HUP handler creates a new background group after the first scan")
+        try Data().write(to: forkGate)
+        if mode == "local-fork-exit" { pty.reap() }
+        try waitLocal("local successor is terminated") { session.hasExited && !successor.isAlive }
+        try check(!successor.isAlive, "delayed local termination discovers the HUP successor without trusting a reused root PID")
+    } else {
+        try waitLocal("explicit local close terminates its background job") { session.hasExited && !job.isAlive }
+    }
+    try check(!job.isAlive, "explicit local teardown stops a SIGHUP-ignoring background job")
+}
+
+#if PTY_SESSION_PROCESS_TEST
+@MainActor private func localIdentity(_ root: URL) throws {
+    let ready = root.appendingPathComponent("identity.ready")
+    let jobFile = root.appendingPathComponent("identity.pid")
+    let pty = try LocalPTY("""
+    set -m
+    trap '' HUP
+    (trap '' HUP; : > '\(ready.path)'; exec /bin/sleep 60) &
+    echo $! > '\(jobFile.path)'
+    while :; do read -r line || :; done
+    """)
+    let job = try pty.observe(jobFile)
+    try wait("identity job starts") { FileManager.default.fileExists(atPath: ready.path) }
+    let processes = PTYSessionProcesses(root: pty.pid)!
+    try check(PTYSessionProcesses(root: nil, foreground: job.pid)?.root == pty.pid,
+              "a live foreground identity recovers a PTY when its shell PID file is unavailable")
+    try check(PTYSessionProcesses(root: job.pid)?.root == pty.pid,
+              "a backend launch wrapper can leave the shell PID as a member of another session leader")
+    try check(PTYSessionProcesses(root: getpid(), foreground: job.pid) == nil,
+              "a foreground identity from another known root cannot change cleanup scope")
+    let stale = PTYSessionProcesses(root: pty.pid, processes: [ZshellAgentProcessIdentity(stale: job)])
+    stale.signal(SIGKILL)
+    try check(job.isAlive, "stale microsecond start time cannot signal a current process or its group")
+    let sentinel = try LocalPTY("trap '' HUP; exec /bin/sleep 60")
+    defer { sentinel.cleanup() }
+    try wait("unrelated sentinel starts") { ZshellAgentProcessIdentity(pid: sentinel.pid) != nil }
+    let sentinelIdentity = ZshellAgentProcessIdentity(pid: sentinel.pid)!
+    PTYSessionProcesses(root: pty.pid, processes: [sentinelIdentity]).signal(SIGKILL)
+    try check(sentinelIdentity.isAlive, "a different PTY session survives a mixed cleanup snapshot")
+    _ = Darwin.kill(pty.pid, SIGKILL)
+    try wait("root becomes a zombie") { ZshellAgentProcessIdentity(pid: pty.pid) == nil }
+    try check(processes.refreshing().processes.contains(where: { $0 == job }),
+              "an unreaped root with its original start time remains a safe rescan anchor")
+    pty.reap()
+    try check(PTYSessionProcesses(root: pty.pid, foreground: job.pid)?.processes.contains(job) == true,
+              "an already reaped root can only recover through a verified live member in its original session")
+    try check(processes.refreshing().processes.contains(where: { $0 == job }),
+              "a captured live background member anchors rescans after the backend reaps the root")
+    let staleRoot = PTYSessionProcesses(root: pty.pid, processes: processes.processes.map { ZshellAgentProcessIdentity(stale: $0) })
+    try check(staleRoot.refreshing().processes == staleRoot.processes,
+              "a reaped root and stale members cannot discover or trust a replacement session")
+    staleRoot.refreshing().signal(SIGKILL)
+    try check(job.isAlive && sentinelIdentity.isAlive, "stale cleanup leaves both the live old job and unrelated session untouched")
+    processes.refreshing().signal(SIGKILL)
+    try wait("identity cleanup completes") { !job.isAlive }
+
+    let successorFile = root.appendingPathComponent("zombie-successor.pid")
+    let zombieReady = root.appendingPathComponent("zombie.ready")
+    let zombieFork = root.appendingPathComponent("zombie.fork")
+    let zombie = try LocalPTY("""
+    set -m
+    trap '' HUP
+    : > '\(zombieReady.path)'
+    while [ ! -f '\(zombieFork.path)' ]; do /bin/sleep 0.005; done
+    (trap '' HUP; exec /bin/sleep 60) &
+    echo $! > '\(successorFile.path)'
+    exit 7
+    """)
+    try wait("zombie fixture shell starts") { FileManager.default.fileExists(atPath: zombieReady.path) }
+    let beforeFork = PTYSessionProcesses(root: zombie.pid)!
+    try Data().write(to: zombieFork)
+    let successor = try zombie.observe(successorFile)
+    try wait("forking root becomes a zombie") { ZshellAgentProcessIdentity(pid: zombie.pid) == nil }
+    let afterFork = beforeFork.refreshing()
+    try check(afterFork.processes.contains(successor), "a verified zombie root discovers a new group absent from the original snapshot")
+    zombie.reap()
+    try check(!beforeFork.refreshing().processes.contains(successor),
+              "an already reaped root cannot establish trust in new members from only its former SID")
+    beforeFork.refreshing().signal(SIGKILL)
+    try check(successor.isAlive && sentinelIdentity.isAlive, "missing anchors never signal uncaptured members or unrelated sessions")
+    afterFork.signal(SIGKILL)
+    try wait("successor identity cleanup completes") { !successor.isAlive }
+}
+#endif
+#endif
+
 #if PTY_MUX_STANDALONE
 private extension ZshellAgentProcessIdentity {
     init(stale process: Self) {
@@ -143,6 +369,7 @@ private final class Client {
 struct PTYMuxSessionLifecycleTests {
     static func main() {
         if PTYMuxCommandLine.shouldRunChild { PTYMuxCommandLine.runChild() }
+        setbuf(stdout, nil)
         do { try run() }
         catch {
             fputs("\(error)\n", stderr)
@@ -152,6 +379,17 @@ struct PTYMuxSessionLifecycleTests {
 
     private static func run() throws {
         let root = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
+        #if TERMINAL_SESSION_TEARDOWN_TEST
+        if CommandLine.arguments[1].hasPrefix("local-") {
+            try MainActor.assumeIsolated {
+                #if PTY_SESSION_PROCESS_TEST
+                if CommandLine.arguments[1] == "local-identity" { try localIdentity(root); return }
+                #endif
+                try localTeardown(root, mode: CommandLine.arguments[1])
+            }
+            return
+        }
+        #endif
         let fixture = try Fixture(root)
         defer { fixture.cleanup() }
         switch CommandLine.arguments[1] {
