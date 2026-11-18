@@ -56,7 +56,9 @@
         public func semanticCommandID(at event: NSEvent) -> UInt64? {
             guard let raw = surface?.rawValue else { return nil }
             let point = mousePoint(from: event)
-            let id = ghostty_surface_command_at(raw, point.x, point.y)
+            let scale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 1
+            // Unlike mouse_pos, command_at converts surface pixels directly.
+            let id = ghostty_surface_command_at(raw, point.x * scale, point.y * scale)
             return id == 0 ? nil : id
         }
     }

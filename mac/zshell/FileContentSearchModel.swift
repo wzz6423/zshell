@@ -166,8 +166,9 @@ final class FileContentSearchModel: ObservableObject {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/grep")
         // -F keeps the query literal; -I skips binary files, which the
-        // editor could not show a hit in anyway.
-        var arguments = ["-r", "-n", "-I", "-F", "-H", "--null"]
+        // editor could not show a hit in anyway. -D skip avoids blocking
+        // on FIFOs and reading devices during recursive traversal.
+        var arguments = ["-r", "-n", "-I", "-F", "-H", "--null", "-D", "skip"]
         if !isCaseSensitive { arguments.append("-i") }
         for directory in Self.excludedDirectories {
             arguments.append("--exclude-dir=\(directory)")

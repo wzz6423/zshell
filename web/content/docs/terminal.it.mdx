@@ -78,6 +78,8 @@ In **Impostazioni → Terminale → Input → Azione del clic destro**, scegli *
 
 **Maiusc + clic destro**, **Control + clic** e **Command + clic destro** aprono ancora il menu. **Modifica → Mostra menu contestuale del terminale** (<kbd>Shift</kbd>+<kbd>F10</kbd>) lo apre dalla tastiera. Le applicazioni con rilevamento del mouse ricevono i normali clic destri, salvo quando **Blocca comandi Zshell** è attivo nel pannello. Incollare usa la stessa conferma multilinea e gestione dei file locali o remoti di <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Quando l’integrazione shell identifica il blocco cliccato, il menu offre **Copia comando**, **Copia output**, **Copia blocco di comando** (prompt, comando e output visibili) e **Seleziona output del comando**. **Inserisci nel prompt** inserisce il comando da modificare in un prompt zsh nativo, pronto e vuoto; premi Invio per eseguirlo. Se l’output è vuoto, le relative azioni sono disabilitate. Entrambi i backend usano il blocco cliccato; il menu da tastiera mantiene le azioni generali del terminale.
+
 ## Profili terminale [#terminal-profiles]
 
 Crea e ordina i profili in **Impostazioni → Terminale → Profili terminale → Gestisci profili terminale…**. Possono corrispondere a host, utente, directory di lavoro e programma in primo piano. Tutte le condizioni compilate devono corrispondere; `*` accetta qualsiasi testo e `?` un carattere. Si usa il primo profilo corrispondente; senza corrispondenza, il pannello torna all’aspetto originale. **Applica automaticamente i profili terminale** è attivo per impostazione predefinita (`terminal.auto-profiles = true`); disattivandolo resta disponibile la scelta manuale.

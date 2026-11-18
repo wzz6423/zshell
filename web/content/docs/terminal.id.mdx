@@ -78,6 +78,8 @@ Di **Pengaturan → Terminal → Input → Tindakan klik kanan**, pilih **Menu k
 
 **Shift-klik kanan**, **Control-klik**, dan **Command-klik kanan** tetap membuka menu. **Edit → Tampilkan Menu Konteks Terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) membukanya lewat papan ketik. Aplikasi dengan pelaporan mouse tetap menerima klik kanan biasa kecuali **Blokir Perintah Zshell** aktif di panel. Tempel memakai konfirmasi beberapa baris serta penanganan berkas lokal atau unggahan jarak jauh yang sama seperti <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Saat integrasi shell mengenali blok yang diklik kanan, menu menawarkan **Salin perintah**, **Salin keluaran**, **Salin blok perintah** (prompt, perintah, dan keluaran yang terlihat), serta **Pilih keluaran perintah**. **Sisipkan pada prompt** memasukkan perintah untuk diedit pada prompt zsh asli yang siap dan kosong; tekan Enter untuk menjalankannya. Keluaran kosong menonaktifkan tindakan keluaran. Kedua backend menggunakan blok yang diklik; menu keyboard tetap menyediakan tindakan terminal umum.
+
 ## Profil terminal [#terminal-profiles]
 
 Buat dan urutkan profil di **Pengaturan → Terminal → Profil terminal → Kelola profil terminal…**. Profil yang aktif dapat mencocokkan host, pengguna, direktori kerja, dan program latar depan. Semua kondisi yang diisi harus cocok; `*` cocok dengan teks apa pun dan `?` dengan satu karakter. Zshell memakai profil pertama yang cocok; jika tidak ada, panel kembali ke tampilan awalnya. **Terapkan profil terminal secara otomatis** aktif secara bawaan (`terminal.auto-profiles = true`). Pilihan manual tetap tersedia saat dinonaktifkan.
