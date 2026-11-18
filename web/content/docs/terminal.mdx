@@ -36,6 +36,12 @@ Choose **Terminal → Command History…** to search commands run in Zshell by c
 
 History is saved locally in the background, with a limit of 2,000 commands and 8 MiB. **Delete** removes the selected record; **Clear History…** removes the saved list. These actions leave terminal output and the shell’s own history in place.
 
+## Save terminal output [#save-terminal-output]
+
+Choose **Terminal → Save Terminal Output…** or the same action in the terminal’s context menu to save a UTF-8 `.txt` file. The file contains the pane’s screen and retained scrollback when you opened the save panel, with styles removed. Switching panes afterward keeps that original snapshot.
+
+Both backends and Quick Terminal support this action. Only the buffer the backend currently retains is included; output already discarded from scrollback is unavailable. A full-screen program exports its active buffer.
+
 ## Shell completion [#shell-completion]
 
 Enable **Settings → Terminal → Input → Shell completions** (`terminal.shell-completions`, on by default) for inline command, argument and path suggestions. It applies to new local zsh shells and new shared remote zsh sessions with a compatible Zshell server; open a new session after changing the switch.

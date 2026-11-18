@@ -25,6 +25,8 @@ the original feature bullet instead of adding separate entries for them.
 - Copy commands, output, or complete command blocks from the terminal context
   menu, select a command's output, and insert a command into an empty zsh prompt
   for editing with either terminal backend.
+- Save the current terminal's retained output as a UTF-8 text file from the
+  Terminal menu or context menu with either terminal backend.
 
 ## [0.1.17]
 

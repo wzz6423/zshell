@@ -30,6 +30,12 @@ Unter **Terminal → Befehlsverlauf…** suchen Sie ausgeführte Zshell-Befehle 
 
 Der Verlauf wird im Hintergrund lokal gespeichert, begrenzt auf 2.000 Befehle und 8 MiB. **Löschen** entfernt den gewählten Eintrag; **Verlauf löschen…** entfernt die gespeicherte Liste. Terminalausgabe und Shell-Verlauf bleiben erhalten.
 
+## Terminalausgabe sichern [#save-terminal-output]
+
+Wählen Sie **Terminal → Terminalausgabe sichern…** oder denselben Eintrag im Kontextmenü des Terminals, um eine UTF-8-Datei mit der Endung `.txt` zu speichern. Sie enthält den Bildschirm und den behaltenen Scrollback des Bereichs zum Zeitpunkt, an dem Sie den Speicherdialog geöffnet haben, ohne Formatierung. Ein späterer Bereichswechsel behält diese ursprüngliche Momentaufnahme bei.
+
+Beide Backends und das Quick Terminal unterstützen diese Aktion. Enthalten ist nur der aktuell vom Backend gehaltene Puffer; bereits verworfene Ausgabe ist nicht mehr verfügbar. Vollbildprogramme exportieren ihren aktiven Puffer.
+
 ## Shell-Vervollständigung [#shell-completion]
 
 Aktivieren Sie **Einstellungen → Terminal → Eingabe → Shell-Vervollständigung** (`terminal.shell-completions`, standardmäßig an), um Inline-Vorschläge für Befehle, Argumente und Pfade zu erhalten. Dies gilt für neue lokale zsh-Shells und neue geteilte entfernte zsh-Sitzungen mit einem kompatiblen Zshell-Server. Öffnen Sie nach einer Änderung eine neue Sitzung.

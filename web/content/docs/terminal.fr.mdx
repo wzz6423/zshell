@@ -30,6 +30,12 @@ Choisissez **Terminal → Historique des commandes…** pour rechercher les comm
 
 L’historique est enregistré localement en arrière-plan, dans la limite de 2 000 commandes et 8 MiB. **Supprimer** retire la ligne sélectionnée ; **Effacer l’historique…** retire la liste enregistrée. La sortie du terminal et l’historique propre au shell sont conservés.
 
+## Enregistrer la sortie du terminal [#save-terminal-output]
+
+Choisissez **Terminal → Enregistrer la sortie du terminal…** ou la même action dans le menu contextuel du terminal pour créer un fichier `.txt` UTF-8. Il contient l’écran du volet et l’historique de défilement conservé au moment où vous avez ouvert le panneau d’enregistrement, sans styles. Changer ensuite de volet conserve cet instantané d’origine.
+
+Les deux moteurs et le terminal rapide prennent en charge cette action. Seul le tampon actuellement conservé par le moteur est inclus ; les lignes déjà supprimées de l’historique ne sont plus disponibles. Un programme plein écran exporte son tampon actif.
+
 ## Complétion du shell [#shell-completion]
 
 Activez **Réglages → Terminal → Saisie → Complétion du shell** (`terminal.shell-completions`, activé par défaut) pour les suggestions en ligne de commandes, arguments et chemins. Ce réglage s’applique aux nouveaux shells zsh locaux et aux nouvelles sessions zsh distantes partagées avec un serveur Zshell compatible. Ouvrez une nouvelle session après toute modification.
