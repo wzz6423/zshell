@@ -231,10 +231,22 @@ struct DiffWrapSurfaceTests {
             localizedPane.setCategory(.editor)
             settingsWindow.contentViewController = localizedPane
             for _ in 0..<3 { localizedPane.view.layoutSubtreeIfNeeded(); pump() }
-            let icon = descendants(localizedPane.view).compactMap { $0 as? SettingsIconView }.first!
+            let localizedSwitch = descendants(localizedPane.view).compactMap { $0 as? NSSwitch }.first {
+                $0.accessibilityLabel() == String(localized: "Wrap lines to diff width")
+            }!
+            var row: NSView? = localizedSwitch
+            while !(row is SettingsRow) { row = row?.superview }
+            let icon = descendants(row!).compactMap { $0 as? SettingsIconView }.first!
             precondition(icon.frame.size == NSSize(width: 32, height: 32), "Diff setting icon is not square")
-            precondition(descendants(icon).compactMap { $0 as? NSImageView }.contains { $0.image != nil },
-                "Diff setting icon has no visible symbol")
+            let bitmap = icon.bitmapImageRepForCachingDisplay(in: icon.bounds)!
+            icon.cacheDisplay(in: icon.bounds, to: bitmap)
+            let hasGlyph = (0..<bitmap.pixelsHigh).contains { y in
+                (0..<bitmap.pixelsWide).contains { x in
+                    let color = bitmap.colorAt(x: x, y: y)!.usingColorSpace(.deviceRGB)!
+                    return min(color.redComponent, color.greenComponent, color.blueComponent) > 0.85
+                }
+            }
+            precondition(hasGlyph, "Diff setting icon has no visible symbol")
             let search = SettingsSearchIndex.results(for: "editor.diff-wrap-lines")
             precondition(search.count == 1 && search.first?.title == String(localized: "Wrap lines to diff width"),
                 "Diff setting did not appear in localized search")

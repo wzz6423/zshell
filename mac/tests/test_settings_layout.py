@@ -109,6 +109,18 @@ final class ProbePane: SettingsPaneViewController {
             && bounds.maxX < titleBounds.minX && bounds.minX >= 0
     }
 
+    @MainActor static func iconRendersGlyph(in row: NSView) -> Bool {
+        guard let icon = descendants(row).compactMap({ $0 as? SettingsIconView }).first else { return false }
+        let bitmap = icon.bitmapImageRepForCachingDisplay(in: icon.bounds)!
+        icon.cacheDisplay(in: icon.bounds, to: bitmap)
+        return (0..<bitmap.pixelsHigh).contains { y in
+            (0..<bitmap.pixelsWide).contains { x in
+                let color = bitmap.colorAt(x: x, y: y)!.usingColorSpace(.deviceRGB)!
+                return min(color.redComponent, color.greenComponent, color.blueComponent) > 0.85
+            }
+        }
+    }
+
     @MainActor static func glyphGeometry(named name: String, size: CGFloat, appearance: NSAppearance.Name) -> [String: Any] {
         let icon = SettingsIconView(symbolName: name, color: .systemIndigo, size: size)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 80, height: 80),
@@ -138,7 +150,6 @@ final class ProbePane: SettingsPaneViewController {
         precondition(maxX >= minX && maxY >= minY)
         let scaleX = icon.bounds.width / CGFloat(bitmap.pixelsWide)
         let scaleY = icon.bounds.height / CGFloat(bitmap.pixelsHigh)
-        let center = bitmap.colorAt(x: bitmap.pixelsWide / 2, y: bitmap.pixelsHigh / 2)!.usingColorSpace(.deviceRGB)!
         let reference = NSImage(systemSymbolName: name, accessibilityDescription: nil)!
             .withSymbolConfiguration(.init(pointSize: 15, weight: .medium))!
         let referenceBitmap = NSBitmapImageRep(cgImage: reference.cgImage(forProposedRect: nil, context: nil, hints: nil)!)
@@ -150,13 +161,33 @@ final class ProbePane: SettingsPaneViewController {
                 referenceMinY = min(referenceMinY, y); referenceMaxY = max(referenceMaxY, y)
             }
         }
+        var cutoutSamples = 0, cutoutMismatches = 0
+        if name == "star.circle.fill" || name == "arrow.down.circle.fill" {
+            for y in 0..<15 {
+                for x in 0..<15 {
+                    let fractionX = 0.1 + (Double(x) + 0.5) / 15 * 0.8
+                    let fractionY = 0.1 + (Double(y) + 0.5) / 15 * 0.8
+                    let referenceX = referenceMinX + Int(fractionX * Double(referenceMaxX - referenceMinX + 1))
+                    let referenceY = referenceMinY + Int(fractionY * Double(referenceMaxY - referenceMinY + 1))
+                    let alpha = referenceBitmap.colorAt(x: referenceX, y: referenceY)!.alphaComponent
+                    guard alpha < 0.15 || alpha > 0.85 else { continue }
+                    let actualX = minX + Int(fractionX * Double(maxX - minX + 1))
+                    let actualY = minY + Int(fractionY * Double(maxY - minY + 1))
+                    let color = bitmap.colorAt(x: actualX, y: actualY)!.usingColorSpace(.deviceRGB)!
+                    let isWhite = min(color.redComponent, color.greenComponent, color.blueComponent) > 0.85
+                    cutoutSamples += 1
+                    if isWhite != (alpha > 0.85) { cutoutMismatches += 1 }
+                }
+            }
+        }
         window.close()
         return [
             "symbol": name,
             "tileSize": size,
             "appearance": appearance.rawValue,
             "pixelSize": max(scaleX, scaleY),
-            "centerIsWhite": min(center.redComponent, center.greenComponent, center.blueComponent) > 0.85,
+            "cutoutSamples": cutoutSamples,
+            "cutoutMismatchFraction": Double(cutoutMismatches) / Double(max(cutoutSamples, 1)),
             "centerXOffset": CGFloat(minX + maxX + 1) / 2 * scaleX - icon.bounds.midX,
             "centerYOffset": CGFloat(minY + maxY + 1) / 2 * scaleY - icon.bounds.midY,
             "visibleWidth": CGFloat(maxX - minX + 1) * scaleX,
@@ -275,6 +306,7 @@ final class ProbePane: SettingsPaneViewController {
                         "contrastIconSquare": iconMatchesTitle(in: pane.contrast),
                         "sharedAndCustomIconsMatchTitles": [pane.support, pane.wrappedTitle, pane.editorRow,
                             pane.ordinarySlider, pane.cursorShape, pane.cursorBlinking].allSatisfy { iconMatchesTitle(in: $0) },
+                        "externalEditorIconVisible": iconRendersGlyph(in: pane.editorRow),
                         "sidebarIconMatchesTitle": iconMatchesTitle(in: sidebar, size: 24),
                         "backendIconsMatchTitles": backendHeaders.filter { $0.arrangedSubviews.count == 2
                             && ($0.arrangedSubviews.last as? NSTextField)?.font?.pointSize == NSFont.systemFontSize
@@ -361,10 +393,8 @@ class SettingsLayoutTests(unittest.TestCase):
             search_result = "struct SettingsSearchResult { let category: SettingsCategory; let title: String; let section: String? }\n"
             pane_kit = (source / "Settings/SettingsPaneKit.swift").read_text()
             symbols = re.findall(r'Icon\(name:\s*"([^"]+)"', pane_kit)
-            for line in pane_kit.splitlines():
-                match = re.search(r'\],\s*"([^"]+)"\s*,\s*\.', line) or re.search(r'^\s*"([^"]+)",\s*\.[a-z]+\),', line)
-                if match:
-                    symbols.append(match.group(1))
+            symbols.extend(re.findall(r'\],\s*"([^"]+)"\s*,\s*\.', pane_kit))
+            symbols.extend(re.findall(r'^\s*"([^"]+)",\s*\.[a-z]+\),', pane_kit, re.M))
             for path in list((source / "Settings").glob("*.swift")) + [
                 source / "TerminalCursorSettingsView.swift", source / "AgentCLISupportSettingsView.swift",
             ]:
@@ -390,7 +420,8 @@ class SettingsLayoutTests(unittest.TestCase):
             for glyph in result["glyphs"]:
                 with self.subTest(symbol=glyph["symbol"], tile_size=glyph["tileSize"], appearance=glyph["appearance"]):
                     if glyph["symbol"] in ("star.circle.fill", "arrow.down.circle.fill"):
-                        self.assertFalse(glyph["centerIsWhite"], glyph)
+                        self.assertGreater(glyph["cutoutSamples"], 100, glyph)
+                        self.assertLessEqual(glyph["cutoutMismatchFraction"], 0.05, glyph)
                     self.assertAlmostEqual(glyph["centerXOffset"], 0, delta=glyph["pixelSize"] / 2, msg=glyph)
                     self.assertAlmostEqual(glyph["centerYOffset"], 0, delta=glyph["pixelSize"] / 2, msg=glyph)
                     self.assertAlmostEqual(glyph["visibleWidth"], glyph["referenceWidth"], delta=1, msg=glyph)
@@ -410,6 +441,7 @@ class SettingsLayoutTests(unittest.TestCase):
                     self.assertTrue(sample["cellWidthLabelsFit"], sample)
                     self.assertTrue(sample["contrastIconSquare"], sample)
                     self.assertTrue(sample["sharedAndCustomIconsMatchTitles"], sample)
+                    self.assertTrue(sample["externalEditorIconVisible"], sample)
                     self.assertTrue(sample["wrappedTitleFits"], sample)
                     self.assertTrue(sample["sidebarIconMatchesTitle"], sample)
                     self.assertTrue(sample["backendIconsMatchTitles"], sample)
