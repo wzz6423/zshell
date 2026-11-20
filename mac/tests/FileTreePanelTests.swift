@@ -107,8 +107,10 @@ private final class FileTreePanelProbe {
             let icons = toolbar.map { button in
                 button.convert(button.cell!.imageRect(forBounds: button.bounds), to: panel)
             }
-            check(zip(icons, frames).allSatisfy { abs($0.midX - $1.midX) < 0.01 && abs($0.midY - $1.midY) < 0.01 },
-                  "Toolbar images center inside their controls: \(context)")
+            let iconSizes = icons.map { max($0.width, $0.height) }
+            check(zip(icons, frames).allSatisfy { $1.contains($0) }
+                && iconSizes.allSatisfy { abs($0 - iconSizes[0]) < 0.01 },
+                  "Toolbar images share a visible size and fit their controls: \(context)")
             if wrapped {
                 check(frames.allSatisfy { $0.minY > titleFrame.maxY }, "Toolbar wraps below both labels: \(context)")
             } else {

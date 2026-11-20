@@ -1,9 +1,11 @@
 import AppKit
 
 final class CenteredIconButtonCell: NSButtonCell {
+    var opticalSize: CGFloat?
     override var image: NSImage? { didSet { renderedImage = nil } }
     private var sourceScale: CGFloat = 0
     private var renderedImage: CGImage?
+    private var opticalCenter = NSPoint(x: 0.5, y: 0.5)
 
     override func imageRect(forBounds bounds: NSRect) -> NSRect {
         guard imagePosition == .imageOnly, let image,
@@ -42,6 +44,10 @@ final class CenteredIconButtonCell: NSButtonCell {
 
     private func centeredRect(for icon: CGImage, in bounds: NSRect) -> NSRect {
         var size = NSSize(width: CGFloat(icon.width) / sourceScale, height: CGFloat(icon.height) / sourceScale)
+        if let opticalSize {
+            let scale = opticalSize / max(size.width, size.height)
+            size = NSSize(width: size.width * scale, height: size.height * scale)
+        }
         switch imageScaling {
         case .scaleProportionallyDown, .scaleProportionallyUpOrDown:
             let fit = min(bounds.width / size.width, bounds.height / size.height)
@@ -51,7 +57,9 @@ final class CenteredIconButtonCell: NSButtonCell {
             size = bounds.size
         default: break
         }
-        return NSRect(x: bounds.midX - size.width / 2, y: bounds.midY - size.height / 2,
+        let center = opticalSize == nil ? NSPoint(x: 0.5, y: 0.5) : opticalCenter
+        let centerY = controlView?.isFlipped == true ? 1 - center.y : center.y
+        return NSRect(x: bounds.midX - size.width * center.x, y: bounds.midY - size.height * centerY,
                       width: size.width, height: size.height)
     }
 
@@ -75,13 +83,21 @@ final class CenteredIconButtonCell: NSButtonCell {
         NSGraphicsContext.restoreGraphicsState()
         // Symbol baseline padding is useful beside text, but offsets standalone icons.
         var minX = bitmap.pixelsWide, minY = bitmap.pixelsHigh, maxX = -1, maxY = -1
+        var totalAlpha: CGFloat = 0, weightedX: CGFloat = 0, weightedY: CGFloat = 0
         for y in 0..<bitmap.pixelsHigh {
             for x in 0..<bitmap.pixelsWide where data[y * bitmap.bytesPerRow + x * 4 + 3] > 0 {
+                let alpha = CGFloat(data[y * bitmap.bytesPerRow + x * 4 + 3])
+                totalAlpha += alpha
+                weightedX += (CGFloat(x) + 0.5) * alpha
+                weightedY += (CGFloat(y) + 0.5) * alpha
                 minX = min(minX, x); maxX = max(maxX, x)
                 minY = min(minY, y); maxY = max(maxY, y)
             }
         }
         guard maxX >= minX, maxY >= minY else { return nil }
+        // A protruding arrow changes a symbol's visual weight without moving its bounds center.
+        opticalCenter = NSPoint(x: (weightedX / totalAlpha - CGFloat(minX)) / CGFloat(maxX - minX + 1),
+                                y: (CGFloat(maxY + 1) - weightedY / totalAlpha) / CGFloat(maxY - minY + 1))
         renderedImage = bitmap.cgImage?.cropping(to: CGRect(x: minX, y: minY,
             width: maxX - minX + 1, height: maxY - minY + 1))
         return renderedImage
