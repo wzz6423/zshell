@@ -8,6 +8,8 @@ Alternate-screen OSC 133 prompt anchors are rendering metadata only and never
 produce shell-history records.
 Native cell copying, erasure, insertion, deletion and reflow preserve or invalidate anchors. Resolved
 positions are cached by grid revision, including resize and bridge grid access.
+The previous write position follows scrolled rows so fresh output does not
+resolve every completed command's anchors while the PTY holds the terminal lock.
 The native renderer reads explicitly recorded grid damage without manufacturing
 idle cursor or insert-mode damage. Actual writes and raw grid mutations retain
 their invalidation; the bridge and host track cursor state and visibility.

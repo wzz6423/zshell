@@ -41,7 +41,7 @@ pub(super) struct CommandBlocks {
     directory: Option<String>,
     revision: u64,
     pub grid_revision: u64,
-    last_write: Option<Point>,
+    pub(super) last_write: Option<Point>,
     anchors: RefCell<(u64, HashMap<u64, [Option<Point>; 4]>)>,
 }
 
@@ -474,6 +474,40 @@ mod tests {
         term.invalidate_command_locations();
         term.grid_mut().clear_history();
         assert!(term.command_region(id).is_none());
+    }
+
+    #[test]
+    fn streaming_output_does_not_scan_completed_command_anchors() {
+        let mut term = Term::new(Config::default(), &TermSize::new(100, 24), VoidListener);
+        let mut parser: Processor = Processor::new();
+        parser.advance(&mut term, b"\x1b]133;A\x07> \x1b]133;B\x07echo previous\r\n\x1b]133;C;cmdline_url=echo%20previous\x07previous\r\n\x1b]133;D;0\x07\x1b]133;A\x07> \x1b]133;B\x07make update\r\n\x1b]133;C;cmdline_url=make%20update\x07");
+        let anchor_revision = term.command_blocks.anchors.borrow().0;
+        let line = format!("SwiftCompile normal arm64 /tmp/Source.swift {}\r\n", "-I /tmp/Products/Debug/include ".repeat(6));
+        parser.advance(&mut term, line.repeat(256).as_bytes());
+        assert_eq!(term.command_blocks.anchors.borrow().0, anchor_revision,
+                   "fresh output must not scan scrollback to resolve completed command locations");
+        assert!(term.command_records()[0].location_valid);
+    }
+
+    #[test]
+    fn scrolling_then_overwriting_completed_output_invalidates_location() {
+        let (mut term, mut parser) = terminal();
+        parser.advance(&mut term, b"\x1b]133;A\x07> \x1b]133;B\x07echo one\r\n\x1b]133;C;cmdline_url=echo%20one\x07result\r\n\x1b]133;D;0\x07\x1b]133;A\x07> \x1b]133;B\x07make update\r\n\x1b]133;C;cmdline_url=make%20update\x07one\r\n");
+        let id = term.command_records()[0].id;
+        assert_eq!(term.command_text(id, 1).as_deref(), Some("result"));
+        parser.advance(&mut term, b"\x1b[1;1Hreplacement");
+        assert!(term.command_region(id).is_none());
+    }
+
+    #[test]
+    fn alternate_screen_scroll_keeps_primary_write_position() {
+        let (mut term, mut parser) = terminal();
+        parser.advance(&mut term, b"\x1b]133;A\x07> \x1b]133;B\x07make update\r\n\x1b]133;C;cmdline_url=make%20update\x07output");
+        let previous = term.command_blocks.last_write;
+        parser.advance(&mut term, b"\x1b[?1049h");
+        parser.advance(&mut term, b"tui\r\n".repeat(10).as_slice());
+        parser.advance(&mut term, b"\x1b[2T\x1b[?1049l");
+        assert_eq!(term.command_blocks.last_write, previous);
     }
 
     #[test]
