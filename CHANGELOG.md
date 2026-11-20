@@ -28,6 +28,11 @@ the original feature bullet instead of adding separate entries for them.
 - Save the current terminal's retained output as a UTF-8 text file from the
   Terminal menu or context menu with either terminal backend.
 
+### Fixed
+
+- Keep action icons centered in the file tree, Git panel, workspace controls,
+  search panel, session information, and Quick Terminal at every interface scale.
+
 ## [0.1.17]
 
 ### Changed

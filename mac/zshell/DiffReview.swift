@@ -368,6 +368,7 @@ final class DiffReviewIndicatorButton: NSButton {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
+        cell = CenteredIconButtonCell(textCell: "")
         isBordered = false
         imagePosition = .imageOnly
         target = self

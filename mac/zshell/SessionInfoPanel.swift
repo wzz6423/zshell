@@ -409,6 +409,13 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
 
     private func button(_ title: String, symbol: String, help: String, action: @escaping () -> Void) -> NSButton {
         let button = SettingsActionButton(title: title, action: action)
+        if title.isEmpty {
+            let target = button.target
+            let action = button.action
+            button.cell = CenteredIconButtonCell(textCell: "")
+            button.target = target
+            button.action = action
+        }
         button.isBordered = false
         button.alignment = .left
         button.lineBreakMode = .byTruncatingTail

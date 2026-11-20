@@ -131,6 +131,7 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
         header.imagePosition = .imageLeading
         header.target = self
         header.action = #selector(toggleSection)
+        addButton.cell = CenteredIconButtonCell(textCell: "")
         addButton.isBordered = false
         addButton.imagePosition = .imageOnly
         addButton.imageScaling = .scaleProportionallyDown
@@ -258,11 +259,10 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
         countLabel.frame = NSRect(x: trailing - countWidth, y: centerY - countHeight / 2,
                                  width: countWidth, height: countHeight)
         let actionWidth = min(metrics.sidebar.slotSize(18), max(0, countLabel.frame.minX - leading - 5))
-        // Symbol insets vary with font size; align their visible bounds, not their frames.
-        addButton.frame = addButton.frame(forAlignmentRect: NSRect(
+        addButton.frame = NSRect(
             x: countLabel.frame.minX - actionWidth - 5, y: centerY - labelHeight / 2,
             width: actionWidth, height: labelHeight
-        ))
+        )
         header.frame = NSRect(x: leading, y: centerY - labelHeight / 2,
                               width: max(0, addButton.frame.minX - leading - 7), height: labelHeight)
         let listHeight = isCollapsed ? 0 : metrics.listHeight(count: rows.count, branchRows: rows.isBranches)

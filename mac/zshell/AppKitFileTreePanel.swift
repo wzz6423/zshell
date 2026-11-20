@@ -75,8 +75,10 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         pathLabel.textColor = .secondaryLabelColor
         badgeLabel.textColor = .secondaryLabelColor
         for button in [searchButton, revealButton, importButton] {
+            button.cell = CenteredIconButtonCell(textCell: "")
             button.isBordered = false
             button.imagePosition = .imageOnly
+            button.imageScaling = .scaleProportionallyDown
             button.target = self
             button.contentTintColor = .secondaryLabelColor
             header.addSubview(button)
@@ -291,6 +293,7 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         badgeLabel.isHidden = badgeWidth == 0
         badgeLabel.frame = NSRect(x: inset + labelWidth - badgeWidth, y: titleY, width: badgeWidth, height: lineHeight)
         for (index, button) in buttons.enumerated() {
+            (button.cell as? CenteredIconButtonCell)?.opticalSize = 11 * metrics.fontScale
             button.frame = NSRect(x: bounds.width - inset - controlsWidth + CGFloat(index) * slot,
                                   y: controlsY,
                                   width: slot, height: slot)

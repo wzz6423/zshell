@@ -78,6 +78,9 @@ final class FileContentSearchPanel: NSView {
 
         let stopImage = NSImage(systemSymbolName: "stop.fill", accessibilityDescription: nil)
         let stopButton = self.stopButton
+        stopButton.cell = CenteredIconButtonCell(textCell: "")
+        stopButton.imagePosition = .imageOnly
+        stopButton.imageScaling = .scaleProportionallyDown
         stopButton.image = stopImage
         stopButton.isBordered = false
         stopButton.contentTintColor = .secondaryLabelColor
@@ -88,6 +91,9 @@ final class FileContentSearchPanel: NSView {
         stopButton.isHidden = true
 
         let closeButton = self.closeButton
+        closeButton.cell = CenteredIconButtonCell(textCell: "")
+        closeButton.imagePosition = .imageOnly
+        closeButton.imageScaling = .scaleProportionallyDown
         closeButton.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: nil)
         closeButton.isBordered = false
         closeButton.contentTintColor = .secondaryLabelColor
