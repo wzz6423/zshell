@@ -2,30 +2,34 @@ import AppKit
 import CoreGraphics
 
 @MainActor
-final class SettingsPermissionDragHelper {
+final class SettingsPermissionDragHelper: NSObject, NSWindowDelegate {
     private let appURL: URL
     private let frameProvider: () -> NSRect?
+    private let dropTargetProvider: (NSPoint) -> Bool
     private var panel: NSPanel?
     private var positionTask: Task<Void, Never>?
+    private var pendingFrame: NSRect?
+    private var isDragging = false
+    private var lastSettingsDropPoint: NSPoint?
 
-    init(appURL: URL = Bundle.main.bundleURL, frameProvider: (() -> NSRect?)? = nil) {
+    init(appURL: URL = Bundle.main.bundleURL, frameProvider: (() -> NSRect?)? = nil,
+         dropTargetProvider: ((NSPoint) -> Bool)? = nil) {
         self.appURL = appURL
         self.frameProvider = frameProvider ?? Self.systemSettingsFrame
+        self.dropTargetProvider = dropTargetProvider ?? Self.isSystemSettingsDrop
+        super.init()
     }
 
-    func show(relativeTo host: NSWindow?) {
-        guard appURL.isFileURL, appURL.pathExtension == "app" else { return }
-        let panel = panel ?? makePanel()
-        self.panel = panel
-        position(panel, relativeTo: host)
-        panel.orderFrontRegardless()
-        positionTask?.cancel()
-        // Settings can create its window after launch or move between displays during authorization.
-        positionTask = Task { [weak self, weak host] in
+    func show() {
+        guard appURL.isFileURL, appURL.pathExtension == "app", positionTask == nil else { return }
+        if panel == nil { panel = makePanel() }
+        updatePosition()
+        // Wait through Settings' launch and minimize animations before presenting or moving the helper.
+        positionTask = Task { [weak self] in
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
-                guard let self, let panel = self.panel, panel.isVisible else { return }
-                self.position(panel, relativeTo: host)
+                guard !Task.isCancelled, let self else { return }
+                self.updatePosition()
             }
         }
     }
@@ -33,7 +37,23 @@ final class SettingsPermissionDragHelper {
     func hide() {
         positionTask?.cancel()
         positionTask = nil
+        pendingFrame = nil
+        isDragging = false
+        lastSettingsDropPoint = nil
         panel?.orderOut(nil)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        hide()
+    }
+
+    private func finishDrag(at point: NSPoint, operation: NSDragOperation) {
+        let isSettingsDrop = !operation.isEmpty
+            && (lastSettingsDropPoint == point || dropTargetProvider(point))
+        isDragging = false
+        pendingFrame = nil
+        lastSettingsDropPoint = nil
+        if isSettingsDrop { hide() }
     }
 
     private func makePanel() -> NSPanel {
@@ -50,8 +70,19 @@ final class SettingsPermissionDragHelper {
         panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         panel.title = String(localized: "Permissions")
         panel.identifier = NSUserInterfaceItemIdentifier("permission-drag-helper")
+        panel.delegate = self
 
         let icon = SettingsPermissionAppIcon(appURL: appURL)
+        icon.onDragStarted = { [weak self] in
+            self?.isDragging = true
+            self?.lastSettingsDropPoint = nil
+        }
+        icon.onDragMoved = { [weak self] point in
+            guard let self else { return }
+            // A successful drop may immediately replace the destination with an authentication sheet.
+            self.lastSettingsDropPoint = self.dropTargetProvider(point) ? point : nil
+        }
+        icon.onDragEnded = { [weak self] point, operation in self?.finishDrag(at: point, operation: operation) }
         let name = NSTextField(wrappingLabelWithString: Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
             ?? appURL.deletingPathExtension().lastPathComponent)
         name.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
@@ -84,15 +115,20 @@ final class SettingsPermissionDragHelper {
         return panel
     }
 
-    private func position(_ panel: NSPanel, relativeTo host: NSWindow?) {
-        let settingsFrame = frameProvider()
-        let reference = settingsFrame ?? host?.frame
-        guard let screen = reference.flatMap({ frame in
-            Self.screenIndex(for: frame, frames: NSScreen.screens.map(\.frame)).map { NSScreen.screens[$0] }
-        }) ?? host?.screen ?? NSScreen.main else { return }
-        let frame = Self.frame(size: panel.frame.size, nextTo: reference ?? screen.visibleFrame,
-                               visibleFrame: screen.visibleFrame)
+    private func updatePosition() {
+        guard !isDragging, let reference = frameProvider() else {
+            pendingFrame = nil
+            return
+        }
+        guard pendingFrame == reference else {
+            pendingFrame = reference
+            return
+        }
+        let screens = NSScreen.screens
+        guard let panel, let screenIndex = Self.screenIndex(for: reference, frames: screens.map(\.frame)) else { return }
+        let frame = Self.frame(size: panel.frame.size, nextTo: reference, visibleFrame: screens[screenIndex].visibleFrame)
         if panel.frame != frame { panel.setFrame(frame, display: true) }
+        if !panel.isVisible { panel.orderFrontRegardless() }
     }
 
     static func frame(size: NSSize, nextTo reference: NSRect, visibleFrame: NSRect) -> NSRect {
@@ -120,36 +156,62 @@ final class SettingsPermissionDragHelper {
         let pids = Set(NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.systempreferences")
             .map(\.processIdentifier))
         guard !pids.isEmpty,
-              let windows = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID)
+              let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
                 as? [[String: Any]] else { return nil }
         return windowFrame(in: windows, ownerPIDs: pids, primaryScreenTop: CGDisplayBounds(CGMainDisplayID()).height)
     }
 
     static func windowFrame(in windows: [[String: Any]], ownerPIDs: Set<pid_t>, primaryScreenTop: CGFloat) -> NSRect? {
-        var candidate: (rect: CGRect, isOnscreen: Bool)?
+        var candidate: CGRect?
         for window in windows {
             guard let pid = (window[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value, ownerPIDs.contains(pid),
                   window[kCGWindowLayer as String] as? Int == 0,
+                  window[kCGWindowIsOnscreen as String] as? Bool == true,
                   let bounds = window[kCGWindowBounds as String] as? [String: Any],
                   let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary), rect.width > 300,
                   rect.height > 200 else { continue }
-            // Hidden Settings windows still supply bounds while launch restores their visibility.
-            let isOnscreen = window[kCGWindowIsOnscreen as String] as? Bool ?? false
-            if let previous = candidate {
-                if previous.isOnscreen && !isOnscreen { continue }
-                if previous.isOnscreen == isOnscreen,
-                   previous.rect.width * previous.rect.height >= rect.width * rect.height { continue }
+            if let previous = candidate,
+               previous.width * previous.height >= rect.width * rect.height {
+                continue
             }
-            candidate = (rect, isOnscreen)
+            candidate = rect
         }
-        guard let rect = candidate?.rect else { return nil }
+        guard let rect = candidate else { return nil }
         // Window metadata uses a top-left origin on the primary display; AppKit uses bottom-left.
         return NSRect(x: rect.minX, y: primaryScreenTop - rect.maxY, width: rect.width, height: rect.height)
+    }
+
+    private static func isSystemSettingsDrop(at point: NSPoint) -> Bool {
+        let pids = Set(NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.systempreferences")
+            .map(\.processIdentifier))
+        guard !pids.isEmpty,
+              let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]] else { return false }
+        return isSystemSettingsDrop(at: point, in: windows, ownerPIDs: pids,
+                                    primaryScreenTop: CGDisplayBounds(CGMainDisplayID()).height)
+    }
+
+    static func isSystemSettingsDrop(at point: NSPoint, in windows: [[String: Any]],
+                                     ownerPIDs: Set<pid_t>, primaryScreenTop: CGFloat) -> Bool {
+        let location = CGPoint(x: point.x, y: primaryScreenTop - point.y)
+        // Window metadata is front to back; a successful Finder copy must not dismiss this helper.
+        for window in windows {
+            guard window[kCGWindowLayer as String] as? Int == 0,
+                  window[kCGWindowIsOnscreen as String] as? Bool == true,
+                  let bounds = window[kCGWindowBounds as String] as? [String: Any],
+                  let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary), rect.contains(location) else { continue }
+            guard let pid = (window[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value else { return false }
+            return ownerPIDs.contains(pid)
+        }
+        return false
     }
 }
 
 final class SettingsPermissionAppIcon: NSImageView, NSDraggingSource {
     let appURL: URL
+    var onDragStarted: (() -> Void)?
+    var onDragMoved: ((NSPoint) -> Void)?
+    var onDragEnded: ((NSPoint, NSDragOperation) -> Void)?
 
     init(appURL: URL) {
         self.appURL = appURL
@@ -188,6 +250,18 @@ final class SettingsPermissionAppIcon: NSImageView, NSDraggingSource {
 
     func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
         .copy
+    }
+
+    func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint) {
+        onDragStarted?()
+    }
+
+    func draggingSession(_ session: NSDraggingSession, movedTo screenPoint: NSPoint) {
+        onDragMoved?(screenPoint)
+    }
+
+    func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        onDragEnded?(screenPoint, operation)
     }
 
     func ignoreModifierKeys(for session: NSDraggingSession) -> Bool { true }

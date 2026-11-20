@@ -41,13 +41,12 @@ final class SettingsPermissionsPane: SettingsPaneViewController {
         super.viewDidLoad()
         coordinator.onOpenSettings = { [weak self] permission in
             guard let self else { return }
-            if permission.supportsAppDrop { self.dragHelper.show(relativeTo: self.view.window) }
+            if permission.supportsAppDrop { self.dragHelper.show() }
             else { self.dragHelper.hide() }
         }
         observe(coordinator.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.sync() })
         observe(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification).sink { [weak self] _ in
             guard let self, self.view.window?.isVisible == true, self.view.superview != nil else { return }
-            self.dragHelper.hide()
             self.coordinator.refresh()
         })
         observe(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification).sink { [weak self] notification in
