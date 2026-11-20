@@ -30,6 +30,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Fixed
 
+- Keep Alacritty terminals responsive during large compiler output and other
+  commands that scroll through terminal history.
 - Keep action icons centered in the file tree, Git panel, workspace controls,
   search panel, session information, and Quick Terminal at every interface scale.
 

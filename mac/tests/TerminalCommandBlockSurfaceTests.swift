@@ -314,6 +314,50 @@ struct TerminalCommandBlockSurfaceTests {
         seedClipboard()
         try invoke(firstCommand)
         try check(clipboard.string(forType: .string) == "COMMAND_BLOCK_SENTINEL", "a clipped menu never copies a replacement block")
+        surface.scroll(toFraction: 1)
+        pump(0.05)
+
+        let compilerOutput = root.appendingPathComponent("compiler-output.py")
+        try """
+        import pathlib
+        import sys
+        import time
+        proceed = pathlib.Path(sys.argv[1]) / 'compiler-continue'
+        for batch in range(32):
+            for line in range(128):
+                print(f'SwiftCompile normal arm64 /tmp/Source{batch * 128 + line}.swift '
+                      + '-I /tmp/Products/Debug/include ' * 6)
+            print(f'COMPILER_OUTPUT_{batch}', flush=True)
+            if batch == 0:
+                while not proceed.exists():
+                    time.sleep(0.005)
+            time.sleep(0.02)
+        print('COMPILER_FINISHED', flush=True)
+        """.write(to: compilerOutput, atomically: true, encoding: .utf8)
+        var lastPulse = ProcessInfo.processInfo.systemUptime
+        var maximumGap: TimeInterval = 0
+        let heartbeat = Timer(timeInterval: 0.01, repeats: true) { _ in
+            let now = ProcessInfo.processInfo.systemUptime
+            maximumGap = max(maximumGap, now - lastPulse)
+            lastPulse = now
+        }
+        RunLoop.main.add(heartbeat, forMode: .common)
+        defer { heartbeat.invalidate() }
+        let sequence = session.commandLifecycle.completionSequence
+        session.sendCommand("/usr/bin/python3 " + quote(compilerOutput.path) + " " + quote(root.path), asPaste: true)
+        session.sendEnter()
+        try wait("compiler output reaches the viewport while the command is running") {
+            visible().contains("COMPILER_OUTPUT_0") && session.commandLifecycle.completionSequence == sequence
+        }
+        try Data().write(to: root.appendingPathComponent("compiler-continue"))
+        try wait("compiler output finishes with the original shell responsive") {
+            session.terminalPromptQueueIsReady && session.commandLifecycle.completionSequence > sequence
+        }
+        heartbeat.invalidate()
+        print(String(format: "Compiler output %@: main-thread maximum gap %.1fms", backend, maximumGap * 1_000))
+        try check(maximumGap < 0.5, "compiler output does not block the main thread")
+        try check(visible().contains("COMPILER_FINISHED"), "compiler output remains visible after completion")
+
         let final = try run("printf 'FINAL_BLOCK\\n'")
         let finalMenu = try menu(for: final)
         let finalCopy = try item("zshell-copy-command", in: finalMenu)

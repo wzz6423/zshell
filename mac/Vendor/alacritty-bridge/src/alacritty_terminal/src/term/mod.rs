@@ -785,6 +785,15 @@ impl<T> Term<T> {
 
         // Scroll between origin and bottom
         self.grid.scroll_down(&region, lines);
+        if !self.mode.contains(TermMode::ALT_SCREEN) {
+            self.command_blocks.last_write = self.command_blocks.last_write.and_then(|mut point| {
+                if region.contains(&point.line) {
+                    point.line += lines;
+                    if point.line >= region.end { return None; }
+                }
+                Some(point)
+            });
+        }
         self.mark_fully_damaged();
     }
 
@@ -804,6 +813,18 @@ impl<T> Term<T> {
         self.selection = self.selection.take().and_then(|s| s.rotate(self, &region, lines as i32));
 
         self.grid.scroll_up(&region, lines);
+
+        // The previous write moves with its row. Otherwise streaming at the
+        // bottom looks like a cursor rewind and scans all command anchors.
+        if !self.mode.contains(TermMode::ALT_SCREEN) {
+            self.command_blocks.last_write = self.command_blocks.last_write.and_then(|mut point| {
+                if point.line < region.end && (region.start == 0 || point.line >= region.start) {
+                    point.line -= lines;
+                    if region.start != 0 && point.line < region.start { return None; }
+                }
+                Some(point)
+            });
+        }
 
         // Scroll vi mode cursor.
         let viewport_top = Line(-(self.grid.display_offset() as i32));
