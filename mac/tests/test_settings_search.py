@@ -19,7 +19,7 @@ LANGUAGES = (
 )
 CATEGORIES = (
     "general", "shortcuts", "appearance", "terminal", "editor", "browser", "browserAccess", "automation",
-    "recommendations", "updates",
+    "permissions", "recommendations", "updates",
 )
 CONFIGURATION_ITEMS = {
     "app-presence": ("general", "Show Zshell in", ""),
@@ -301,6 +301,7 @@ class SettingsSearchTests(unittest.TestCase):
             str(sources / "TerminalSessionDirectory.swift"),
             str(sources / "TerminalRightClickAction.swift"),
             str(sources / "Settings/SettingsSearch.swift"),
+            str(sources / "Settings/SettingsPermission.swift"),
             str(sources / "Settings/SettingsVisibility.swift"), str(metadata), str(harness),
             "-o", str(cls.binary),
         ], check=True, capture_output=True, text=True)
@@ -509,6 +510,21 @@ class SettingsSearchTests(unittest.TestCase):
                     self.assertTrue(rows)
                     ids = [(row["category"], row["section"], row["title"]) for row in rows]
                     self.assertEqual(len(ids), len(set(ids)))
+
+    def test_permissions_are_discoverable_without_starting_app_services(self):
+        titles = (
+            "Notifications", "Accessibility", "Input Monitoring", "Screen Recording",
+            "Camera", "Microphone", "Automation", "Files and Folders", "Full Disk Access",
+        )
+        samples = self.evaluate([{
+            "language": language,
+            "queries": [self.translated(title, language) for title in titles],
+            "disabled": ["aiEnabled"],
+        } for language in LANGUAGES])
+        for language, sample in zip(LANGUAGES, samples):
+            for title, rows in zip(titles, sample["queries"]):
+                with self.subTest(language=language, title=title):
+                    self.assert_item(rows, ("permissions", title, ""), language)
 
     def test_names_descriptions_and_keys_follow_live_language_changes(self):
         languages = LANGUAGES + ("zh-Hans", "en")

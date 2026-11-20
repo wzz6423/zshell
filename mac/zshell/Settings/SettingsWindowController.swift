@@ -11,6 +11,7 @@ enum SettingsCategory: String, CaseIterable {
     case general
     case shortcuts
     case appearance
+    case permissions
     case terminal
     case editor
     case browser
@@ -24,6 +25,7 @@ enum SettingsCategory: String, CaseIterable {
         case .general: String(localized: "General")
         case .shortcuts: String(localized: "Shortcuts")
         case .appearance: String(localized: "Appearance")
+        case .permissions: String(localized: "Permissions")
         case .terminal: String(localized: "Terminal")
         case .editor: String(localized: "Editor")
         case .browser: String(localized: "Browser")
@@ -39,6 +41,7 @@ enum SettingsCategory: String, CaseIterable {
         case .general: "gearshape.fill"
         case .shortcuts: "keyboard"
         case .appearance: "paintpalette.fill"
+        case .permissions: "hand.raised.fill"
         case .terminal: "terminal.fill"
         case .editor: "curlybraces"
         case .browser: "globe"
@@ -51,7 +54,7 @@ enum SettingsCategory: String, CaseIterable {
 
     var iconColor: NSColor {
         switch self {
-        case .general, .shortcuts, .appearance: .systemGray
+        case .general, .shortcuts, .appearance, .permissions: .systemGray
         case .terminal, .editor, .automation, .recommendations: .systemIndigo
         case .browser, .browserAccess: .systemBlue
         case .updates: .systemGreen
@@ -63,6 +66,7 @@ enum SettingsCategory: String, CaseIterable {
         case .general: SettingsGeneralPane()
         case .shortcuts: SettingsShortcutsPane()
         case .appearance: SettingsAppearancePane()
+        case .permissions: SettingsPermissionsPane()
         case .terminal: SettingsTerminalPane()
         case .editor: SettingsEditorPane()
         case .browser, .browserAccess: SettingsBrowserPane()

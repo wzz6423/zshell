@@ -73,6 +73,7 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
     private var isConfigured = false
     private var isCheckingSettings = false
     private var isRequestingAuthorization = false
+    private var authorizationCompletions: [@MainActor @Sendable (Bool) -> Void] = []
     private enum DeliveryPreference { case unrestricted, agentAttention, agentCompletion }
     private struct DeliveryCandidate {
         let id: UUID
@@ -318,6 +319,15 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         }
     }
 
+    func readAuthorization(_ completion: @escaping @Sendable (TerminalNotificationAuthorization) -> Void) {
+        delivery.settings(completion)
+    }
+
+    func requestAuthorization(_ completion: @escaping @MainActor @Sendable (Bool) -> Void) {
+        authorizationCompletions.append(completion)
+        requestAuthorization(upgradingExistingAuthorization: true)
+    }
+
     private func requestAuthorization(upgradingExistingAuthorization: Bool = false) {
         guard !isRequestingAuthorization else { return }
         deliveryCandidates.removeAll { !allowsDelivery($0.preference) }
@@ -330,6 +340,9 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
                 self.isRequestingAuthorization = false
                 if granted { self.deliverCandidates() }
                 else { self.deliveryCandidates.removeAll() }
+                let completions = self.authorizationCompletions
+                self.authorizationCompletions.removeAll()
+                completions.forEach { $0(granted) }
             }
         }
     }

@@ -92,6 +92,8 @@ xcodebuild -project mac/zshell.xcodeproj -scheme zshell -configuration Debug \
 
 ## 本地化
 
+按钮和操作标签使用完整文案，不添加 `…` 或 `...` 尾缀；授权、打开设置和加载状态也遵循此规则。文案过长时调整布局或简化文案。
+
 新增用户可见文本后先构建一次（构建开启了字符串提取），再到
 `mac/zshell/Localizable.xcstrings` 补齐 `mac/LOCALIZATION.md` 列出的全部受支持语言。运行时需要 `String` 的地方用
 `String(localized:comment:)`；用户内容、文件名、终端输出不作为本地化查找键；AppKit 控件直接显示原值。

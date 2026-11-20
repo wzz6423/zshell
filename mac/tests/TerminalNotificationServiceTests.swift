@@ -54,10 +54,29 @@ struct TerminalNotificationServiceTests {
         for index in 0..<300 { service.post(message: "Pending \(index)", sessionID: UUID()) }
         await settle()
         precondition(delivery.authorizationRequests == 1)
+        var permissionAnswers: [Bool] = []
+        service.requestAuthorization { permissionAnswers.append($0) }
+        service.requestAuthorization { permissionAnswers.append($0) }
+        precondition(delivery.authorizationRequests == 1,
+                     "The settings page must join an in-flight notification permission prompt")
         delivery.authorization?(true)
         await settle()
         precondition(delivery.delivered.count == 1 && delivery.delivered.last?.message == "Pending 299")
+        precondition(permissionAnswers == [true, true], "Every settings requester must receive the shared answer")
         print("PASS permission request storm retains only the latest banner and one authorization request")
+
+        let manualHistory = TerminalNotificationHistoryStore(url: root.appendingPathComponent("manual/records.json"))
+        let manualDelivery = NotificationDeliveryFixture()
+        let manualService = TerminalNotificationService(history: manualHistory, delivery: manualDelivery)
+        await manualHistory.flush()
+        var manualAnswer: Bool?
+        manualService.requestAuthorization { manualAnswer = $0 }
+        precondition(manualDelivery.authorizationRequests == 1,
+                     "The permissions page must be able to request authorization without posting a notification")
+        manualDelivery.authorization?(false)
+        await settle()
+        precondition(manualAnswer == false && manualDelivery.delivered.isEmpty && manualHistory.records.isEmpty)
+        print("PASS explicit permission requests share delivery authorization without manufacturing notifications")
 
         delivery.current = .init(status: .allowed)
         let session = TerminalSession()

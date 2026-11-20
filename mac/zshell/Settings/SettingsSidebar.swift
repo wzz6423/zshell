@@ -290,13 +290,15 @@ final class SettingsSidebarViewController: NSViewController, NSSearchFieldDelega
 }
 
 private enum SettingsSidebarSection: CaseIterable {
-    case basics, workspace, tools, about
+    case basics, workspace, tools, permissions, other, about
 
     var title: String {
         switch self {
         case .basics: String(localized: "Basics")
         case .workspace: String(localized: "Workspace")
         case .tools: String(localized: "AI & Tools")
+        case .permissions: String(localized: "Permissions")
+        case .other: String(localized: "Other")
         case .about: String(localized: "About")
         }
     }
@@ -305,7 +307,9 @@ private enum SettingsSidebarSection: CaseIterable {
         switch self {
         case .basics: [.general, .appearance, .shortcuts]
         case .workspace: [.terminal, .editor, .browser]
-        case .tools: [.automation, .recommendations]
+        case .tools: [.automation]
+        case .permissions: [.permissions]
+        case .other: [.recommendations]
         case .about: [.updates]
         }
     }
