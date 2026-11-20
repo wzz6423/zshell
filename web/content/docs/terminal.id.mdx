@@ -30,6 +30,12 @@ Pilih **Terminal → Riwayat perintah…** untuk mencari perintah yang dijalanka
 
 Riwayat disimpan secara lokal di latar belakang, maksimal 2.000 perintah dan 8 MiB. **Hapus** menghapus catatan terpilih; **Hapus riwayat…** menghapus daftar tersimpan. Keluaran terminal dan riwayat shell sendiri tetap disimpan.
 
+## Simpan keluaran terminal [#save-terminal-output]
+
+Pilih **Terminal → Simpan keluaran terminal…** atau tindakan yang sama di menu konteks terminal untuk menyimpan file `.txt` UTF-8. File berisi layar panel dan riwayat gulir yang masih disimpan saat dialog penyimpanan dibuka, tanpa gaya. Beralih panel setelahnya tetap menyimpan cuplikan asli itu.
+
+Kedua backend dan terminal cepat mendukung tindakan ini. Hanya buffer yang masih disimpan backend yang disertakan; keluaran yang sudah dibuang tidak tersedia. Program layar penuh mengekspor buffer aktifnya.
+
 ## Pelengkapan shell [#shell-completion]
 
 Aktifkan **Pengaturan → Terminal → Input → Pelengkapan shell** (`terminal.shell-completions`, aktif secara bawaan) untuk saran perintah, argumen, dan jalur dalam baris. Berlaku pada shell zsh lokal baru dan sesi zsh jarak jauh bersama yang baru dengan server Zshell kompatibel. Buka sesi baru setelah mengubah sakelar.
@@ -78,6 +84,8 @@ Di **Pengaturan → Terminal → Input → Tindakan klik kanan**, pilih **Menu k
 
 **Shift-klik kanan**, **Control-klik**, dan **Command-klik kanan** tetap membuka menu. **Edit → Tampilkan Menu Konteks Terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) membukanya lewat papan ketik. Aplikasi dengan pelaporan mouse tetap menerima klik kanan biasa kecuali **Blokir Perintah Zshell** aktif di panel. Tempel memakai konfirmasi beberapa baris serta penanganan berkas lokal atau unggahan jarak jauh yang sama seperti <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Saat integrasi shell mengenali blok yang diklik kanan, menu menawarkan **Salin perintah**, **Salin keluaran**, **Salin blok perintah** (prompt, perintah, dan keluaran yang terlihat), serta **Pilih keluaran perintah**. **Sisipkan pada prompt** memasukkan perintah untuk diedit pada prompt zsh asli yang siap dan kosong; tekan Enter untuk menjalankannya. Keluaran kosong menonaktifkan tindakan keluaran. Kedua backend menggunakan blok yang diklik; menu keyboard tetap menyediakan tindakan terminal umum.
+
 ## Profil terminal [#terminal-profiles]
 
 Buat dan urutkan profil di **Pengaturan → Terminal → Profil terminal → Kelola profil terminal…**. Profil yang aktif dapat mencocokkan host, pengguna, direktori kerja, dan program latar depan. Semua kondisi yang diisi harus cocok; `*` cocok dengan teks apa pun dan `?` dengan satu karakter. Zshell memakai profil pertama yang cocok; jika tidak ada, panel kembali ke tampilan awalnya. **Terapkan profil terminal secara otomatis** aktif secara bawaan (`terminal.auto-profiles = true`). Pilihan manual tetap tersedia saat dinonaktifkan.
@@ -109,6 +117,10 @@ Jika shell bersarang atau pengganti belum memuat dukungan penyuntingan prompt Zs
 Kotak input standar Claude Code mendukung klik untuk memindahkan kursor dan seret untuk menyunting pada kedua backend, termasuk draf yang terbungkus dan multibaris. Ketik atau tempel untuk mengganti input terpilih, atau tekan Backspace/Delete untuk menghapusnya. Mode normal/visual Vim, dialog, placeholder lampiran atau tempelan yang dilipat, dan teks percakapan yang digulir mempertahankan perilaku pilihan terminalnya. Aplikasi yang menangkap mouse tetap menangani input sendiri.
 
 Input suara Zisla memakai tindakan tempel terminal. Dalam Claude Code, input itu juga mengganti rentang terpilih; pengulangan frasa yang disengaja tetap didukung.
+
+## Mode hanya baca [#read-only-mode]
+
+Pilih **Terminal → Hanya baca** atau **Hanya baca** di menu konteks untuk mengunci panel; tombol kunci di dalamnya membuka kunci. Output, pemilihan, penyalinan, pencarian, dan pengguliran tetap tersedia. Input keyboard dan mouse ke program, tempel, seret file, perintah cepat, pengiriman antrean, input melalui akses browser, dan input otomatis diblokir. Draf dan antrean tetap tersimpan; membuka kunci tidak mengirim ulang input yang ditolak. Permintaan input CLI mengembalikan `terminal_read_only`. Kunci tetap saat berpindah tab atau menyembunyikan Quick Terminal. Terminal baru dimulai tanpa kunci; kunci tidak dipulihkan setelah aplikasi dimulai ulang.
 
 ## Pintasan aplikasi latar depan [#foreground-application-shortcuts]
 

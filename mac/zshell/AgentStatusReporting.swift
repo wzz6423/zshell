@@ -41,14 +41,14 @@ struct ZshellAgentProcessIdentity: Equatable, Sendable {
     let startedSeconds: UInt64
     let startedMicroseconds: UInt64
 
-    init?(pid: pid_t) {
+    nonisolated init?(pid: pid_t) {
         guard let info = Self.info(pid) else { return nil }
         self.pid = pid
         startedSeconds = info.pbi_start_tvsec
         startedMicroseconds = info.pbi_start_tvusec
     }
 
-    var isAlive: Bool { Self(pid: pid) == self }
+    nonisolated var isAlive: Bool { Self(pid: pid) == self }
 
     static func parent(of pid: pid_t) -> pid_t? {
         info(pid).map { pid_t($0.pbi_ppid) }
@@ -65,7 +65,7 @@ struct ZshellAgentProcessIdentity: Equatable, Sendable {
         return false
     }
 
-    private static func info(_ pid: pid_t) -> proc_bsdinfo? {
+    nonisolated private static func info(_ pid: pid_t) -> proc_bsdinfo? {
         guard pid > 1 else { return nil }
         var info = proc_bsdinfo()
         let size = Int32(MemoryLayout<proc_bsdinfo>.size)

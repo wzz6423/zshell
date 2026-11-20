@@ -27,7 +27,7 @@ enum TerminalCommandHistoryActions {
     static func canInsert(_ entry: TerminalCommandHistoryEntry) -> Bool {
         guard entry.isValid,
               let session = ZshellAutomationRouter.context(forSession: entry.terminalID)?.session,
-              session.isShellAvailableForAutomation, session.terminalPromptQueueIsReady,
+              !session.isReadOnly, session.isShellAvailableForAutomation, session.terminalPromptQueueIsReady,
               session.promptQueue.commands.isEmpty,
               !TerminalCommandTaskStore.shared.hasActiveTask(terminalID: session.id) else { return false }
         return true
@@ -36,7 +36,7 @@ enum TerminalCommandHistoryActions {
     static func insert(_ entry: TerminalCommandHistoryEntry) -> Bool {
         guard canInsert(entry),
               let session = ZshellAutomationRouter.context(forSession: entry.terminalID)?.session else { return false }
-        session.sendCommand(entry.command, asPaste: true)
+        guard session.sendCommand(entry.command, asPaste: true) else { return false }
         return focusOrigin(entry)
     }
 

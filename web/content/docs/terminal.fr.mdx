@@ -30,6 +30,12 @@ Choisissez **Terminal → Historique des commandes…** pour rechercher les comm
 
 L’historique est enregistré localement en arrière-plan, dans la limite de 2 000 commandes et 8 MiB. **Supprimer** retire la ligne sélectionnée ; **Effacer l’historique…** retire la liste enregistrée. La sortie du terminal et l’historique propre au shell sont conservés.
 
+## Enregistrer la sortie du terminal [#save-terminal-output]
+
+Choisissez **Terminal → Enregistrer la sortie du terminal…** ou la même action dans le menu contextuel du terminal pour créer un fichier `.txt` UTF-8. Il contient l’écran du volet et l’historique de défilement conservé au moment où vous avez ouvert le panneau d’enregistrement, sans styles. Changer ensuite de volet conserve cet instantané d’origine.
+
+Les deux moteurs et le terminal rapide prennent en charge cette action. Seul le tampon actuellement conservé par le moteur est inclus ; les lignes déjà supprimées de l’historique ne sont plus disponibles. Un programme plein écran exporte son tampon actif.
+
 ## Complétion du shell [#shell-completion]
 
 Activez **Réglages → Terminal → Saisie → Complétion du shell** (`terminal.shell-completions`, activé par défaut) pour les suggestions en ligne de commandes, arguments et chemins. Ce réglage s’applique aux nouveaux shells zsh locaux et aux nouvelles sessions zsh distantes partagées avec un serveur Zshell compatible. Ouvrez une nouvelle session après toute modification.
@@ -78,6 +84,8 @@ Dans **Réglages → Terminal → Saisie → Action du clic droit**, choisissez 
 
 **Maj + clic droit**, **Contrôle + clic** et **Commande + clic droit** ouvrent toujours le menu. **Édition → Afficher le menu contextuel du terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) permet de l’ouvrir au clavier. Les applications utilisant le suivi de la souris continuent de recevoir les clics droits ordinaires, sauf si **Bloquer les commandes Zshell** est activé dans le volet. Le collage conserve la confirmation multiligne et le traitement des fichiers locaux ou distants de <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Si l’intégration shell identifie le bloc cliqué, le menu propose **Copier la commande**, **Copier la sortie**, **Copier le bloc de commande** (invite, commande et sortie visibles) et **Sélectionner la sortie de la commande**. **Insérer à l’invite** remplit une invite zsh native, prête et vide, pour modifier la commande ; appuyez sur Entrée pour l’exécuter. Une sortie vide désactive les actions de sortie. Les deux moteurs utilisent le bloc cliqué ; le menu au clavier conserve les actions générales du terminal.
+
 ## Profils de terminal [#terminal-profiles]
 
 Créez et ordonnez les profils dans **Réglages → Terminal → Profils de terminal → Gérer les profils de terminal…**. Ils peuvent correspondre à l’hôte, l’utilisateur, le répertoire de travail et le programme au premier plan. Toutes les conditions renseignées doivent correspondre ; `*` accepte tout texte et `?` un caractère. Le premier profil correspondant est utilisé, sinon le volet retrouve son apparence initiale. **Appliquer automatiquement les profils de terminal** est activé par défaut (`terminal.auto-profiles = true`) ; la sélection manuelle reste disponible si vous le désactivez.
@@ -109,6 +117,10 @@ Si un shell imbriqué ou de remplacement n'a pas chargé l'intégration d'éditi
 Le champ de saisie standard de Claude Code accepte également le positionnement par clic et l'édition par sélection sur les deux moteurs, y compris pour les brouillons multilignes ou avec retour automatique. Saisir ou coller remplace la sélection ; Retour arrière ou Supprimer l'efface. Les modes normal et visuel de Vim, les boîtes de dialogue, les éléments de pièce jointe ou de collage réduit et le texte de l'historique conservent leur comportement habituel de sélection du terminal. Les applications qui capturent la souris gèrent toujours leur propre saisie.
 
 La saisie vocale de Zisla utilise le collage du terminal. Dans Claude Code, elle remplace aussi la plage sélectionnée. Une phrase répétée volontairement reste acceptée.
+
+## Mode lecture seule [#read-only-mode]
+
+Choisissez **Terminal → Lecture seule** ou **Lecture seule** dans le menu contextuel du terminal pour verrouiller le volet ; son bouton de verrouillage le déverrouille. Sortie, sélection, copie, recherche et défilement restent disponibles. Les entrées clavier et souris aux programmes, collage, dépôt de fichiers, commandes rapides, envois de la file, entrées via l’accès navigateur et entrées automatisées sont bloqués. Brouillons et file sont conservés ; le déverrouillage ne renvoie aucune entrée refusée. Les requêtes de saisie CLI renvoient `terminal_read_only`. Le verrouillage reste lors du changement d’onglet ou du masquage de Quick Terminal. Les nouveaux terminaux sont déverrouillés et les verrouillages ne sont pas restaurés au redémarrage de l’application.
 
 ## Raccourcis de l'application au premier plan [#foreground-application-shortcuts]
 

@@ -26,7 +26,7 @@ class PromptSelectionTests(unittest.TestCase):
         cls.addClassCleanup(cls.build.cleanup)
         source = SOURCE.read_text()
         generator = source[source.index("    private static func makeShellIntegrationArtifacts("):
-                           source.index("    private static func validWorkingDirectory(")]
+                           source.index("    private static func configuredStartupCommand(")]
         readiness = source[source.index("    var terminalPromptSelectionIsReady: Bool {"):
                            source.index("    func terminalDidChangeTitle(")]
         helper = Path(cls.build.name) / "main.swift"

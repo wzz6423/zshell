@@ -184,7 +184,10 @@ extension ZshellTerminalView {
             // terminal output, so clicks can move the shell cursor without
             // stealing mouse events from full-screen terminal programs.
             builder.withCustom("shell-integration", launchShellIntegration)
-            builder.withCustom("cursor-click-to-move", nativeCursorClickToMove ? "true" : "false")
+            builder.withCustom("cursor-click-to-move", !isReadOnly && nativeCursorClickToMove ? "true" : "false")
+            // Disable reporting in place so native hover and selection never
+            // generate TUI mouse input while the surface is locked.
+            builder.withCustom("mouse-reporting", isReadOnly ? "false" : "true")
             // Zshell applies this after mouseUp so the app setting remains the
             // single source of truth instead of Ghostty copying first.
             builder.withCustom("copy-on-select", "false")
@@ -374,9 +377,12 @@ extension ZshellTerminalView: TerminalSurfaceClipboardConfirmationDelegate {
         case .unsafePaste: kind = .unsafePaste
         case .osc52Read: kind = .programRead
         }
+        let generation = inputGeneration
+        guard kind != .unsafePaste || !isReadOnly else { request.deny(); return }
         events?.terminalDidRequestClipboardConfirmation(
-            TerminalClipboardRequest(kind: kind, contents: request.contents) { approved in
-                if approved {
+            TerminalClipboardRequest(kind: kind, contents: request.contents) { [weak self] approved in
+                if approved, let self,
+                   kind != .unsafePaste || !self.isReadOnly && self.inputGeneration == generation {
                     request.approve()
                 } else {
                     request.deny()

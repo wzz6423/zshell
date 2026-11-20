@@ -521,11 +521,15 @@ nonisolated private final class FaviconRedirects: NSObject, URLSessionTaskDelega
 nonisolated final class BrowserLoopbackRelay: @unchecked Sendable {
     let port: UInt16
     private let listener: NWListener
+    private let connections: Connections
 
-    private init(listener: NWListener, port: UInt16) {
+    private init(listener: NWListener, port: UInt16, connections: Connections) {
         self.listener = listener
         self.port = port
+        self.connections = connections
     }
+
+    deinit { close() }
 
     static func start(upstreamPort: UInt16) async throws -> BrowserLoopbackRelay {
         let parameters = NWParameters.tcp
@@ -533,7 +537,11 @@ nonisolated final class BrowserLoopbackRelay: @unchecked Sendable {
         let listener = try NWListener(using: parameters)
         let queue = DispatchQueue(label: "zshell.browser-loopback-relay")
         let upstream = NWEndpoint.Port(rawValue: upstreamPort)!
-        listener.newConnectionHandler = { serve($0, upstream: upstream, queue: queue) }
+        let connections = Connections()
+        listener.newConnectionHandler = { client in
+            guard connections.insert(client) else { return client.cancel() }
+            serve(client, upstream: upstream, queue: queue, connections: connections)
+        }
         let port: UInt16 = try await withCheckedThrowingContinuation { continuation in
             listener.stateUpdateHandler = { state in
                 switch state {
@@ -551,15 +559,58 @@ nonisolated final class BrowserLoopbackRelay: @unchecked Sendable {
             }
             listener.start(queue: queue)
         }
-        return BrowserLoopbackRelay(listener: listener, port: port)
+        return BrowserLoopbackRelay(listener: listener, port: port, connections: connections)
     }
 
     func close() {
-        listener.newConnectionHandler = nil
+        connections.close()
+        // Queued accepts still need the closed registry to cancel them.
         listener.cancel()
     }
 
-    private static func serve(_ client: NWConnection, upstream: NWEndpoint.Port, queue: DispatchQueue) {
+    // Closing the listener leaves accepted connections alive, including ones
+    // still waiting for a SOCKS greeting without an SSH upstream to close them.
+    private final class Connections: @unchecked Sendable {
+        private let lock = NSLock()
+        private var active: [ObjectIdentifier: NWConnection] = [:]
+        private var closed = false
+
+        func insert(_ connection: NWConnection) -> Bool {
+            lock.withLock {
+                guard !closed else { return false }
+                active[ObjectIdentifier(connection)] = connection
+                connection.stateUpdateHandler = { [weak self, weak connection] state in
+                    switch state {
+                    case .failed, .cancelled:
+                        guard let connection else { return }
+                        connection.stateUpdateHandler = nil
+                        self?.remove(connection)
+                        connection.cancel()
+                    default: break
+                    }
+                }
+                return true
+            }
+        }
+
+        private func remove(_ connection: NWConnection) {
+            _ = lock.withLock { active.removeValue(forKey: ObjectIdentifier(connection)) }
+        }
+
+        func close() {
+            let connections = lock.withLock {
+                closed = true
+                let connections = Array(active.values)
+                active.removeAll()
+                return connections
+            }
+            connections.forEach { $0.cancel() }
+        }
+    }
+
+    private static func serve(
+        _ client: NWConnection, upstream: NWEndpoint.Port, queue: DispatchQueue, connections: Connections
+    ) {
         client.start(queue: queue)
         let refuse = { client.send(content: Data([5, 2, 0, 1, 0, 0, 0, 0, 0, 0]), completion: .contentProcessed { _ in client.cancel() }) }
         read(client, 2) { greeting in
@@ -582,6 +633,7 @@ nonisolated final class BrowserLoopbackRelay: @unchecked Sendable {
                         default: address = Data([3, 9]) + Data("localhost".utf8)
                         }
                         let remote = NWConnection(host: "127.0.0.1", port: upstream, using: .tcp)
+                        guard connections.insert(remote) else { remote.cancel(); return client.cancel() }
                         remote.start(queue: queue)
                         remote.send(content: Data([5, 1, 0]), completion: .idempotent)
                         read(remote, 2) { choice in

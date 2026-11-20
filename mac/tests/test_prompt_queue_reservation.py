@@ -29,7 +29,7 @@ class PromptQueueReservationTests(unittest.TestCase):
         storage = session[session.index("    var promptQueueDispatchGeneration:"):
                           session.index("    init(", session.index("    var promptQueueDispatchGeneration:"))]
         reservation = session[session.index("    /// Reserve"):
-                              session.index("    func sendEnter()", session.index("    /// Reserve"))]
+                              session.index("    @discardableResult\n    func sendEnter()", session.index("    /// Reserve"))]
         readiness = session[session.index("    var terminalPromptSelectionIsReady:"):
                             session.index("    func terminalDidChangeTitle(")]
         gate = queue[queue.index("    var canSendQueuedPrompt:"):queue.index("    /// Explicit sends")]
@@ -44,7 +44,7 @@ class PromptQueueReservationTests(unittest.TestCase):
             "struct TerminalCommandTaskStore { static let shared = TerminalCommandTaskStore(); "
             "func hasActiveTask(terminalID: UUID) -> Bool { false } }\n"
             "final class Session {\nlet id = UUID()\nlet promptQueue = Queue()\n"
-            "let hasExited = false\nlet isTerminating = false\nlet shellPid: pid_t?\n"
+            "let hasExited = false\nlet isTerminating = false\nvar isReadOnly = false\nlet shellPid: pid_t?\n"
             "let launchDirectoryURL: URL?\nlet surface: Surface\n"
             + storage + reservation + readiness + gate +
             "init(directory: URL, pid: pid_t) { launchDirectoryURL = directory; shellPid = pid; "
@@ -55,7 +55,9 @@ class PromptQueueReservationTests(unittest.TestCase):
             "if line.hasPrefix(\"reserve \") {\n"
             "let command = String(data: Data(base64Encoded: String(line.dropFirst(8)))!, encoding: .utf8)!\n"
             f"print({reserve_call})\n"
-            "} else { print(session.canSendQueuedPrompt) }\nfflush(stdout)\n}\n"
+            "} else if line == \"lock\" { session.isReadOnly = true; print(session.canSendQueuedPrompt) }\n"
+            "else if line == \"unlock\" { session.isReadOnly = false; print(session.canSendQueuedPrompt) }\n"
+            "else { print(session.canSendQueuedPrompt) }\nfflush(stdout)\n}\n"
         )
         cls.helper = Path(cls.build.name) / "reservation"
         subprocess.run(["swiftc", str(helper), "-o", str(cls.helper)], check=True)
@@ -102,6 +104,13 @@ class PromptQueueReservationTests(unittest.TestCase):
                 os.read(self.shell.fd, 65536)
             time.sleep(.01)
         self.assertTrue(path.exists(), f"Shell did not write {path.name}")
+
+    def test_locked_queue_preserves_shell_readiness_without_dispatch(self):
+        self.assertTrue(self.ask())
+        self.assertFalse(self.ask("lock"))
+        self.assertFalse(self.reserve(":"))
+        self.assertTrue(self.shell.ready())
+        self.assertTrue(self.ask("unlock"))
 
     def test_keymap_redraw_cannot_release_buffered_command(self):
         shell = self.shell

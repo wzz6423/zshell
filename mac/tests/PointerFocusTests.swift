@@ -9,12 +9,21 @@ struct AppSettings {
     var isTerminalBackgroundBlurActive = false
 }
 struct OverlayScrollbarView { static let stripWidth: CGFloat = 12 }
-protocol TerminalBackendSurface: NSView { func setSurfaceVisible(_ visible: Bool) }
+final class PromptQueueBarView: NSView {
+    func setPaneVisible(_ visible: Bool) {}
+}
+protocol TerminalBackendSurface: NSView {
+    var isReadOnly: Bool { get set }
+    func setSurfaceVisible(_ visible: Bool)
+}
+enum TerminalReadOnlyController { static let didChange = Notification.Name("read-only-test") }
+enum AppLocalization { static let didChange = Notification.Name("localization-test") }
 struct TerminalCommandRouting {
     static var blocks = false
     static func isBlockingCommands(in window: NSWindow?) -> Bool { blocks }
 }
 final class FocusSurface: NSView, TerminalBackendSurface {
+    var isReadOnly = false
     var onFocus: (() -> Void)?
     override var acceptsFirstResponder: Bool { true }
     override func becomeFirstResponder() -> Bool { onFocus?(); return true }

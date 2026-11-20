@@ -75,8 +75,10 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         pathLabel.textColor = .secondaryLabelColor
         badgeLabel.textColor = .secondaryLabelColor
         for button in [searchButton, revealButton, importButton] {
+            button.cell = CenteredIconButtonCell(textCell: "")
             button.isBordered = false
             button.imagePosition = .imageOnly
+            button.imageScaling = .scaleProportionallyDown
             button.target = self
             button.contentTintColor = .secondaryLabelColor
             header.addSubview(button)
@@ -147,6 +149,12 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
             },
             NotificationCenter.default.publisher(for: NSView.boundsDidChangeNotification, object: scrollView.contentView)
                 .sink { [weak self] _ in self?.updateVisibleRows() },
+            NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)
+                .merge(with: NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification))
+                .sink { [weak self] notification in
+                    guard let self, notification.object as? NSWindow === self.window else { return }
+                    self.updateVisibleRows()
+                },
         ]
         syncFromModel()
     }
@@ -285,6 +293,7 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         badgeLabel.isHidden = badgeWidth == 0
         badgeLabel.frame = NSRect(x: inset + labelWidth - badgeWidth, y: titleY, width: badgeWidth, height: lineHeight)
         for (index, button) in buttons.enumerated() {
+            (button.cell as? CenteredIconButtonCell)?.opticalSize = 11 * metrics.fontScale
             button.frame = NSRect(x: bounds.width - inset - controlsWidth + CGFloat(index) * slot,
                                   y: controlsY,
                                   width: slot, height: slot)
@@ -716,6 +725,7 @@ private final class FileTreeRowView: NSView {
         toolTip = item.path
         setAccessibilityLabel(item.name + (decoration.map { ", " + $0.fileTreeAccessibilityName } ?? ""))
         setAccessibilityValue(item.isDirectory ? (expanded ? String(localized: "Expanded") : String(localized: "Collapsed")) : nil)
+        synchronizeHoverWithMouse()
         needsLayout = true
         needsDisplay = true
     }
@@ -784,10 +794,43 @@ private final class FileTreeRowView: NSView {
         let tracking = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect], owner: self)
         self.tracking = tracking
         addTrackingArea(tracking)
+        synchronizeHoverWithMouse()
     }
 
-    override func mouseEntered(with event: NSEvent) { hovered = true; needsDisplay = true }
-    override func mouseExited(with event: NSEvent) { hovered = false; needsDisplay = true }
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        synchronizeHoverWithMouse()
+    }
+
+    override func viewDidHide() {
+        super.viewDidHide()
+        setHovered(false)
+    }
+
+    override func viewDidUnhide() {
+        super.viewDidUnhide()
+        synchronizeHoverWithMouse()
+    }
+
+    override func mouseEntered(with event: NSEvent) { synchronizeHoverWithMouse() }
+    override func mouseExited(with event: NSEvent) { setHovered(false) }
+
+    private func synchronizeHoverWithMouse() {
+        guard let window, window.isKeyWindow, !isHiddenOrHasHiddenAncestor else {
+            setHovered(false)
+            return
+        }
+        // Scrolling and row reuse can move a tracking area without a mouse exit.
+        let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+        setHovered(NSIntersectionRect(bounds, visibleRect).contains(point))
+    }
+
+    private func setHovered(_ hovered: Bool) {
+        guard self.hovered != hovered else { return }
+        self.hovered = hovered
+        needsDisplay = true
+    }
+
     override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); needsDisplay = true }
     override func accessibilityPerformPress() -> Bool {
         guard let table = ancestorTable(), let onPress else { return false }

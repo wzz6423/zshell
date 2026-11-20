@@ -60,6 +60,7 @@ class FileContentSearchPanelTests(unittest.TestCase):
         else:
             command += [str(MAC / "zshell/FileContentSearchModel.swift"),
                         str(MAC / "zshell/FileContentSearchView.swift"),
+                        str(MAC / "zshell/CenteredIconButtonCell.swift"),
                         str(MAC / "zshell/MainActorIsolation.swift")]
         command += [str(MAC / "tests/FileContentSearchPanelTests.swift"),
                     str(MAC / "tests/QuickTerminalOffscreen.swift"), "-o", str(cls.helper)]

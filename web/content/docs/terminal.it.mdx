@@ -30,6 +30,12 @@ Apri **Terminale → Cronologia comandi…** per cercare i comandi eseguiti in Z
 
 La cronologia viene salvata localmente in background, fino a 2.000 comandi e 8 MiB. **Elimina** rimuove il record selezionato; **Cancella cronologia…** rimuove la lista salvata. L’output del terminale e la cronologia della shell restano disponibili.
 
+## Salva output del terminale [#save-terminal-output]
+
+Scegli **Terminale → Salva output del terminale…** o la stessa azione nel menu contestuale del terminale per salvare un file `.txt` UTF-8. Il file contiene la schermata del riquadro e la cronologia di scorrimento conservata quando hai aperto il pannello di salvataggio, senza stili. Cambiare riquadro in seguito mantiene quella copia originale.
+
+L’azione è disponibile con entrambi i motori e con il terminale rapido. È incluso solo il buffer attualmente conservato dal motore; l’output già scartato non è disponibile. Un programma a schermo intero esporta il proprio buffer attivo.
+
 ## Completamento della shell [#shell-completion]
 
 Attiva **Impostazioni → Terminale → Input → Completamento della shell** (`terminal.shell-completions`, attivo per impostazione predefinita) per suggerimenti in linea di comandi, argomenti e percorsi. Vale per nuove shell zsh locali e nuove sessioni zsh remote condivise con un server Zshell compatibile. Apri una nuova sessione dopo aver cambiato l’interruttore.
@@ -78,6 +84,8 @@ In **Impostazioni → Terminale → Input → Azione del clic destro**, scegli *
 
 **Maiusc + clic destro**, **Control + clic** e **Command + clic destro** aprono ancora il menu. **Modifica → Mostra menu contestuale del terminale** (<kbd>Shift</kbd>+<kbd>F10</kbd>) lo apre dalla tastiera. Le applicazioni con rilevamento del mouse ricevono i normali clic destri, salvo quando **Blocca comandi Zshell** è attivo nel pannello. Incollare usa la stessa conferma multilinea e gestione dei file locali o remoti di <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Quando l’integrazione shell identifica il blocco cliccato, il menu offre **Copia comando**, **Copia output**, **Copia blocco di comando** (prompt, comando e output visibili) e **Seleziona output del comando**. **Inserisci nel prompt** inserisce il comando da modificare in un prompt zsh nativo, pronto e vuoto; premi Invio per eseguirlo. Se l’output è vuoto, le relative azioni sono disabilitate. Entrambi i backend usano il blocco cliccato; il menu da tastiera mantiene le azioni generali del terminale.
+
 ## Profili terminale [#terminal-profiles]
 
 Crea e ordina i profili in **Impostazioni → Terminale → Profili terminale → Gestisci profili terminale…**. Possono corrispondere a host, utente, directory di lavoro e programma in primo piano. Tutte le condizioni compilate devono corrispondere; `*` accetta qualsiasi testo e `?` un carattere. Si usa il primo profilo corrispondente; senza corrispondenza, il pannello torna all’aspetto originale. **Applica automaticamente i profili terminale** è attivo per impostazione predefinita (`terminal.auto-profiles = true`); disattivandolo resta disponibile la scelta manuale.
@@ -109,6 +117,10 @@ Se una shell annidata o sostitutiva non ha caricato il supporto Zshell per la mo
 Il campo di input standard di Claude Code supporta il posizionamento con un clic e la modifica tramite trascinamento su entrambi i motori, anche per bozze su più righe o mandate a capo. Digita o incolla per sostituire l'input selezionato, oppure premi Backspace o Delete per eliminarlo. Le modalità normale e visuale di Vim, le finestre di dialogo, i segnaposto di allegati o di testo incollato compresso e la trascrizione scorsa mantengono il normale comportamento di selezione del terminale. Le applicazioni che catturano il mouse continuano a gestire il proprio input.
 
 L'input vocale da Zisla usa l'azione Incolla del terminale. In Claude Code sostituisce anche un intervallo di input selezionato; la ripetizione intenzionale di una frase rimane supportata.
+
+## Modalità sola lettura [#read-only-mode]
+
+Scegli **Terminale → Sola lettura** o **Sola lettura** nel menu contestuale per bloccare il riquadro; il suo pulsante di blocco lo sblocca. Output, selezione, copia, ricerca e scorrimento restano disponibili. Tastiera e mouse inviati ai programmi, incolla, rilascio di file, comandi rapidi, invii della coda, input tramite accesso browser e input automatizzati sono bloccati. Bozze e coda restano intatte; lo sblocco non reinvia gli input rifiutati. Le richieste di input CLI restituiscono `terminal_read_only`. Il blocco resta cambiando scheda o nascondendo Quick Terminal. I nuovi terminali iniziano sbloccati; i blocchi non vengono ripristinati al riavvio dell’app.
 
 ## Scorciatoie dell'applicazione in primo piano [#foreground-application-shortcuts]
 

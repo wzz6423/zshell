@@ -21,6 +21,8 @@ final class TerminalCallbackBridge {
     var onCellSizeChange: ((UInt32, UInt32) -> Void)?
     var onRenderRequest: (() -> Void)?
     var onMouseShapeChange: ((TerminalMouseShape) -> Void)?
+    private var commandCallbackGeneration: UInt64 = 0
+    private var commandRecordsRefreshScheduled = false
 
     init(delegate: (any TerminalSurfaceViewDelegate)? = nil) {
         self.delegate = delegate
@@ -57,7 +59,7 @@ final class TerminalCallbackBridge {
         case GHOSTTY_ACTION_RENDER:
             TerminalDebugLog.log(.render, "callback action=render")
             onRenderRequest?()
-            (delegate as? any TerminalSurfaceCommandRecordsDelegate)?.terminalCommandRecordsDidChange()
+            scheduleCommandRecordsRefresh()
 
         case GHOSTTY_ACTION_CONFIG_CHANGE:
             // Colors/theme may have changed (e.g. on system appearance
@@ -95,11 +97,16 @@ final class TerminalCallbackBridge {
                 .actions,
                 "callback action=command_finished exit=\(exit.map { "\($0)" } ?? "nil") duration_ns=\(finished.duration)"
             )
-            (delegate as? any TerminalSurfaceCommandFinishedDelegate)?
-                .terminalDidFinishCommand(
-                    exitCode: exit,
-                    durationNanos: finished.duration
-                )
+            let duration = finished.duration
+            let generation = commandCallbackGeneration
+            // Completion observers read terminal records and history. Wait
+            // until the native callback returns before acquiring those locks.
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.commandCallbackGeneration == generation,
+                      self.rawSurface != nil else { return }
+                (self.delegate as? any TerminalSurfaceCommandFinishedDelegate)?
+                    .terminalDidFinishCommand(exitCode: exit, durationNanos: duration)
+            }
 
         case GHOSTTY_ACTION_DESKTOP_NOTIFICATION:
             let payload = action.action.desktop_notification
@@ -234,6 +241,23 @@ final class TerminalCallbackBridge {
             )
         }
         return false
+    }
+
+    func invalidatePendingCommandCallbacks() {
+        commandCallbackGeneration &+= 1
+        commandRecordsRefreshScheduled = false
+    }
+
+    private func scheduleCommandRecordsRefresh() {
+        guard !commandRecordsRefreshScheduled else { return }
+        commandRecordsRefreshScheduled = true
+        let generation = commandCallbackGeneration
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.commandCallbackGeneration == generation else { return }
+            self.commandRecordsRefreshScheduled = false
+            guard self.rawSurface != nil else { return }
+            (self.delegate as? any TerminalSurfaceCommandRecordsDelegate)?.terminalCommandRecordsDidChange()
+        }
     }
 
     /// Routes a clipboard request that Ghostty escalated for a user

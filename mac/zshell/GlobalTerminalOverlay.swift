@@ -1125,6 +1125,8 @@ private final class GlobalTerminalTitlebarView: NSView {
         label: String,
         tooltip: String
     ) {
+        button.cell = CenteredIconButtonCell(textCell: "")
+        button.imagePosition = .imageOnly
         button.image = NSImage(systemSymbolName: imageName, accessibilityDescription: nil)
         button.isBordered = false
         button.bezelStyle = .recessed

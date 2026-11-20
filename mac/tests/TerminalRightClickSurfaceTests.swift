@@ -252,6 +252,10 @@ import GhosttyTerminal
         func popups(_ view: NSView) -> [NSPopUpButton] {
             (view as? NSPopUpButton).map { [$0] } ?? view.subviews.flatMap(popups)
         }
+        func textFields(_ view: NSView) -> [NSTextField] {
+            if view is NSControl, !(view is NSTextField) { return [] }
+            return (view as? NSTextField).map { [$0] } ?? view.subviews.flatMap(textFields)
+        }
         let popup = popups(settingsView).first { $0.accessibilityLabel() == "Right-click action" }
         try check(popup?.itemTitles == TerminalRightClickAction.allCases.map(\.title), "native settings exposes all three right-click choices")
         for (index, action) in TerminalRightClickAction.allCases.enumerated() {
@@ -280,8 +284,8 @@ import GhosttyTerminal
                 localizedPane.view.layoutSubtreeIfNeeded()
                 try check(localizedPane.revealSearchResult(String(localized: "Right-click action"), in: String(localized: "Input")),
                           "\(language.rawValue) settings search reveals the row at \(Int(width))pt")
-                let labels = localizedPopup?.superview?.subviews.compactMap { $0 as? NSStackView }
-                    .flatMap { $0.arrangedSubviews.compactMap { $0 as? NSTextField } } ?? []
+                let labelColumn = (localizedPopup?.superview as? NSStackView)?.arrangedSubviews.first
+                let labels = labelColumn.map(textFields) ?? []
                 try check(!labels.isEmpty && labels.allSatisfy {
                     $0.frame.height + 1 >= $0.cell!.cellSize(forBounds: NSRect(x: 0, y: 0, width: $0.frame.width, height: 10_000)).height
                 }, "\(language.rawValue) right-click labels fit at \(Int(width))pt")

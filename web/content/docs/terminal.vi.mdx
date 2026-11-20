@@ -30,6 +30,12 @@ Chọn **Terminal → Lịch sử lệnh…** để tìm các lệnh đã chạy
 
 Lịch sử được lưu cục bộ ở nền, tối đa 2.000 lệnh và 8 MiB. **Xóa** bỏ bản ghi đã chọn; **Xóa lịch sử…** bỏ danh sách đã lưu. Đầu ra terminal và lịch sử riêng của shell được giữ lại.
 
+## Lưu đầu ra terminal [#save-terminal-output]
+
+Chọn **Terminal → Lưu đầu ra terminal…** hoặc thao tác tương tự trong menu ngữ cảnh của terminal để lưu tệp `.txt` UTF-8. Tệp chứa màn hình của khung và lịch sử cuộn còn lưu khi bạn mở hộp thoại, không có định dạng. Chuyển khung sau đó vẫn giữ bản chụp ban đầu này.
+
+Cả hai backend và terminal nhanh đều hỗ trợ thao tác này. Chỉ bộ đệm mà backend hiện còn giữ được đưa vào tệp; đầu ra đã bị loại khỏi lịch sử không còn khả dụng. Chương trình toàn màn hình xuất bộ đệm đang hoạt động.
+
 ## Hoàn thành lệnh shell [#shell-completion]
 
 Bật **Cài đặt → Terminal → Nhập liệu → Hoàn thành lệnh shell** (`terminal.shell-completions`, mặc định bật) để dùng gợi ý lệnh, đối số và đường dẫn ngay trong dòng nhập. Áp dụng cho zsh cục bộ mới và phiên zsh từ xa dùng chung mới với máy chủ Zshell tương thích. Mở phiên mới sau khi đổi công tắc.
@@ -78,6 +84,8 @@ Trong **Cài đặt → Terminal → Nhập → Thao tác nhấp chuột phải*
 
 **Shift-nhấp chuột phải**, **Control-nhấp**, và **Command-nhấp chuột phải** vẫn mở menu. **Sửa → Hiện menu ngữ cảnh terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) mở menu bằng bàn phím. Ứng dụng bật báo cáo chuột vẫn nhận nhấp chuột phải thông thường, trừ khi bật **Chặn lệnh Zshell** cho khung. Dán dùng cùng xác nhận nhiều dòng và xử lý tệp cục bộ hoặc tải lên từ xa như <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Khi tích hợp shell nhận diện khối được nhấp chuột phải, menu cung cấp **Sao chép lệnh**, **Sao chép đầu ra**, **Sao chép khối lệnh** (dấu nhắc, lệnh và đầu ra hiển thị) và **Chọn đầu ra của lệnh**. **Chèn tại dấu nhắc** điền lệnh để chỉnh sửa vào dấu nhắc zsh gốc đã sẵn sàng và trống; nhấn Enter để chạy. Đầu ra trống sẽ vô hiệu hóa các thao tác đầu ra. Cả hai backend dùng khối được nhấp; menu bàn phím giữ các thao tác terminal chung.
+
 ## Hồ sơ terminal [#terminal-profiles]
 
 Tạo và sắp xếp hồ sơ trong **Cài đặt → Terminal → Hồ sơ terminal → Quản lý hồ sơ terminal…**. Hồ sơ đang bật có thể khớp máy chủ, người dùng, thư mục làm việc và chương trình tiền cảnh. Tất cả điều kiện đã điền phải khớp; `*` khớp mọi văn bản và `?` khớp một ký tự. Zshell dùng hồ sơ khớp đầu tiên; nếu không có, ô trở lại giao diện ban đầu. **Tự động áp dụng hồ sơ terminal** được bật mặc định (`terminal.auto-profiles = true`). Khi tắt, vẫn có thể chọn hồ sơ thủ công.
@@ -109,6 +117,10 @@ Nếu shell lồng nhau hoặc shell thay thế chưa nạp hỗ trợ sửa d�
 Ô nhập chuẩn của Claude Code hỗ trợ nhấn đặt con trỏ và kéo chỉnh sửa trên cả hai backend, kể cả bản nháp xuống dòng mềm hoặc nhiều dòng. Gõ/dán để thay vùng chọn, Backspace/Delete để xóa. Chế độ normal/visual của Vim, hộp thoại, phần giữ chỗ tệp đính kèm hoặc đoạn dán thu gọn, và hội thoại đã cuộn vẫn dùng hành vi chọn terminal hiện có. Ứng dụng bắt chuột tiếp tục tự xử lý đầu vào.
 
 Nhập giọng nói Zisla dùng thao tác dán của terminal. Trong Claude Code, nó cũng thay vùng nhập đang chọn; lặp lại một câu có chủ ý vẫn được hỗ trợ.
+
+## Chế độ chỉ đọc [#read-only-mode]
+
+Chọn **Terminal → Chỉ đọc** hoặc **Chỉ đọc** trong menu ngữ cảnh để khóa ngăn; nút khóa trong ngăn dùng để mở khóa. Đầu ra, chọn, sao chép, tìm kiếm và cuộn vẫn dùng được. Đầu vào bàn phím và chuột gửi tới chương trình, dán, thả tệp, lệnh nhanh, gửi hàng đợi, đầu vào qua truy cập trình duyệt và đầu vào tự động bị chặn. Bản nháp và hàng đợi được giữ lại; mở khóa không gửi lại đầu vào đã bị từ chối. Yêu cầu nhập CLI trả về `terminal_read_only`. Khóa vẫn còn khi đổi thẻ hoặc ẩn Quick Terminal. Terminal mới bắt đầu không khóa; khóa không được khôi phục khi khởi động lại ứng dụng.
 
 ## Phím tắt ứng dụng tiền cảnh [#foreground-application-shortcuts]
 

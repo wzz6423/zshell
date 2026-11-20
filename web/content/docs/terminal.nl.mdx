@@ -30,6 +30,12 @@ Kies **Terminal → Opdrachtgeschiedenis…** om in Zshell uitgevoerde opdrachte
 
 De geschiedenis wordt lokaal op de achtergrond opgeslagen, tot 2.000 opdrachten en 8 MiB. **Verwijderen** verwijdert de gekozen regel; **Geschiedenis wissen…** verwijdert de opgeslagen lijst. Terminaluitvoer en de eigen shellgeschiedenis blijven bewaard.
 
+## Terminaluitvoer bewaren [#save-terminal-output]
+
+Kies **Terminal → Terminaluitvoer bewaren…** of dezelfde actie in het contextmenu van de terminal om een UTF-8-bestand met de extensie `.txt` te bewaren. Het bevat het scherm van het deelvenster en de bewaarde scrollgeschiedenis op het moment dat u het bewaarvenster opende, zonder opmaak. Later van deelvenster wisselen behoudt die oorspronkelijke momentopname.
+
+Beide backends en Quick Terminal ondersteunen deze actie. Alleen de buffer die de backend momenteel bewaart, wordt opgenomen; eerder verwijderde uitvoer is niet meer beschikbaar. Een programma op volledig scherm exporteert zijn actieve buffer.
+
 ## Shell-aanvulling [#shell-completion]
 
 Schakel **Instellingen → Terminal → Invoer → Shell-aanvulling** in (`terminal.shell-completions`, standaard aan) voor suggesties voor opdrachten, argumenten en paden in de invoerregel. Dit geldt voor nieuwe lokale zsh-shells en nieuwe gedeelde externe zsh-sessies met een compatibele Zshell-server. Open na een wijziging een nieuwe sessie.
@@ -78,6 +84,8 @@ Kies bij **Instellingen → Terminal → Invoer → Rechtsklikactie** voor **Con
 
 **Shift-rechtsklik**, **Control-klik** en **Command-rechtsklik** openen nog steeds het menu. **Wijzig → Terminalcontextmenu tonen** (<kbd>Shift</kbd>+<kbd>F10</kbd>) opent het met het toetsenbord. Apps met muisrapportage blijven gewone rechtsklikken ontvangen, tenzij **Zshell-opdrachten blokkeren** voor het paneel aanstaat. Plakken gebruikt dezelfde bevestiging voor meerdere regels en lokale of externe bestandsafhandeling als <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Als shellintegratie het aangeklikte blok herkent, biedt het menu **Opdracht kopiëren**, **Uitvoer kopiëren**, **Opdrachtblok kopiëren** (zichtbare prompt, opdracht en uitvoer) en **Opdrachtuitvoer selecteren**. **Bij de prompt invoegen** zet de opdracht ter bewerking in een gereedstaande, lege native zsh-prompt; druk op Enter om deze uit te voeren. Bij lege uitvoer zijn de uitvoeracties uitgeschakeld. Beide backends gebruiken het aangeklikte blok; het toetsenbordmenu behoudt de algemene terminalacties.
+
 ## Terminalprofielen [#terminal-profiles]
 
 Maak en orden profielen onder **Instellingen → Terminal → Terminalprofielen → Terminalprofielen beheren…**. Ze kunnen host, gebruiker, werkmap en voorgrondprogramma vergelijken. Alle ingevulde voorwaarden moeten passen; `*` past bij elke tekst en `?` bij één teken. Het eerste passende profiel wordt gebruikt; zonder match keert het paneel terug naar zijn oorspronkelijke uiterlijk. **Terminalprofielen automatisch toepassen** staat standaard aan (`terminal.auto-profiles = true`); handmatig kiezen blijft mogelijk na uitschakelen.
@@ -109,6 +117,10 @@ Als een geneste of vervangende shell de promptbewerkingsondersteuning van Zshell
 Het standaardinvoerveld van Claude Code ondersteunt klikken om de cursor te plaatsen en slepen om invoer te bewerken op beide backends, ook bij afgebroken regels en concepten met meerdere regels. Typ of plak om de geselecteerde invoer te vervangen, of druk op Backspace of Delete om haar te verwijderen. De normale en visuele Vim-modus, dialoogvensters, bijlagen of samengevouwen plakinhoud en teruggescrolde gesprekstekst behouden hun bestaande terminalselectiegedrag. Applicaties die de muis overnemen, blijven hun eigen invoer afhandelen.
 
 Spraakinvoer van Zisla gebruikt de plakactie van de terminal. In Claude Code vervangt die ook een geselecteerd invoerbereik; bewust een zin herhalen blijft ondersteund.
+
+## Alleen-lezenmodus [#read-only-mode]
+
+Kies **Terminal → Alleen-lezen** of **Alleen-lezen** in het contextmenu om het paneel te vergrendelen; de vergrendelknop ontgrendelt het. Uitvoer, selectie, kopiëren, zoeken en scrollen blijven beschikbaar. Toetsenbord- en muisinvoer naar programma’s, plakken, bestanden slepen, snelle opdrachten, wachtrijverzendingen, invoer via browsertoegang en geautomatiseerde invoer worden geblokkeerd. Concepten en wachtrij blijven behouden; ontgrendelen verstuurt geweigerde invoer niet opnieuw. CLI-invoerverzoeken retourneren `terminal_read_only`. De vergrendeling blijft bij tabwissels of het verbergen van Quick Terminal. Nieuwe terminals beginnen ontgrendeld; vergrendelingen worden niet hersteld wanneer de app opnieuw start.
 
 ## Sneltoetsen voor de voorgrondapplicatie [#foreground-application-shortcuts]
 

@@ -75,6 +75,7 @@ import STTextView
             return
         }
         let model = FileContentSearchModel()
+        defer { model.stop() }
         model.sync(root: CommandLine.arguments[1])
         model.query = CommandLine.arguments[2]
         model.run()
@@ -94,6 +95,14 @@ import STTextView
                 ["path": $0.path, "line": $0.line, "content": $0.content] as [String: Any]
             },
         ]
+        // Snapshot completion before stopping a timed-out search, then let
+        // grep exit and both pipe readers drain before the harness exits.
+        model.stop()
+        for _ in 0..<100 {
+            if !model.isRunning { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        precondition(!model.isRunning, "grep cleanup did not complete")
         print(String(decoding: try JSONSerialization.data(withJSONObject: result), as: UTF8.self))
     }
 
@@ -354,6 +363,15 @@ __attribute__((destructor)) static void report_reads(void) {
         (self.root / "binary.bin").write_bytes(b"\0-needle\n")
         result = self.search("-needle")
         self.assertEqual([hit["path"] for hit in result["matches"]], ["plain.txt"])
+
+    def test_search_skips_fifo_without_waiting_for_a_writer(self):
+        os.mkfifo(self.root / "a-pipe")
+        (self.root / "z-result.txt").write_text("first\nneedle\n")
+        result = self.search()
+        self.assertEqual(result["matches"], [
+            {"path": "z-result.txt", "line": 2, "content": "needle"},
+        ])
+        self.assertFalse(result["truncated"])
 
     def test_reveal_preserves_utf16_offsets_and_line_boundaries(self):
         path = self.root / "unicode.txt"

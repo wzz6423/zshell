@@ -14,7 +14,7 @@ parser.add_argument("--source", type=Path, default=ROOT / "mac/zshell/TerminalSe
 args = parser.parse_args()
 source = args.source.read_text()
 adoption = source[source.index("        let artifacts = existingPTY.map {"):
-                  source.index("        let script = Self.makeLaunchScript(")]
+                  source.index("        let launchScript = Self.makeLaunchScript(")]
 support = source[source.index("        supportsCommandTaskShellIntegration ="):
                  source.index("        title =", source.index("        supportsCommandTaskShellIntegration ="))]
 fixture = r'''

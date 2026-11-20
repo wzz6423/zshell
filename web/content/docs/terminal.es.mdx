@@ -30,6 +30,12 @@ Abre **Terminal → Historial de comandos…** para buscar comandos ejecutados e
 
 El historial se guarda localmente en segundo plano, con un límite de 2.000 comandos y 8 MiB. **Eliminar** quita el registro seleccionado; **Borrar historial…** quita la lista guardada. Se conservan la salida del terminal y el historial propio del shell.
 
+## Guardar salida del terminal [#save-terminal-output]
+
+Elige **Terminal → Guardar salida del terminal…** o la misma acción en el menú contextual del terminal para guardar un archivo `.txt` en UTF-8. Incluye la pantalla del panel y el historial de desplazamiento conservado al abrir el diálogo, sin estilos. Cambiar de panel después mantiene esa captura original.
+
+Funciona con ambos motores y el terminal rápido. Solo incluye el búfer que el motor conserva actualmente; la salida ya descartada no está disponible. Un programa de pantalla completa exporta su búfer activo.
+
 ## Autocompletado del shell [#shell-completion]
 
 Activa **Ajustes → Terminal → Entrada → Autocompletado del shell** (`terminal.shell-completions`, activado por defecto) para sugerencias en línea de comandos, argumentos y rutas. Se aplica a nuevos shells zsh locales y nuevas sesiones zsh remotas compartidas con un servidor Zshell compatible. Abre una sesión nueva después de cambiar el interruptor.
@@ -78,6 +84,8 @@ En **Ajustes → Terminal → Entrada → Acción del clic derecho**, elige **Me
 
 **Mayús + clic derecho**, **Control + clic** y **Comando + clic derecho** siguen abriendo el menú. **Edición → Mostrar menú contextual del terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) lo abre con el teclado. Las aplicaciones con informes del ratón siguen recibiendo los clics derechos normales, salvo si activas **Bloquear comandos de Zshell** en el panel. Pegar conserva la confirmación multilínea y el manejo de archivos locales o remotos de <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
+Cuando la integración del shell identifica el bloque pulsado, el menú ofrece **Copiar comando**, **Copiar salida**, **Copiar bloque de comando** (prompt, comando y salida visibles) y **Seleccionar salida del comando**. **Insertar en el prompt** coloca el comando para editarlo en un prompt zsh nativo, listo y vacío; pulsa Enter para ejecutarlo. Una salida vacía desactiva las acciones de salida. Ambos motores usan el bloque pulsado; el menú de teclado conserva las acciones generales del terminal.
+
 ## Perfiles de terminal [#terminal-profiles]
 
 Crea y ordena perfiles en **Ajustes → Terminal → Perfiles de terminal → Administrar perfiles de terminal…**. Pueden coincidir con el host, usuario, directorio de trabajo y programa en primer plano. Todas las condiciones indicadas deben cumplirse; `*` coincide con cualquier texto y `?` con un carácter. Se usa el primer perfil coincidente; sin coincidencias, el panel vuelve a su apariencia original. **Aplicar perfiles de terminal automáticamente** está activado por defecto (`terminal.auto-profiles = true`); la selección manual sigue disponible si lo desactivas.
@@ -109,6 +117,10 @@ Si un shell anidado o de sustitución no ha cargado la compatibilidad de Zshell 
 El cuadro de entrada estándar de Claude Code admite colocar el cursor con un clic y arrastrar para editar en ambos motores, incluidos borradores multilínea o con ajuste de líneas. Escribe o pega para sustituir la entrada seleccionada, o pulsa Retroceso o Suprimir para eliminarla. El modo normal o visual de Vim, los diálogos, los marcadores de adjuntos o de texto pegado contraído y el texto del historial desplazado conservan su selección habitual de terminal. Las aplicaciones que capturan el ratón siguen gestionando su propia entrada.
 
 La entrada de voz de Zisla usa la acción de pegar del terminal. En Claude Code también sustituye el intervalo de entrada seleccionado; repetir una frase de forma intencionada sigue siendo posible.
+
+## Modo de solo lectura [#read-only-mode]
+
+Elige **Terminal → Solo lectura** o **Solo lectura** en el menú contextual para bloquear el panel; su botón de bloqueo lo desbloquea. La salida, selección, copia, búsqueda y desplazamiento siguen disponibles. Se bloquean el teclado y ratón enviados a programas, pegado, archivos arrastrados, comandos rápidos, envíos de la cola, entrada desde el acceso del navegador y entrada automatizada. Los borradores y la cola se conservan; desbloquear no reenvía entradas rechazadas. Las solicitudes de entrada CLI devuelven `terminal_read_only`. El bloqueo permanece al cambiar de pestaña u ocultar Quick Terminal. Los terminales nuevos comienzan desbloqueados; los bloqueos no se restauran al reiniciar la aplicación.
 
 ## Atajos de la aplicación en primer plano [#foreground-application-shortcuts]
 

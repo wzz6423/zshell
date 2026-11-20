@@ -154,7 +154,8 @@ struct GitStatusModel {
 
 with tempfile.TemporaryDirectory(prefix="zshell-git-branches-") as directory:
     helper = Path(directory) / "BranchListRegression.swift"
-    helper.write_text((ROOT / "mac/zshell/AppKitWorktreeSectionView.swift").read_text()
+    helper.write_text((ROOT / "mac/zshell/CenteredIconButtonCell.swift").read_text()
+                      + (ROOT / "mac/zshell/AppKitWorktreeSectionView.swift").read_text()
                       + (ROOT / "mac/zshell/RowButtonTableView.swift").read_text()
                       + (ROOT / "mac/zshell/SidebarLayoutMetrics.swift").read_text()
                       + fixture)

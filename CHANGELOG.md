@@ -14,6 +14,25 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
+## [Unreleased]
+
+### Added
+
+- Per-pane **Read Only** mode prevents terminal input while output, selection,
+  copy, search, and scrollback stay available. Unlock from the pane or Terminal
+  menu; drafts and queued prompts are preserved on both backends and Quick Terminal.
+
+- Copy commands, output, or complete command blocks from the terminal context
+  menu, select a command's output, and insert a command into an empty zsh prompt
+  for editing with either terminal backend.
+- Save the current terminal's retained output as a UTF-8 text file from the
+  Terminal menu or context menu with either terminal backend.
+
+### Fixed
+
+- Keep action icons centered in the file tree, Git panel, workspace controls,
+  search panel, session information, and Quick Terminal at every interface scale.
+
 ## [0.1.17]
 
 ### Changed

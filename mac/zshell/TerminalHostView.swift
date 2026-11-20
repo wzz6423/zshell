@@ -220,6 +220,7 @@ final class TerminalContainerView: NSView {
     private var trackedSurfaceFrame = NSRect.zero
     private var activeMenus = Set<ObjectIdentifier>()
     private var activePopovers = Set<ObjectIdentifier>()
+    private let readOnlyButton = NSButton()
 
     func mount(_ terminal: NSView, scrollbar: NSView, queueBar: NSView? = nil) {
         NSLayoutConstraint.deactivate(surfaceConstraints)
@@ -265,6 +266,19 @@ final class TerminalContainerView: NSView {
             ]
         }
         NSLayoutConstraint.activate(surfaceConstraints)
+        if readOnlyButton.superview == nil {
+            readOnlyButton.identifier = .init("terminal-read-only-unlock")
+            readOnlyButton.bezelStyle = .accessoryBarAction
+            readOnlyButton.controlSize = .small
+            readOnlyButton.font = .systemFont(ofSize: 11)
+            readOnlyButton.image = NSImage(systemSymbolName: "lock.fill", accessibilityDescription: nil)
+            readOnlyButton.imagePosition = .imageLeading
+            readOnlyButton.target = self
+            readOnlyButton.action = #selector(unlockTerminal(_:))
+            readOnlyButton.cell?.lineBreakMode = .byTruncatingTail
+            addSubview(readOnlyButton, positioned: .above, relativeTo: nil)
+        }
+        refreshReadOnlyState()
         // A parked Metal surface has discarded its drawable pool. Activate it
         // only after Auto Layout assigns the real pane geometry.
         activateSurfaceAfterLayout()
@@ -277,6 +291,7 @@ final class TerminalContainerView: NSView {
         NSLayoutConstraint.deactivate(surfaceConstraints)
         surfaceConstraints.removeAll()
         terminal = nil
+        readOnlyButton.isHidden = true
         synchronizePointerPresence()
     }
 
@@ -288,6 +303,10 @@ final class TerminalContainerView: NSView {
         super.viewDidMoveToWindow()
         updateMaterialState()
         NotificationCenter.default.removeObserver(self)
+        for name in [TerminalReadOnlyController.didChange, AppLocalization.didChange] {
+            NotificationCenter.default.addObserver(self, selector: #selector(readOnlyStateChanged(_:)), name: name, object: nil)
+        }
+        refreshReadOnlyState()
         activeMenus.removeAll()
         activePopovers.removeAll()
         if let window {
@@ -350,6 +369,12 @@ final class TerminalContainerView: NSView {
 
     override func layout() {
         super.layout()
+        let width = min(readOnlyButton.fittingSize.width, max(0, bounds.width - OverlayScrollbarView.stripWidth - 20))
+        let height = min(max(24, readOnlyButton.fittingSize.height), max(0, bounds.height - 16))
+        readOnlyButton.frame = NSRect(
+            x: max(0, bounds.width - OverlayScrollbarView.stripWidth - width - 10),
+            y: max(0, (terminal?.frame.maxY ?? bounds.maxY) - height - 8), width: width, height: height
+        )
         if trackedSurfaceFrame != terminal?.frame {
             trackedSurfaceFrame = terminal?.frame ?? .zero
             synchronizePointerPresence()
@@ -364,6 +389,26 @@ final class TerminalContainerView: NSView {
         needsSurfaceActivation = false
         terminal.setSurfaceVisible(true)
         subviews.compactMap { $0 as? PromptQueueBarView }.forEach { $0.setPaneVisible(true) }
+    }
+
+    @objc private func readOnlyStateChanged(_ notification: Notification) {
+        if notification.name == AppLocalization.didChange || notification.object as? NSView === terminal {
+            refreshReadOnlyState()
+        }
+    }
+
+    private func refreshReadOnlyState() {
+        readOnlyButton.title = String(localized: "Read Only")
+        readOnlyButton.toolTip = String(localized: "Unlock Terminal")
+        readOnlyButton.setAccessibilityLabel(String(localized: "Unlock Terminal"))
+        readOnlyButton.isHidden = (terminal as? any TerminalBackendSurface)?.isReadOnly != true
+        needsLayout = true
+    }
+
+    @objc private func unlockTerminal(_ sender: NSButton) {
+        guard let surface = terminal as? any TerminalBackendSurface else { return }
+        surface.isReadOnly = false
+        window?.makeFirstResponder(surface)
     }
 
     @objc private func windowDidBecomeKey(_ notification: Notification) {

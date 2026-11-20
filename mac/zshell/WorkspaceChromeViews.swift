@@ -13,6 +13,7 @@ final class WorkspaceChromeButton: NSButton {
 
     init(symbol: String, label: String, action: (() -> Void)? = nil) {
         super.init(frame: .zero)
+        cell = CenteredIconButtonCell(textCell: "")
         isBordered = false
         imagePosition = .imageOnly
         imageScaling = .scaleProportionallyDown

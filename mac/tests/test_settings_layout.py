@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 import plistlib
+import re
 import subprocess
 import tempfile
 import unittest
@@ -94,27 +95,38 @@ final class ProbePane: SettingsPaneViewController {
         [view] + view.subviews.flatMap(descendants)
     }
 
-    @MainActor static func iconMatchesTitle(in row: NSView) -> Bool {
+    @MainActor static func iconMatchesTitle(in row: NSView, size: CGFloat = 32) -> Bool {
         guard let icon = descendants(row).compactMap({ $0 as? SettingsIconView }).first,
               let title = descendants(row).compactMap({ $0 as? NSTextField }).first(where: {
                   $0.font?.pointSize == NSFont.systemFontSize
               }), let font = title.font else { return false }
         let bounds = row.convert(icon.bounds, from: icon)
         let titleBounds = row.convert(title.bounds, from: title)
-        let lineHeight = ceil(font.ascender - font.descender)
         let titleCenter = titleBounds.maxY - title.firstBaselineOffsetFromTop + (font.ascender + font.descender) / 2
-        return bounds.width >= lineHeight && bounds.width <= lineHeight * 1.3
+        return abs(bounds.width - size) < 0.5
             && abs(bounds.width - bounds.height) < 0.5
             && abs(bounds.midY - titleCenter) <= 1
             && bounds.maxX < titleBounds.minX && bounds.minX >= 0
-            && descendants(icon).compactMap({ $0 as? NSImageView }).first?.image != nil
     }
 
-    @MainActor static func glyphGeometry(named name: String) -> [String: Any] {
-        let icon = SettingsIconView(symbolName: name, color: .systemIndigo, size: SettingsMetrics.rowIconSize)
+    @MainActor static func iconRendersGlyph(in row: NSView) -> Bool {
+        guard let icon = descendants(row).compactMap({ $0 as? SettingsIconView }).first else { return false }
+        let bitmap = icon.bitmapImageRepForCachingDisplay(in: icon.bounds)!
+        icon.cacheDisplay(in: icon.bounds, to: bitmap)
+        return (0..<bitmap.pixelsHigh).contains { y in
+            (0..<bitmap.pixelsWide).contains { x in
+                let color = bitmap.colorAt(x: x, y: y)!.usingColorSpace(.deviceRGB)!
+                return min(color.redComponent, color.greenComponent, color.blueComponent) > 0.85
+            }
+        }
+    }
+
+    @MainActor static func glyphGeometry(named name: String, size: CGFloat, appearance: NSAppearance.Name) -> [String: Any] {
+        let icon = SettingsIconView(symbolName: name, color: .systemIndigo, size: size)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 80, height: 80),
                               styleMask: [.titled], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
+        window.appearance = NSAppearance(named: appearance)
         let content = NSView()
         window.contentView = content
         content.addSubview(icon)
@@ -138,14 +150,50 @@ final class ProbePane: SettingsPaneViewController {
         precondition(maxX >= minX && maxY >= minY)
         let scaleX = icon.bounds.width / CGFloat(bitmap.pixelsWide)
         let scaleY = icon.bounds.height / CGFloat(bitmap.pixelsHigh)
+        let reference = NSImage(systemSymbolName: name, accessibilityDescription: nil)!
+            .withSymbolConfiguration(.init(pointSize: 15, weight: .medium))!
+        let referenceBitmap = NSBitmapImageRep(cgImage: reference.cgImage(forProposedRect: nil, context: nil, hints: nil)!)
+        var referenceMinX = referenceBitmap.pixelsWide, referenceMinY = referenceBitmap.pixelsHigh
+        var referenceMaxX = -1, referenceMaxY = -1
+        for y in 0..<referenceBitmap.pixelsHigh {
+            for x in 0..<referenceBitmap.pixelsWide where (referenceBitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.85 {
+                referenceMinX = min(referenceMinX, x); referenceMaxX = max(referenceMaxX, x)
+                referenceMinY = min(referenceMinY, y); referenceMaxY = max(referenceMaxY, y)
+            }
+        }
+        var cutoutSamples = 0, cutoutMismatches = 0
+        if name == "star.circle.fill" || name == "arrow.down.circle.fill" {
+            for y in 0..<15 {
+                for x in 0..<15 {
+                    let fractionX = 0.1 + (Double(x) + 0.5) / 15 * 0.8
+                    let fractionY = 0.1 + (Double(y) + 0.5) / 15 * 0.8
+                    let referenceX = referenceMinX + Int(fractionX * Double(referenceMaxX - referenceMinX + 1))
+                    let referenceY = referenceMinY + Int(fractionY * Double(referenceMaxY - referenceMinY + 1))
+                    let alpha = referenceBitmap.colorAt(x: referenceX, y: referenceY)!.alphaComponent
+                    guard alpha < 0.15 || alpha > 0.85 else { continue }
+                    let actualX = minX + Int(fractionX * Double(maxX - minX + 1))
+                    let actualY = minY + Int(fractionY * Double(maxY - minY + 1))
+                    let color = bitmap.colorAt(x: actualX, y: actualY)!.usingColorSpace(.deviceRGB)!
+                    let isWhite = min(color.redComponent, color.greenComponent, color.blueComponent) > 0.85
+                    cutoutSamples += 1
+                    if isWhite != (alpha > 0.85) { cutoutMismatches += 1 }
+                }
+            }
+        }
         window.close()
         return [
             "symbol": name,
+            "tileSize": size,
+            "appearance": appearance.rawValue,
+            "pixelSize": max(scaleX, scaleY),
+            "cutoutSamples": cutoutSamples,
+            "cutoutMismatchFraction": Double(cutoutMismatches) / Double(max(cutoutSamples, 1)),
             "centerXOffset": CGFloat(minX + maxX + 1) / 2 * scaleX - icon.bounds.midX,
             "centerYOffset": CGFloat(minY + maxY + 1) / 2 * scaleY - icon.bounds.midY,
             "visibleWidth": CGFloat(maxX - minX + 1) * scaleX,
             "visibleHeight": CGFloat(maxY - minY + 1) * scaleY,
-            "textLineHeight": ceil(SettingsMetrics.rowTitleFont.ascender - SettingsMetrics.rowTitleFont.descender),
+            "referenceWidth": CGFloat(referenceMaxX - referenceMinX + 1) * reference.size.width / CGFloat(referenceBitmap.pixelsWide),
+            "referenceHeight": CGFloat(referenceMaxY - referenceMinY + 1) * reference.size.height / CGFloat(referenceBitmap.pixelsHigh),
         ]
     }
 
@@ -258,15 +306,15 @@ final class ProbePane: SettingsPaneViewController {
                         "contrastIconSquare": iconMatchesTitle(in: pane.contrast),
                         "sharedAndCustomIconsMatchTitles": [pane.support, pane.wrappedTitle, pane.editorRow,
                             pane.ordinarySlider, pane.cursorShape, pane.cursorBlinking].allSatisfy { iconMatchesTitle(in: $0) },
-                        "sidebarIconMatchesTitle": iconMatchesTitle(in: sidebar),
+                        "externalEditorIconVisible": iconRendersGlyph(in: pane.editorRow),
+                        "sidebarIconMatchesTitle": iconMatchesTitle(in: sidebar, size: 24),
                         "backendIconsMatchTitles": backendHeaders.filter { $0.arrangedSubviews.count == 2
                             && ($0.arrangedSubviews.last as? NSTextField)?.font?.pointSize == NSFont.systemFontSize
                         }.count == TerminalBackend.selectable.count && backendHeaders.filter {
                             ($0.arrangedSubviews.last as? NSTextField)?.font?.pointSize == NSFont.systemFontSize
                         }.allSatisfy { header in
                             let icon = header.arrangedSubviews.first!, name = header.arrangedSubviews.last as! NSTextField
-                            return icon.frame.height >= ceil(name.font!.ascender - name.font!.descender)
-                                && icon.frame.height <= ceil(name.font!.ascender - name.font!.descender) * 1.3
+                            return abs(icon.frame.height - 32) < 0.5
                                 && abs(icon.frame.width - icon.frame.height) < 0.5
                                 && icon.frame.maxX <= name.frame.minX
                         },
@@ -299,8 +347,12 @@ final class ProbePane: SettingsPaneViewController {
             sidebarWindow.close()
             recommendationWindow.close()
         }
-        let glyphs = ["shippingbox", "arrow.turn.down.left", "network", "character.book.closed", "terminal",
-                      "cursorarrow", "point.3.connected.trianglepath.dotted"].map { glyphGeometry(named: $0) }
+        let glyphs = [NSAppearance.Name.aqua, .darkAqua].flatMap { appearance in
+            [24.0, 32.0].flatMap { size in
+                Array(Set(SettingsCategory.allCases.map(\.symbolName) + mappedRowSymbols)).sorted()
+                    .map { glyphGeometry(named: $0, size: size, appearance: appearance) }
+            }
+        }
         FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject: ["samples": samples, "glyphs": glyphs]))
     }
 }
@@ -339,7 +391,16 @@ class SettingsLayoutTests(unittest.TestCase):
             sidebar = sidebar[sidebar.index("private final class SettingsSidebarRow:"):].replace(
                 "private final class SettingsSidebarRow:", "final class SettingsSidebarRow:", 1)
             search_result = "struct SettingsSearchResult { let category: SettingsCategory; let title: String; let section: String? }\n"
-            harness.write_text(HARNESS.replace("import Combine\n", "import Combine\n" + category + "}\n" + cursor + backend + search_result + sidebar, 1))
+            pane_kit = (source / "Settings/SettingsPaneKit.swift").read_text()
+            symbols = re.findall(r'Icon\(name:\s*"([^"]+)"', pane_kit)
+            symbols.extend(re.findall(r'\],\s*"([^"]+)"\s*,\s*\.', pane_kit))
+            symbols.extend(re.findall(r'^\s*"([^"]+)",\s*\.[a-z]+\),', pane_kit, re.M))
+            for path in list((source / "Settings").glob("*.swift")) + [
+                source / "TerminalCursorSettingsView.swift", source / "AgentCLISupportSettingsView.swift",
+            ]:
+                symbols.extend(re.findall(r'symbolName:\s*"([^"]+)"', path.read_text()))
+            mapped_symbols = "let mappedRowSymbols = " + json.dumps(list(dict.fromkeys(symbols))) + "\n"
+            harness.write_text(HARNESS.replace("import Combine\n", "import Combine\n" + category + "}\n" + cursor + backend + search_result + sidebar + mapped_symbols, 1))
             subprocess.run([
                 "swiftc", "-parse-as-library", "-module-cache-path", str(root / "modules"),
                 str(source / "AppLocalization.swift"),
@@ -357,12 +418,14 @@ class SettingsLayoutTests(unittest.TestCase):
             result = json.loads(subprocess.check_output([str(binary)], text=True, timeout=30))
             samples = result["samples"]
             for glyph in result["glyphs"]:
-                with self.subTest(symbol=glyph["symbol"]):
-                    self.assertAlmostEqual(glyph["centerXOffset"], 0, delta=0.75, msg=glyph)
-                    self.assertAlmostEqual(glyph["centerYOffset"], 0, delta=0.75, msg=glyph)
-                    visible_size = max(glyph["visibleWidth"], glyph["visibleHeight"])
-                    self.assertGreaterEqual(visible_size, glyph["textLineHeight"] * 0.75, glyph)
-                    self.assertLessEqual(visible_size, glyph["textLineHeight"], glyph)
+                with self.subTest(symbol=glyph["symbol"], tile_size=glyph["tileSize"], appearance=glyph["appearance"]):
+                    if glyph["symbol"] in ("star.circle.fill", "arrow.down.circle.fill"):
+                        self.assertGreater(glyph["cutoutSamples"], 100, glyph)
+                        self.assertLessEqual(glyph["cutoutMismatchFraction"], 0.05, glyph)
+                    self.assertAlmostEqual(glyph["centerXOffset"], 0, delta=glyph["pixelSize"] / 2, msg=glyph)
+                    self.assertAlmostEqual(glyph["centerYOffset"], 0, delta=glyph["pixelSize"] / 2, msg=glyph)
+                    self.assertAlmostEqual(glyph["visibleWidth"], glyph["referenceWidth"], delta=1, msg=glyph)
+                    self.assertAlmostEqual(glyph["visibleHeight"], glyph["referenceHeight"], delta=1, msg=glyph)
             self.assertEqual(len({sample["language"] for sample in samples}), 17)
             self.assertEqual(len(samples), 17 * 5 * 3)
             for sample in samples:
@@ -378,6 +441,7 @@ class SettingsLayoutTests(unittest.TestCase):
                     self.assertTrue(sample["cellWidthLabelsFit"], sample)
                     self.assertTrue(sample["contrastIconSquare"], sample)
                     self.assertTrue(sample["sharedAndCustomIconsMatchTitles"], sample)
+                    self.assertTrue(sample["externalEditorIconVisible"], sample)
                     self.assertTrue(sample["wrappedTitleFits"], sample)
                     self.assertTrue(sample["sidebarIconMatchesTitle"], sample)
                     self.assertTrue(sample["backendIconsMatchTitles"], sample)

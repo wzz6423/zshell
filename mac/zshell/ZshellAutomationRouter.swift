@@ -284,6 +284,7 @@ enum ZshellAutomationRouter {
               let session = target.session else {
             return failure(request, "terminal_required", "The target pane is not a terminal.")
         }
+        guard !session.isReadOnly else { return readOnlyFailure(request) }
         if request.params["require_command_result"]?.boolValue == true,
            session.id == caller.session?.id {
             return failure(request, "wait_deadlock", commandWaitDeadlockMessage)
@@ -331,8 +332,7 @@ enum ZshellAutomationRouter {
             argv: argv, projectID: caller.project.id, paneID: target.pane.id, terminalID: session.id
         )
         let command = argv.map(shellQuote).joined(separator: " ")
-        session.sendCommand(command)
-        session.sendEnter()
+        guard session.sendCommand(command), session.sendEnter() else { return inputFailure(request, session: session) }
         return success(request, paneWithTask(target, caller: caller, task: task))
     }
 
@@ -408,6 +408,7 @@ enum ZshellAutomationRouter {
               let session = target.session else {
             return failure(request, "terminal_required", "The target pane is not a terminal.")
         }
+        guard !session.isReadOnly else { return readOnlyFailure(request) }
         guard let text = request.params["text"]?.stringValue,
               text.utf8.count <= 262_144 else {
             return failure(
@@ -415,9 +416,9 @@ enum ZshellAutomationRouter {
                 "text is required and is limited to 256 KiB."
             )
         }
-        session.sendCommand(text)
+        guard session.sendCommand(text) else { return inputFailure(request, session: session) }
         if request.params["enter"]?.boolValue == true {
-            session.sendEnter()
+            guard session.sendEnter() else { return inputFailure(request, session: session) }
         }
         return success(request, paneSnapshot(target, caller: caller))
     }
@@ -490,6 +491,7 @@ enum ZshellAutomationRouter {
               let session = target.session else {
             return failure(request, "terminal_required", "The target pane is not a terminal.")
         }
+        guard !session.isReadOnly else { return readOnlyFailure(request) }
         guard session.isShellAvailableForAutomation else {
             return failure(
                 request, "shell_busy",
@@ -539,10 +541,9 @@ enum ZshellAutomationRouter {
             )
         }
 
-        session.declareAutomationAgent(alias: alias, kind: kind)
         let command = ([kind.executable] + extra).map(shellQuote).joined(separator: " ")
-        session.sendCommand(command)
-        session.sendEnter()
+        guard session.sendCommand(command), session.sendEnter() else { return inputFailure(request, session: session) }
+        session.declareAutomationAgent(alias: alias, kind: kind)
         if request.params["focus"]?.boolValue == true {
             TerminalManager.revealSession(id: session.id)
         }
@@ -558,6 +559,8 @@ enum ZshellAutomationRouter {
               let status = session.agentStatus else {
             return failure(request, "agent_not_found", "No matching agent exists in this project.")
         }
+        guard !session.isReadOnly else { return readOnlyFailure(request) }
+        let inputGeneration = session.surface.inputGeneration
         guard status.phase == .created
                 || status.phase == .working
                 || status.phase == .idle
@@ -588,6 +591,10 @@ enum ZshellAutomationRouter {
                 directory: session.currentDirectoryPath
             )
         }
+        guard !session.isReadOnly, session.surface.inputGeneration == inputGeneration else {
+            if status.phase != .working { AgentTurnReviewStore.shared.abort(sessionID: session.id) }
+            return readOnlyFailure(request)
+        }
         guard !session.hasExited, session.isAutomationAgentRunning(kind: status.kind) else {
             AgentTurnReviewStore.shared.abort(sessionID: session.id)
             return failure(request, "agent_not_running", "The agent exited before the prompt was submitted.")
@@ -595,12 +602,11 @@ enum ZshellAutomationRouter {
         let normalized = prompt
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
-        if normalized.contains("\n") {
-            session.sendCommand("\u{1b}[200~" + normalized + "\u{1b}[201~")
-        } else {
-            session.sendCommand(normalized)
+        let input = normalized.contains("\n") ? "\u{1b}[200~" + normalized + "\u{1b}[201~" : normalized
+        guard session.sendCommand(input), session.sendEnter() else {
+            if status.phase != .working { AgentTurnReviewStore.shared.abort(sessionID: session.id) }
+            return inputFailure(request, session: session)
         }
-        session.sendEnter()
         session.markAutomationAgentPrompted()
         return success(request, paneSnapshot(target, caller: caller))
     }
@@ -634,6 +640,15 @@ enum ZshellAutomationRouter {
             )
         }
         return success(request, paneSnapshot(caller, caller: caller))
+    }
+
+    private static func readOnlyFailure(_ request: ZshellAutomationRequest) -> ZshellAutomationResponse {
+        failure(request, "terminal_read_only", TerminalReadOnlyController.rejectionMessage)
+    }
+
+    private static func inputFailure(_ request: ZshellAutomationRequest, session: TerminalSession) -> ZshellAutomationResponse {
+        session.isReadOnly ? readOnlyFailure(request)
+            : failure(request, "terminal_unavailable", "The target terminal is not accepting input.")
     }
 
     private static func reportAgentLifecycle(
@@ -795,6 +810,7 @@ enum ZshellAutomationRouter {
             object["cwd"] = .string(session.currentDirectoryPath)
             object["shell_available"] = .bool(session.isShellAvailableForAutomation)
             object["exited"] = .bool(session.hasExited)
+            object["read_only"] = .bool(session.isReadOnly)
             object["agent"] = session.agentStatus.map(agentSnapshot) ?? .null
             object["worktree"] = session.worktree?.snapshot ?? .null
         }

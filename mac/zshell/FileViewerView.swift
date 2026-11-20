@@ -24,6 +24,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         case text
         case image(NSImage)
         case quickLook
+        case missing
         case unavailable(String)
     }
 
@@ -83,6 +84,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     private var reloadGeneration: UInt = 0
     private var reloadTask: Task<Void, Never>?
     @Published private(set) var isSaving = false
+    @Published private(set) var isReopening = false
     private var remoteBaseline: RemoteFileSnapshot?
     private var remoteReadTask: Task<RemoteFileSnapshot, Error>?
     private var saveTask: Task<Bool, Never>?
@@ -101,6 +103,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         case file(FileSaveSnapshot)
         case quickLook(QuickLookSignature)
         case tooLarge
+        case missing
         case unavailable
     }
 
@@ -335,7 +338,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// path is already in flight, this call is a no-op: the in-flight read will
     /// publish when it finishes.
     func reloadFromDiskIfClean(discarding draft: String? = nil) {
-        guard !isClosed, !isRestoringDraft else { return }
+        guard !isClosed, !isRestoringDraft, !isReopening else { return }
         if isRemote, AppSettings.shared.remoteFileWritesEnabled, !remoteCanSave, capabilityTask == nil { refreshRemoteCapability() }
         guard draft.map({ $0 == text }) ?? !isDirty else { return }
         if let task = reloadTask, !task.isCancelled {
@@ -379,16 +382,50 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             }
             self.saveBaseline = loaded.saveBaseline
             guard draft != nil || !self.matches(loaded) else { return }
-            self.content = loaded.content
-            self.text = loaded.text
-            self.savedText = loaded.text
-            self.isDirty = false
+            self.install(loaded)
             if draft != nil { self.discardDraftBackup() }
-            self.imageData = loaded.imageData
-            self.quickLookSignature = loaded.quickLookSignature
-            self.saveError = nil
-            self.reloadRevision &+= 1
         }
+    }
+
+    /// A missing file has no bytes to identify a replacement, so only an
+    /// explicit picker selection can re-point it. Read before changing the
+    /// path so a failed selection leaves the original tab recoverable.
+    func reopen(at url: URL) async -> Bool {
+        guard !Task.isCancelled, !isClosed, !isRemote, !isDirty, !isRestoringDraft, !isReopening,
+              url.isFileURL, case .missing = content else { return false }
+        invalidateReload()
+        let generation = reloadGeneration
+        let expectedPath = path
+        isReopening = true
+        defer { isReopening = false }
+        let newPath = url.path
+        let result = await Task.detached(priority: .userInitiated) {
+            guard FileManager.default.isReadableFile(atPath: newPath) else { return ReadResult.unavailable }
+            return Self.readData(path: newPath)
+        }.value
+        guard !Task.isCancelled, !isClosed, !isDirty,
+              reloadGeneration == generation, path == expectedPath,
+              case .missing = content else { return false }
+        let loaded = Self.loadedContent(path: newPath, result: result)
+        switch loaded.content {
+        case .missing, .unavailable: return false
+        case .text, .image, .quickLook: break
+        }
+        updatePath(newPath)
+        saveBaseline = loaded.saveBaseline
+        install(loaded)
+        return true
+    }
+
+    private func install(_ loaded: LoadedContent) {
+        content = loaded.content
+        text = loaded.text
+        savedText = loaded.text
+        isDirty = false
+        imageData = loaded.imageData
+        quickLookSignature = loaded.quickLookSignature
+        saveError = nil
+        reloadRevision &+= 1
     }
 
     private func invalidateReload() {
@@ -499,6 +536,8 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             return imageData == loaded.imageData
         case (.quickLook, .quickLook):
             return quickLookSignature == loaded.quickLookSignature
+        case (.missing, .missing):
+            return true
         case (.unavailable(let current), .unavailable(let new)):
             return current == new
         default:
@@ -508,17 +547,17 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     private nonisolated static func readData(path: String) -> ReadResult {
         let url = URL(fileURLWithPath: path)
-        if shouldUseQuickLook(for: url) {
-            guard let signature = quickLookSignature(for: path) else { return .unavailable }
-            return .quickLook(signature)
-        }
-        guard !usesDirectImagePreview(for: url) else {
-            return readDirectImagePreview(path: path)
-        }
-
+        let quickLook = shouldUseQuickLook(for: url)
+        let directImage = usesDirectImagePreview(for: url)
         do {
-            let snapshot = try FileSaveCoordinator.read(path: path)
+            let snapshot = try FileSaveCoordinator.read(path: path, captureBytes: !quickLook && !directImage)
+            if snapshot.isMissing { return .missing }
+            if quickLook {
+                guard let signature = quickLookSignature(for: path) else { return .unavailable }
+                return .quickLook(signature)
+            }
             guard snapshot.isRegular else { return .unavailable }
+            if directImage { return readDirectImagePreview(path: path) }
             guard snapshot.data != nil else { return .tooLarge }
             return .file(snapshot)
         } catch {
@@ -613,6 +652,13 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         case .tooLarge:
             return LoadedContent(
                 content: .unavailable(String(localized: "File is too large to open")),
+                text: "",
+                imageData: nil,
+                quickLookSignature: nil
+            )
+        case .missing:
+            return LoadedContent(
+                content: .missing,
                 text: "",
                 imageData: nil,
                 quickLookSignature: nil
@@ -736,6 +782,7 @@ final class FileViewerContainerView: NSView {
     /// The currently mounted content view, whichever kind it is.
     private var contentView: NSView?
     private var contentKind: ContentKind?
+    private weak var locateButton: NSButton?
     private let chip = MarkdownModeChipView()
     private let errorBar = FileSaveErrorBar()
 
@@ -761,6 +808,7 @@ final class FileViewerContainerView: NSView {
         case preview
         case image
         case quickLook
+        case missing
         case unavailable(String)
     }
 
@@ -861,6 +909,7 @@ final class FileViewerContainerView: NSView {
         chip.update(showsSource: showsSource)
 
         installContentIfNeeded()
+        locateButton?.isEnabled = !file.isReopening
         // A rename re-points the tab without touching the bytes, so nothing
         // above notices — but the preview resolves `./img.png` against the
         // file's directory, which just moved.
@@ -896,6 +945,8 @@ final class FileViewerContainerView: NSView {
             .image
         case .quickLook:
             .quickLook
+        case .missing:
+            .missing
         case .unavailable(let reason):
             .unavailable(reason)
         }
@@ -904,7 +955,8 @@ final class FileViewerContainerView: NSView {
     private func installContentIfNeeded() {
         let kind = desiredKind
         let revision = file.reloadRevision
-        guard kind != contentKind || revision != mountedRevision else { return }
+        let missingPathChanged = kind == .missing && mountedPath != file.path
+        guard kind != contentKind || revision != mountedRevision || missingPathChanged else { return }
         let isModeSwitch = contentKind != nil && revision == mountedRevision
         // Only new bytes on disk make the cached views stale. Toggling modes
         // keeps them: rebuilding the editor would hand it a fresh STTextView,
@@ -920,6 +972,7 @@ final class FileViewerContainerView: NSView {
 
         contentView?.removeFromSuperview()
         contentView = nil
+        locateButton = nil
 
         let view: NSView
         switch kind {
@@ -971,6 +1024,16 @@ final class FileViewerContainerView: NSView {
                     palette: palette
                 )
             }
+        case .missing:
+            file.editorView = nil
+            let locate = NSButton(title: String(localized: "Locate File…"),
+                                  target: self, action: #selector(locateFile))
+            locate.bezelStyle = .rounded
+            locate.setAccessibilityIdentifier("file-preview.locate")
+            locate.isEnabled = !file.isReopening
+            locateButton = locate
+            view = Self.placeholderView(path: file.path, reason: String(localized: "File not found"),
+                                        palette: palette, details: file.path, action: locate)
         case .unavailable(let reason):
             file.editorView = nil
             view = Self.placeholderView(path: file.path, reason: reason, palette: palette)
@@ -992,7 +1055,35 @@ final class FileViewerContainerView: NSView {
             switch kind {
             case .preview: preview?.takeFocus()
             case .source: editor?.takeFocus()
-            case .image, .quickLook, .unavailable: break
+            case .image, .quickLook, .missing, .unavailable: break
+            }
+        }
+    }
+
+    @objc private func locateFile() {
+        guard !file.isReopening, case .missing = file.content,
+              let window, window.attachedSheet == nil else { return }
+        let expectedPath = file.path
+        let panel = NSOpenPanel()
+        panel.title = String(localized: "Locate File…")
+        panel.message = expectedPath
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.resolvesAliases = false
+        panel.prompt = String(localized: "Choose")
+        panel.beginSheetModal(for: window) { [weak self, weak window] response in
+            guard response == .OK, let url = panel.url, let self, let window,
+                  self.window === window, self.file.path == expectedPath else { return }
+            Task { [weak self, weak window] in
+                guard let self else { return }
+                let reopened = await self.file.reopen(at: url)
+                guard !reopened, let window, self.window === window, window.attachedSheet == nil,
+                      self.file.path == expectedPath, case .missing = self.file.content else { return }
+                let alert = NSAlert()
+                alert.messageText = String(localized: "Could not read file")
+                alert.informativeText = url.path
+                _ = await alert.beginSheetModal(for: window)
             }
         }
     }
@@ -1017,7 +1108,9 @@ final class FileViewerContainerView: NSView {
     private static func placeholderView(
         path: String,
         reason: String,
-        palette: EditorPalette
+        palette: EditorPalette,
+        details: String? = nil,
+        action: NSButton? = nil
     ) -> NSView {
         let container = NSView()
         // An empty reason means the initial async load is still in flight —
@@ -1054,6 +1147,26 @@ final class FileViewerContainerView: NSView {
             label.centerXAnchor.constraint(equalTo: container.centerXAnchor),
             label.topAnchor.constraint(equalTo: icon.bottomAnchor, constant: 8),
         ])
+        if let details, let action {
+            let pathLabel = NSTextField(wrappingLabelWithString: details)
+            pathLabel.font = .systemFont(ofSize: 11)
+            pathLabel.textColor = palette.gutterText
+            pathLabel.alignment = .center
+            pathLabel.isSelectable = true
+            for view in [pathLabel, action] {
+                view.translatesAutoresizingMaskIntoConstraints = false
+                container.addSubview(view)
+            }
+            NSLayoutConstraint.activate([
+                pathLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+                pathLabel.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 24),
+                pathLabel.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -24),
+                pathLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 480),
+                pathLabel.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 8),
+                action.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+                action.topAnchor.constraint(equalTo: pathLabel.bottomAnchor, constant: 12),
+            ])
+        }
         return container
     }
 }
