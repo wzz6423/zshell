@@ -14,19 +14,21 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
-## [Unreleased]
+## [0.1.18]
 
 ### Added
 
 - Per-pane **Read Only** mode prevents terminal input while output, selection,
   copy, search, and scrollback stay available. Unlock from the pane or Terminal
   menu; drafts and queued prompts are preserved on both backends and Quick Terminal.
-
 - Copy commands, output, or complete command blocks from the terminal context
   menu, select a command's output, and insert a command into an empty zsh prompt
   for editing with either terminal backend.
 - Save the current terminal's retained output as a UTF-8 text file from the
   Terminal menu or context menu with either terminal backend.
+- Review macOS permission status in Settings, request access, and open the
+  corresponding System Settings page. A draggable app helper makes it easier
+  to add Zshell to supported permission lists.
 
 ### Fixed
 
@@ -38,6 +40,12 @@ the original feature bullet instead of adding separate entries for them.
   search panel, session information, and Quick Terminal at every interface scale.
 - Align settings row icons with the top of their titles, including rows with
   multiline descriptions.
+- Stop background jobs when closing local terminal sessions.
+- Close remote browser relay connections when the SSH connection ends.
+- Recover file preview tabs when their files disappear, with actions to retry
+  or close the unavailable preview.
+- Refresh file tree hover actions after scrolling.
+- Keep file-content search from blocking on named pipes or reading devices.
 
 ## [0.1.17]
 
