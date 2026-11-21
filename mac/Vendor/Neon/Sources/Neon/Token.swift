@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Token {
+public struct Token: Sendable {
     public let name: String
     public let range: NSRange
 

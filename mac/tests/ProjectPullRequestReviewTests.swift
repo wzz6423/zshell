@@ -25,36 +25,49 @@ private nonisolated struct ReviewFixture: Sendable {
     let previousHead: String
 
     var identity: ProjectPullRequestReviewIdentity {
-        ProjectPullRequestReviewIdentity(ProjectPullRequest(number: 1, status: .draft,
-            url: URL(string: "https://github.com/example/base/pull/1")!),
-            context: ProjectPullRequestContext(root: root, gitDirectory: root + "/.git",
+        ProjectPullRequestReviewIdentity(
+            ProjectPullRequest(
+                number: 1, status: .draft,
+                url: URL(string: "https://github.com/example/base/pull/1")!),
+            context: ProjectPullRequestContext(
+                root: root, gitDirectory: root + "/.git",
                 localBranch: "feature/review", headBranch: "feature/review",
                 headRepository: GitHubRepository("example/fork")!, baseRepository: GitHubRepository("example/base")!))!
     }
 
     func comment(_ id: String, body: String = "正文 <script>window.reviewInjected=true</script>") -> [String: Any] {
-        ["id": id, "author": ["login": "Reviewer"], "body": body,
-         "url": "https://github.com/example/base/pull/1#discussion_\(id)",
-         "commit": ["oid": previousHead], "originalCommit": ["oid": mergeBase]]
+        [
+            "id": id, "author": ["login": "Reviewer"], "body": body,
+            "url": "https://github.com/example/base/pull/1#discussion_\(id)",
+            "commit": ["oid": previousHead], "originalCommit": ["oid": mergeBase],
+        ]
     }
 
     func connection(_ comments: [[String: Any]], cursor: String? = nil) -> [String: Any] {
         ["nodes": comments, "pageInfo": ["hasNextPage": cursor != nil, "endCursor": cursor as Any? ?? NSNull()]]
     }
 
-    func thread(_ id: String, path: String = "Review.swift", side: String = "RIGHT", line: Int = 30,
-                outdated: Bool = false, subject: String = "LINE", startLine: Int? = nil,
-                startSide: String? = nil, cursor: String? = nil) -> [String: Any] {
-        ["id": id, "path": path, "line": line, "startLine": startLine as Any? ?? NSNull(),
-         "diffSide": side, "startDiffSide": startSide as Any? ?? NSNull(), "isResolved": id == "left",
-         "isOutdated": outdated, "subjectType": subject, "comments": connection([comment(id)], cursor: cursor)]
+    func thread(
+        _ id: String, path: String = "Review.swift", side: String = "RIGHT", line: Int = 30,
+        outdated: Bool = false, subject: String = "LINE", startLine: Int? = nil,
+        startSide: String? = nil, cursor: String? = nil
+    ) -> [String: Any] {
+        [
+            "id": id, "path": path, "line": line, "startLine": startLine as Any? ?? NSNull(),
+            "diffSide": side, "startDiffSide": startSide as Any? ?? NSNull(), "isResolved": id == "left",
+            "isOutdated": outdated, "subjectType": subject, "comments": connection([comment(id)], cursor: cursor),
+        ]
     }
 
-    func pullRequest(threads: [[String: Any]]? = nil, cursor: String? = nil,
-                     head: String? = nil, base: String? = nil) -> [String: Any] {
-        var pr: [String: Any] = ["number": 1, "url": identity.url, "headRefName": "feature/review",
+    func pullRequest(
+        threads: [[String: Any]]? = nil, cursor: String? = nil,
+        head: String? = nil, base: String? = nil
+    ) -> [String: Any] {
+        var pr: [String: Any] = [
+            "number": 1, "url": identity.url, "headRefName": "feature/review",
             "headRepository": ["nameWithOwner": "example/fork"], "baseRefOid": base ?? self.base,
-            "headRefOid": head ?? self.head]
+            "headRefOid": head ?? self.head,
+        ]
         if let threads { pr["reviewThreads"] = connection(threads, cursor: cursor) }
         return pr
     }
@@ -65,22 +78,25 @@ private nonisolated struct ReviewFixture: Sendable {
         { _, arguments, timeout, environment in
             log.record(arguments)
             require(timeout > 0 && timeout <= 20, "查询必须共享20秒总期限")
-            require(environment["GH_REPO"] == nil && environment["GH_HOST"] == "github.com",
-                    "继承的GH_REPO不得重定向PR查询")
-            require(!arguments.contains("POST") && !arguments.contains(where: { $0.contains("mutation") }),
-                    "PR评论加载必须只读")
+            require(
+                environment["GH_REPO"] == nil && environment["GH_HOST"] == "github.com",
+                "继承的GH_REPO不得重定向PR查询")
+            require(
+                !arguments.contains("POST") && !arguments.contains(where: { $0.contains("mutation") }),
+                "PR评论加载必须只读")
             var output = ""
             if arguments.contains(where: { $0.hasPrefix("query=") && $0.contains("reviewThreads") }) {
                 if ["many-files", "other-comments", "file-threads", "request-limit"].contains(mode) {
-                    let page = arguments.first { $0.hasPrefix("cursor=page-") }
+                    let page =
+                        arguments.first { $0.hasPrefix("cursor=page-") }
                         .flatMap { Int($0.dropFirst("cursor=page-".count)) } ?? 0
                     let count = mode == "many-files" ? 601 : mode == "other-comments" ? 251 : mode == "file-threads" ? 501 : 3_100
                     let start = page * 50, end = min(start + 50, count)
-                    let threads = (start..<end).map { index -> [String: Any] in
+                    let threads = (start ..< end).map { index -> [String: Any] in
                         if index == count - 1, mode != "file-threads", mode != "request-limit" { return thread("right") }
                         var value = thread("thread-\(index)", path: mode == "file-threads" ? "Review.swift" : "Other.swift")
                         if mode == "other-comments" {
-                            value["comments"] = connection((0..<10).map { comment("\(index)-\($0)") }, cursor: "unrelated-replies")
+                            value["comments"] = connection((0 ..< 10).map { comment("\(index)-\($0)") }, cursor: "unrelated-replies")
                         }
                         return value
                     }
@@ -93,8 +109,10 @@ private nonisolated struct ReviewFixture: Sendable {
                     output = response(pullRequest(threads: [thread("right", cursor: "comments-0")]))
                 } else if mode == "thread-duplicate" || mode == "thread-changed" {
                     let next = arguments.contains("cursor=threads-next")
-                    output = response(pullRequest(threads: [thread(mode == "thread-duplicate" ? "same" : next ? "next" : "first", path: "Other.swift")],
-                        cursor: next ? nil : "threads-next", head: next && mode == "thread-changed" ? base : nil))
+                    output = response(
+                        pullRequest(
+                            threads: [thread(mode == "thread-duplicate" ? "same" : next ? "next" : "first", path: "Other.swift")],
+                            cursor: next ? nil : "threads-next", head: next && mode == "thread-changed" ? base : nil))
                 } else if mode == "duplicate" {
                     var duplicate = thread("right")
                     duplicate["comments"] = connection([comment("right"), comment("right")])
@@ -104,19 +122,34 @@ private nonisolated struct ReviewFixture: Sendable {
                 } else if arguments.contains("cursor=threads-next") {
                     output = response(pullRequest(threads: [thread("range", line: 82, startLine: 80, startSide: "RIGHT")]))
                 } else {
-                    output = response(pullRequest(threads: [thread("left", side: "LEFT", line: 10),
-                        thread("right", cursor: "comments-next"), thread("outdated", outdated: true),
-                        thread("file", subject: "FILE"), thread("wrong-side", startLine: 28, startSide: "LEFT"),
-                        thread("out-of-range", line: 99_999)], cursor: "threads-next"))
+                    output = response(
+                        pullRequest(
+                            threads: [
+                                thread("left", side: "LEFT", line: 10),
+                                thread("right", cursor: "comments-next"), thread("outdated", outdated: true),
+                                thread("file", subject: "FILE"), thread("wrong-side", startLine: 28, startSide: "LEFT"),
+                                thread("out-of-range", line: 99_999),
+                            ], cursor: "threads-next"))
                 }
             } else if arguments.contains(where: { $0.hasPrefix("query=") && $0.contains("...on PullRequestReviewThread") }) {
-                let page = arguments.first { $0.hasPrefix("cursor=comments-") }
+                let page =
+                    arguments.first { $0.hasPrefix("cursor=comments-") }
                     .flatMap { Int($0.dropFirst("cursor=comments-".count)) } ?? 0
-                let comments = mode == "file-comments" ? (0..<100).map { comment("reply-\(page)-\($0)") }
-                    : mode == "reply-duplicate" ? [comment("right")] : [comment(arguments.contains("cursor=comments-next") ? "reply-1" : "reply-2")]
-                let next = mode == "file-comments" ? "comments-\(page + 1)" : arguments.contains("cursor=comments-next") ? "comments-last" : nil
-                output = json(["data": ["node": ["id": "right", "pullRequest": pullRequest(head: mode == "reply-changed" ? base : nil),
-                                                "comments": connection(comments, cursor: next)]]])
+                let comments =
+                    mode == "file-comments"
+                    ? (0 ..< 100).map { comment("reply-\(page)-\($0)") }
+                    : mode == "reply-duplicate"
+                        ? [comment("right")] : [comment(arguments.contains("cursor=comments-next") ? "reply-1" : "reply-2")]
+                let next =
+                    mode == "file-comments" ? "comments-\(page + 1)" : arguments.contains("cursor=comments-next") ? "comments-last" : nil
+                output = json([
+                    "data": [
+                        "node": [
+                            "id": "right", "pullRequest": pullRequest(head: mode == "reply-changed" ? base : nil),
+                            "comments": connection(comments, cursor: next),
+                        ]
+                    ]
+                ])
             } else if arguments.contains(where: { $0.hasPrefix("query=") }) {
                 output = response(pullRequest(head: mode == "changed" ? base : nil))
             } else if arguments.contains(where: { $0.contains("/compare/") }) {
@@ -126,16 +159,22 @@ private nonisolated struct ReviewFixture: Sendable {
             } else if arguments.contains(where: { $0.contains("/contents/") }) {
                 let old = arguments.contains("ref=" + mergeBase)
                 let text = String(repeating: "let fixture = 1\n", count: 220)
-                output = json(["type": "file", "size": text.utf8.count, "encoding": "base64",
-                               "content": Data(text.utf8).base64EncodedString(), "sha": old ? mergeBase : head])
-            } else { preconditionFailure("未预期查询：\(arguments)") }
-            return BoundedProcessResult(terminationStatus: 0, timedOut: false,
+                output = json([
+                    "type": "file", "size": text.utf8.count, "encoding": "base64",
+                    "content": Data(text.utf8).base64EncodedString(), "sha": old ? mergeBase : head,
+                ])
+            } else {
+                preconditionFailure("未预期查询：\(arguments)")
+            }
+            return BoundedProcessResult(
+                terminationStatus: 0, timedOut: false,
                 output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: false))
         }
     }
 
     func query(mode: String = "paged", remote: Bool = false, log: ReviewQueryLog = ReviewQueryLog()) -> ProjectPullRequestReviewState {
-        GitHubPullRequestReviewWorker.query(identity, path: "Review.swift",
+        GitHubPullRequestReviewWorker.query(
+            identity, path: "Review.swift",
             environment: ["PATH": "/usr/bin", "GH_REPO": "wrong/repo"],
             locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: command(log: log, mode: mode),
             git: { arguments, root, limit, timeout in
@@ -159,22 +198,27 @@ private actor ReviewCacheCounter {
 @main @MainActor
 struct ProjectPullRequestReviewTests {
     static func main() async {
-        let fixture = ReviewFixture(root: CommandLine.arguments[1], base: CommandLine.arguments[2],
+        let fixture = ReviewFixture(
+            root: CommandLine.arguments[1], base: CommandLine.arguments[2],
             head: CommandLine.arguments[3], mergeBase: CommandLine.arguments[4], previousHead: CommandLine.arguments[5])
         let log = ReviewQueryLog()
         guard case .ready(let file) = fixture.query(log: log) else { fatalError("生产PR查询未返回评论") }
-        require(file.mergeBaseOID == fixture.mergeBase && file.baseOID == fixture.base && file.headOID == fixture.head,
-                "左右内容必须使用精确merge-base/head版本")
+        require(
+            file.mergeBaseOID == fixture.mergeBase && file.baseOID == fixture.base && file.headOID == fixture.head,
+            "左右内容必须使用精确merge-base/head版本")
         require(file.oldPath == "Before.swift" && file.path == "Review.swift", "重命名必须读取原路径")
-        require(!file.oldContents.contains("base branch") && !file.newContents.contains("working tree"),
-                "评论不得附着到最新base或本地未提交内容")
+        require(
+            !file.oldContents.contains("base branch") && !file.newContents.contains("working tree"),
+            "评论不得附着到最新base或本地未提交内容")
         require(file.threads.map(\.id) == ["left", "right", "range"], "有效旧提交讨论必须保留，过时/文件级/越界不得错位展示")
         require(file.outdatedThreadCount == 1, "只有GitHub标为过时的讨论才能称为过时")
         require(file.annotations.count == 5 && file.annotations.allSatisfy { $0.metadata.isReadOnly == true }, "评论和分页回复必须只读")
-        require(file.annotations[0].side == .deletions && file.annotations[0].lineNumber == 10,
-                "LEFT必须映射到旧版行号")
-        require(file.annotations[1].side == .additions && file.annotations[1].lineNumber == 30,
-                "RIGHT必须映射到新版行号")
+        require(
+            file.annotations[0].side == .deletions && file.annotations[0].lineNumber == 10,
+            "LEFT必须映射到旧版行号")
+        require(
+            file.annotations[1].side == .additions && file.annotations[1].lineNumber == 30,
+            "RIGHT必须映射到新版行号")
         require(file.threads[1].comments.nodes.map(\.id) == ["right", "reply-1", "reply-2"], "回复必须跨页完整加载且保持顺序")
         require(log.calls.filter { $0.contains(where: { $0.hasPrefix("query=") }) }.count == 5, "线程与回复分页不应重复查询")
         require(fixture.query(mode: "changed") == .failed(.changed), "末次head变化必须拒绝显示")
@@ -187,12 +231,14 @@ struct ProjectPullRequestReviewTests {
             guard case .ready(let scoped) = fixture.query(mode: mode, log: scopeLog) else {
                 fatalError("无关文件讨论不得耗尽目标文件配额：\(mode)")
             }
-            require(scoped.threads.map(\.id) == ["right"] && scoped.annotations.count == 1,
-                    "仅保留目标文件的讨论和评论")
+            require(
+                scoped.threads.map(\.id) == ["right"] && scoped.annotations.count == 1,
+                "仅保留目标文件的讨论和评论")
             require(!scopeLog.calls.contains { $0.contains("cursor=unrelated-replies") }, "无关文件回复不得额外查询")
             if mode == "many-files" {
-                require(scopeLog.calls.filter { $0.contains(where: { $0.contains("reviewThreads") }) }.count == 13,
-                        "目标文件在第13页时必须继续读取，不能在500条讨论处失败")
+                require(
+                    scopeLog.calls.filter { $0.contains(where: { $0.contains("reviewThreads") }) }.count == 13,
+                    "目标文件在第13页时必须继续读取，不能在500条讨论处失败")
             }
         }
         for mode in ["file-threads", "file-comments", "file-body", "thread-duplicate"] {
@@ -201,25 +247,33 @@ struct ProjectPullRequestReviewTests {
         require(fixture.query(mode: "thread-changed") == .failed(.changed), "无关文件分页发生版本变化也必须拒绝显示")
         let limitLog = ReviewQueryLog()
         require(fixture.query(mode: "request-limit", log: limitLog) == .failed(.unavailable), "全PR扫描仍须受请求预算约束")
-        require(limitLog.calls.filter { $0.contains(where: { $0.contains("reviewThreads") }) }.count == 60,
-                "全PR扫描最多发出60次请求，不得返回不完整评论")
+        require(
+            limitLog.calls.filter { $0.contains(where: { $0.contains("reviewThreads") }) }.count == 60,
+            "全PR扫描最多发出60次请求，不得返回不完整评论")
         let remoteLog = ReviewQueryLog()
         guard case .ready(let fallback) = fixture.query(remote: true, log: remoteLog) else { fatalError("缺本地对象时GitHub只读回退失败") }
         require(fallback.oldPath == "Before.swift" && fallback.annotations.count == 5, "回退必须保留重命名及评论")
         require(remoteLog.calls.contains { $0.contains(where: { $0.contains("/compare/") }) }, "回退必须计算真实merge-base")
         require(GitHubPullRequestReviewWorker.lineCount("a\r\nb\r\n") == 2, "CRLF行号必须与GitHub一致")
-        require(GitHubPullRequestReviewWorker.lineCount("a\nb") == 2 && GitHubPullRequestReviewWorker.lineCount("") == 0,
-                "缺末尾换行和空文件行号")
+        require(
+            GitHubPullRequestReviewWorker.lineCount("a\nb") == 2 && GitHubPullRequestReviewWorker.lineCount("") == 0,
+            "缺末尾换行和空文件行号")
         require(!GitHubPullRequestReviewWorker.validPath("../outside") && !GitHubPullRequestReviewWorker.validPath("/outside"), "拒绝越界路径")
-        require(ProjectPullRequestReviewFile.commentURL("https://github.com.evil.invalid/example/base/pull/1", identity: fixture.identity) == nil,
-                "拒绝伪造评论链接")
+        require(
+            ProjectPullRequestReviewFile.commentURL("https://github.com.evil.invalid/example/base/pull/1", identity: fixture.identity)
+                == nil,
+            "拒绝伪造评论链接")
         let failures: [(Int32, Bool, Bool, ProjectPullRequestReviewState)] = [
             (4, false, false, .failed(.notSignedIn)), (1, false, false, .failed(.unavailable)),
-            (0, true, false, .failed(.unavailable)), (0, false, true, .failed(.unavailable))]
+            (0, true, false, .failed(.unavailable)), (0, false, true, .failed(.unavailable)),
+        ]
         for (status, timeout, truncated, expected) in failures {
-            let actual = GitHubPullRequestReviewWorker.query(fixture.identity, path: "Review.swift",
-                locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, _, _, _ in
-                    BoundedProcessResult(terminationStatus: status, timedOut: timeout,
+            let actual = GitHubPullRequestReviewWorker.query(
+                fixture.identity, path: "Review.swift",
+                locate: { _ in URL(fileURLWithPath: "/usr/bin/true") },
+                command: { _, _, _, _ in
+                    BoundedProcessResult(
+                        terminationStatus: status, timedOut: timeout,
                         output: BoundedProcessOutput(stdout: "", stderr: "", wasTruncated: truncated))
                 })
             require(actual == expected, "认证、超时和截断结果不得展示部分评论")
@@ -243,7 +297,8 @@ struct ProjectPullRequestReviewTests {
             }
             let state = GitHubPullRequestWorker.query(context)
             guard case .pullRequest(let pr) = state,
-                  let identity = ProjectPullRequestReviewIdentity(pr, context: context) else {
+                let identity = ProjectPullRequestReviewIdentity(pr, context: context)
+            else {
                 fatalError("真实GitHub PR查询失败：\(state)")
             }
             let path = ProcessInfo.processInfo.environment["ZSHELL_PR_REVIEW_LIVE_PATH"] ?? "mac/zshell/ProjectPullRequest.swift"

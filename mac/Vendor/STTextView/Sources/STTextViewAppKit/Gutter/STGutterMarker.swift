@@ -80,5 +80,4 @@ private class MarkerView: NSView {
         return path
     }
 
-
 }

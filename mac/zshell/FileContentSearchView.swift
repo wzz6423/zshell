@@ -37,11 +37,13 @@ final class FileContentSearchPanel: NSView {
     private let closeButton = NSButton(title: "", target: nil, action: nil)
     private let statusLabel = NSTextField(labelWithString: "")
     private let rootLabel = NSTextField(labelWithString: "")
-    private lazy var tableView = FileSearchResultTableView(onOpen: { [weak self] in
-        self?.openSelected()
-    }, onCancel: { [weak self] in
-        self?.closeRequested()
-    })
+    private lazy var tableView = FileSearchResultTableView(
+        onOpen: { [weak self] in
+            self?.openSelected()
+        },
+        onCancel: { [weak self] in
+            self?.closeRequested()
+        })
     private let scrollView = NSScrollView()
 
     private var model: FileContentSearchModel?
@@ -302,8 +304,8 @@ final class FileContentSearchPanel: NSView {
 
     private func openSelected() {
         guard let model,
-              tableView.selectedRow >= 0,
-              model.matches.indices.contains(tableView.selectedRow)
+            tableView.selectedRow >= 0,
+            model.matches.indices.contains(tableView.selectedRow)
         else { return }
         openResult?(model.matches[tableView.selectedRow])
     }

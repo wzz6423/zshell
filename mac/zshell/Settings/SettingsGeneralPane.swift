@@ -69,16 +69,19 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
         symbolName: "link"
     )
 
-    private lazy var gitGroup = SettingsGroup(header: String(localized: "Git"), rows: [
-        SettingsRow(title: String(localized: "Show pull request status"), control: pullRequestStatusSwitch),
-        SettingsRow(
-            title: String(localized: "Use proxy for Git"),
-            description: String(localized: "Applies to Git panel actions, pull request status, and Git in terminals opened afterwards."),
-            control: gitProxySwitch,
-            symbolName: "network"
-        ),
-        gitProxyAddressRow,
-    ])
+    private lazy var gitGroup = SettingsGroup(
+        header: String(localized: "Git"),
+        rows: [
+            SettingsRow(title: String(localized: "Show pull request status"), control: pullRequestStatusSwitch),
+            SettingsRow(
+                title: String(localized: "Use proxy for Git"),
+                description: String(
+                    localized: "Applies to Git panel actions, pull request status, and Git in terminals opened afterwards."),
+                control: gitProxySwitch,
+                symbolName: "network"
+            ),
+            gitProxyAddressRow,
+        ])
 
     private lazy var resetRow = SettingsButtonRow(
         title: String(localized: "Reset to Defaults")
@@ -99,9 +102,10 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        observe(KeepAwakeController.shared.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] _ in
-            self?.syncKeepAwake()
-        })
+        observe(
+            KeepAwakeController.shared.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] _ in
+                self?.syncKeepAwake()
+            })
     }
 
     override func syncFromSettings() {
@@ -114,8 +118,9 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
         gitGroup.setRowHidden(!SettingsVisibility.current.gitProxyEnabled, at: 2)
         if !isEditing(gitProxyField) {
             gitProxyField.stringValue = settings.gitProxyAddress
-            gitProxyAddressRow.setDescription(Self.gitProxyAddressDescription(
-                isValid: GitProxy.normalized(settings.gitProxyAddress) != nil))
+            gitProxyAddressRow.setDescription(
+                Self.gitProxyAddressDescription(
+                    isValid: GitProxy.normalized(settings.gitProxyAddress) != nil))
         }
         resetRow.button.isEnabled = !settings.isAtDefaults
     }

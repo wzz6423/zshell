@@ -26,13 +26,15 @@ struct RangeAdjuster: MarkupWalker {
         /// to be filled in from cmark.
         let adjustedRange = markup.range.map { range -> SourceRange in
             // Add back the offset to the column as if the indentation weren't stripped.
-            let start = SourceLocation(line: startLine + range.lowerBound.line - 1,
-                                       column: range.lowerBound.column + (trimmedIndentationPerLine[range.lowerBound.line - 1] ),
-                                       source: range.lowerBound.source)
-            let end = SourceLocation(line: startLine + range.upperBound.line - 1,
-                                     column: range.upperBound.column + (trimmedIndentationPerLine[range.upperBound.line - 1]),
-                                     source: range.upperBound.source)
-            return start..<end
+            let start = SourceLocation(
+                line: startLine + range.lowerBound.line - 1,
+                column: range.lowerBound.column + (trimmedIndentationPerLine[range.lowerBound.line - 1]),
+                source: range.lowerBound.source)
+            let end = SourceLocation(
+                line: startLine + range.upperBound.line - 1,
+                column: range.upperBound.column + (trimmedIndentationPerLine[range.upperBound.line - 1]),
+                source: range.upperBound.source)
+            return start ..< end
         }
         ranges.add(adjustedRange)
 
@@ -49,4 +51,3 @@ struct RangeAdjuster: MarkupWalker {
         // End unsafe stuff.
     }
 }
-

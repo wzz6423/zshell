@@ -15,7 +15,8 @@ struct PaneHeaderRepresentable: NSViewRepresentable {
     func makeNSView(context: Context) -> PaneHeaderNSView { PaneHeaderNSView(frame: .zero) }
 
     func updateNSView(_ view: PaneHeaderNSView, context: Context) {
-        view.configure(content: content, isFocused: isFocused, allowsMove: allowsMove,
+        view.configure(
+            content: content, isFocused: isFocused, allowsMove: allowsMove,
             focus: focus, onMove: onMove, onMoveEnded: onMoveEnded, onSplit: onSplit, onClose: onClose)
     }
 }
@@ -37,8 +38,10 @@ final class PaneHeaderNSView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         for view in [titleView, splitRightButton, splitDownButton, closeButton] { addSubview(view) }
-        for publisher in [Theme.changes.objectWillChange.eraseToAnyPublisher(),
-                          AppSettings.shared.objectWillChange.eraseToAnyPublisher()] {
+        for publisher in [
+            Theme.changes.objectWillChange.eraseToAnyPublisher(),
+            AppSettings.shared.objectWillChange.eraseToAnyPublisher(),
+        ] {
             publisher.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.scheduleRefresh() }
                 .store(in: &observations)
         }
@@ -70,8 +73,12 @@ final class PaneHeaderNSView: NSView {
         titleView.onFocus = focus
         titleView.onMove = onMove
         titleView.onMoveEnded = onMoveEnded
-        splitRightButton.onAction = { focus(); onSplit(.right) }
-        splitDownButton.onAction = { focus(); onSplit(.bottom) }
+        splitRightButton.onAction = {
+            focus(); onSplit(.right)
+        }
+        splitDownButton.onAction = {
+            focus(); onSplit(.bottom)
+        }
         closeButton.onAction = onClose
         refresh()
     }
@@ -172,17 +179,20 @@ private final class PaneHeaderTitleNSView: NSView {
         if let rollup {
             badge.apply(phase: rollup.phase, count: rollup.count, detail: rollup.detail, progress: rollup.progress)
             badgeWidth = badge.intrinsicContentSize.width
-        } else { badgeWidth = 0 }
+        } else {
+            badgeWidth = 0
+        }
         badge.isHidden = rollup == nil
         isDirty = content.isDirty
         toolTip = content.fileIconPath
         if case .browser(let browser) = content { toolTip = browser.urlString }
         setAccessibilityLabel(content.title)
-        setAccessibilityValue([
-            isFocused ? String(localized: "Selected") : nil,
-            isDirty ? String(localized: "Modified") : nil,
-            rollup.map { $0.phase.statusDescription + "\n" + $0.detail },
-        ].compactMap { $0 }.joined(separator: ", "))
+        setAccessibilityValue(
+            [
+                isFocused ? String(localized: "Selected") : nil,
+                isDirty ? String(localized: "Modified") : nil,
+                rollup.map { $0.phase.statusDescription + "\n" + $0.detail },
+            ].compactMap { $0 }.joined(separator: ", "))
         needsLayout = true
         needsDisplay = true
     }
@@ -196,8 +206,9 @@ private final class PaneHeaderTitleNSView: NSView {
         let titleWidth = max(0, available - (visibleBadgeWidth > 0 ? visibleBadgeWidth + 6 : 0) - (isDirty ? 11 : 0))
         let height = ceil((titleLabel.font?.ascender ?? 12) - (titleLabel.font?.descender ?? -3)) + 2
         titleLabel.frame = NSRect(x: 19, y: (bounds.height - height) / 2, width: titleWidth, height: height)
-        badge.frame = NSRect(x: titleLabel.frame.maxX + 6, y: (bounds.height - 15) / 2,
-                            width: visibleBadgeWidth, height: 15)
+        badge.frame = NSRect(
+            x: titleLabel.frame.maxX + 6, y: (bounds.height - 15) / 2,
+            width: visibleBadgeWidth, height: 15)
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -214,8 +225,10 @@ private final class PaneHeaderTitleNSView: NSView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(rect: NSIntersectionRect(bounds, visibleRect),
-            options: [.activeAlways, .mouseEnteredAndExited, .mouseMoved], owner: self))
+        addTrackingArea(
+            NSTrackingArea(
+                rect: NSIntersectionRect(bounds, visibleRect),
+                options: [.activeAlways, .mouseEnteredAndExited, .mouseMoved], owner: self))
     }
 
     override func mouseEntered(with event: NSEvent) {
@@ -247,8 +260,7 @@ private final class PaneHeaderTitleNSView: NSView {
     override func mouseUp(with event: NSEvent) {
         guard mouseOrigin != nil else { return }
         mouseOrigin = nil
-        if isDragging { onMoveEnded?() }
-        else if bounds.contains(convert(event.locationInWindow, from: nil)) { onFocus?() }
+        if isDragging { onMoveEnded?() } else if bounds.contains(convert(event.locationInWindow, from: nil)) { onFocus?() }
         isDragging = false
         (isHovered && allowsMove ? NSCursor.openHand : NSCursor.arrow).set()
     }

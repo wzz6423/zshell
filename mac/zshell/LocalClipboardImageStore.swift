@@ -15,7 +15,8 @@ nonisolated enum LocalClipboardImageStore {
         defer { close(parent) }
         var metadata = stat()
         guard fstat(parent, &metadata) == 0, metadata.st_uid == geteuid(),
-              metadata.st_mode & S_IFMT == S_IFDIR, fchmod(parent, 0o700) == 0 else {
+            metadata.st_mode & S_IFMT == S_IFDIR, fchmod(parent, 0o700) == 0
+        else {
             throw PTYMuxWire.errnoError("fstat")
         }
         let name = "clipboard-\(UUID().uuidString.lowercased()).png"
@@ -25,7 +26,7 @@ nonisolated enum LocalClipboardImageStore {
         guard fchmod(descriptor, 0o600) == 0 else { throw PTYMuxWire.errnoError("fchmod") }
         for offset in stride(from: 0, to: png.count, by: 64 << 10) {
             try Task.checkCancellation()
-            try PTYMuxWire.writeAll(png.subdata(in: offset..<min(offset + (64 << 10), png.count)), to: descriptor)
+            try PTYMuxWire.writeAll(png.subdata(in: offset ..< min(offset + (64 << 10), png.count)), to: descriptor)
         }
         try Task.checkCancellation()
         complete = true

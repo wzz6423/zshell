@@ -17,7 +17,7 @@ extension STTextView {
     /// Before OS X v10.7, the default action for these menu items was performFindPanelAction(_:)
     @objc override open func performTextFinderAction(_ sender: Any?) {
         guard let menuItem = sender as? NSMenuItem,
-              let action = NSTextFinder.Action(rawValue: menuItem.tag)
+            let action = NSTextFinder.Action(rawValue: menuItem.tag)
         else {
             assertionFailure("Unexpected caller")
             return

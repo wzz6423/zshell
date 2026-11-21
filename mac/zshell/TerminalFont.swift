@@ -45,7 +45,8 @@ enum TerminalFont {
     ) -> NSFont {
         let base: NSFont
         if !family.isEmpty, family != bundledFamily,
-           let chosen = font(family: family, size: size) {
+            let chosen = font(family: family, size: size)
+        {
             base = chosen
         } else if let bundled = NSFont(name: "JetBrainsMono-Regular", size: size) {
             base = bundled
@@ -54,8 +55,9 @@ enum TerminalFont {
         }
         var cascade: [NSFontDescriptor] = []
         if !fallbackFamily.isEmpty,
-           fallbackFamily != family,
-           let fallback = font(family: fallbackFamily, size: size) {
+            fallbackFamily != family,
+            let fallback = font(family: fallbackFamily, size: size)
+        {
             cascade.append(fallback.fontDescriptor)
         }
         cascade.append(NSFontDescriptor(name: symbolsFontName, size: size))
@@ -90,11 +92,11 @@ enum TerminalFont {
         return manager.availableFontFamilies
             .filter { family in
                 guard family != bundledFamily,
-                      !family.hasPrefix("Symbols Nerd Font"),
-                      !family.hasPrefix("."),
-                      let font = manager.font(
-                          withFamily: family, traits: [], weight: 5, size: 13
-                      )
+                    !family.hasPrefix("Symbols Nerd Font"),
+                    !family.hasPrefix("."),
+                    let font = manager.font(
+                        withFamily: family, traits: [], weight: 5, size: 13
+                    )
                 else { return false }
                 return sample.contains { character in
                     var codeUnit = character
@@ -136,8 +138,8 @@ enum TerminalFont {
         let families = NSFontManager.shared.availableFontFamilies
             .filter { family in
                 guard !family.hasPrefix("Symbols Nerd Font"),
-                      family != bundledFamily, !family.hasPrefix("."),
-                      let font = NSFontManager.shared.font(withFamily: family, traits: [], weight: 5, size: 13)
+                    family != bundledFamily, !family.hasPrefix("."),
+                    let font = NSFontManager.shared.font(withFamily: family, traits: [], weight: 5, size: 13)
                 else { return false }
                 return isTerminalMonospaced(font)
             }

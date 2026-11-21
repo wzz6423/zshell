@@ -11,26 +11,27 @@ public struct TSRange: Codable, Hashable, Sendable {
     }
 
     init(internalRange range: TreeSitter.TSRange) {
-        self.bytes = range.start_byte..<range.end_byte
-        self.points = Point(internalPoint: range.start_point)..<Point(internalPoint: range.end_point)
+        self.bytes = range.start_byte ..< range.end_byte
+        self.points = Point(internalPoint: range.start_point) ..< Point(internalPoint: range.end_point)
     }
 
     init(potentiallyInvalidRange range: TreeSitter.TSRange) {
-        self.bytes = range.start_byte..<range.end_byte
+        self.bytes = range.start_byte ..< range.end_byte
 
         let start = Point(internalPoint: range.start_point)
         let end = Point(internalPoint: range.end_point)
         let safeEnd = start <= end ? end : start
 
-        self.points = start..<safeEnd
+        self.points = start ..< safeEnd
     }
 
-	var internalRange: TreeSitter.TSRange {
-		return .init(start_point: points.lowerBound.internalPoint,
-					 end_point: points.upperBound.internalPoint,
-					 start_byte: bytes.lowerBound,
-					 end_byte: bytes.upperBound)
-	}
+    var internalRange: TreeSitter.TSRange {
+        return .init(
+            start_point: points.lowerBound.internalPoint,
+            end_point: points.upperBound.internalPoint,
+            start_byte: bytes.lowerBound,
+            end_byte: bytes.upperBound)
+    }
 }
 
 extension TSRange: Comparable {
@@ -40,7 +41,7 @@ extension TSRange: Comparable {
 }
 
 extension TSRange: CustomDebugStringConvertible {
-	public var debugDescription: String {
-		"<TSRange \(bytes), \(points)>"
-	}
+    public var debugDescription: String {
+        "<TSRange \(bytes), \(points)>"
+    }
 }

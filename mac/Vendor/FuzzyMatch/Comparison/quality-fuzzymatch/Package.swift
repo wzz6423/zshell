@@ -5,15 +5,15 @@ let package = Package(
     name: "quality-fuzzymatch",
     platforms: [.macOS(.v14)],
     dependencies: [
-        .package(path: "../.."),
+        .package(path: "../..")
     ],
     targets: [
         .executableTarget(
             name: "quality-fuzzymatch",
             dependencies: [
-                .product(name: "FuzzyMatch", package: "FuzzyMatch"),
+                .product(name: "FuzzyMatch", package: "FuzzyMatch")
             ],
             path: "Sources"
-        ),
+        )
     ]
 )

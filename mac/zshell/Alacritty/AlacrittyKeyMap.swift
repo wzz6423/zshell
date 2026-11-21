@@ -72,7 +72,7 @@ enum AlacrittyKeyMap {
 
         if control {
             guard let characters = event.charactersIgnoringModifiers,
-                  !characters.isEmpty
+                !characters.isEmpty
             else { return nil }
             if let encoded = controlled(characters) {
                 return alt ? [0x1b] + encoded : encoded
@@ -99,13 +99,13 @@ enum AlacrittyKeyMap {
     /// Ctrl-<key> for the range a terminal encodes as a C0 control code.
     private static func controlled(_ characters: String) -> [UInt8]? {
         guard let scalar = characters.unicodeScalars.first,
-              characters.unicodeScalars.count == 1
+            characters.unicodeScalars.count == 1
         else { return nil }
 
         switch scalar {
-        case "a"..."z":
+        case "a" ... "z":
             return [UInt8(scalar.value - 0x60)]
-        case "A"..."Z":
+        case "A" ... "Z":
             return [UInt8(scalar.value - 0x40)]
         case "@", " ", "2":
             return [0x00]
@@ -175,12 +175,14 @@ enum AlacrittyKeyMap {
         // Application-keypad mode normally handles keypad Enter first. Keep the
         // configurable Shift-Enter LF mapping identical for both Enter keys.
         if shiftEnterNewline, shift, !control, !option,
-           [36, 76].contains(Int(event.keyCode)) {
+            [36, 76].contains(Int(event.keyCode))
+        {
             return [0x0a]
         }
 
         if mode.contains(.applicationKeypad),
-           let suffix = applicationKeypadSuffix(keyCode: Int(event.keyCode)) {
+            let suffix = applicationKeypadSuffix(keyCode: Int(event.keyCode))
+        {
             return modified
                 ? Array("\u{1b}O\(modifier)\(suffix)".utf8)
                 : Array("\u{1b}O\(suffix)".utf8)
@@ -290,7 +292,8 @@ enum AlacrittyKeyMap {
     static func paste(_ text: String, mode: AlacrittyTerminalMode) -> [UInt8] {
         // Carriage returns are what a terminal delivers for Enter; a raw \n
         // pasted into a shell reads as a literal newline instead of submit.
-        let normalized = text
+        let normalized =
+            text
             .replacingOccurrences(of: "\r\n", with: "\r")
             .replacingOccurrences(of: "\n", with: "\r")
         guard mode.contains(.bracketedPaste) else { return Array(normalized.utf8) }
@@ -299,7 +302,8 @@ enum AlacrittyKeyMap {
 
     static func cursor(up: Bool, mode: AlacrittyTerminalMode) -> [UInt8] {
         let final = up ? "A" : "B"
-        let sequence = mode.contains(.applicationCursor)
+        let sequence =
+            mode.contains(.applicationCursor)
             ? "\u{1b}O\(final)" : "\u{1b}[\(final)"
         return Array(sequence.utf8)
     }
@@ -308,7 +312,8 @@ enum AlacrittyKeyMap {
     /// for programs that opt into it.
     static func horizontalCursor(right: Bool, mode: AlacrittyTerminalMode) -> [UInt8] {
         let final = right ? "C" : "D"
-        let sequence = mode.contains(.applicationCursor)
+        let sequence =
+            mode.contains(.applicationCursor)
             ? "\u{1b}O\(final)" : "\u{1b}[\(final)"
         return Array(sequence.utf8)
     }

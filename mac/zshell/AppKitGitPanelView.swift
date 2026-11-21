@@ -21,9 +21,10 @@ struct GitPanelView: NSViewRepresentable {
     func makeNSView(context: Context) -> GitPanelNSView { GitPanelNSView() }
 
     func updateNSView(_ view: GitPanelNSView, context: Context) {
-        view.configure(model: model, session: session, isRemote: isRemote, fontScale: fontScale,
-                       openFile: openFile, openToSide: openToSide, openDiff: openDiff,
-                       openCommitDiff: openCommitDiff, openWorktree: openWorktree)
+        view.configure(
+            model: model, session: session, isRemote: isRemote, fontScale: fontScale,
+            openFile: openFile, openToSide: openToSide, openDiff: openDiff,
+            openCommitDiff: openCommitDiff, openWorktree: openWorktree)
     }
 
     static func dismantleNSView(_ view: GitPanelNSView, coordinator: ()) { view.detach() }
@@ -124,10 +125,12 @@ final class GitPanelNSView: NSView {
         scrollView.documentView = document
         addSubview(scrollView)
         pullRequestContainer.addSubview(pullRequest)
-        for view in [header, tracking, pullRequestContainer, branchSearch, branches, worktrees,
-                     failure, repositoryOperation, detailFailure, repositoryState, commitBox, reviewSummary,
-                     fileFilter, cleanState, mergeHeader, stagedHeader, changesHeader,
-                     historyHeader, mergeList, stagedList, changesList, history] {
+        for view in [
+            header, tracking, pullRequestContainer, branchSearch, branches, worktrees,
+            failure, repositoryOperation, detailFailure, repositoryState, commitBox, reviewSummary,
+            fileFilter, cleanState, mergeHeader, stagedHeader, changesHeader,
+            historyHeader, mergeList, stagedList, changesList, history,
+        ] {
             document.addSubview(view)
         }
         pullRequest.onHeightChanged = { [weak self] in self?.needsLayout = true }
@@ -151,8 +154,7 @@ final class GitPanelNSView: NSView {
         }
         history.onToggleCommit = { [weak self] id in
             guard let self else { return }
-            if self.expandedCommitIDs.contains(id) { self.expandedCommitIDs.remove(id) }
-            else { self.expandedCommitIDs.insert(id) }
+            if self.expandedCommitIDs.contains(id) { self.expandedCommitIDs.remove(id) } else { self.expandedCommitIDs.insert(id) }
             self.refresh()
         }
         history.onLoadMore = { [weak self] in self?.boundModel?.loadMoreCommits() ?? false }
@@ -160,9 +162,11 @@ final class GitPanelNSView: NSView {
             guard let self, !self.isRemote else { return }
             self.openCommitDiff?(commit, file)
         }
-        for publisher in [AppSettings.shared.objectWillChange.eraseToAnyPublisher(),
-                          Theme.changes.objectWillChange.eraseToAnyPublisher(),
-                          DiffReviewStore.shared.objectWillChange.eraseToAnyPublisher()] {
+        for publisher in [
+            AppSettings.shared.objectWillChange.eraseToAnyPublisher(),
+            Theme.changes.objectWillChange.eraseToAnyPublisher(),
+            DiffReviewStore.shared.objectWillChange.eraseToAnyPublisher(),
+        ] {
             publisher.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.scheduleRefresh() }
                 .store(in: &observations)
         }
@@ -174,11 +178,13 @@ final class GitPanelNSView: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func configure(model: GitStatusModel, session: TerminalSession?, isRemote: Bool, fontScale: CGFloat,
-                   openFile: @escaping (String) -> Void, openToSide: @escaping (String) -> Void,
-                   openDiff: @escaping (GitStatusModel.Entry, Bool) -> Void,
-                   openCommitDiff: @escaping (GitStatusModel.RecentCommit, GitStatusModel.RecentCommit.FileChange) -> Void,
-                   openWorktree: @escaping (String) -> Void) {
+    func configure(
+        model: GitStatusModel, session: TerminalSession?, isRemote: Bool, fontScale: CGFloat,
+        openFile: @escaping (String) -> Void, openToSide: @escaping (String) -> Void,
+        openDiff: @escaping (GitStatusModel.Entry, Bool) -> Void,
+        openCommitDiff: @escaping (GitStatusModel.RecentCommit, GitStatusModel.RecentCommit.FileChange) -> Void,
+        openWorktree: @escaping (String) -> Void
+    ) {
         if boundModel !== model {
             dismissSheet()
             boundModel = model
@@ -232,8 +238,10 @@ final class GitPanelNSView: NSView {
         }
     }
 
-    private func addPageItem(_ view: NSView, inset: CGFloat = 0, gap: CGFloat = 0,
-                             height: @escaping (CGFloat) -> CGFloat) {
+    private func addPageItem(
+        _ view: NSView, inset: CGFloat = 0, gap: CGFloat = 0,
+        height: @escaping (CGFloat) -> CGFloat
+    ) {
         pageItems.append(PageItem(view: view, inset: inset, gap: gap, height: height))
     }
 
@@ -250,21 +258,27 @@ final class GitPanelNSView: NSView {
         if !model.isBusy { operationTrigger = nil }
         let scale = metrics.fontScale
         pageItems.removeAll(keepingCapacity: true)
-        header.configure(branch: model.isRepo ? model.branch ?? String(localized: "Detached HEAD") : String(localized: "Git"),
-                         rootPath: model.rootPath, scale: scale, isRepo: model.isRepo,
-                         isRemote: isRemote, isBusy: model.isBusy, isResolving: model.isResolvingInitialStatus,
-                         branchLoading: operationIsLoading(.branchMenu), moreLoading: operationIsLoading(.moreMenu))
+        header.configure(
+            branch: model.isRepo ? model.branch ?? String(localized: "Detached HEAD") : String(localized: "Git"),
+            rootPath: model.rootPath, scale: scale, isRepo: model.isRepo,
+            isRemote: isRemote, isBusy: model.isBusy, isResolving: model.isResolvingInitialStatus,
+            branchLoading: operationIsLoading(.branchMenu), moreLoading: operationIsLoading(.moreMenu))
         header.onBranchMenu = { [weak self] button in self?.showBranchMenu(relativeTo: button) }
         header.onMoreMenu = { [weak self] button in self?.showMoreMenu(relativeTo: button) }
         header.onRefresh = { [weak self] in self?.boundModel?.refresh() }
         addPageItem(header) { [weak header] _ in header?.requiredHeight ?? 0 }
         if let operation = model.operation, case .failed = operation.state {
             failure.configure(operation: operation, isExpanded: operationExpanded, scale: scale)
-            failure.onToggle = { [weak self] in self?.operationExpanded.toggle(); self?.refresh() }
-            failure.onDismiss = { [weak self] in self?.operationExpanded = false; self?.boundModel?.dismissOperation() }
+            failure.onToggle = { [weak self] in
+                self?.operationExpanded.toggle(); self?.refresh()
+            }
+            failure.onDismiss = { [weak self] in
+                self?.operationExpanded = false; self?.boundModel?.dismissOperation()
+            }
             addPageItem(failure, inset: 10, gap: 7) { [weak failure] width in failure?.height(for: width) ?? 0 }
         }
-        let showPR = AppSettings.shared.showPullRequestStatus && !isRemote && model.isRepo
+        let showPR =
+            AppSettings.shared.showPullRequestStatus && !isRemote && model.isRepo
             && model.statusError == nil && window != nil
         if showPR {
             pullRequest.update(directory: model.rootPath.isEmpty ? nil : model.rootPath, fontScale: scale)
@@ -274,21 +288,25 @@ final class GitPanelNSView: NSView {
             isPullRequestEnabled = false
         }
         if let statusError = model.statusError {
-            repositoryState.configure(icon: "exclamationmark.triangle", title: String(localized: "Git Status Unavailable"),
-                                      message: statusError, scale: scale, actionTitle: String(localized: "Retry"),
-                                      enabled: !model.isBusy && !model.isResolvingInitialStatus, loading: false,
-                                      action: { [weak self] in self?.boundModel?.refresh() })
+            repositoryState.configure(
+                icon: "exclamationmark.triangle", title: String(localized: "Git Status Unavailable"),
+                message: statusError, scale: scale, actionTitle: String(localized: "Retry"),
+                enabled: !model.isBusy && !model.isResolvingInitialStatus, loading: false,
+                action: { [weak self] in self?.boundModel?.refresh() })
             addRepositoryState()
         } else if !model.isRepo {
             if model.isResolvingInitialStatus {
-                repositoryState.configure(icon: "arrow.clockwise", title: String(localized: "Finding repository…"),
-                                          message: "", scale: scale)
+                repositoryState.configure(
+                    icon: "arrow.clockwise", title: String(localized: "Finding repository…"),
+                    message: "", scale: scale)
             } else {
-                repositoryState.configure(icon: "arrow.triangle.branch", title: String(localized: "No Git Repository"),
+                repositoryState.configure(
+                    icon: "arrow.triangle.branch", title: String(localized: "No Git Repository"),
                     message: String(localized: "Initialize the terminal’s current directory to start tracking changes."),
                     scale: scale, actionTitle: isRemote ? nil : String(localized: "Initialize Repository"),
                     enabled: !model.rootPath.isEmpty && !model.isBusy,
-                    loading: operationIsLoading(.initializeRepository), action: { [weak self] in
+                    loading: operationIsLoading(.initializeRepository),
+                    action: { [weak self] in
                         guard let self else { return }
                         self.performOperation(.initializeRepository) { self.model.initializeRepository() }
                     })
@@ -300,34 +318,44 @@ final class GitPanelNSView: NSView {
                 addPageItem(detailFailure, inset: 10, gap: 7) { [weak detailFailure] width in detailFailure?.height(for: width) ?? 0 }
             }
             if let branch = model.branch {
-                tracking.configure(branch: branch, upstream: model.upstream, hasUpstream: model.hasUpstream,
-                                   ahead: model.ahead, behind: model.behind, scale: scale)
+                tracking.configure(
+                    branch: branch, upstream: model.upstream, hasUpstream: model.hasUpstream,
+                    ahead: model.ahead, behind: model.behind, scale: scale)
                 addPageItem(tracking, gap: 6) { [weak tracking] _ in tracking?.requiredHeight ?? 0 }
             }
             if !isRemote {
                 if showPR {
                     addPageItem(pullRequestContainer) { [weak pullRequest] _ in pullRequest?.intrinsicContentSize.height ?? 0 }
                 }
-                branchSearch.update(text: worktreeBranchSearch, placeholder: String(localized: "Search worktrees or branches"), fontScale: scale)
+                branchSearch.update(
+                    text: worktreeBranchSearch, placeholder: String(localized: "Search worktrees or branches"), fontScale: scale)
                 addPageItem(branchSearch, inset: 10, gap: 4) { [weak self] _ in 26 * (self?.metrics.growthScale ?? 1) }
                 configureRepositorySections()
             }
             if let operation = model.repositoryOperation {
-                repositoryOperation.configure(title: operation,
-                    detail: model.mergeEntries.isEmpty ? String(localized: "Finish or abort from the terminal")
-                        : String(localized: "Resolve and stage \(model.mergeEntries.count) conflicted files", comment: "Git merge guidance. The placeholder is the number of conflicted files."),
+                repositoryOperation.configure(
+                    title: operation,
+                    detail: model.mergeEntries.isEmpty
+                        ? String(localized: "Finish or abort from the terminal")
+                        : String(
+                            localized: "Resolve and stage \(model.mergeEntries.count) conflicted files",
+                            comment: "Git merge guidance. The placeholder is the number of conflicted files."),
                     scale: scale)
-                addPageItem(repositoryOperation, inset: 10, gap: 7) { [weak repositoryOperation] width in repositoryOperation?.height(for: width) ?? 0 }
+                addPageItem(repositoryOperation, inset: 10, gap: 7) { [weak repositoryOperation] width in
+                    repositoryOperation?.height(for: width) ?? 0
+                }
             }
             if !isRemote {
-                commitBox.configure(message: commitMessage, placeholder: commitFieldPlaceholder, scale: scale,
+                commitBox.configure(
+                    message: commitMessage, placeholder: commitFieldPlaceholder, scale: scale,
                     commitTitle: commitButtonTitle, canCommit: canCommit(includeAll: false),
                     showCommit: !showSyncButton || canCommit(includeAll: false), commitLoading: operationIsLoading(.primaryAction),
                     menuLoading: operationIsLoading(.commitMenu), showSync: showSyncButton,
                     syncTitle: syncButtonTitle, syncEnabled: !model.isBusy, syncLoading: operationIsLoading(.syncButton))
                 addPageItem(commitBox, inset: 10, gap: 8) { [weak commitBox] width in commitBox?.height(for: width) ?? 0 }
                 let snapshots = reviewSnapshots
-                reviewSummary.update(reviewedCount: DiffReviewStore.shared.reviewedCount(in: snapshots),
+                reviewSummary.update(
+                    reviewedCount: DiffReviewStore.shared.reviewedCount(in: snapshots),
                     totalCount: snapshots.count, fontScale: scale, repositoryRoot: model.repositoryIdentity)
                 addPageItem(reviewSummary, inset: 10, gap: 4) { [weak self] _ in 25 * (self?.metrics.growthScale ?? 1) }
             }
@@ -369,8 +397,10 @@ final class GitPanelNSView: NSView {
     private var worktreeBranchQuery: String { worktreeBranchSearch.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var filteredWorktrees: [GitStatusModel.Worktree] {
         guard !worktreeBranchQuery.isEmpty else { return model.worktrees }
-        return model.worktrees.filter { $0.path.localizedCaseInsensitiveContains(worktreeBranchQuery)
-            || ($0.branch?.localizedCaseInsensitiveContains(worktreeBranchQuery) ?? false) }
+        return model.worktrees.filter {
+            $0.path.localizedCaseInsensitiveContains(worktreeBranchQuery)
+                || ($0.branch?.localizedCaseInsensitiveContains(worktreeBranchQuery) ?? false)
+        }
     }
     private var filteredBranches: [String] {
         guard !worktreeBranchQuery.isEmpty else { return model.branchesWithoutWorktrees }
@@ -380,24 +410,26 @@ final class GitPanelNSView: NSView {
     private func configureRepositorySections() {
         let scale = metrics.fontScale
         if !filteredBranches.isEmpty {
-            branches.apply(branches: filteredBranches, isCollapsed: collapsed.contains("branches"), fontScale: scale,
-                           repositoryID: model.repositoryIdentity, isBusy: model.isBusy,
-                           switchBranch: { [weak self] branch in
-                               guard let self else { return }
-                               self.performOperation(.branchMenu) { self.model.switchBranch(to: branch) }
-                           }, createBranch: { [weak self] in self?.presentCreateBranchDialog() },
-                           createWorktree: { [weak self] in self?.presentCreateWorktreeDialog(forBranch: $0) },
-                           deleteBranch: { [weak self] in self?.requestDeleteBranch($0) },
-                           toggleCollapsed: { [weak self] in self?.toggleSection("branches") })
+            branches.apply(
+                branches: filteredBranches, isCollapsed: collapsed.contains("branches"), fontScale: scale,
+                repositoryID: model.repositoryIdentity, isBusy: model.isBusy,
+                switchBranch: { [weak self] branch in
+                    guard let self else { return }
+                    self.performOperation(.branchMenu) { self.model.switchBranch(to: branch) }
+                }, createBranch: { [weak self] in self?.presentCreateBranchDialog() },
+                createWorktree: { [weak self] in self?.presentCreateWorktreeDialog(forBranch: $0) },
+                deleteBranch: { [weak self] in self?.requestDeleteBranch($0) },
+                toggleCollapsed: { [weak self] in self?.toggleSection("branches") })
             addPageItem(branches) { [weak branches] _ in branches?.intrinsicContentSize.height ?? 0 }
         }
         if !filteredWorktrees.isEmpty {
-            worktrees.apply(worktrees: filteredWorktrees, isCollapsed: collapsed.contains("worktrees"), fontScale: scale,
-                            openWorktree: { [weak self] in self?.openWorktree?($0) },
-                            createWorktree: { [weak self] in self?.presentCreateWorktreeDialog() },
-                            removeWorktree: { [weak self] in self?.requestRemoveWorktree($0) },
-                            deleteBranch: { [weak self] in self?.requestDeleteBranch($0) },
-                            toggleCollapsed: { [weak self] in self?.toggleSection("worktrees") }, isBusy: model.isBusy)
+            worktrees.apply(
+                worktrees: filteredWorktrees, isCollapsed: collapsed.contains("worktrees"), fontScale: scale,
+                openWorktree: { [weak self] in self?.openWorktree?($0) },
+                createWorktree: { [weak self] in self?.presentCreateWorktreeDialog() },
+                removeWorktree: { [weak self] in self?.requestRemoveWorktree($0) },
+                deleteBranch: { [weak self] in self?.requestDeleteBranch($0) },
+                toggleCollapsed: { [weak self] in self?.toggleSection("worktrees") }, isBusy: model.isBusy)
             addPageItem(worktrees) { [weak worktrees] _ in worktrees?.intrinsicContentSize.height ?? 0 }
         }
     }
@@ -416,56 +448,79 @@ final class GitPanelNSView: NSView {
         if model.totalChangeCount == 0 || merge.count + staged.count + changed.count == 0 {
             let isClean = model.totalChangeCount == 0
             let syncPending = model.ahead > 0 || model.behind > 0
-            cleanState.configure(icon: isClean ? (syncPending ? "arrow.triangle.2.circlepath" : "checkmark.circle") : "line.3.horizontal.decrease",
-                title: isClean ? (syncPending ? String(localized: "Working tree clean, sync is pending") : String(localized: "Working tree clean"))
+            cleanState.configure(
+                icon: isClean ? (syncPending ? "arrow.triangle.2.circlepath" : "checkmark.circle") : "line.3.horizontal.decrease",
+                title: isClean
+                    ? (syncPending ? String(localized: "Working tree clean, sync is pending") : String(localized: "Working tree clean"))
                     : String(localized: "No changed files match “\(filterText)”"), message: "", scale: metrics.fontScale)
             addPageItem(cleanState, inset: 12) { [weak cleanState] width in cleanState?.height(for: width) ?? 0 }
         }
-        configureChangeSection("merge", title: String(localized: "MERGE CHANGES"), entries: merge, kind: .merge,
-                               header: mergeHeader, list: mergeList, actions: [])
-        let stagedActions: [GitPanelSectionAction] = filterText.isEmpty && !isRemote ? [
-            sectionAction("minus", help: String(localized: "Unstage All Changes"), trigger: .unstageAll, action: { [weak self] in self?.boundModel?.unstageAll() })
-        ] : []
-        configureChangeSection("staged", title: String(localized: "STAGED CHANGES"), entries: staged, kind: .staged,
-                               header: stagedHeader, list: stagedList, actions: stagedActions)
-        let changedActions: [GitPanelSectionAction] = filterText.isEmpty && !isRemote ? [
-            GitPanelSectionAction(symbol: "arrow.uturn.backward", help: String(localized: "Discard All Changes"),
-                                  loading: operationIsLoading(.discardAll), enabled: !model.isBusy, action: { [weak self] in self?.requestDiscardAll() }),
-            sectionAction("plus", help: String(localized: "Stage All Changes"), trigger: .stageAll, action: { [weak self] in self?.boundModel?.stageAll() })
-        ] : []
-        configureChangeSection("changes", title: String(localized: "CHANGES"), entries: changed, kind: .unstaged,
-                               header: changesHeader, list: changesList, actions: changedActions)
+        configureChangeSection(
+            "merge", title: String(localized: "MERGE CHANGES"), entries: merge, kind: .merge,
+            header: mergeHeader, list: mergeList, actions: [])
+        let stagedActions: [GitPanelSectionAction] =
+            filterText.isEmpty && !isRemote
+            ? [
+                sectionAction(
+                    "minus", help: String(localized: "Unstage All Changes"), trigger: .unstageAll,
+                    action: { [weak self] in self?.boundModel?.unstageAll() })
+            ] : []
+        configureChangeSection(
+            "staged", title: String(localized: "STAGED CHANGES"), entries: staged, kind: .staged,
+            header: stagedHeader, list: stagedList, actions: stagedActions)
+        let changedActions: [GitPanelSectionAction] =
+            filterText.isEmpty && !isRemote
+            ? [
+                GitPanelSectionAction(
+                    symbol: "arrow.uturn.backward", help: String(localized: "Discard All Changes"),
+                    loading: operationIsLoading(.discardAll), enabled: !model.isBusy, action: { [weak self] in self?.requestDiscardAll() }),
+                sectionAction(
+                    "plus", help: String(localized: "Stage All Changes"), trigger: .stageAll,
+                    action: { [weak self] in self?.boundModel?.stageAll() }),
+            ] : []
+        configureChangeSection(
+            "changes", title: String(localized: "CHANGES"), entries: changed, kind: .unstaged,
+            header: changesHeader, list: changesList, actions: changedActions)
         if filterText.isEmpty, !model.recentCommits.isEmpty {
-            historyHeader.configure(title: String(localized: "RECENT COMMITS"), count: model.recentCommits.count,
-                                    collapsed: collapsed.contains("history"), scale: metrics.fontScale, actions: [],
-                                    toggle: { [weak self] in self?.toggleSection("history") })
+            historyHeader.configure(
+                title: String(localized: "RECENT COMMITS"), count: model.recentCommits.count,
+                collapsed: collapsed.contains("history"), scale: metrics.fontScale, actions: [],
+                toggle: { [weak self] in self?.toggleSection("history") })
             addPageItem(historyHeader, inset: 6) { [weak historyHeader] _ in historyHeader?.requiredHeight ?? 0 }
             if !collapsed.contains("history") {
-                history.configure(commits: model.recentCommits, expandedCommitIDs: expandedCommitIDs,
-                                  fontScale: metrics.fontScale, hasMoreCommits: model.hasMoreRecentCommits,
-                                  isLoadingMore: model.isLoadingMoreCommits)
+                history.configure(
+                    commits: model.recentCommits, expandedCommitIDs: expandedCommitIDs,
+                    fontScale: metrics.fontScale, hasMoreCommits: model.hasMoreRecentCommits,
+                    isLoadingMore: model.isLoadingMoreCommits)
                 addPageItem(history, inset: 6) { [weak history] _ in history?.requiredHeight ?? 0 }
             }
         }
     }
 
-    private func configureChangeSection(_ id: String, title: String, entries: [GitStatusModel.Entry], kind: GitPanelEntryKind,
-                                        header: GitPanelSectionHeaderView, list: GitPanelChangesView, actions: [GitPanelSectionAction]) {
+    private func configureChangeSection(
+        _ id: String, title: String, entries: [GitStatusModel.Entry], kind: GitPanelEntryKind,
+        header: GitPanelSectionHeaderView, list: GitPanelChangesView, actions: [GitPanelSectionAction]
+    ) {
         guard !entries.isEmpty else { return }
-        header.configure(title: title, count: entries.count, collapsed: collapsed.contains(id), scale: metrics.fontScale,
-                         actions: actions, toggle: { [weak self] in self?.toggleSection(id) })
+        header.configure(
+            title: title, count: entries.count, collapsed: collapsed.contains(id), scale: metrics.fontScale,
+            actions: actions, toggle: { [weak self] in self?.toggleSection(id) })
         addPageItem(header, inset: 6) { [weak header] _ in header?.requiredHeight ?? 0 }
         if !collapsed.contains(id) {
-            list.configure(entries: entries, kind: kind, scale: metrics.fontScale, repositoryID: model.repositoryIdentity) { [weak self] entry in
+            list.configure(entries: entries, kind: kind, scale: metrics.fontScale, repositoryID: model.repositoryIdentity) {
+                [weak self] entry in
                 self?.callbacks(for: entry, kind: kind) ?? GitPanelEntryCallbacks()
             }
             addPageItem(list, inset: 6) { [weak list] _ in list?.requiredHeight ?? 0 }
         }
     }
 
-    private func sectionAction(_ symbol: String, help: String, trigger: OperationTrigger, action: @escaping () -> Void) -> GitPanelSectionAction {
-        GitPanelSectionAction(symbol: symbol, help: help, loading: operationIsLoading(trigger), enabled: !model.isBusy,
-                              action: { [weak self] in self?.performOperation(trigger, action) })
+    private func sectionAction(_ symbol: String, help: String, trigger: OperationTrigger, action: @escaping () -> Void)
+        -> GitPanelSectionAction
+    {
+        GitPanelSectionAction(
+            symbol: symbol, help: help, loading: operationIsLoading(trigger), enabled: !model.isBusy,
+            action: { [weak self] in self?.performOperation(trigger, action) })
     }
 
     private func callbacks(for entry: GitStatusModel.Entry, kind: GitPanelEntryKind) -> GitPanelEntryCallbacks {
@@ -473,8 +528,10 @@ final class GitPanelNSView: NSView {
         let unstage = OperationTrigger.entry(path: entry.path, operation: .unstage)
         let discard = OperationTrigger.entry(path: entry.path, operation: .discard)
         let snapshot = isRemote ? nil : entry.reviewSnapshot(staged: kind == .staged)
-        return GitPanelEntryCallbacks(absolutePath: model.absolutePath(for: entry), isRemote: isRemote, disabled: model.isBusy || isRemote,
-            stageLoading: operationIsLoading(stage), unstageLoading: operationIsLoading(unstage), discardLoading: operationIsLoading(discard),
+        return GitPanelEntryCallbacks(
+            absolutePath: model.absolutePath(for: entry), isRemote: isRemote, disabled: model.isBusy || isRemote,
+            stageLoading: operationIsLoading(stage), unstageLoading: operationIsLoading(unstage),
+            discardLoading: operationIsLoading(discard),
             reviewState: snapshot.map { DiffReviewStore.shared.isReviewed($0) ? .reviewed : .unreviewed },
             openDiff: { [weak self] in
                 guard let self, !self.isRemote, self.model.isCurrent(entry) else { return }
@@ -483,16 +540,23 @@ final class GitPanelNSView: NSView {
                 self.openDiff?(diffEntry, kind == .staged)
             }, openFile: { [weak self] in self?.openIfPossible(entry) },
             openToSide: { [weak self] in self?.openIfPossible(entry, toSide: true) },
-            stage: { [weak self] in guard let self else { return }; self.performOperation(stage) { self.model.stage(entry) } },
-            unstage: { [weak self] in guard let self else { return }; self.performOperation(unstage) { self.model.unstage(entry) } },
+            stage: { [weak self] in
+                guard let self else { return }; self.performOperation(stage) { self.model.stage(entry) }
+            },
+            unstage: { [weak self] in
+                guard let self else { return }; self.performOperation(unstage) { self.model.unstage(entry) }
+            },
             discard: { [weak self] in self?.requestDiscard(entry) },
             toggleReview: {
                 guard let snapshot else { return }
                 DiffReviewStore.shared.setReviewed(!DiffReviewStore.shared.isReviewed(snapshot), for: snapshot)
-            }, insertInTerminal: session == nil ? nil : { [weak self] in
-                guard let self, self.model.isCurrent(entry) else { return }
-                self.session?.sendCommand(self.shellQuoted(self.model.absolutePath(for: entry)) + " ")
-            })
+            },
+            insertInTerminal: session == nil
+                ? nil
+                : { [weak self] in
+                    guard let self, self.model.isCurrent(entry) else { return }
+                    self.session?.sendCommand(self.shellQuoted(self.model.absolutePath(for: entry)) + " ")
+                })
     }
 
     private func openIfPossible(_ entry: GitStatusModel.Entry, toSide: Bool = false) {
@@ -550,8 +614,11 @@ private extension GitPanelNSView {
         return title
     }
     var commitButtonTitle: String {
-        model.stagedEntries.isEmpty ? String(localized: "Commit Staged")
-            : String(localized: "Commit \(model.stagedEntries.count) Staged Files", comment: "Commit button title. The placeholder is the number of staged files.")
+        model.stagedEntries.isEmpty
+            ? String(localized: "Commit Staged")
+            : String(
+                localized: "Commit \(model.stagedEntries.count) Staged Files",
+                comment: "Commit button title. The placeholder is the number of staged files.")
     }
 
     func canCommit(includeAll: Bool) -> Bool {
@@ -574,7 +641,8 @@ private extension GitPanelNSView {
         performOperation(trigger) {
             model.commit(message: submittedMessage, includeAll: includeAll, amend: amend) { [weak self] success in
                 guard let self, success, self.boundModel === submittedModel,
-                      self.model.repositoryIdentity == repository, self.commitMessage == submittedMessage else { return }
+                    self.model.repositoryIdentity == repository, self.commitMessage == submittedMessage
+                else { return }
                 self.commitMessage = ""
                 self.refresh()
             }
@@ -607,9 +675,15 @@ private extension GitPanelNSView {
             menu.addItem(item)
         }
         if !filteredBranches.isEmpty { menu.addItem(.separator()) }
-        menu.addItem(menuItem(String(localized: "Create Worktree…"), enabled: !model.isBusy && !filteredBranches.isEmpty) { [weak self] in self?.presentCreateWorktreeDialog() })
+        menu.addItem(
+            menuItem(String(localized: "Create Worktree…"), enabled: !model.isBusy && !filteredBranches.isEmpty) { [weak self] in
+                self?.presentCreateWorktreeDialog()
+            })
         if let branch = model.branch, branch != "detached HEAD" {
-            menu.addItem(menuItem(String(localized: "Delete Current Branch…"), enabled: !model.isBusy) { [weak self] in self?.requestDeleteBranch(branch) })
+            menu.addItem(
+                menuItem(String(localized: "Delete Current Branch…"), enabled: !model.isBusy) { [weak self] in
+                    self?.requestDeleteBranch(branch)
+                })
         }
         let delete = NSMenu()
         if filteredBranches.isEmpty {
@@ -623,72 +697,103 @@ private extension GitPanelNSView {
         deleteItem.submenu = delete
         menu.addItem(deleteItem)
         menu.addItem(.separator())
-        menu.addItem(menuItem(String(localized: "Create New Branch…"), enabled: !model.isBusy) { [weak self] in self?.presentCreateBranchDialog() })
+        menu.addItem(
+            menuItem(String(localized: "Create New Branch…"), enabled: !model.isBusy) { [weak self] in self?.presentCreateBranchDialog() })
         showMenu(menu, relativeTo: button)
     }
 
     func showMoreMenu(relativeTo button: NSButton) {
         guard !isRemote else { return }
         let menu = NSMenu()
-        menu.addItem(menuItem(String(localized: "Fetch"), enabled: !model.isBusy && !model.remotes.isEmpty) { [weak self] in
-            guard let self else { return }; self.performOperation(.moreMenu, self.model.fetch)
-        })
-        menu.addItem(menuItem(String(localized: "Pull (Fast-forward Only)"), enabled: !model.isBusy && model.hasUpstream) { [weak self] in
-            guard let self else { return }; self.performOperation(.moreMenu, self.model.pull)
-        })
-        if model.hasUpstream {
-            menu.addItem(menuItem(String(localized: "Push"), enabled: !model.isBusy) { [weak self] in
-                guard let self else { return }; self.performOperation(.moreMenu, self.model.push)
+        menu.addItem(
+            menuItem(String(localized: "Fetch"), enabled: !model.isBusy && !model.remotes.isEmpty) { [weak self] in
+                guard let self else { return }; self.performOperation(.moreMenu, self.model.fetch)
             })
+        menu.addItem(
+            menuItem(String(localized: "Pull (Fast-forward Only)"), enabled: !model.isBusy && model.hasUpstream) { [weak self] in
+                guard let self else { return }; self.performOperation(.moreMenu, self.model.pull)
+            })
+        if model.hasUpstream {
+            menu.addItem(
+                menuItem(String(localized: "Push"), enabled: !model.isBusy) { [weak self] in
+                    guard let self else { return }; self.performOperation(.moreMenu, self.model.push)
+                })
         } else if model.remotes.count > 1 {
             let publish = NSMenu()
             for remote in model.remotes {
-                publish.addItem(menuItem(remote, enabled: !model.isBusy && model.branch != "detached HEAD") { [weak self] in
-                    guard let self else { return }; self.performOperation(.moreMenu) { self.model.publish(to: remote) }
-                })
+                publish.addItem(
+                    menuItem(remote, enabled: !model.isBusy && model.branch != "detached HEAD") { [weak self] in
+                        guard let self else { return }; self.performOperation(.moreMenu) { self.model.publish(to: remote) }
+                    })
             }
             let item = NSMenuItem(title: String(localized: "Publish Branch to"), action: nil, keyEquivalent: "")
             item.submenu = publish
             menu.addItem(item)
         } else {
-            menu.addItem(menuItem(String(localized: "Publish Branch"), enabled: !model.isBusy && !model.remotes.isEmpty && model.branch != "detached HEAD") { [weak self] in
-                guard let self else { return }; self.performOperation(.moreMenu, self.model.push)
-            })
+            menu.addItem(
+                menuItem(
+                    String(localized: "Publish Branch"), enabled: !model.isBusy && !model.remotes.isEmpty && model.branch != "detached HEAD"
+                ) { [weak self] in
+                    guard let self else { return }; self.performOperation(.moreMenu, self.model.push)
+                })
         }
-        menu.addItem(menuItem(String(localized: "Sync Changes"), enabled: !model.isBusy && !model.remotes.isEmpty
-            && (model.hasUpstream || model.remotes.count == 1) && model.branch != "detached HEAD") { [weak self] in
-            guard let self else { return }; self.performOperation(.moreMenu, self.model.syncChanges)
-        })
+        menu.addItem(
+            menuItem(
+                String(localized: "Sync Changes"),
+                enabled: !model.isBusy && !model.remotes.isEmpty
+                    && (model.hasUpstream || model.remotes.count == 1) && model.branch != "detached HEAD"
+            ) { [weak self] in
+                guard let self else { return }; self.performOperation(.moreMenu, self.model.syncChanges)
+            })
         menu.addItem(.separator())
-        menu.addItem(menuItem(String(localized: "Stash All Changes"), enabled: !model.isBusy && model.totalChangeCount > 0) { [weak self] in
-            guard let self else { return }; self.performOperation(.moreMenu) { self.model.stash(includeUntracked: true) }
-        })
-        menu.addItem(menuItem(model.stashCount == 1 ? String(localized: "Pop Stash") : String(localized: "Pop Stash (\(model.stashCount))"),
-                              enabled: !model.isBusy && model.stashCount > 0) { [weak self] in
-            guard let self else { return }; self.performOperation(.moreMenu, self.model.stashPop)
-        })
+        menu.addItem(
+            menuItem(String(localized: "Stash All Changes"), enabled: !model.isBusy && model.totalChangeCount > 0) { [weak self] in
+                guard let self else { return }; self.performOperation(.moreMenu) { self.model.stash(includeUntracked: true) }
+            })
+        menu.addItem(
+            menuItem(
+                model.stashCount == 1 ? String(localized: "Pop Stash") : String(localized: "Pop Stash (\(model.stashCount))"),
+                enabled: !model.isBusy && model.stashCount > 0
+            ) { [weak self] in
+                guard let self else { return }; self.performOperation(.moreMenu, self.model.stashPop)
+            })
         menu.addItem(.separator())
-        menu.addItem(menuItem(String(localized: "Copy Changed Paths"), enabled: model.totalChangeCount > 0) { [weak self] in
-            guard let self else { return }
-            let paths = Set((self.model.mergeEntries + self.model.stagedEntries + self.model.changedEntries).map(\.path)).sorted()
-            Self.copyToPasteboard(paths.joined(separator: "\n"))
-        })
-        menu.addItem(menuItem(String(localized: "Copy Repository Path")) { [weak self] in
-            guard let self else { return }; Self.copyToPasteboard(self.model.repoRoot)
-        })
-        menu.addItem(menuItem(String(localized: "Reveal Repository in Finder")) { [weak self] in
-            guard let self else { return }; NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: self.model.repoRoot)])
-        })
+        menu.addItem(
+            menuItem(String(localized: "Copy Changed Paths"), enabled: model.totalChangeCount > 0) { [weak self] in
+                guard let self else { return }
+                let paths = Set((self.model.mergeEntries + self.model.stagedEntries + self.model.changedEntries).map(\.path)).sorted()
+                Self.copyToPasteboard(paths.joined(separator: "\n"))
+            })
+        menu.addItem(
+            menuItem(String(localized: "Copy Repository Path")) { [weak self] in
+                guard let self else { return }; Self.copyToPasteboard(self.model.repoRoot)
+            })
+        menu.addItem(
+            menuItem(String(localized: "Reveal Repository in Finder")) { [weak self] in
+                guard let self else { return }; NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: self.model.repoRoot)])
+            })
         showMenu(menu, relativeTo: button)
     }
 
     func makeCommitMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(menuItem(String(localized: "Commit Staged"), enabled: canCommit(includeAll: false)) { [weak self] in self?.performCommit(includeAll: false, trigger: .commitMenu) })
-        menu.addItem(menuItem(String(localized: "Stage All & Commit"), enabled: canCommit(includeAll: true)) { [weak self] in self?.performCommit(includeAll: true, trigger: .commitMenu) })
+        menu.addItem(
+            menuItem(String(localized: "Commit Staged"), enabled: canCommit(includeAll: false)) { [weak self] in
+                self?.performCommit(includeAll: false, trigger: .commitMenu)
+            })
+        menu.addItem(
+            menuItem(String(localized: "Stage All & Commit"), enabled: canCommit(includeAll: true)) { [weak self] in
+                self?.performCommit(includeAll: true, trigger: .commitMenu)
+            })
         menu.addItem(.separator())
-        menu.addItem(menuItem(String(localized: "Amend Last Commit"), enabled: canAmend(includeAll: false)) { [weak self] in self?.performCommit(includeAll: false, amend: true, trigger: .commitMenu) })
-        menu.addItem(menuItem(String(localized: "Stage All & Amend"), enabled: canAmend(includeAll: true)) { [weak self] in self?.performCommit(includeAll: true, amend: true, trigger: .commitMenu) })
+        menu.addItem(
+            menuItem(String(localized: "Amend Last Commit"), enabled: canAmend(includeAll: false)) { [weak self] in
+                self?.performCommit(includeAll: false, amend: true, trigger: .commitMenu)
+            })
+        menu.addItem(
+            menuItem(String(localized: "Stage All & Amend"), enabled: canAmend(includeAll: true)) { [weak self] in
+                self?.performCommit(includeAll: true, amend: true, trigger: .commitMenu)
+            })
         return menu
     }
 
@@ -777,8 +882,9 @@ private extension GitPanelNSView {
         alert.addButton(withTitle: String(localized: "Cancel"))
         presentAlert(alert) { [weak self] response in
             guard let self, response == .alertFirstButtonReturn, !self.model.isBusy,
-                  let branch = picker.titleOfSelectedItem,
-                  let host = AppWindowPresentation.hostWindow(relativeTo: self.window) else { return }
+                let branch = picker.titleOfSelectedItem,
+                let host = AppWindowPresentation.hostWindow(relativeTo: self.window)
+            else { return }
             let panel = NSSavePanel()
             panel.title = String(localized: "Choose Worktree Directory")
             panel.nameFieldStringValue = branch.replacingOccurrences(of: "/", with: "-")
@@ -791,7 +897,8 @@ private extension GitPanelNSView {
                 guard let self, self.activeSheet === panel else { return }
                 self.activeSheet = nil
                 guard result == .OK, let url = panel.url, self.model.repositoryIdentity == repository,
-                      self.model.rootPath == root else { return }
+                    self.model.rootPath == root
+                else { return }
                 self.performOperation(.worktree) { self.model.createWorktree(at: url.path, forBranch: branch) }
             }
         }
@@ -799,17 +906,24 @@ private extension GitPanelNSView {
 
     func requestRemoveWorktree(_ worktree: GitStatusModel.Worktree) {
         guard !worktree.isCurrent, !worktree.isBare else { return }
-        confirm(title: String(localized: "Remove Worktree?"),
-                message: String(localized: "Remove the worktree at \(worktree.path)? Git will keep its branch."),
-                actionTitle: String(localized: "Remove Worktree")) { [weak self] in
+        confirm(
+            title: String(localized: "Remove Worktree?"),
+            message: String(localized: "Remove the worktree at \(worktree.path)? Git will keep its branch."),
+            actionTitle: String(localized: "Remove Worktree")
+        ) { [weak self] in
             guard let self else { return }; self.performOperation(.worktree) { self.model.removeWorktree(worktree) }
         }
     }
 
     func requestDeleteBranch(_ branch: String) {
-        confirm(title: String(localized: "Delete Branch?"),
-                message: String(localized: "Delete \(branch) even if it has unmerged commits? Its commits will be backed up, and local changes including untracked files will be stashed."),
-                actionTitle: String(localized: "Delete Branch")) { [weak self] in
+        confirm(
+            title: String(localized: "Delete Branch?"),
+            message: String(
+                localized:
+                    "Delete \(branch) even if it has unmerged commits? Its commits will be backed up, and local changes including untracked files will be stashed."
+            ),
+            actionTitle: String(localized: "Delete Branch")
+        ) { [weak self] in
             guard let self else { return }; self.performOperation(.branchMenu) { self.model.deleteBranch(named: branch) }
         }
     }
@@ -821,31 +935,44 @@ private extension GitPanelNSView {
             guard let self else { return }
             if self.discardSnapshotIsCurrent(pending) {
                 self.performOperation(.entry(path: entry.path, operation: .discard)) { self.model.discard(entry) }
-            } else { self.model.cancelStaleDiscard() }
+            } else {
+                self.model.cancelStaleDiscard()
+            }
         }
     }
 
     func requestDiscardAll() {
         let pending = model.changedEntries.map(makePendingDiscard)
         guard !pending.isEmpty else { return }
-        confirm(title: String(localized: "Discard the \(pending.count) reviewed changes? Untracked and moved files go to the Trash."),
-                actionTitle: String(localized: "Discard All Changes")) { [weak self] in
+        confirm(
+            title: String(localized: "Discard the \(pending.count) reviewed changes? Untracked and moved files go to the Trash."),
+            actionTitle: String(localized: "Discard All Changes")
+        ) { [weak self] in
             guard let self else { return }
             if pending.allSatisfy(self.discardSnapshotIsCurrent) {
                 self.performOperation(.discardAll) { self.model.discardChanges(pending.map(\.entry)) }
-            } else { self.model.cancelStaleDiscard() }
+            } else {
+                self.model.cancelStaleDiscard()
+            }
         }
     }
 
     func discardTitle(for entry: GitStatusModel.Entry) -> String {
         if entry.isUntracked {
-            return String(localized: "Delete \(entry.fileName)? Its contents will move to the Trash.", comment: "Discard confirmation. The placeholder is an untracked file name.")
+            return String(
+                localized: "Delete \(entry.fileName)? Its contents will move to the Trash.",
+                comment: "Discard confirmation. The placeholder is an untracked file name.")
         }
         if entry.isWorktreeRename, let original = entry.origPath {
-            return String(localized: "Undo this rename? \(entry.fileName) will move to the Trash and \((original as NSString).lastPathComponent) will be restored.", comment: "Rename discard confirmation. The placeholders are the new and old file names.")
+            return String(
+                localized:
+                    "Undo this rename? \(entry.fileName) will move to the Trash and \((original as NSString).lastPathComponent) will be restored.",
+                comment: "Rename discard confirmation. The placeholders are the new and old file names.")
         }
         if entry.isWorktreeCopy {
-            return String(localized: "Discard this copy? \(entry.fileName) will move to the Trash.", comment: "Copy discard confirmation. The placeholder is a file name.")
+            return String(
+                localized: "Discard this copy? \(entry.fileName) will move to the Trash.",
+                comment: "Copy discard confirmation. The placeholder is a file name.")
         }
         return String(localized: "Discard changes in \(entry.fileName)?", comment: "Discard confirmation. The placeholder is a file name.")
     }
@@ -858,14 +985,18 @@ private extension GitPanelNSView {
     private func makePendingDiscard(_ entry: GitStatusModel.Entry) -> PendingDiscard {
         var paths = [entry.path]
         if entry.isWorktreeRename, let original = entry.origPath { paths.append(original) }
-        return PendingDiscard(entry: entry, fingerprints: Dictionary(uniqueKeysWithValues: paths.map { path in
-            (path, fileFingerprint(at: absolutePath(path, for: entry)))
-        }), branch: model.branch, headOID: model.headOID)
+        return PendingDiscard(
+            entry: entry,
+            fingerprints: Dictionary(
+                uniqueKeysWithValues: paths.map { path in
+                    (path, fileFingerprint(at: absolutePath(path, for: entry)))
+                }), branch: model.branch, headOID: model.headOID)
     }
 
     private func discardSnapshotIsCurrent(_ pending: PendingDiscard) -> Bool {
         model.isCurrent(pending.entry) && model.branch == pending.branch && model.headOID == pending.headOID
-            && model.changedEntries.contains(pending.entry) && pending.fingerprints.allSatisfy { path, fingerprint in
+            && model.changedEntries.contains(pending.entry)
+            && pending.fingerprints.allSatisfy { path, fingerprint in
                 fileFingerprint(at: absolutePath(path, for: pending.entry)) == fingerprint
             }
     }
@@ -881,10 +1012,11 @@ private extension GitPanelNSView {
             return FileFingerprint(exists: false, size: 0, modificationDate: nil, fileNumber: nil, symbolicLinkDestination: nil)
         }
         let attributes = try? fm.attributesOfItem(atPath: path)
-        return FileFingerprint(exists: true, size: (attributes?[.size] as? NSNumber)?.uint64Value ?? 0,
-                               modificationDate: attributes?[.modificationDate] as? Date,
-                               fileNumber: (attributes?[.systemFileNumber] as? NSNumber)?.uint64Value,
-                               symbolicLinkDestination: destination)
+        return FileFingerprint(
+            exists: true, size: (attributes?[.size] as? NSNumber)?.uint64Value ?? 0,
+            modificationDate: attributes?[.modificationDate] as? Date,
+            fileNumber: (attributes?[.systemFileNumber] as? NSNumber)?.uint64Value,
+            symbolicLinkDestination: destination)
     }
 
     static func copyToPasteboard(_ text: String) {
@@ -942,12 +1074,17 @@ private final class GitPanelButton: NSButton {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func configure(symbol: String, title: String = "", help: String, scale: CGFloat,
-                   enabled: Bool = true, loading: Bool = false, primary: Bool = false) {
+    func configure(
+        symbol: String, title: String = "", help: String, scale: CGFloat,
+        enabled: Bool = true, loading: Bool = false, primary: Bool = false
+    ) {
         self.title = title
         font = .systemFont(ofSize: 11 * scale, weight: .medium)
-        image = loading ? nil : NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
-            .withSymbolConfiguration(.init(pointSize: 10 * scale, weight: .medium))
+        image =
+            loading
+            ? nil
+            : NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+                .withSymbolConfiguration(.init(pointSize: 10 * scale, weight: .medium))
         imagePosition = title.isEmpty ? .imageOnly : .imageLeading
         contentTintColor = primary ? .white : .secondaryLabelColor
         isEnabled = enabled
@@ -966,8 +1103,9 @@ private final class GitPanelButton: NSButton {
     override func layout() {
         super.layout()
         let size = min(16, bounds.height)
-        spinner.frame = NSRect(x: title.isEmpty ? (bounds.width - size) / 2 : 7,
-                               y: (bounds.height - size) / 2, width: size, height: size)
+        spinner.frame = NSRect(
+            x: title.isEmpty ? (bounds.width - size) / 2 : 7,
+            y: (bounds.height - size) / 2, width: size, height: size)
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? { super.hitTest(point) == nil ? nil : self }
@@ -1007,19 +1145,26 @@ private final class GitPanelHeaderView: NSView {
         resolving.isDisplayedWhenStopped = false
         resolving.setAccessibilityLabel(String(localized: "Refreshing Git status"))
         for view in [branchButton, refreshButton, moreButton, resolving] { addSubview(view) }
-        branchButton.onAction = { [weak self] in guard let self else { return }; self.onBranchMenu?(self.branchButton) }
-        moreButton.onAction = { [weak self] in guard let self else { return }; self.onMoreMenu?(self.moreButton) }
+        branchButton.onAction = { [weak self] in
+            guard let self else { return }; self.onBranchMenu?(self.branchButton)
+        }
+        moreButton.onAction = { [weak self] in
+            guard let self else { return }; self.onMoreMenu?(self.moreButton)
+        }
         refreshButton.onAction = { [weak self] in self?.onRefresh?() }
         setAccessibilityElement(false)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func configure(branch: String, rootPath: String, scale: CGFloat, isRepo: Bool, isRemote: Bool,
-                   isBusy: Bool, isResolving: Bool, branchLoading: Bool, moreLoading: Bool) {
+    func configure(
+        branch: String, rootPath: String, scale: CGFloat, isRepo: Bool, isRemote: Bool,
+        isBusy: Bool, isResolving: Bool, branchLoading: Bool, moreLoading: Bool
+    ) {
         metrics = SidebarLayoutMetrics(fontScale: scale)
-        branchButton.configure(symbol: "arrow.triangle.branch", help: String(localized: "Switch or Create Branch"), scale: scale,
-                               enabled: isRepo && !isRemote && !isBusy, loading: branchLoading)
+        branchButton.configure(
+            symbol: "arrow.triangle.branch", help: String(localized: "Switch or Create Branch"), scale: scale,
+            enabled: isRepo && !isRemote && !isBusy, loading: branchLoading)
         branchButton.imagePosition = .imageLeading
         branchButton.alignment = .left
         branchButton.contentTintColor = Theme.accent
@@ -1030,8 +1175,9 @@ private final class GitPanelHeaderView: NSView {
         pathLabel.stringValue = rootPath
         pathLabel.font = .systemFont(ofSize: 10 * scale)
         pathLabel.textColor = .secondaryLabelColor
-        refreshButton.configure(symbol: "arrow.clockwise", help: String(localized: "Refresh Git Status"), scale: scale,
-                                enabled: !isBusy && !isResolving)
+        refreshButton.configure(
+            symbol: "arrow.clockwise", help: String(localized: "Refresh Git Status"), scale: scale,
+            enabled: !isBusy && !isResolving)
         moreButton.configure(symbol: "ellipsis", help: String(localized: "More Git Actions"), scale: scale, loading: moreLoading)
         refreshButton.isHidden = !isRepo
         moreButton.isHidden = !isRepo || isRemote
@@ -1076,10 +1222,12 @@ private final class GitPanelTrackingView: NSView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     func configure(branch: String, upstream: String?, hasUpstream: Bool, ahead: Int, behind: Int, scale: CGFloat) {
         self.scale = scale
-        imageView.image = NSImage(systemSymbolName: hasUpstream ? "arrow.triangle.2.circlepath" : "icloud.slash", accessibilityDescription: nil)?
+        imageView.image = NSImage(
+            systemSymbolName: hasUpstream ? "arrow.triangle.2.circlepath" : "icloud.slash", accessibilityDescription: nil)?
             .withSymbolConfiguration(.init(pointSize: 9 * scale, weight: .medium))
         imageView.contentTintColor = .secondaryLabelColor
-        label.stringValue = upstream ?? (branch == "detached HEAD" ? String(localized: "Detached HEAD") : String(localized: "Unpublished branch"))
+        label.stringValue =
+            upstream ?? (branch == "detached HEAD" ? String(localized: "Detached HEAD") : String(localized: "Unpublished branch"))
         label.font = .systemFont(ofSize: 9.5 * scale)
         label.textColor = .secondaryLabelColor
         for badge in [incoming, outgoing] {
@@ -1106,8 +1254,9 @@ private final class GitPanelTrackingView: NSView {
         let icon = ceil(12 * max(1, scale))
         imageView.frame = NSRect(x: 12, y: (bounds.height - icon) / 2, width: icon, height: icon)
         let labelHeight = ceil(label.intrinsicContentSize.height)
-        label.frame = NSRect(x: 17 + icon, y: (bounds.height - labelHeight) / 2,
-                             width: max(0, trailing - icon - 17), height: labelHeight)
+        label.frame = NSRect(
+            x: 17 + icon, y: (bounds.height - labelHeight) / 2,
+            width: max(0, trailing - icon - 17), height: labelHeight)
     }
 }
 
@@ -1137,8 +1286,10 @@ final class GitPanelSectionHeaderView: NSView {
         setAccessibilityElement(false)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    func configure(title: String, count: Int, collapsed: Bool, scale: CGFloat,
-                   actions: [GitPanelSectionAction], toggle: @escaping () -> Void) {
+    func configure(
+        title: String, count: Int, collapsed: Bool, scale: CGFloat,
+        actions: [GitPanelSectionAction], toggle: @escaping () -> Void
+    ) {
         metrics = SidebarLayoutMetrics(fontScale: scale)
         self.toggle.configure(symbol: collapsed ? "chevron.right" : "chevron.down", title: title, help: title, scale: scale)
         self.toggle.font = .systemFont(ofSize: 9.5 * scale, weight: .medium)
@@ -1175,8 +1326,7 @@ final class GitPanelSectionHeaderView: NSView {
 private final class GitPanelCommitTextView: NSTextView {
     var onCommit: (() -> Void)?
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 36 && event.modifierFlags.contains(.command) { onCommit?() }
-        else { super.keyDown(with: event) }
+        if event.keyCode == 36 && event.modifierFlags.contains(.command) { onCommit?() } else { super.keyDown(with: event) }
     }
 }
 
@@ -1240,15 +1390,19 @@ private final class GitPanelCommitView: NSView, NSTextViewDelegate {
         fieldBackground.layer?.cornerRadius = 6
         for view in [fieldBackground, textView, placeholder, commit, options, sync] { addSubview(view) }
         commit.onAction = { [weak self] in self?.onCommit?() }
-        options.onAction = { [weak self] in guard let self else { return }; self.onMenu?(self.options) }
+        options.onAction = { [weak self] in
+            guard let self else { return }; self.onMenu?(self.options)
+        }
         sync.onAction = { [weak self] in self?.onSync?() }
         setAccessibilityElement(false)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func configure(message: String, placeholder: String, scale: CGFloat, commitTitle: String, canCommit: Bool,
-                   showCommit: Bool, commitLoading: Bool, menuLoading: Bool,
-                   showSync: Bool, syncTitle: String, syncEnabled: Bool, syncLoading: Bool) {
+    func configure(
+        message: String, placeholder: String, scale: CGFloat, commitTitle: String, canCommit: Bool,
+        showCommit: Bool, commitLoading: Bool, menuLoading: Bool,
+        showSync: Bool, syncTitle: String, syncEnabled: Bool, syncLoading: Bool
+    ) {
         metrics = SidebarLayoutMetrics(fontScale: scale)
         if textView.string != message {
             textView.string = message
@@ -1266,13 +1420,15 @@ private final class GitPanelCommitView: NSView, NSTextViewDelegate {
         commit.isHidden = !showCommit
         options.isHidden = !showCommit
         sync.isHidden = !showSync
-        commit.configure(symbol: "checkmark", title: commitTitle, help: String(localized: "Commit staged changes (⌘Return)"),
-                         scale: scale, enabled: canCommit, loading: commitLoading, primary: true)
+        commit.configure(
+            symbol: "checkmark", title: commitTitle, help: String(localized: "Commit staged changes (⌘Return)"),
+            scale: scale, enabled: canCommit, loading: commitLoading, primary: true)
         commit.imagePosition = .imageRight
         commit.alignment = commitLoading ? .center : .left
         options.configure(symbol: "chevron.down", help: String(localized: "Commit Options"), scale: scale, loading: menuLoading)
-        sync.configure(symbol: "arrow.triangle.2.circlepath", title: syncTitle, help: String(localized: "Pull remote commits, then push local ones"),
-                       scale: scale, enabled: syncEnabled, loading: syncLoading, primary: true)
+        sync.configure(
+            symbol: "arrow.triangle.2.circlepath", title: syncTitle, help: String(localized: "Pull remote commits, then push local ones"),
+            scale: scale, enabled: syncEnabled, loading: syncLoading, primary: true)
         needsLayout = true
     }
 
@@ -1294,7 +1450,8 @@ private final class GitPanelCommitView: NSView, NSTextViewDelegate {
         let height = fieldHeight(for: bounds.width)
         fieldBackground.frame = NSRect(x: 0, y: 0, width: bounds.width, height: height)
         textView.frame = NSRect(x: 8, y: 6, width: max(0, bounds.width - 16), height: height - 12)
-        placeholder.frame = NSRect(x: 8, y: 6, width: max(0, bounds.width - 16), height: metrics.lineHeight(designedFontSize: 11.5, minimum: 15))
+        placeholder.frame = NSRect(
+            x: 8, y: 6, width: max(0, bounds.width - 16), height: metrics.lineHeight(designedFontSize: 11.5, minimum: 15))
         var y = height + 6
         if showsCommit {
             let menuWidth = metrics.slotSize(24)
@@ -1311,8 +1468,11 @@ private final class GitPanelCommitView: NSView, NSTextViewDelegate {
 }
 
 private func gitPanelTextHeight(_ text: String, font: NSFont, width: CGFloat) -> CGFloat {
-    ceil((text as NSString).boundingRect(with: NSSize(width: max(1, width), height: .greatestFiniteMagnitude),
-        options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [.font: font]).height)
+    ceil(
+        (text as NSString).boundingRect(
+            with: NSSize(width: max(1, width), height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [.font: font]
+        ).height)
 }
 
 private final class GitPanelMessageView: NSView {
@@ -1390,8 +1550,9 @@ private final class GitPanelFailureView: NSView {
         output.font = .monospacedSystemFont(ofSize: 9 * scale, weight: .regular)
         output.textColor = .secondaryLabelColor
         output.isHidden = !isExpanded
-        toggle.configure(symbol: isExpanded ? "chevron.down" : "chevron.right",
-                         help: isExpanded ? String(localized: "Hide Git Output") : String(localized: "Show Git Output"), scale: scale)
+        toggle.configure(
+            symbol: isExpanded ? "chevron.down" : "chevron.right",
+            help: isExpanded ? String(localized: "Hide Git Output") : String(localized: "Show Git Output"), scale: scale)
         toggle.isHidden = operation.output.isEmpty
         dismiss.configure(symbol: "xmark", help: String(localized: "Dismiss Git Error"), scale: scale)
         layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.08).cgColor
@@ -1406,7 +1567,8 @@ private final class GitPanelFailureView: NSView {
         let slot = ceil(18 * max(1, scale))
         dismiss.frame = NSRect(x: bounds.width - slot - 6, y: 6, width: slot, height: titleHeight)
         toggle.frame = NSRect(x: dismiss.frame.minX - slot, y: 6, width: slot, height: titleHeight)
-        title.frame = NSRect(x: 8, y: 6, width: max(0, (toggle.isHidden ? dismiss.frame.minX : toggle.frame.minX) - 12), height: titleHeight)
+        title.frame = NSRect(
+            x: 8, y: 6, width: max(0, (toggle.isHidden ? dismiss.frame.minX : toggle.frame.minX) - 12), height: titleHeight)
         output.frame = NSRect(x: 8, y: titleHeight + 12, width: max(0, bounds.width - 16), height: max(0, bounds.height - titleHeight - 18))
     }
 }
@@ -1428,8 +1590,10 @@ private final class GitPanelPlaceholderView: NSView {
         for view in [icon, title, detail, button] { addSubview(view) }
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    func configure(icon: String, title: String, message: String, scale: CGFloat, actionTitle: String? = nil,
-                   enabled: Bool = true, loading: Bool = false, action: (() -> Void)? = nil) {
+    func configure(
+        icon: String, title: String, message: String, scale: CGFloat, actionTitle: String? = nil,
+        enabled: Bool = true, loading: Bool = false, action: (() -> Void)? = nil
+    ) {
         self.scale = scale
         self.icon.image = NSImage(systemSymbolName: icon, accessibilityDescription: nil)?
             .withSymbolConfiguration(.init(pointSize: 24 * scale, weight: .light))
@@ -1443,8 +1607,9 @@ private final class GitPanelPlaceholderView: NSView {
         detail.isHidden = message.isEmpty
         hasAction = actionTitle != nil
         button.isHidden = !hasAction
-        button.configure(symbol: "", title: actionTitle ?? "", help: actionTitle ?? "", scale: scale,
-                         enabled: enabled, loading: loading)
+        button.configure(
+            symbol: "", title: actionTitle ?? "", help: actionTitle ?? "", scale: scale,
+            enabled: enabled, loading: loading)
         button.bezelStyle = .rounded
         button.isBordered = true
         button.onAction = action
@@ -1523,10 +1688,13 @@ final class GitPanelChangesView: NSView, NSTableViewDataSource, NSTableViewDeleg
         setAccessibilityElement(false)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    func configure(entries: [GitStatusModel.Entry], kind: GitPanelEntryKind, scale: CGFloat, repositoryID: String,
-                   callbacks: @escaping (GitStatusModel.Entry) -> GitPanelEntryCallbacks) {
+    func configure(
+        entries: [GitStatusModel.Entry], kind: GitPanelEntryKind, scale: CGFloat, repositoryID: String,
+        callbacks: @escaping (GitStatusModel.Entry) -> GitPanelEntryCallbacks
+    ) {
         let metrics = SidebarLayoutMetrics(fontScale: scale)
-        let selectedPath = tableView.selectedRow >= 0 && tableView.selectedRow < self.entries.count
+        let selectedPath =
+            tableView.selectedRow >= 0 && tableView.selectedRow < self.entries.count
             ? self.entries[tableView.selectedRow].path : nil
         let changedRepository = self.repositoryID != repositoryID
         let reload = self.entries != entries || self.kind != kind || self.metrics.fontScale != metrics.fontScale
@@ -1538,8 +1706,11 @@ final class GitPanelChangesView: NSView, NSTableViewDataSource, NSTableViewDeleg
         tableView.rowHeight = metrics.lineHeight(designedFontSize: 11.5, minimum: 16) + 6
         if reload { tableView.reloadData() }
         let selected = changedRepository ? nil : selectedPath.flatMap { path in entries.firstIndex { $0.path == path } }
-        if let selected { tableView.selectRowIndexes(IndexSet(integer: selected), byExtendingSelection: false) }
-        else { tableView.deselectAll(nil) }
+        if let selected {
+            tableView.selectRowIndexes(IndexSet(integer: selected), byExtendingSelection: false)
+        } else {
+            tableView.deselectAll(nil)
+        }
         updateVisibleRows()
         needsLayout = true
     }
@@ -1572,8 +1743,10 @@ final class GitPanelChangesView: NSView, NSTableViewDataSource, NSTableViewDeleg
     private func updateVisibleRows() {
         let range = tableView.rows(in: tableView.visibleRect)
         guard range.location != NSNotFound else { return }
-        for index in range.location..<NSMaxRange(range) where index >= 0 && index < entries.count {
-            if let cell = tableView.view(atColumn: 0, row: index, makeIfNecessary: false) as? GitPanelEntryRowView { configure(cell, row: index) }
+        for index in range.location ..< NSMaxRange(range) where index >= 0 && index < entries.count {
+            if let cell = tableView.view(atColumn: 0, row: index, makeIfNecessary: false) as? GitPanelEntryRowView {
+                configure(cell, row: index)
+            }
         }
     }
     @objc private func activateSelectedRow() {
@@ -1582,8 +1755,7 @@ final class GitPanelChangesView: NSView, NSTableViewDataSource, NSTableViewDeleg
         callbacks?(entries[row]).openDiff()
     }
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 36 || event.keyCode == 49 { activateSelectedRow() }
-        else { super.keyDown(with: event) }
+        if event.keyCode == 36 || event.keyCode == 49 { activateSelectedRow() } else { super.keyDown(with: event) }
     }
 }
 
@@ -1627,10 +1799,14 @@ private final class GitPanelEntryRowView: NSView {
         name.font = .systemFont(ofSize: 11.5 * scale)
         name.textColor = .secondaryLabelColor
         if status == "D" {
-            name.attributedStringValue = NSAttributedString(string: entry.fileName, attributes: [
-                .font: name.font!, .foregroundColor: NSColor.secondaryLabelColor, .strikethroughStyle: NSUnderlineStyle.single.rawValue
-            ])
-        } else { name.stringValue = entry.fileName }
+            name.attributedStringValue = NSAttributedString(
+                string: entry.fileName,
+                attributes: [
+                    .font: name.font!, .foregroundColor: NSColor.secondaryLabelColor, .strikethroughStyle: NSUnderlineStyle.single.rawValue,
+                ])
+        } else {
+            name.stringValue = entry.fileName
+        }
         directory.stringValue = entry.directory
         directory.font = .systemFont(ofSize: 10 * scale)
         directory.textColor = .tertiaryLabelColor
@@ -1645,33 +1821,45 @@ private final class GitPanelEntryRowView: NSView {
         showsDiscard = kind == .unstaged && showsStage
         stage.isHidden = !showsStage
         discard.isHidden = !showsDiscard
-        let stageHelp = kind == .staged ? String(localized: "Unstage Changes")
+        let stageHelp =
+            kind == .staged
+            ? String(localized: "Unstage Changes")
             : kind == .merge ? String(localized: "Mark Resolved (Stage)") : String(localized: "Stage Changes")
-        stage.configure(symbol: kind == .staged ? "minus" : "plus", help: stageHelp, scale: scale,
-                        enabled: !callbacks.disabled, loading: kind == .staged ? callbacks.unstageLoading : callbacks.stageLoading)
+        stage.configure(
+            symbol: kind == .staged ? "minus" : "plus", help: stageHelp, scale: scale,
+            enabled: !callbacks.disabled, loading: kind == .staged ? callbacks.unstageLoading : callbacks.stageLoading)
         stage.onAction = kind == .staged ? callbacks.unstage : callbacks.stage
-        discard.configure(symbol: "arrow.uturn.backward", help: String(localized: "Discard Changes"), scale: scale,
-                          enabled: !callbacks.disabled, loading: callbacks.discardLoading)
+        discard.configure(
+            symbol: "arrow.uturn.backward", help: String(localized: "Discard Changes"), scale: scale,
+            enabled: !callbacks.disabled, loading: callbacks.discardLoading)
         discard.onAction = callbacks.discard
         let menu = NSMenu()
         menu.autoenablesItems = false
         menu.addItem(GitPanelMenuItem(title: String(localized: "Open Changes"), enabled: !callbacks.isRemote, action: callbacks.openDiff))
-        menu.addItem(GitPanelMenuItem(title: kind == .merge ? String(localized: "Open Conflicted File") : String(localized: "Open File"),
-                                     enabled: !callbacks.isRemote, action: callbacks.openFile))
-        menu.addItem(GitPanelMenuItem(title: String(localized: "Open File to the Side"), enabled: !callbacks.isRemote, action: callbacks.openToSide))
+        menu.addItem(
+            GitPanelMenuItem(
+                title: kind == .merge ? String(localized: "Open Conflicted File") : String(localized: "Open File"),
+                enabled: !callbacks.isRemote, action: callbacks.openFile))
+        menu.addItem(
+            GitPanelMenuItem(title: String(localized: "Open File to the Side"), enabled: !callbacks.isRemote, action: callbacks.openToSide))
         if !callbacks.isRemote {
             menu.addItem(.separator())
-            menu.addItem(GitPanelMenuItem(title: stageHelp, enabled: !callbacks.disabled,
-                                         action: kind == .staged ? callbacks.unstage : callbacks.stage))
+            menu.addItem(
+                GitPanelMenuItem(
+                    title: stageHelp, enabled: !callbacks.disabled,
+                    action: kind == .staged ? callbacks.unstage : callbacks.stage))
             if kind == .unstaged {
-                let title = entry.isUntracked || entry.isWorktreeCopy ? String(localized: "Move to Trash…")
+                let title =
+                    entry.isUntracked || entry.isWorktreeCopy
+                    ? String(localized: "Move to Trash…")
                     : entry.isWorktreeRename ? String(localized: "Undo Rename…") : String(localized: "Discard Changes…")
                 menu.addItem(GitPanelMenuItem(title: title, enabled: !callbacks.disabled, action: callbacks.discard))
             }
             menu.addItem(.separator())
-            menu.addItem(GitPanelMenuItem(title: String(localized: "Reveal in Finder")) {
-                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: callbacks.absolutePath)])
-            })
+            menu.addItem(
+                GitPanelMenuItem(title: String(localized: "Reveal in Finder")) {
+                    NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: callbacks.absolutePath)])
+                })
         }
         menu.addItem(GitPanelMenuItem(title: String(localized: "Copy Path")) { GitPanelNSView.copyToPasteboard(callbacks.absolutePath) })
         menu.addItem(GitPanelMenuItem(title: String(localized: "Copy Relative Path")) { GitPanelNSView.copyToPasteboard(entry.path) })
@@ -1705,8 +1893,10 @@ private final class GitPanelEntryRowView: NSView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(rect: NSIntersectionRect(bounds, visibleRect),
-            options: [.activeInKeyWindow, .mouseEnteredAndExited], owner: self))
+        addTrackingArea(
+            NSTrackingArea(
+                rect: NSIntersectionRect(bounds, visibleRect),
+                options: [.activeInKeyWindow, .mouseEnteredAndExited], owner: self))
     }
     override func mouseEntered(with event: NSEvent) { hovered = true; needsLayout = true }
     override func mouseExited(with event: NSEvent) { hovered = false; needsLayout = true }

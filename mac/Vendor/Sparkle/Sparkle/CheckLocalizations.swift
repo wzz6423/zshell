@@ -31,11 +31,10 @@ let enStringsDictKeys = enStringsDict!.allKeys
 let dirPath = NSString(string: sparkleRoot! + "/Sparkle")
 let dirContents = try! FileManager.default.contentsOfDirectory(atPath: dirPath as String)
 let css =
-    "body { font-family: sans-serif; font-size: 10pt; }" +
-    "h1 { font-size: 12pt; }" +
-    ".missing { background-color: #FFBABA; color: #D6010E; white-space: pre; }" +
-    ".unused { background-color: #BDE5F8; color: #00529B; white-space: pre; }" +
-    ".unlocalized { background-color: #FEEFB3; color: #9F6000; white-space: pre; }"
+    "body { font-family: sans-serif; font-size: 10pt; }" + "h1 { font-size: 12pt; }"
+    + ".missing { background-color: #FFBABA; color: #D6010E; white-space: pre; }"
+    + ".unused { background-color: #BDE5F8; color: #00529B; white-space: pre; }"
+    + ".unlocalized { background-color: #FEEFB3; color: #9F6000; white-space: pre; }"
 var html = XMLDocument(rootElement: XMLElement(name: "html"))
 html.dtd = XMLDTD()
 html.dtd!.name = html.rootElement()!.name

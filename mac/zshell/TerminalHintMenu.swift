@@ -8,7 +8,8 @@ final class TerminalHintMenu: NSObject, NSMenuItemValidation {
     func install(in mainMenu: NSMenu) {
         guard let menu = AppMenuController.submenu(.terminal, in: mainMenu) else { return }
         if !AppSettings.shared.terminalTextHints {
-            for item in menu.items where ["zshell-copy-terminal-hint", "zshell-open-terminal-hint"].contains(item.identifier?.rawValue ?? "") {
+            for item in menu.items
+            where ["zshell-copy-terminal-hint", "zshell-open-terminal-hint"].contains(item.identifier?.rawValue ?? "") {
                 menu.removeItem(item)
             }
             return
@@ -16,17 +17,21 @@ final class TerminalHintMenu: NSObject, NSMenuItemValidation {
         for item in items(for: nil) {
             if let existing = menu.items.first(where: { $0.identifier == item.identifier }) {
                 if existing.title != item.title { existing.title = item.title }
-            } else { menu.addItem(item) }
+            } else {
+                menu.addItem(item)
+            }
         }
         installShortcutMonitor()
     }
 
     func items(for surface: (any TerminalBackendSurface)?) -> [NSMenuItem] {
         guard AppSettings.shared.terminalTextHints else { return [] }
-        let copy = NSMenuItem(title: String(localized: "Copy Terminal Hint…"), action: #selector(copyHint(_:)), keyEquivalent: surface == nil ? "h" : "")
+        let copy = NSMenuItem(
+            title: String(localized: "Copy Terminal Hint…"), action: #selector(copyHint(_:)), keyEquivalent: surface == nil ? "h" : "")
         copy.identifier = .init("zshell-copy-terminal-hint")
         copy.keyEquivalentModifierMask = [.command, .shift]
-        let open = NSMenuItem(title: String(localized: "Open Terminal Hint…"), action: #selector(openHint(_:)), keyEquivalent: surface == nil ? "h" : "")
+        let open = NSMenuItem(
+            title: String(localized: "Open Terminal Hint…"), action: #selector(openHint(_:)), keyEquivalent: surface == nil ? "h" : "")
         open.identifier = .init("zshell-open-terminal-hint")
         open.keyEquivalentModifierMask = [.command, .option]
         for item in [copy, open] {
@@ -57,10 +62,11 @@ final class TerminalHintMenu: NSObject, NSMenuItemValidation {
             assumeMainActor {
                 let flags = event.modifierFlags.intersection([.command, .option, .control, .shift])
                 guard AppSettings.shared.terminalTextHints,
-                      event.charactersIgnoringModifiers?.lowercased() == "h",
-                      flags == [.command, .shift] || flags == [.command, .option],
-                      let surface = (event.window ?? NSApp.keyWindow)?.firstResponder as? any TerminalBackendSurface,
-                      !surface.commandRouting.blocksCommands else { return event }
+                    event.charactersIgnoringModifiers?.lowercased() == "h",
+                    flags == [.command, .shift] || flags == [.command, .option],
+                    let surface = (event.window ?? NSApp.keyWindow)?.firstResponder as? any TerminalBackendSurface,
+                    !surface.commandRouting.blocksCommands
+                else { return event }
                 surface.hintMode.present(action: flags.contains(.shift) ? .copy : .open, triggeredBy: event)
                 return surface.hintMode.isPresented ? nil : event
             }

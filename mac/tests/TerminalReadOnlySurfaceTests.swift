@@ -56,8 +56,10 @@ import GhosttyTerminal
     func slideDraggedImage(to screenPoint: NSPoint) {}
     override func namesOfPromisedFilesDropped(atDestination destination: URL) -> [String]? { nil }
     func resetSpringLoading() {}
-    func enumerateDraggingItems(options: NSDraggingItemEnumerationOptions, for view: NSView?, classes: [AnyClass],
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any], using block: (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {}
+    func enumerateDraggingItems(
+        options: NSDraggingItemEnumerationOptions, for view: NSView?, classes: [AnyClass],
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any], using block: (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void
+    ) {}
 }
 
 @main @MainActor struct TerminalReadOnlySurfaceTests {
@@ -66,8 +68,7 @@ import GhosttyTerminal
     private static var backend = ""
 
     static func main() {
-        do { try run() }
-        catch { fputs("Read-only checks failed: \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("Read-only checks failed: \(error)\n", stderr); exit(1) }
     }
 
     private static func run() throws {
@@ -76,8 +77,10 @@ import GhosttyTerminal
         let root = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
         let fixture = CommandLine.arguments[3]
         let home = FileManager.default.homeDirectoryForCurrentUser
-        guard ["/tmp/zshell-read-only-tests-", "/private/tmp/zshell-read-only-tests-"]
-            .contains(where: home.path.hasPrefix) else { throw failure("disposable HOME required") }
+        guard
+            ["/tmp/zshell-read-only-tests-", "/private/tmp/zshell-read-only-tests-"]
+                .contains(where: home.path.hasPrefix)
+        else { throw failure("disposable HOME required") }
         let app = ReadOnlyApplication.shared as! ReadOnlyApplication
         app.setActivationPolicy(.prohibited)
         AppLocalization.apply(.english)
@@ -120,11 +123,12 @@ import GhosttyTerminal
             app.fixtureWindow = nil
             if clipboard.changeCount == ownedClipboardCount {
                 clipboard.clearContents()
-                clipboard.writeObjects(savedClipboard.map { entries in
-                    let item = NSPasteboardItem()
-                    for (type, bytes) in entries { item.setData(bytes, forType: type) }
-                    return item
-                })
+                clipboard.writeObjects(
+                    savedClipboard.map { entries in
+                        let item = NSPasteboardItem()
+                        for (type, bytes) in entries { item.setData(bytes, forType: type) }
+                        return item
+                    })
             }
         }
         func bytes() -> Data { (try? Data(contentsOf: root.appendingPathComponent("input.bin"))) ?? Data() }
@@ -134,25 +138,33 @@ import GhosttyTerminal
             clipboard.setString(value, forType: .string)
             ownedClipboardCount = clipboard.changeCount
         }
-        func key(_ type: NSEvent.EventType = .keyDown, text: String = "x", code: UInt16 = 7,
-                 flags: NSEvent.ModifierFlags = []) -> NSEvent {
-            NSEvent.keyEvent(with: type, location: .zero, modifierFlags: flags,
+        func key(
+            _ type: NSEvent.EventType = .keyDown, text: String = "x", code: UInt16 = 7,
+            flags: NSEvent.ModifierFlags = []
+        ) -> NSEvent {
+            NSEvent.keyEvent(
+                with: type, location: .zero, modifierFlags: flags,
                 timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
                 context: nil, characters: text, charactersIgnoringModifiers: text, isARepeat: false, keyCode: code)!
         }
-        func mouse(_ type: NSEvent.EventType, column: Int = 2, row: Int = 0,
-                   flags: NSEvent.ModifierFlags = []) -> NSEvent {
+        func mouse(
+            _ type: NSEvent.EventType, column: Int = 2, row: Int = 0,
+            flags: NSEvent.ModifierFlags = []
+        ) -> NSEvent {
             let snapshot = surface.readVisibleSnapshot()!
             let top = snapshot.origin.y + (CGFloat(row) + 0.5) * snapshot.cellSize.height
-            let point = NSPoint(x: snapshot.origin.x + (CGFloat(column) + 0.25) * snapshot.cellSize.width,
+            let point = NSPoint(
+                x: snapshot.origin.x + (CGFloat(column) + 0.25) * snapshot.cellSize.width,
                 y: surface.isFlipped ? top : surface.bounds.height - top)
-            return NSEvent.mouseEvent(with: type, location: surface.convert(point, to: nil), modifierFlags: flags,
+            return NSEvent.mouseEvent(
+                with: type, location: surface.convert(point, to: nil), modifierFlags: flags,
                 timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
                 context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
         }
         func wheel(_ lines: Int) -> NSEvent {
-            let event = CGEvent(scrollWheelEvent2Source: nil, units: .line, wheelCount: 1,
-                                wheel1: Int32(lines), wheel2: 0, wheel3: 0)!
+            let event = CGEvent(
+                scrollWheelEvent2Source: nil, units: .line, wheelCount: 1,
+                wheel1: Int32(lines), wheel2: 0, wheel3: 0)!
             event.location = NSPoint(x: 50, y: 50)
             return NSEvent(cgEvent: event)!
         }
@@ -190,12 +202,14 @@ import GhosttyTerminal
             surface.keyUp(with: key(.keyUp))
             surface.flagsChanged(with: key(.flagsChanged, text: "", code: 56, flags: .shift))
             let input = surface as! any NSTextInputClient
-            input.setMarkedText("拼", selectedRange: NSRange(location: 1, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
+            input.setMarkedText(
+                "拼", selectedRange: NSRange(location: 1, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
             input.insertText("拼音", replacementRange: NSRange(location: NSNotFound, length: 0))
         }
         try blocked("accessibility text edits are rejected") { surface.setAccessibilitySelectedText("dictation") }
-        try check(!surface.isAccessibilitySelectorAllowed(NSSelectorFromString("setAccessibilitySelectedText:")),
-                  "locked terminal does not advertise writable accessibility text")
+        try check(
+            !surface.isAccessibilitySelectorAllowed(NSSelectorFromString("setAccessibilitySelectedText:")),
+            "locked terminal does not advertise writable accessibility text")
         clipboardText("READ_ONLY_PASTE")
         try blocked("Cmd-V and right-click paste are rejected") {
             NSApp.sendAction(#selector(NSText.paste(_:)), to: surface, from: nil)
@@ -236,7 +250,8 @@ import GhosttyTerminal
         surface.mouseUp(with: mouse(.leftMouseUp, column: 0))
         surface.scrollWheel(with: wheel(2))
         pump(0.12)
-        try check(bytes() == immediateStart, "locking immediately blocks TUI motion, hit testing, clicks and wheel without a run-loop delay")
+        try check(
+            bytes() == immediateStart, "locking immediately blocks TUI motion, hit testing, clicks and wheel without a run-loop delay")
         try blocked("TUI clicks, motion, drag and wheel stay in the host") {
             surface.mouseMoved(with: mouse(.mouseMoved, column: 3))
             surface.mouseDown(with: mouse(.leftMouseDown, column: 0))
@@ -262,7 +277,9 @@ import GhosttyTerminal
         try command("plain", root: root)
         try wait("fixture returns to shell scrollback") { visible().contains("READ_ONLY_READY_plain") }
         try command("lines", root: root)
-        try wait("locked output expands real scrollback") { (events.lastScroll?.totalRows ?? 0) > (events.lastScroll?.viewportRows ?? .max) }
+        try wait("locked output expands real scrollback") {
+            (events.lastScroll?.totalRows ?? 0) > (events.lastScroll?.viewportRows ?? .max)
+        }
         surface.scroll(toFraction: 1)
         try wait("locked history starts at the complete output's bottom") {
             guard let scroll = events.lastScroll else { return false }
@@ -317,9 +334,10 @@ import GhosttyTerminal
             NSApp.sendAction(#selector(NSText.paste(_:)), to: surface, from: nil)
         }
         let explicitToggle = TerminalReadOnlyController.shared.menuItem(for: surface)
-        try check(NSApp.sendAction(explicitToggle.action!, to: explicitToggle.target, from: explicitToggle)
-                  && !surface.isReadOnly && surface.commandRouting.blocksCommands,
-                  "context-menu unlock remains reachable while Zshell command chords are blocked")
+        try check(
+            NSApp.sendAction(explicitToggle.action!, to: explicitToggle.target, from: explicitToggle)
+                && !surface.isReadOnly && surface.commandRouting.blocksCommands,
+            "context-menu unlock remains reachable while Zshell command chords are blocked")
         _ = NSApp.sendAction(blocking.action!, to: blocking.target, from: blocking)
         try sessionChecks(app: app, root: root)
         print("Read-only \(backend): \(checks) native view and real PTY checks passed")
@@ -348,8 +366,9 @@ import GhosttyTerminal
         manager.projects.append(project)
         manager.selectedProjectID = project.id
         guard let session = project.newSession(directory: root.path) else { throw failure("session missing") }
-        let window = ReadOnlyWindow(contentRect: NSRect(x: 0, y: 0, width: 820, height: 520),
-                                    styleMask: [.titled], backing: .buffered, defer: false)
+        let window = ReadOnlyWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 520),
+            styleMask: [.titled], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         manager.attach(to: window)
         let container = TerminalContainerView()
@@ -375,8 +394,9 @@ import GhosttyTerminal
         session.surface.isReadOnly = false
         pump(0.08)
         unsafe.approve()
-        try check(window.attachedSheet == nil && unsafeResolutions == [false],
-                  "locking before unsafe-paste sheet presentation denies once and leaves no stale sheet")
+        try check(
+            window.attachedSheet == nil && unsafeResolutions == [false],
+            "locking before unsafe-paste sheet presentation denies once and leaves no stale sheet")
         func control(_ text: String) throws {
             if let ghostty = session.surface as? ZshellTerminalView {
                 let escaped = text.utf8.map { String(format: "\\x%02x", $0) }.joined()
@@ -408,8 +428,9 @@ import GhosttyTerminal
         session.schedulePromptQueueDispatch()
         session.terminalDidReportShellIntegration(.promptStart)
         pump(0.4)
-        try check(session.promptQueueDispatchTask == nil && session.promptQueue.commands.count == 1,
-                  "locked pane neither schedules nor removes queued work")
+        try check(
+            session.promptQueueDispatchTask == nil && session.promptQueue.commands.count == 1,
+            "locked pane neither schedules nor removes queued work")
         try check(composer.stringValue == "unsent composer 你好", "locking preserves queue composer draft")
         session.surface.isReadOnly = false
         try check(!session.browserInputGate.isReadOnly, "surface unlock synchronously opens only the current browser input generation")
@@ -422,25 +443,33 @@ import GhosttyTerminal
         AppSettings.shared.promptQueueAutoDispatch = false
         try wait("cleared shell is ready again") { session.canSendQueuedPrompt }
         guard let tab = project.tabs.first(where: { $0.sessions.contains(where: { $0 === session }) }),
-              let pane = tab.allPanes.first(where: { $0.content.id == session.id }) else { throw failure("session pane missing") }
+            let pane = tab.allPanes.first(where: { $0.content.id == session.id })
+        else { throw failure("session pane missing") }
         let store = TerminalCommandTaskStore.shared
         let pendingMarker = root.appendingPathComponent("pending-task-leak.txt")
-        let pending = store.submit(argv: ["/bin/sh", "-c", "printf leak > " + quote(pendingMarker.path)],
-                                   projectID: project.id, paneID: pane.id, session: session)
+        let pending = store.submit(
+            argv: ["/bin/sh", "-c", "printf leak > " + quote(pendingMarker.path)],
+            projectID: project.id, paneID: pane.id, session: session)
         try check(pending.state == .pending, "command task is pending before its main-actor dispatch")
         session.surface.isReadOnly = true
-        try check(store.task(id: pending.id, projectID: project.id)?.errorCode == "terminal_read_only"
-                  && !store.hasActiveTask(terminalID: session.id), "locking immediately terminates a pending task with terminal_read_only")
+        try check(
+            store.task(id: pending.id, projectID: project.id)?.errorCode == "terminal_read_only"
+                && !store.hasActiveTask(terminalID: session.id), "locking immediately terminates a pending task with terminal_read_only")
         session.surface.isReadOnly = false
         pump(0.15)
-        try check(!FileManager.default.fileExists(atPath: pendingMarker.path)
-                  && store.task(id: pending.id, projectID: project.id)?.state == .unavailable,
-                  "unlock does not revive a pending command task")
+        try check(
+            !FileManager.default.fileExists(atPath: pendingMarker.path)
+                && store.task(id: pending.id, projectID: project.id)?.state == .unavailable,
+            "unlock does not revive a pending command task")
         try wait("original shell is ready for an observed command task") { session.isCommandTaskShellReady }
         let runningMarker = root.appendingPathComponent("running-task.txt")
-        let running = store.submit(argv: ["/bin/sh", "-c", "printf started > " + quote(runningMarker.path)
-                                        + "; sleep 0.3; printf READ_ONLY_TASK_FINISHED"],
-                                   projectID: project.id, paneID: pane.id, session: session)
+        let running = store.submit(
+            argv: [
+                "/bin/sh", "-c",
+                "printf started > " + quote(runningMarker.path)
+                    + "; sleep 0.3; printf READ_ONLY_TASK_FINISHED",
+            ],
+            projectID: project.id, paneID: pane.id, session: session)
         try wait("real command task has started before locking") {
             store.task(id: running.id, projectID: project.id)?.state == .running
                 && FileManager.default.fileExists(atPath: runningMarker.path)
@@ -450,8 +479,9 @@ import GhosttyTerminal
             store.task(id: running.id, projectID: project.id)?.state == .completed
         }
         let result = store.task(id: running.id, projectID: project.id)
-        try check(result?.exitCode == 0 && result?.output?.contains("READ_ONLY_TASK_FINISHED") == true,
-                  "running task retains its actual exit status and terminal output")
+        try check(
+            result?.exitCode == 0 && result?.output?.contains("READ_ONLY_TASK_FINISHED") == true,
+            "running task retains its actual exit status and terminal output")
         session.surface.isReadOnly = false
         try wait("shell is ready after the locked running task") { session.canSendQueuedPrompt }
         try delayedImageChecks(session: session)
@@ -467,8 +497,9 @@ import GhosttyTerminal
         }
         let entry = TerminalCommandHistoryEntry(record: record, terminalID: session.id)
         session.surface.isReadOnly = true
-        try check(!TerminalCommandHistoryActions.canInsert(entry) && !TerminalCommandHistoryActions.insert(entry),
-                  "history insertion rejects locked origin")
+        try check(
+            !TerminalCommandHistoryActions.canInsert(entry) && !TerminalCommandHistoryActions.insert(entry),
+            "history insertion rejects locked origin")
         try check(TerminalCommandHistoryActions.canReveal(entry), "history output navigation remains available")
         try request("pane.send", params: ["text": .string("blocked"), "enter": .bool(true)], session: session)
         try request("pane.run", params: ["argv": .array([.string("/usr/bin/true")])], session: session)
@@ -488,17 +519,21 @@ import GhosttyTerminal
 
         AppMenuController.shared.install()
         guard let terminalMenu = AppMenuController.submenu(.terminal, in: NSApp.mainMenu!),
-              let toggle = terminalMenu.items.first(where: { $0.identifier?.rawValue == "terminal-read-only" }) else {
+            let toggle = terminalMenu.items.first(where: { $0.identifier?.rawValue == "terminal-read-only" })
+        else {
             throw failure("terminal menu toggle missing")
         }
-        try check(TerminalReadOnlyController.shared.validateMenuItem(toggle) && toggle.state == .on,
-                  "native menu reflects focused lock")
+        try check(
+            TerminalReadOnlyController.shared.validateMenuItem(toggle) && toggle.state == .on,
+            "native menu reflects focused lock")
         composer.selectText(nil)
-        try check((window.firstResponder as? NSTextView)?.isFieldEditor == true
-                  && TerminalReadOnlyController.shared.validateMenuItem(toggle) && toggle.state == .on,
-                  "main menu resolves the real queue field editor to its terminal")
-        try check(NSApp.sendAction(toggle.action!, to: toggle.target, from: toggle) && !session.isReadOnly,
-                  "main menu toggles the queue composer's own terminal")
+        try check(
+            (window.firstResponder as? NSTextView)?.isFieldEditor == true
+                && TerminalReadOnlyController.shared.validateMenuItem(toggle) && toggle.state == .on,
+            "main menu resolves the real queue field editor to its terminal")
+        try check(
+            NSApp.sendAction(toggle.action!, to: toggle.target, from: toggle) && !session.isReadOnly,
+            "main menu toggles the queue composer's own terminal")
         _ = NSApp.sendAction(toggle.action!, to: toggle.target, from: toggle)
         window.makeFirstResponder(session.surface)
         let workspaceHost = NSView(frame: container.frame)
@@ -508,8 +543,9 @@ import GhosttyTerminal
         let findField = NSTextField(frame: NSRect(x: 10, y: 10, width: 160, height: 22))
         workspaceHost.addSubview(findField)
         findField.selectText(nil)
-        try check(TerminalReadOnlyController.shared.validateMenuItem(toggle) && toggle.state == .on,
-                  "main menu resolves a find field to its focused terminal")
+        try check(
+            TerminalReadOnlyController.shared.validateMenuItem(toggle) && toggle.state == .on,
+            "main menu resolves a find field to its focused terminal")
         findField.removeFromSuperview()
         let filePath = root.appendingPathComponent("editor.txt")
         try "editable file".write(to: filePath, atomically: true, encoding: .utf8)
@@ -521,7 +557,9 @@ import GhosttyTerminal
         let fileEditor = NSTextView(frame: NSRect(x: 10, y: 10, width: 160, height: 60))
         window.contentView!.addSubview(fileEditor)
         window.makeFirstResponder(fileEditor)
-        try check(!TerminalReadOnlyController.shared.validateMenuItem(toggle), "main menu is disabled for an editor with a terminal find bar open")
+        try check(
+            !TerminalReadOnlyController.shared.validateMenuItem(toggle), "main menu is disabled for an editor with a terminal find bar open"
+        )
         _ = NSApp.sendAction(toggle.action!, to: toggle.target, from: toggle)
         try check(session.isReadOnly, "editor focus cannot toggle the background terminal")
         fileEditor.removeFromSuperview()
@@ -540,7 +578,8 @@ import GhosttyTerminal
         project.selectedTabID = tab.id
         session.find.dismiss()
         window.makeFirstResponder(session.surface)
-        let translations = try JSONSerialization.jsonObject(with: Data(contentsOf: root.appendingPathComponent("translations.json")))
+        let translations =
+            try JSONSerialization.jsonObject(with: Data(contentsOf: root.appendingPathComponent("translations.json")))
             as! [String: [String: String]]
         for language in AppLanguage.allCases where language != .system {
             AppLocalization.apply(language)
@@ -550,30 +589,36 @@ import GhosttyTerminal
             guard let unlock = find("terminal-read-only-unlock", in: container) as? NSButton else {
                 throw failure("unlock control missing")
             }
-            try check(!unlock.isHidden && unlock.toolTip?.isEmpty == false && unlock.accessibilityLabel()?.isEmpty == false,
-                      "\(language.rawValue) single-pane unlock has visible state and accessible name")
+            try check(
+                !unlock.isHidden && unlock.toolTip?.isEmpty == false && unlock.accessibilityLabel()?.isEmpty == false,
+                "\(language.rawValue) single-pane unlock has visible state and accessible name")
             let expected = translations[language.rawValue]!
             do {
                 try wait("\(language.rawValue) menu, unlock and input rejection display the compiled translations") {
                     unlock.title == expected["Read Only"] && toggle.title == expected["Read Only"]
                         && unlock.toolTip == expected["Unlock Terminal"] && unlock.accessibilityLabel() == expected["Unlock Terminal"]
-                        && TerminalReadOnlyController.rejectionMessage == expected["This terminal is read only. Unlock it before sending input."]
+                        && TerminalReadOnlyController.rejectionMessage
+                            == expected["This terminal is read only. Unlock it before sending input."]
                 }
             } catch {
-                throw failure("\(language.rawValue) localization: button=\(unlock.title), menu=\(toggle.title), tooltip=\(unlock.toolTip ?? ""), accessibility=\(unlock.accessibilityLabel() ?? ""), rejection=\(TerminalReadOnlyController.rejectionMessage); expected=\(expected)")
+                throw failure(
+                    "\(language.rawValue) localization: button=\(unlock.title), menu=\(toggle.title), tooltip=\(unlock.toolTip ?? ""), accessibility=\(unlock.accessibilityLabel() ?? ""), rejection=\(TerminalReadOnlyController.rejectionMessage); expected=\(expected)"
+                )
             }
             window.setContentSize(NSSize(width: 180, height: 360))
             container.frame = workspaceHost.bounds
             container.layoutSubtreeIfNeeded()
             let rect = unlock.convert(unlock.bounds, to: container)
-            try check(rect.minX >= 0 && rect.maxX <= container.bounds.maxX && rect.minY >= 0 && rect.maxY <= container.bounds.maxY,
-                      "\(language.rawValue) unlock fits a narrow pane")
+            try check(
+                rect.minX >= 0 && rect.maxX <= container.bounds.maxX && rect.minY >= 0 && rect.maxY <= container.bounds.maxY,
+                "\(language.rawValue) unlock fits a narrow pane")
         }
         AppLocalization.apply(.english)
         AppSettings.shared.terminalTextHints = true
         session.surface.hintMode.present(action: .copy)
-        try check(TerminalHintMode.isPresented(in: window) && TerminalReadOnlyController.shared.validateMenuItem(toggle),
-                  "menu resolves the actual hint overlay to its locked terminal")
+        try check(
+            TerminalHintMode.isPresented(in: window) && TerminalReadOnlyController.shared.validateMenuItem(toggle),
+            "menu resolves the actual hint overlay to its locked terminal")
         session.surface.hintMode.dismiss()
         guard let unlock = find("terminal-read-only-unlock", in: container) as? NSButton else { throw failure("unlock missing") }
         unlock.performClick(nil)
@@ -590,11 +635,12 @@ import GhosttyTerminal
         let board = NSPasteboard.withUniqueName()
         defer { board.releaseGlobally() }
         let width = 1024, height = 1024
-        let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height, bitsPerSample: 8,
-                                      samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
-                                      bytesPerRow: width * 4, bitsPerPixel: 32)!
+        let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height, bitsPerSample: 8,
+            samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
+            bytesPerRow: width * 4, bitsPerPixel: 32)!
         var random: UInt32 = 1
-        for offset in 0..<(width * height * 4) {
+        for offset in 0 ..< (width * height * 4) {
             random = random &* 1_664_525 &+ 1_013_904_223
             bitmap.bitmapData![offset] = UInt8(truncatingIfNeeded: random >> 24)
         }
@@ -610,7 +656,9 @@ import GhosttyTerminal
         var barrierError: Error?
         Task { @MainActor in
             do {
-                try check(session.terminalHandleUserPaste(board, paste: { _ in inserted = true }), "local image paste starts in the editable terminal")
+                try check(
+                    session.terminalHandleUserPaste(board, paste: { _ in inserted = true }),
+                    "local image paste starts in the editable terminal")
                 let deadline = Date().addingTimeInterval(3)
                 while batches() == previous, !inserted, Date() < deadline { await Task.yield() }
                 var image: URL?
@@ -637,8 +685,10 @@ import GhosttyTerminal
         try wait("cancelled local-image paste removes its saved temporary PNG") { batches() == previous }
     }
 
-    private static func quickTerminalChecks(app: ReadOnlyApplication, mainWindow: NSWindow,
-                                           mainSession: TerminalSession, toggle: NSMenuItem) throws {
+    private static func quickTerminalChecks(
+        app: ReadOnlyApplication, mainWindow: NSWindow,
+        mainSession: TerminalSession, toggle: NSMenuItem
+    ) throws {
         let overlay = GlobalTerminalOverlay.shared
         AppSettings.shared.quickTerminalEnabled = true
         AppSettings.shared.quickTerminalMode = .reuse
@@ -648,16 +698,20 @@ import GhosttyTerminal
             app.fixtureWindow = mainWindow
         }
         overlay.toggle()
-        try wait("independent Quick Terminal creates its own surface and panel") { overlay.workspace?.sessions.first?.surface.window != nil }
+        try wait("independent Quick Terminal creates its own surface and panel") {
+            overlay.workspace?.sessions.first?.surface.window != nil
+        }
         guard let quick = overlay.workspace?.sessions.first, let panel = quick.surface.window, let host = panel.contentView else {
             throw failure("Quick Terminal panel missing")
         }
         app.fixtureWindow = panel
         panel.makeFirstResponder(quick.surface)
-        try check(panel !== mainWindow && !quick.isReadOnly && TerminalReadOnlyController.shared.validateMenuItem(toggle) && toggle.state == .off,
-                  "Quick Terminal main-menu state comes from its own editable surface")
+        try check(
+            panel !== mainWindow && !quick.isReadOnly && TerminalReadOnlyController.shared.validateMenuItem(toggle) && toggle.state == .off,
+            "Quick Terminal main-menu state comes from its own editable surface")
         _ = NSApp.sendAction(toggle.action!, to: toggle.target, from: toggle)
-        try check(quick.isReadOnly && mainSession.isReadOnly, "Quick Terminal menu locks its own surface without changing the main terminal")
+        try check(
+            quick.isReadOnly && mainSession.isReadOnly, "Quick Terminal menu locks its own surface without changing the main terminal")
         host.layoutSubtreeIfNeeded()
         try wait("Quick Terminal uses the shared visible unlock control") { find("terminal-read-only-unlock", in: host)?.isHidden == false }
         quick.promptQueue.present()
@@ -665,9 +719,10 @@ import GhosttyTerminal
         try wait("Quick Terminal mounts its queue composer") { find("prompt-queue-input", in: host) is NSTextField }
         let composer = find("prompt-queue-input", in: host) as! NSTextField
         composer.selectText(nil)
-        try check((panel.firstResponder as? NSTextView)?.isFieldEditor == true
-                  && TerminalReadOnlyController.shared.validateMenuItem(toggle) && toggle.state == .on,
-                  "Quick Terminal queue field editor resolves only its own terminal")
+        try check(
+            (panel.firstResponder as? NSTextView)?.isFieldEditor == true
+                && TerminalReadOnlyController.shared.validateMenuItem(toggle) && toggle.state == .on,
+            "Quick Terminal queue field editor resolves only its own terminal")
         _ = NSApp.sendAction(toggle.action!, to: toggle.target, from: toggle)
         try check(!quick.isReadOnly && mainSession.isReadOnly, "Quick Terminal composer menu unlocks only the Quick Terminal surface")
         _ = NSApp.sendAction(toggle.action!, to: toggle.target, from: toggle)
@@ -676,10 +731,13 @@ import GhosttyTerminal
         try check(!panel.isVisible && quick.isReadOnly, "reusable Quick Terminal keeps its lock while hidden")
         app.fixtureWindow = mainWindow
         mainWindow.makeFirstResponder(mainSession.surface)
-        try check(TerminalReadOnlyController.shared.validateMenuItem(toggle) && toggle.state == .on,
-                  "main menu resolves the main terminal while Quick Terminal is hidden")
+        try check(
+            TerminalReadOnlyController.shared.validateMenuItem(toggle) && toggle.state == .on,
+            "main menu resolves the main terminal while Quick Terminal is hidden")
         overlay.toggle()
-        try check(overlay.workspace?.sessions.first === quick && quick.isReadOnly, "showing reusable Quick Terminal preserves the same surface lock")
+        try check(
+            overlay.workspace?.sessions.first === quick && quick.isReadOnly,
+            "showing reusable Quick Terminal preserves the same surface lock")
         app.fixtureWindow = panel
         panel.makeFirstResponder(quick.surface)
         guard let unlock = find("terminal-read-only-unlock", in: host) as? NSButton else { throw failure("Quick Terminal unlock missing") }
@@ -705,18 +763,22 @@ import GhosttyTerminal
             try process.run()
             defer { if process.isRunning { process.terminate() } }
             try wait("real CLI \(arguments.prefix(2).joined(separator: " ")) exits") { !process.isRunning }
-            return (process.terminationStatus,
-                    String(decoding: output.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self),
-                    String(decoding: error.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self))
+            return (
+                process.terminationStatus,
+                String(decoding: output.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self),
+                String(decoding: error.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+            )
         }
         let current = try run(["+pane", "current"])
         let snapshot = try JSONSerialization.jsonObject(with: Data(current.output.utf8)) as? [String: Any]
-        try check(current.status == 0 && current.error.isEmpty && snapshot?["read_only"] as? Bool == true,
-                  "real CLI socket reports the current surface as read only")
+        try check(
+            current.status == 0 && current.error.isEmpty && snapshot?["read_only"] as? Bool == true,
+            "real CLI socket reports the current surface as read only")
         let read = try run(["+pane", "read", "--lines", "10"])
         let transcript = try JSONSerialization.jsonObject(with: Data(read.output.utf8)) as? [String: Any]
-        try check(read.status == 0 && read.error.isEmpty && transcript?["text"] is String,
-                  "real CLI socket retains transcript reads while locked")
+        try check(
+            read.status == 0 && read.error.isEmpty && transcript?["text"] is String,
+            "real CLI socket retains transcript reads while locked")
         for arguments in [
             ["+pane", "send", "--text", "blocked", "--enter"],
             ["+pane", "run", "--", "/usr/bin/true"],
@@ -724,8 +786,9 @@ import GhosttyTerminal
             ["+agent", "prompt", "locked", "--text", "blocked"],
         ] {
             let result = try run(arguments)
-            try check(result.status == 1 && result.output.isEmpty && result.error.contains("terminal_read_only:"),
-                      "real CLI \(arguments.prefix(2).joined(separator: " ")) exits 1 with terminal_read_only and no success JSON")
+            try check(
+                result.status == 1 && result.output.isEmpty && result.error.contains("terminal_read_only:"),
+                "real CLI \(arguments.prefix(2).joined(separator: " ")) exits 1 with terminal_read_only and no success JSON")
         }
     }
 
@@ -733,14 +796,16 @@ import GhosttyTerminal
         var response: ZshellAutomationResponse?
         Task { @MainActor in
             response = await ZshellAutomationRouter.route(
-                ZshellAutomationRequest(version: 1, id: UUID().uuidString, method: method,
-                                        token: "test", terminalID: session.id.uuidString, params: params),
+                ZshellAutomationRequest(
+                    version: 1, id: UUID().uuidString, method: method,
+                    token: "test", terminalID: session.id.uuidString, params: params),
                 callerTerminalID: session.id
             )
         }
         try wait("\(method) returns a response") { response != nil }
-        try check(response?.ok == false && response?.error?.code == "terminal_read_only",
-                  "\(method) returns terminal_read_only instead of sent")
+        try check(
+            response?.ok == false && response?.error?.code == "terminal_read_only",
+            "\(method) returns terminal_read_only instead of sent")
     }
 
     private static func find(_ identifier: String, in view: NSView) -> NSView? {
@@ -755,7 +820,8 @@ import GhosttyTerminal
         try data.write(to: root.appendingPathComponent("control.json"), options: .atomic)
         try wait("fixture processes \(action)") {
             guard let bytes = try? Data(contentsOf: root.appendingPathComponent("state.json")),
-                  let object = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any] else { return false }
+                let object = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any]
+            else { return false }
             return object["sequence"] as? Int == sequence
         }
     }
@@ -778,5 +844,7 @@ import GhosttyTerminal
     }
 
     private static func quote(_ text: String) -> String { "'" + text.replacingOccurrences(of: "'", with: "'\\''") + "'" }
-    private static func failure(_ text: String) -> NSError { NSError(domain: "ReadOnlySurface", code: 1, userInfo: [NSLocalizedDescriptionKey: text]) }
+    private static func failure(_ text: String) -> NSError {
+        NSError(domain: "ReadOnlySurface", code: 1, userInfo: [NSLocalizedDescriptionKey: text])
+    }
 }

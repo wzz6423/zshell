@@ -45,7 +45,10 @@ open class STGutterView: NSView, NSDraggingSource {
     /// Initialized with a textView font value and does not update automatically when
     /// text view font changes.
     @Invalidating(.display)
-    open var font = adjustGutterFont(NSFont(descriptor: NSFont.monospacedDigitSystemFont(ofSize: 0, weight: .regular).fontDescriptor.withSymbolicTraits(.condensed), size: 0)!)
+    open var font = adjustGutterFont(
+        NSFont(
+            descriptor: NSFont.monospacedDigitSystemFont(ofSize: 0, weight: .regular).fontDescriptor.withSymbolicTraits(.condensed), size: 0
+        )!)
 
     /// The insets of the ruler view.
     @Invalidating(.display)
@@ -240,7 +243,8 @@ open class STGutterView: NSView, NSDraggingSource {
                 marker.view.frame.size.height = lineNumberCell.textSize.height
                 marker.view.frame.origin.x = lineNumberCell.frame.size.width - marker.view.frame.size.width - 1.5 /* separator */
                 // Center marker vertically on the line number text
-                marker.view.frame.origin.y = lineNumberCell.frame.origin.y + lineNumberCell.textCenterY - (marker.view.frame.size.height / 2)
+                marker.view.frame.origin.y =
+                    lineNumberCell.frame.origin.y + lineNumberCell.textCenterY - (marker.view.frame.size.height / 2)
                 markerContainerView.addSubview(marker.view)
             }
         }
@@ -267,7 +271,6 @@ open class STGutterView: NSView, NSDraggingSource {
         super.mouseDown(with: event)
     }
 
-
     override open func mouseUp(with event: NSEvent) {
         defer {
             _didMouseDownAddMarker = false
@@ -280,7 +283,9 @@ open class STGutterView: NSView, NSDraggingSource {
                 .compactMap { $0 as? STGutterLineNumberCell }
                 .first { $0.frame.contains(eventPoint) }
 
-            let tapOnMark = markerContainerView.subviews.contains(where: { $0.frame.contains(markerContainerView.convert(event.locationInWindow, from: nil)) })
+            let tapOnMark = markerContainerView.subviews.contains(where: {
+                $0.frame.contains(markerContainerView.convert(event.locationInWindow, from: nil))
+            })
             if let lineNumberCell, tapOnMark, !_didMouseDownAddMarker {
                 removeMarker(lineNumber: lineNumberCell.lineNumber)
                 return
@@ -301,8 +306,12 @@ open class STGutterView: NSView, NSDraggingSource {
                 .compactMap { $0 as? STGutterLineNumberCell }
                 .first { $0.frame.contains(eventPoint) }
 
-            let tapOnMark = markerContainerView.subviews.contains(where: { $0.frame.contains(markerContainerView.convert(event.locationInWindow, from: nil)) })
-            if !_isDragging, tapOnMark, !_didMouseDownAddMarker, let lineNumberCell, let marker = marker(lineNumber: lineNumberCell.lineNumber) {
+            let tapOnMark = markerContainerView.subviews.contains(where: {
+                $0.frame.contains(markerContainerView.convert(event.locationInWindow, from: nil))
+            })
+            if !_isDragging, tapOnMark, !_didMouseDownAddMarker, let lineNumberCell,
+                let marker = marker(lineNumber: lineNumberCell.lineNumber)
+            {
                 let pasteboardItem = NSPasteboardItem()
                 pasteboardItem.setString("", forType: .string)
                 let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)
@@ -340,28 +349,28 @@ private func adjustGutterFont(_ font: NSFont) -> NSFont {
     let features: [[NSFontDescriptor.FeatureKey: Int]] = [
         [
             .typeIdentifier: kTextSpacingType,
-            .selectorIdentifier: kMonospacedTextSelector
+            .selectorIdentifier: kMonospacedTextSelector,
         ],
         [
             .typeIdentifier: kNumberSpacingType,
-            .selectorIdentifier: kMonospacedNumbersSelector
+            .selectorIdentifier: kMonospacedNumbersSelector,
         ],
         [
             .typeIdentifier: kNumberCaseType,
-            .selectorIdentifier: kUpperCaseNumbersSelector
+            .selectorIdentifier: kUpperCaseNumbersSelector,
         ],
         [
             .typeIdentifier: kStylisticAlternativesType,
-            .selectorIdentifier: kStylisticAltOneOnSelector
+            .selectorIdentifier: kStylisticAltOneOnSelector,
         ],
         [
             .typeIdentifier: kStylisticAlternativesType,
-            .selectorIdentifier: kStylisticAltTwoOnSelector
+            .selectorIdentifier: kStylisticAltTwoOnSelector,
         ],
         [
             .typeIdentifier: kTypographicExtrasType,
-            .selectorIdentifier: kSlashedZeroOnSelector
-        ]
+            .selectorIdentifier: kSlashedZeroOnSelector,
+        ],
     ]
 
     return NSFont(descriptor: font.fontDescriptor.addingAttributes([.featureSettings: features]), size: 0) ?? font

@@ -34,9 +34,10 @@ struct TerminalPromptSelectionSurfaceTests {
         let buffer = directory.appendingPathComponent("buffer")
         let bufferPath = "'" + buffer.path.replacingOccurrences(of: "'", with: "'\\''") + "'"
         let profile = ProcessInfo.processInfo.environment["ZSHELL_TEST_ZSHRC"]
-        let sourceProfile = profile.map {
-            "source '" + $0.replacingOccurrences(of: "'", with: "'\\''") + "'"
-        } ?? ""
+        let sourceProfile =
+            profile.map {
+                "source '" + $0.replacingOccurrences(of: "'", with: "'\\''") + "'"
+            } ?? ""
         try """
         \(sourceProfile)
         HISTFILE=/dev/null
@@ -142,18 +143,20 @@ struct TerminalPromptSelectionSurfaceTests {
             defer { app.textInputEvent = nil }
             let client = view as! any NSTextInputClient
             if composing {
-                client.setMarkedText("zi", selectedRange: NSRange(location: 2, length: 0),
-                                     replacementRange: NSRange(location: NSNotFound, length: 0))
+                client.setMarkedText(
+                    "zi", selectedRange: NSRange(location: 2, length: 0),
+                    replacementRange: NSRange(location: NSNotFound, length: 0))
             }
             client.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
         }
 
         func key(_ text: String, code: UInt16, modifiers: NSEvent.ModifierFlags = []) {
-            view.keyDown(with: NSEvent.keyEvent(
-                with: .keyDown, location: .zero, modifierFlags: modifiers,
-                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
-                context: nil, characters: text, charactersIgnoringModifiers: text, isARepeat: false, keyCode: code
-            )!)
+            view.keyDown(
+                with: NSEvent.keyEvent(
+                    with: .keyDown, location: .zero, modifierFlags: modifiers,
+                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                    context: nil, characters: text, charactersIgnoringModifiers: text, isARepeat: false, keyCode: code
+                )!)
         }
 
         let deadline = Date().addingTimeInterval(5)
@@ -193,19 +196,21 @@ struct TerminalPromptSelectionSurfaceTests {
 
         do {
             let pasteboard = NSPasteboard.general
-            let previousClipboard = pasteboard.pasteboardItems?.map { item in
-                item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
-            } ?? []
+            let previousClipboard =
+                pasteboard.pasteboardItems?.map { item in
+                    item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+                } ?? []
             let copyOnSelect = AppSettings.shared.copyOnSelect
             AppSettings.shared.copyOnSelect = true
             defer {
                 AppSettings.shared.copyOnSelect = copyOnSelect
                 pasteboard.clearContents()
-                pasteboard.writeObjects(previousClipboard.map { values in
-                    let item = NSPasteboardItem()
-                    for (type, data) in values { item.setData(data, forType: type) }
-                    return item
-                })
+                pasteboard.writeObjects(
+                    previousClipboard.map { values in
+                        let item = NSPasteboardItem()
+                        for (type, data) in values { item.setData(data, forType: type) }
+                        return item
+                    })
             }
             for reverse in [false, true] {
                 for action in ["key", "Backspace", "Delete", "insertText", "IME", "paste", "accessibility"] {
@@ -228,8 +233,11 @@ struct TerminalPromptSelectionSurfaceTests {
                         commitText("字", composing: true)
                         replacement = "字"
                     case "paste":
-                        if let ghostty = view as? ZshellTerminalView { ghostty.paste(nil) }
-                        else if let alacritty = view as? AlacrittyTerminalView { alacritty.paste(nil) }
+                        if let ghostty = view as? ZshellTerminalView {
+                            ghostty.paste(nil)
+                        } else if let alacritty = view as? AlacrittyTerminalView {
+                            alacritty.paste(nil)
+                        }
                         replacement = "paste"
                     case "accessibility": view.setAccessibilitySelectedText("voice"); replacement = "voice"
                     default: key("x", code: 7); replacement = "x"
@@ -310,8 +318,8 @@ struct TerminalPromptSelectionSurfaceTests {
             pump(0.1)
             key("0123456789abcdefghij", code: 0)
             pump(0.1)
-            for _ in 0..<12 { key("\u{f702}", code: 123) }
-            for _ in 0..<6 { key("\u{f702}", code: 123, modifiers: .shift) }
+            for _ in 0 ..< 12 { key("\u{f702}", code: 123) }
+            for _ in 0 ..< 6 { key("\u{f702}", code: 123, modifiers: .shift) }
             pump(0.1)
             key(text, code: code, modifiers: modifiers)
             pump(0.15)
@@ -365,13 +373,17 @@ struct TerminalPromptSelectionSurfaceTests {
         try mouse(.leftMouseDragged, 8)
         try mouse(.leftMouseUp, 8)
         let pasteboard = NSPasteboard.general
-        let previousClipboard = pasteboard.pasteboardItems?.map { item in
-            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
-        } ?? []
+        let previousClipboard =
+            pasteboard.pasteboardItems?.map { item in
+                item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+            } ?? []
         pasteboard.clearContents()
         pasteboard.setString("paste", forType: .string)
-        if let ghostty = view as? ZshellTerminalView { ghostty.paste(nil) }
-        else if let alacritty = view as? AlacrittyTerminalView { alacritty.paste(nil) }
+        if let ghostty = view as? ZshellTerminalView {
+            ghostty.paste(nil)
+        } else if let alacritty = view as? AlacrittyTerminalView {
+            alacritty.paste(nil)
+        }
         pasteboard.clearContents()
         let restoredClipboard = previousClipboard.map { values in
             let item = NSPasteboardItem()
@@ -413,8 +425,7 @@ struct TerminalPromptSelectionSurfaceTests {
         ] {
             control("\u{12}")
             pump(0.1)
-            if draft.contains("\n") { control("\u{0e}") }
-            else { key(draft, code: 0) }
+            if draft.contains("\n") { control("\u{0e}") } else { key(draft, code: 0) }
             pump(0.15)
             try mouse(.leftMouseDown, 2)
             try mouse(.leftMouseDragged, end, row: 1)

@@ -27,13 +27,17 @@ private final class InstallDriver: SPUStandardUserDriver, SPUUpdaterDelegate {
         try! handle.write(contentsOf: data + Data([10]))
     }
 
-    override func show(_ request: SPUUpdatePermissionRequest,
-                       reply: @escaping (SUUpdatePermissionResponse) -> Void) {
+    override func show(
+        _ request: SPUUpdatePermissionRequest,
+        reply: @escaping (SUUpdatePermissionResponse) -> Void
+    ) {
         reply(SUUpdatePermissionResponse(automaticUpdateChecks: false, sendSystemProfile: false))
     }
     override func showUserInitiatedUpdateCheck(cancellation: @escaping () -> Void) {}
-    override func showUpdateFound(with appcastItem: SUAppcastItem, state: SPUUserUpdateState,
-                                  reply: @escaping (SPUUserUpdateChoice) -> Void) {
+    override func showUpdateFound(
+        with appcastItem: SUAppcastItem, state: SPUUserUpdateState,
+        reply: @escaping (SPUUserUpdateChoice) -> Void
+    ) {
         guard !automatic else {
             record("error", details: "Automatic updates must download without an update prompt")
             reply(.dismiss)
@@ -70,8 +74,10 @@ private final class InstallDriver: SPUStandardUserDriver, SPUUpdaterDelegate {
         record("ready")
         reply(.install)
     }
-    override func showInstallingUpdate(withApplicationTerminated applicationTerminated: Bool,
-                                       retryTerminatingApplication: @escaping () -> Void) {
+    override func showInstallingUpdate(
+        withApplicationTerminated applicationTerminated: Bool,
+        retryTerminatingApplication: @escaping () -> Void
+    ) {
         record("installing", details: String(applicationTerminated))
     }
     override func showUpdateInstalledAndRelaunched(_ relaunched: Bool, acknowledgement: @escaping () -> Void) {
@@ -91,8 +97,10 @@ private final class InstallDriver: SPUStandardUserDriver, SPUUpdaterDelegate {
         record("automaticDownload")
     }
 
-    func updater(_ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem,
-                 immediateInstallationBlock: @escaping () -> Void) -> Bool {
+    func updater(
+        _ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem,
+        immediateInstallationBlock: @escaping () -> Void
+    ) -> Bool {
         guard automatic else { return false }
         record("ready")
         record("quitForAutomaticInstall")
@@ -121,18 +129,21 @@ struct SparkleInstallFixture {
         driver.record("launch", details: build)
         if build == "2" {
             #if arch(arm64)
-            let architecture = "arm64"
+                let architecture = "arm64"
             #else
-            let architecture = "x86_64"
+                let architecture = "x86_64"
             #endif
-            let marker: [String: Any] = ["build": build, "pid": getpid(), "architecture": architecture,
-                                          "bundle": Bundle.main.bundleURL.path]
+            let marker: [String: Any] = [
+                "build": build, "pid": getpid(), "architecture": architecture,
+                "bundle": Bundle.main.bundleURL.path,
+            ]
             try JSONSerialization.data(withJSONObject: marker)
                 .write(to: root.appendingPathComponent("relaunched.json"), options: .atomic)
             return
         }
-        let updater = SPUUpdater(hostBundle: .main, applicationBundle: .main,
-                                 userDriver: driver, delegate: driver)
+        let updater = SPUUpdater(
+            hostBundle: .main, applicationBundle: .main,
+            userDriver: driver, delegate: driver)
         try updater.start()
         if driver.automatic {
             updater.checkForUpdatesInBackground()

@@ -84,7 +84,8 @@ final class AgentPaletteController: NSObject {
         if let responder {
             previousResponder = responder
         } else if let responder = window.firstResponder,
-                  TerminalManager.isStableWorkspaceResponder(responder) {
+            TerminalManager.isStableWorkspaceResponder(responder)
+        {
             previousResponder = responder
         }
 
@@ -119,8 +120,9 @@ final class AgentPaletteController: NSObject {
         guard restoreFocus, let window, let responder else { return }
         DispatchQueue.main.async {
             if let current = window.firstResponder,
-               current !== responder,
-               TerminalManager.isStableWorkspaceResponder(current) {
+                current !== responder,
+                TerminalManager.isStableWorkspaceResponder(current)
+            {
                 return
             }
             window.makeFirstResponder(responder)
@@ -208,8 +210,9 @@ final class AgentPaletteController: NSObject {
                     attention: status.attention,
                     projectName: project.name,
                     sessionTitle: session.title,
-                    directory: Self.abbreviate(session.foregroundDirectoryPath
-                        ?? session.currentDirectoryPath)
+                    directory: Self.abbreviate(
+                        session.foregroundDirectoryPath
+                            ?? session.currentDirectoryPath)
                 )
             }
         }.sorted(by: Self.ranksBefore)
@@ -224,13 +227,15 @@ final class AgentPaletteController: NSObject {
             var matches: [Match] = []
             for (order, entry) in entries.enumerated() {
                 var candidate = entry.searchText
-                guard let score = candidate.withUTF8({ bytes in
-                    Self.fuzzyMatcher.score(
-                        utf8: bytes,
-                        against: fuzzyQuery,
-                        buffer: &buffer
-                    )?.score
-                }) else { continue }
+                guard
+                    let score = candidate.withUTF8({ bytes in
+                        Self.fuzzyMatcher.score(
+                            utf8: bytes,
+                            against: fuzzyQuery,
+                            buffer: &buffer
+                        )?.score
+                    })
+                else { continue }
                 matches.append(Match(entry: entry, score: score, order: order))
             }
             matches.sort {
@@ -242,7 +247,8 @@ final class AgentPaletteController: NSObject {
 
         tableView.reloadData()
         if let selectedID,
-           let row = filteredEntries.firstIndex(where: { $0.sessionID == selectedID }) {
+            let row = filteredEntries.firstIndex(where: { $0.sessionID == selectedID })
+        {
             tableView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
         } else if !filteredEntries.isEmpty {
             tableView.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
@@ -278,7 +284,8 @@ final class AgentPaletteController: NSObject {
         let isEmpty = filteredEntries.isEmpty
         scrollView.isHidden = isEmpty
         emptyLabel.isHidden = !isEmpty
-        emptyLabel.stringValue = query.isEmpty
+        emptyLabel.stringValue =
+            query.isEmpty
             ? String(localized: "No running agents")
             : String(localized: "No agents match “\(query)”")
     }
@@ -298,9 +305,9 @@ final class AgentPaletteController: NSObject {
 
     @objc private func revealSelection() {
         guard let manager, let entry = selectedEntry,
-              let session = manager.projects.lazy.flatMap(\.sessions).first(where: {
-                  $0.id == entry.sessionID
-              })
+            let session = manager.projects.lazy.flatMap(\.sessions).first(where: {
+                $0.id == entry.sessionID
+            })
         else { return }
         let targetWindow = window
         dismiss(restoreFocus: false)
@@ -361,7 +368,8 @@ extension AgentPaletteController: NSTableViewDataSource, NSTableViewDelegate {
     ) -> NSView? {
         guard filteredEntries.indices.contains(row) else { return nil }
         let identifier = NSUserInterfaceItemIdentifier("agent-row")
-        let view = tableView.makeView(withIdentifier: identifier, owner: self)
+        let view =
+            tableView.makeView(withIdentifier: identifier, owner: self)
             as? AgentPaletteRowView ?? AgentPaletteRowView()
         view.identifier = identifier
         let entry = filteredEntries[row]
@@ -382,7 +390,7 @@ extension AgentPaletteController: NSTableViewDataSource, NSTableViewDelegate {
     }
 
     func tableViewSelectionDidChange(_ notification: Notification) {
-        tableView.reloadData(forRowIndexes: IndexSet(integersIn: 0..<filteredEntries.count), columnIndexes: IndexSet(integer: 0))
+        tableView.reloadData(forRowIndexes: IndexSet(integersIn: 0 ..< filteredEntries.count), columnIndexes: IndexSet(integer: 0))
     }
 }
 
@@ -615,7 +623,8 @@ private final class AgentPaletteRowView: NSTableCellView {
 
     private func updateSelectionAppearance() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            layer?.backgroundColor = isPaletteSelected
+            layer?.backgroundColor =
+                isPaletteSelected
                 ? NSColor.selectedContentBackgroundColor.withAlphaComponent(0.22).cgColor
                 : NSColor.clear.cgColor
         }

@@ -67,19 +67,20 @@ nonisolated enum PTYMuxError: Error, CustomStringConvertible {
 enum PTYMuxPaths {
     nonisolated static var directoryURL: URL {
         if let override = ProcessInfo.processInfo.environment["ZSHELL_PTY_MUX_DIRECTORY"],
-           !override.isEmpty
+            !override.isEmpty
         {
             return URL(fileURLWithPath: override, isDirectory: true)
         }
         #if DEBUG
-        let name = "zshell-dev"
+            let name = "zshell-dev"
         #else
-        let name = "zshell"
+            let name = "zshell"
         #endif
-        let base = FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first ?? FileManager.default.temporaryDirectory
+        let base =
+            FileManager.default.urls(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask
+            ).first ?? FileManager.default.temporaryDirectory
         return base.appendingPathComponent(name, isDirectory: true)
             .appendingPathComponent("pty-mux", isDirectory: true)
     }
@@ -99,7 +100,8 @@ enum PTYMuxPaths {
             path.map { lstat($0, &existing) } ?? -1
         }
         if existingResult == 0,
-           existing.st_mode & mode_t(S_IFMT) != mode_t(S_IFDIR) {
+            existing.st_mode & mode_t(S_IFMT) != mode_t(S_IFDIR)
+        {
             throw PTYMuxError.message(
                 "PTY mux state path is not a directory: \(directoryURL.path)"
             )
@@ -119,9 +121,10 @@ enum PTYMuxPaths {
         let type = metadata.st_mode & mode_t(S_IFMT)
         let permissions = metadata.st_mode & 0o777
         guard result == 0,
-              type == mode_t(S_IFDIR),
-              metadata.st_uid == geteuid(),
-              permissions == 0o700 else {
+            type == mode_t(S_IFDIR),
+            metadata.st_uid == geteuid(),
+            permissions == 0o700
+        else {
             throw PTYMuxError.message(
                 "PTY mux state directory must be a private 0700 directory: \(directoryURL.path)"
             )
@@ -143,13 +146,15 @@ nonisolated enum PTYMuxWire {
     ) throws {
         try markCloseOnExec(descriptor)
         var enabled: Int32 = 1
-        guard setsockopt(
-            descriptor,
-            SOL_SOCKET,
-            SO_NOSIGPIPE,
-            &enabled,
-            socklen_t(MemoryLayout<Int32>.size)
-        ) == 0 else {
+        guard
+            setsockopt(
+                descriptor,
+                SOL_SOCKET,
+                SO_NOSIGPIPE,
+                &enabled,
+                socklen_t(MemoryLayout<Int32>.size)
+            ) == 0
+        else {
             throw errnoError("setsockopt")
         }
         let seconds = floor(timeout)
@@ -157,22 +162,26 @@ nonisolated enum PTYMuxWire {
             tv_sec: Int(seconds),
             tv_usec: Int32((timeout - seconds) * 1_000_000)
         )
-        guard setsockopt(
-            descriptor,
-            SOL_SOCKET,
-            SO_RCVTIMEO,
-            &value,
-            socklen_t(MemoryLayout<timeval>.size)
-        ) == 0 else {
+        guard
+            setsockopt(
+                descriptor,
+                SOL_SOCKET,
+                SO_RCVTIMEO,
+                &value,
+                socklen_t(MemoryLayout<timeval>.size)
+            ) == 0
+        else {
             throw errnoError("setsockopt")
         }
-        guard setsockopt(
-            descriptor,
-            SOL_SOCKET,
-            SO_SNDTIMEO,
-            &value,
-            socklen_t(MemoryLayout<timeval>.size)
-        ) == 0 else {
+        guard
+            setsockopt(
+                descriptor,
+                SOL_SOCKET,
+                SO_SNDTIMEO,
+                &value,
+                socklen_t(MemoryLayout<timeval>.size)
+            ) == 0
+        else {
             throw errnoError("setsockopt")
         }
     }
@@ -300,9 +309,10 @@ private final class PTYMuxDaemon {
         guard lifetimeLock >= 0 else { throw PTYMuxWire.errnoError("open") }
         var lockMetadata = stat()
         guard fstat(lifetimeLock, &lockMetadata) == 0,
-              lockMetadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG),
-              lockMetadata.st_uid == geteuid(),
-              lockMetadata.st_nlink == 1 else {
+            lockMetadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG),
+            lockMetadata.st_uid == geteuid(),
+            lockMetadata.st_nlink == 1
+        else {
             Darwin.close(lifetimeLock)
             throw PTYMuxError.message("PTY mux lock must be an owner-only regular file.")
         }
@@ -402,7 +412,8 @@ private final class PTYMuxDaemon {
             var peerUser: uid_t = 0
             var peerGroup: gid_t = 0
             guard getpeereid(client, &peerUser, &peerGroup) == 0,
-                  peerUser == geteuid() else {
+                peerUser == geteuid()
+            else {
                 try PTYMuxWire.writeFrame(
                     PTYMuxResponse.failure(
                         id: "unknown",
@@ -419,8 +430,9 @@ private final class PTYMuxDaemon {
                 let session = try requireSession(request)
                 if request.method == "attach" {
                     let dimensions = try dimensions(request)
-                    session.resize(columns: dimensions.0, rows: dimensions.1,
-                                   cellWidth: dimensions.2, cellHeight: dimensions.3)
+                    session.resize(
+                        columns: dimensions.0, rows: dimensions.1,
+                        cellWidth: dimensions.2, cellHeight: dimensions.3)
                 }
                 let result = session.snapshot(tailBytes: 0)
                 let attachment = PTYMuxAttachment(descriptor: client)
@@ -428,21 +440,31 @@ private final class PTYMuxDaemon {
                 // Reads live for the attachment; writes remain bounded so a frozen
                 // client cannot leave a snapshot writer blocked indefinitely.
                 var receiveTimeout = timeval(tv_sec: 0, tv_usec: 0)
-                guard setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &receiveTimeout,
-                                 socklen_t(MemoryLayout<timeval>.size)) == 0 else {
+                guard
+                    setsockopt(
+                        client, SOL_SOCKET, SO_RCVTIMEO, &receiveTimeout,
+                        socklen_t(MemoryLayout<timeval>.size)) == 0
+                else {
                     throw PTYMuxWire.errnoError("setsockopt")
                 }
                 let reply = {
                     try PTYMuxWire.writeFrame(PTYMuxResponse.success(id: request.id, result: result), to: client)
                 }
-                if request.method == "observe" { try session.observe(attachment, reply: reply) }
-                else { try session.attach(attachment, reply: reply) }
+                if request.method == "observe" {
+                    try session.observe(attachment, reply: reply)
+                } else {
+                    try session.attach(attachment, reply: reply)
+                }
                 var buffer = [UInt8](repeating: 0, count: 16 * 1024)
                 while true {
                     let count = Darwin.read(client, &buffer, buffer.count)
-                    if count > 0 { session.write(Data(buffer.prefix(count)), from: attachment) }
-                    else if count < 0 && errno == EINTR { continue }
-                    else { return }
+                    if count > 0 {
+                        session.write(Data(buffer.prefix(count)), from: attachment)
+                    } else if count < 0 && errno == EINTR {
+                        continue
+                    } else {
+                        return
+                    }
                 }
             }
             let response = route(request)
@@ -548,7 +570,8 @@ private final class PTYMuxDaemon {
     }
 
     private func create(_ request: PTYMuxRequest) throws -> PTYMuxResponse {
-        let workingDirectory = request.params["workingDirectory"]?.stringValue
+        let workingDirectory =
+            request.params["workingDirectory"]?.stringValue
             ?? FileManager.default.currentDirectoryPath
         let command = request.params["command"]?.arrayValue?.compactMap(\.stringValue) ?? []
         guard command.count == request.params["command"]?.arrayValue?.count ?? command.count else {
@@ -602,12 +625,14 @@ private final class PTYMuxDaemon {
     private func dimensions(_ request: PTYMuxRequest) throws -> (UInt16, UInt16, UInt16, UInt16) {
         let columns = request.params["columns"]?.intValue ?? 80
         let rows = request.params["rows"]?.intValue ?? 24
-        guard (1...512).contains(columns), (1...256).contains(rows), columns * rows <= 65_536 else {
+        guard (1 ... 512).contains(columns), (1 ... 256).contains(rows), columns * rows <= 65_536 else {
             throw PTYMuxError.message("Invalid terminal dimensions.")
         }
-        return (UInt16(columns), UInt16(rows),
-                UInt16(clamping: request.params["cellWidth"]?.intValue ?? 8),
-                UInt16(clamping: request.params["cellHeight"]?.intValue ?? 16))
+        return (
+            UInt16(columns), UInt16(rows),
+            UInt16(clamping: request.params["cellWidth"]?.intValue ?? 8),
+            UInt16(clamping: request.params["cellHeight"]?.intValue ?? 16)
+        )
     }
 }
 
@@ -673,19 +698,24 @@ enum PTYMuxCommandLine {
                     throw CLIError.message("Unknown PTY mux create option \(optionArguments[index]).")
                 }
             }
-            let response = try exchange(method: "create", params: [
-                "workingDirectory": .string(workingDirectory),
-                "command": .array(commandArguments.map(ZshellJSONValue.string)),
-            ])
+            let response = try exchange(
+                method: "create",
+                params: [
+                    "workingDirectory": .string(workingDirectory),
+                    "command": .array(commandArguments.map(ZshellJSONValue.string)),
+                ])
             printResult(response)
         case "list":
             printResult(try exchange(method: "list"))
         case "get":
             guard arguments.count == 2 else { throw CLIError.message(usage) }
-            printResult(try exchange(method: "get", params: [
-                "id": .string(arguments[1]),
-                "tailBytes": .number(Double(PTYMuxConstants.maximumTailBytes)),
-            ]))
+            printResult(
+                try exchange(
+                    method: "get",
+                    params: [
+                        "id": .string(arguments[1]),
+                        "tailBytes": .number(Double(PTYMuxConstants.maximumTailBytes)),
+                    ]))
         case "terminate":
             guard arguments.count == 2 else { throw CLIError.message(usage) }
             printResult(try exchange(method: "terminate", params: ["id": .string(arguments[1])]))
@@ -699,16 +729,16 @@ enum PTYMuxCommandLine {
     }
 
     private static let usage = """
-    Usage:
-      zshell +pty-mux start
-      zshell +pty-mux create [--working-directory PATH] [-- COMMAND [ARGUMENT...]]
-      zshell +pty-mux list
-      zshell +pty-mux get SESSION_ID
-      zshell +pty-mux terminate SESSION_ID
-      zshell +pty-mux shutdown
+        Usage:
+          zshell +pty-mux start
+          zshell +pty-mux create [--working-directory PATH] [-- COMMAND [ARGUMENT...]]
+          zshell +pty-mux list
+          zshell +pty-mux get SESSION_ID
+          zshell +pty-mux terminate SESSION_ID
+          zshell +pty-mux shutdown
 
-    This internal interface inspects the PTYs kept outside the GUI process.
-    """
+        This internal interface inspects the PTYs kept outside the GUI process.
+        """
 
     static func startDaemonIfNeeded() throws {
         if (try? exchange(method: "list", timeout: 0.2)) != nil { return }
@@ -719,11 +749,13 @@ enum PTYMuxCommandLine {
             throw PTYMuxError.message("Could not initialize PTY mux daemon launch actions.")
         }
         defer { posix_spawn_file_actions_destroy(&actions) }
-        guard posix_spawn_file_actions_addopen(
-            &actions, STDIN_FILENO, "/dev/null", O_RDWR, 0
-        ) == 0,
-        posix_spawn_file_actions_adddup2(&actions, STDIN_FILENO, STDOUT_FILENO) == 0,
-        posix_spawn_file_actions_adddup2(&actions, STDIN_FILENO, STDERR_FILENO) == 0 else {
+        guard
+            posix_spawn_file_actions_addopen(
+                &actions, STDIN_FILENO, "/dev/null", O_RDWR, 0
+            ) == 0,
+            posix_spawn_file_actions_adddup2(&actions, STDIN_FILENO, STDOUT_FILENO) == 0,
+            posix_spawn_file_actions_adddup2(&actions, STDIN_FILENO, STDERR_FILENO) == 0
+        else {
             throw PTYMuxError.message("Could not configure PTY mux daemon descriptors.")
         }
 
@@ -732,10 +764,12 @@ enum PTYMuxCommandLine {
             throw PTYMuxError.message("Could not initialize PTY mux daemon launch attributes.")
         }
         defer { posix_spawnattr_destroy(&attributes) }
-        guard posix_spawnattr_setflags(
-            &attributes,
-            Int16(POSIX_SPAWN_CLOEXEC_DEFAULT | POSIX_SPAWN_SETSID)
-        ) == 0 else {
+        guard
+            posix_spawnattr_setflags(
+                &attributes,
+                Int16(POSIX_SPAWN_CLOEXEC_DEFAULT | POSIX_SPAWN_SETSID)
+            ) == 0
+        else {
             throw PTYMuxError.message("Could not configure PTY mux daemon launch attributes.")
         }
 
@@ -791,7 +825,8 @@ enum PTYMuxCommandLine {
         try PTYMuxWire.writeFrame(request, to: descriptor)
         let response = try PTYMuxWire.readFrame(PTYMuxResponse.self, from: descriptor)
         guard response.version == PTYMuxConstants.protocolVersion,
-              response.id == request.id else {
+            response.id == request.id
+        else {
             throw PTYMuxError.message("PTY mux returned a mismatched response.")
         }
         guard response.ok else {

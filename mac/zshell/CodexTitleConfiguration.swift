@@ -25,8 +25,9 @@ nonisolated enum CodexTitleConfiguration {
         let config = root.appendingPathComponent("config.toml")
         let original = try readIfPresent(config)
         if let previous, original == previous.installedData {
-            return Plan(original: original, updated: installing ? original : previous.originalData,
-                        state: installing ? previous : nil)
+            return Plan(
+                original: original, updated: installing ? original : previous.originalData,
+                state: installing ? previous : nil)
         }
         if !installing, previous == nil { return nil }
         guard ProcessRunner.resolveExecutable("codex", environment: environment) != nil else { return nil }
@@ -53,25 +54,30 @@ nonisolated enum CodexTitleConfiguration {
         }
         let installed = (items ?? defaults) + ["session-id"]
         let updated = try edit(installed, config: original, environment: environment)
-        return Plan(original: original, updated: updated, state: State(
-            originalItems: saved, installedItems: installed,
-            originalData: original, installedData: updated
-        ))
+        return Plan(
+            original: original, updated: updated,
+            state: State(
+                originalItems: saved, installedItems: installed,
+                originalData: original, installedData: updated
+            ))
     }
 
     static func hidesManagedSessionID(configDirectory: String?) -> Bool {
         guard let configDirectory,
-              let data = try? Data(contentsOf: URL(fileURLWithPath: configDirectory)
-                .appendingPathComponent(".zshell-session-hooks.json")), data.count <= 2_097_152,
-              let manifest = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              manifest["codexTitle"] != nil else { return false }
+            let data = try? Data(
+                contentsOf: URL(fileURLWithPath: configDirectory)
+                    .appendingPathComponent(".zshell-session-hooks.json")), data.count <= 2_097_152,
+            let manifest = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            manifest["codexTitle"] != nil
+        else { return false }
         return true
     }
 
     private static func titleItems(_ value: ZshellJSONValue?) throws -> [String]? {
         guard let value, value != .null else { return nil }
         guard let array = value.arrayValue, array.count <= 64,
-              array.allSatisfy({ $0.stringValue != nil }) else {
+            array.allSatisfy({ $0.stringValue != nil })
+        else {
             throw ZshellAgentSessionHooks.HookError.message(String(localized: "Codex terminal title items must be a string array."))
         }
         return array.compactMap(\.stringValue)
@@ -82,16 +88,19 @@ nonisolated enum CodexTitleConfiguration {
     ) throws -> Data {
         let scratch = FileManager.default.temporaryDirectory
             .appendingPathComponent("zshell-codex-title-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: false,
-                                               attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(
+            at: scratch, withIntermediateDirectories: false,
+            attributes: [.posixPermissions: 0o700])
         defer { try? FileManager.default.removeItem(at: scratch) }
         let path = scratch.appendingPathComponent("config.toml")
         if let config { try config.write(to: path, options: .atomic) }
         _ = try request(
             method: "config/value/write",
-            params: ["filePath": .string(path.path), "keyPath": .string("tui.terminal_title"),
-                     "mergeStrategy": .string("replace"),
-                     "value": items.map { .array($0.map(ZshellJSONValue.string)) } ?? .null],
+            params: [
+                "filePath": .string(path.path), "keyPath": .string("tui.terminal_title"),
+                "mergeStrategy": .string("replace"),
+                "value": items.map { .array($0.map(ZshellJSONValue.string)) } ?? .null,
+            ],
             root: scratch, environment: environment
         )
         return try Data(contentsOf: path)
@@ -128,7 +137,8 @@ nonisolated enum CodexTitleConfiguration {
         }
         for line in result.stdout.split(separator: 0x0A) {
             guard let response = try? JSONDecoder().decode(ZshellJSONValue.self, from: Data(line)),
-                  response.objectValue?["id"]?.intValue == 2 else { continue }
+                response.objectValue?["id"]?.intValue == 2
+            else { continue }
             if let value = response.objectValue?["result"] { return value }
             throw ZshellAgentSessionHooks.HookError.message(String(localized: "Codex rejected terminal title configuration."))
         }
@@ -139,7 +149,8 @@ nonisolated enum CodexTitleConfiguration {
         do {
             let data = try Data(contentsOf: url)
             guard data.count <= 1_048_576 else {
-                throw ZshellAgentSessionHooks.HookError.message(String(localized: "Codex configuration is too large for terminal title integration."))
+                throw ZshellAgentSessionHooks.HookError.message(
+                    String(localized: "Codex configuration is too large for terminal title integration."))
             }
             return data
         } catch CocoaError.fileReadNoSuchFile { return nil }

@@ -47,7 +47,7 @@ public struct RangeMutation: Hashable, Sendable {
         if r.location == NSNotFound {
             return false
         }
-        
+
         if range.location >= r.max {
             return false
         }
@@ -118,7 +118,7 @@ extension RangeMutation {
 }
 
 public extension RangeMutation {
-     func transform(range r: NSRange) -> NSRange? {
+    func transform(range r: NSRange) -> NSRange? {
         // This is a gross special-case that I'd prefer to avoid. But,
         // I'm strugging to come up with logic that makes sense for this
         // otherwise.

@@ -28,7 +28,8 @@ enum QuickTerminalOffscreen {
             ("makeKeyAndOrderFront:", "quickTest_makeKeyAndOrderFront:"),
         ] {
             guard let first = class_getInstanceMethod(NSWindow.self, NSSelectorFromString(original)),
-                  let second = class_getInstanceMethod(NSWindow.self, NSSelectorFromString(replacement)) else {
+                let second = class_getInstanceMethod(NSWindow.self, NSSelectorFromString(replacement))
+            else {
                 preconditionFailure("Missing window method \(original)")
             }
             method_exchangeImplementations(first, second)
@@ -45,11 +46,13 @@ enum QuickTerminalOffscreen {
             ($0[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == getpid()
         }.contains { record in
             guard let bounds = record[kCGWindowBounds as String] as? [String: Any],
-                  let frame = CGRect(dictionaryRepresentation: bounds as CFDictionary) else { return true }
+                let frame = CGRect(dictionaryRepresentation: bounds as CFDictionary)
+            else { return true }
             return frame.width > 0 && frame.height > 0 && displays.contains { $0.intersects(frame) }
         }
         return !NSApp.isActive && NSWorkspace.shared.frontmostApplication?.processIdentifier != getpid()
-            && !intersectsDisplay && NSApp.windows.filter(\.isVisible).allSatisfy { window in
+            && !intersectsDisplay
+            && NSApp.windows.filter(\.isVisible).allSatisfy { window in
                 window.ignoresMouseEvents && !window.isKeyWindow && !window.isMainWindow
                     && NSScreen.screens.allSatisfy { !$0.frame.intersects(window.frame) }
             }
@@ -57,7 +60,9 @@ enum QuickTerminalOffscreen {
 }
 
 extension NSWindow {
-    @objc(quickTest_constrainFrameRect:toScreen:) fileprivate func quickTest_constrainFrameRect(_ requested: NSRect, to screen: NSScreen?) -> NSRect {
+    @objc(quickTest_constrainFrameRect:toScreen:) fileprivate func quickTest_constrainFrameRect(_ requested: NSRect, to screen: NSScreen?)
+        -> NSRect
+    {
         // AppKit 在窗口显示时还会约束坐标，单独拦截 setFrame 无法保证离屏。
         QuickTerminalOffscreen.frame(requested)
     }

@@ -34,14 +34,15 @@ class ImageTests: XCTestCase {
         do {
             let source = "![Alt](test.png \"\(title)\")"
             let document = Document(parsing: source)
-            let image = document.child(through:[
-                (0, Paragraph.self),
-                (0, Image.self),
-            ]) as! Image
+            let image =
+                document.child(through: [
+                    (0, Paragraph.self),
+                    (0, Image.self),
+                ]) as! Image
             XCTAssertEqual(title, image.title)
         }
     }
-    
+
     func testLinkFromSequence() {
         let children = [Text("Hello, world!")]
         let image = Image(source: "test.png", title: "title", children)

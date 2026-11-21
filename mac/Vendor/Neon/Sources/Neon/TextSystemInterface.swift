@@ -1,14 +1,14 @@
 import Foundation
 
 public protocol TextSystemInterface {
-	@MainActor
+    @MainActor
     func clearStyle(in range: NSRange)
-	@MainActor
+    @MainActor
     func applyStyle(to token: Token)
 
-	@MainActor
+    @MainActor
     var length: Int { get }
-	@MainActor
+    @MainActor
     var visibleRange: NSRange { get }
 }
 
@@ -21,7 +21,7 @@ public extension TextSystemInterface {
     }
 
     func clearAllStyles() {
-        clearStyle(in: NSRange(0..<length))
+        clearStyle(in: NSRange(0 ..< length))
     }
 
     func applyStyles(to tokens: [Token]) {

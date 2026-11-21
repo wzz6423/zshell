@@ -143,8 +143,8 @@ final class TerminalMetalRenderer {
         instanceBuffers = TerminalInstanceBufferPool(device: device)
 
         guard let library = try? device.makeLibrary(source: Self.shaderSource, options: nil),
-              let vertexFunction = library.makeFunction(name: "zshell_terminal_vertex"),
-              let fragmentFunction = library.makeFunction(name: "zshell_terminal_fragment")
+            let vertexFunction = library.makeFunction(name: "zshell_terminal_vertex"),
+            let fragmentFunction = library.makeFunction(name: "zshell_terminal_fragment")
         else { return nil }
 
         let descriptor = MTLRenderPipelineDescriptor()
@@ -202,23 +202,27 @@ final class TerminalMetalRenderer {
         onBufferAvailable: (@Sendable () -> Void)? = nil,
         waitUntilCompleted: Bool = false
     ) -> Bool {
-        guard prepare(
-            snapshot: snapshot, markedText: markedText,
-            metrics: metrics, padding: padding,
-            scale: scale,
-            paddingColor: paddingColor,
-            dirtyRows: dirtyRows,
-            viewportSize: viewportSize
-        ), let atlas else { return false }
+        guard
+            prepare(
+                snapshot: snapshot, markedText: markedText,
+                metrics: metrics, padding: padding,
+                scale: scale,
+                paddingColor: paddingColor,
+                dirtyRows: dirtyRows,
+                viewportSize: viewportSize
+            ), let atlas
+        else { return false }
 
         let instanceLease: TerminalInstanceBufferPool.Lease?
         if instances.isEmpty {
             instanceLease = nil
         } else {
-            guard let lease = uploadInstances(
-                waitUntilAvailable: waitUntilCompleted,
-                onAvailable: onBufferAvailable
-            ) else { return false }
+            guard
+                let lease = uploadInstances(
+                    waitUntilAvailable: waitUntilCompleted,
+                    onAvailable: onBufferAvailable
+                )
+            else { return false }
             instanceLease = lease
         }
 
@@ -237,7 +241,7 @@ final class TerminalMetalRenderer {
         )
 
         guard let commands = queue.makeCommandBuffer(),
-              let encoder = commands.makeRenderCommandEncoder(descriptor: pass)
+            let encoder = commands.makeRenderCommandEncoder(descriptor: pass)
         else { return false }
 
         drawKittyGraphics(
@@ -339,9 +343,11 @@ final class TerminalMetalRenderer {
         // Include retained clean rows and transient preedit, deduplicating
         // glyphs whose rasterized bitmap is shared by many cells.
         for instance in instances where instance.kind == 1 || instance.kind == 2 {
-            if visible.insert(VisibleGlyph(
-                page: instance.atlasPage, uvOrigin: instance.uvOrigin
-            )).inserted {
+            if visible.insert(
+                VisibleGlyph(
+                    page: instance.atlasPage, uvOrigin: instance.uvOrigin
+                )
+            ).inserted {
                 area += instance.uvSize.x * instance.uvSize.y
             }
         }
@@ -356,27 +362,27 @@ final class TerminalMetalRenderer {
         var start = 0
         var firstPage = 0
         for (index, instance) in instances.enumerated()
-            where instance.kind == 1 || instance.kind == 2
-        {
+        where instance.kind == 1 || instance.kind == 2 {
             let group = Int(instance.atlasPage) / Self.texturesPerDraw * Self.texturesPerDraw
             if group != firstPage {
-                if index > start { ranges.append((start..<index, firstPage)) }
+                if index > start { ranges.append((start ..< index, firstPage)) }
                 start = index
                 firstPage = group
             }
         }
-        ranges.append((start..<instances.count, firstPage))
+        ranges.append((start ..< instances.count, firstPage))
         return ranges
     }
 
     private func drawInstances(atlas: TerminalGlyphAtlas, with encoder: MTLRenderCommandEncoder) {
         let textures = atlas.textures
-        let batches = textures.count <= Self.texturesPerDraw
-            ? [(range: 0..<instances.count, firstPage: 0)] : instanceRanges()
+        let batches =
+            textures.count <= Self.texturesPerDraw
+            ? [(range: 0 ..< instances.count, firstPage: 0)] : instanceRanges()
         for batch in batches {
             // Populate every shader binding, including unused slots. Solid
             // instances can start a batch before its first glyph arrives.
-            for slot in 0..<Self.texturesPerDraw {
+            for slot in 0 ..< Self.texturesPerDraw {
                 let page = batch.firstPage + slot
                 encoder.setFragmentTexture(textures[page < textures.count ? page : 0], index: slot)
             }
@@ -406,12 +412,12 @@ final class TerminalMetalRenderer {
 
         for placement in placements {
             guard placement.imageWidth > 0,
-                  placement.imageHeight > 0,
-                  placement.sourceWidth > 0,
-                  placement.sourceHeight > 0,
-                  placement.displayColumns > 0,
-                  placement.displayRows > 0,
-                  let texture = kittyTexture(for: placement)
+                placement.imageHeight > 0,
+                placement.sourceWidth > 0,
+                placement.sourceHeight > 0,
+                placement.displayColumns > 0,
+                placement.displayRows > 0,
+                let texture = kittyTexture(for: placement)
             else { continue }
 
             let destinationWidth = Float(placement.displayColumns) * Float(metrics.cellWidth)
@@ -442,7 +448,7 @@ final class TerminalMetalRenderer {
                 length: MemoryLayout<Instance>.stride,
                 index: 0
             )
-            for slot in 0..<Self.texturesPerDraw {
+            for slot in 0 ..< Self.texturesPerDraw {
                 encoder.setFragmentTexture(texture, index: slot)
             }
             encoder.drawPrimitives(
@@ -458,13 +464,15 @@ final class TerminalMetalRenderer {
         if let texture = kittyTextures[placement.imageKey] {
             return texture
         }
-        guard let texture = try? textureLoader.newTexture(
-            data: placement.png,
-            options: [
-                .origin: MTKTextureLoader.Origin.topLeft,
-                .SRGB: false,
-            ]
-        ) else {
+        guard
+            let texture = try? textureLoader.newTexture(
+                data: placement.png,
+                options: [
+                    .origin: MTKTextureLoader.Origin.topLeft,
+                    .SRGB: false,
+                ]
+            )
+        else {
             return nil
         }
         kittyTextures[placement.imageKey] = texture
@@ -476,11 +484,13 @@ final class TerminalMetalRenderer {
         onAvailable: (@Sendable () -> Void)?
     ) -> TerminalInstanceBufferPool.Lease? {
         let length = MemoryLayout<Instance>.stride * instances.count
-        guard let lease = instanceBuffers.acquire(
-            length: length,
-            waitUntilAvailable: waitUntilAvailable,
-            onAvailable: onAvailable
-        ) else { return nil }
+        guard
+            let lease = instanceBuffers.acquire(
+                length: length,
+                waitUntilAvailable: waitUntilAvailable,
+                onAvailable: onAvailable
+            )
+        else { return nil }
         instances.withUnsafeBytes { raw in
             lease.buffer.contents().copyMemory(from: raw.baseAddress!, byteCount: length)
         }
@@ -526,11 +536,11 @@ final class TerminalMetalRenderer {
         // rows while transient preedit instances are appended below.
         let rowsToBuild: [Int]
         if geometryChanged || colorsChanged || paddingColorChanged {
-            rowsToBuild = Array(0..<rows)
+            rowsToBuild = Array(0 ..< rows)
         } else if let dirtyRows {
             rowsToBuild = dirtyRows.filter { $0 >= 0 && $0 < rows }
         } else {
-            rowsToBuild = Array(0..<rows)
+            rowsToBuild = Array(0 ..< rows)
         }
         for row in rowsToBuild {
             rowInstances[row] = buildRow(
@@ -574,11 +584,11 @@ final class TerminalMetalRenderer {
         atlas: TerminalGlyphAtlas
     ) {
         guard let markedText,
-              let cells = snapshot.cells,
-              markedText.line >= 0,
-              markedText.column >= 0,
-              markedText.line < snapshot.rows,
-              markedText.column < snapshot.columns
+            let cells = snapshot.cells,
+            markedText.line >= 0,
+            markedText.column >= 0,
+            markedText.line < snapshot.rows,
+            markedText.column < snapshot.columns
         else { return }
 
         let cellWidth = Float(metrics.cellWidth)
@@ -603,27 +613,29 @@ final class TerminalMetalRenderer {
             if let entry = atlas.entry(for: key) {
                 // Column spacing must not turn a wide IME glyph into a narrow one.
                 if entry.size.x > Float(metrics.naturalCellWidth) * 1.5 { advance = 2 }
-                instances.append(Instance(
-                    origin: SIMD2(
-                        left + Float(metrics.glyphOffset(columns: Int(advance))) + entry.bearing.x,
-                        baseline - entry.bearing.y - entry.size.y
-                    ),
-                    size: entry.size,
-                    color: color,
-                    uvOrigin: entry.uvOrigin,
-                    uvSize: entry.uvSize,
-                    kind: entry.isColor ? 2 : 1,
-                    atlasPage: UInt32(entry.page)
-                ))
+                instances.append(
+                    Instance(
+                        origin: SIMD2(
+                            left + Float(metrics.glyphOffset(columns: Int(advance))) + entry.bearing.x,
+                            baseline - entry.bearing.y - entry.size.y
+                        ),
+                        size: entry.size,
+                        color: color,
+                        uvOrigin: entry.uvOrigin,
+                        uvSize: entry.uvSize,
+                        kind: entry.isColor ? 2 : 1,
+                        atlasPage: UInt32(entry.page)
+                    ))
             }
-            instances.append(Instance(
-                origin: SIMD2(left, baseline + cellHeight * 0.12),
-                size: SIMD2(advance * cellWidth, 1),
-                color: color,
-                uvOrigin: .zero,
-                uvSize: .zero,
-                kind: 0
-            ))
+            instances.append(
+                Instance(
+                    origin: SIMD2(left, baseline + cellHeight * 0.12),
+                    size: SIMD2(advance * cellWidth, 1),
+                    color: color,
+                    uvOrigin: .zero,
+                    uvSize: .zero,
+                    kind: 0
+                ))
             column += advance
         }
     }
@@ -648,11 +660,12 @@ final class TerminalMetalRenderer {
 
         let top = originY + Float(row) * cellHeight
         let extendsSides = paddingColor != .background
-        let extendsVertically = paddingColor == .always
+        let extendsVertically =
+            paddingColor == .always
             || (paddingColor == .extend && (row == 0 || row + 1 == snapshot.rows)
                 && !Self.rowNeverExtendsBackground(
-                row, cells: cells, columns: columns, background: defaultBackground
-            ))
+                    row, cells: cells, columns: columns, background: defaultBackground
+                ))
         var column = 0
 
         // Backgrounds first, coalescing equal-coloured runs into one quad.
@@ -663,10 +676,12 @@ final class TerminalMetalRenderer {
             var span = 1
             while column + span < columns {
                 let next = cells[row * columns + column + span]
-                guard AlacrittyRenderer.background(of: next, default: defaultBackground)
-                    == background,
-                      Self.drawsBackground(next, resolved: background, default: defaultBackground)
-                    == drawsBackground else { break }
+                guard
+                    AlacrittyRenderer.background(of: next, default: defaultBackground)
+                        == background,
+                    Self.drawsBackground(next, resolved: background, default: defaultBackground)
+                        == drawsBackground
+                else { break }
                 span += 1
             }
             if drawsBackground {
@@ -674,24 +689,28 @@ final class TerminalMetalRenderer {
                 let reachesRightEdge = extendsSides && column + span == columns
                 let reachesTopEdge = extendsVertically && row == 0
                 let reachesBottomEdge = extendsVertically && row + 1 == snapshot.rows
-                let left = reachesLeftEdge
+                let left =
+                    reachesLeftEdge
                     ? 0 : originX + Float(column) * cellWidth
-                let right = reachesRightEdge
+                let right =
+                    reachesRightEdge
                     ? Float(viewportSize.width)
                     : originX + Float(column + span) * cellWidth
                 let runTop = reachesTopEdge ? 0 : top
-                let bottom = reachesBottomEdge
+                let bottom =
+                    reachesBottomEdge
                     ? Float(viewportSize.height) : top + cellHeight
-                instances.append(Instance(
-                    origin: SIMD2(left, runTop),
-                    size: SIMD2(max(right - left, 0), max(bottom - runTop, 0)),
-                    // Ghostty keeps explicit, selected and inverse backgrounds
-                    // opaque; only untouched cells expose the translucent clear.
-                    color: Self.color(background),
-                    uvOrigin: .zero,
-                    uvSize: .zero,
-                    kind: 0
-                ))
+                instances.append(
+                    Instance(
+                        origin: SIMD2(left, runTop),
+                        size: SIMD2(max(right - left, 0), max(bottom - runTop, 0)),
+                        // Ghostty keeps explicit, selected and inverse backgrounds
+                        // opaque; only untouched cells expose the translucent clear.
+                        color: Self.color(background),
+                        uvOrigin: .zero,
+                        uvSize: .zero,
+                        kind: 0
+                    ))
             }
             column += span
         }
@@ -724,13 +743,14 @@ final class TerminalMetalRenderer {
                 guard width > 0 else { return }
                 let fraction = (clipLeft - left) / entry.size.x
                 let extent = width / entry.size.x
-                instances.append(Instance(
-                    origin: SIMD2(clipLeft, baseline - entry.bearing.y - entry.size.y),
-                    size: SIMD2(width, entry.size.y), color: Self.color(color),
-                    uvOrigin: SIMD2(entry.uvOrigin.x + entry.uvSize.x * fraction, entry.uvOrigin.y),
-                    uvSize: SIMD2(entry.uvSize.x * extent, entry.uvSize.y),
-                    kind: entry.isColor ? 2 : 1, atlasPage: UInt32(entry.page)
-                ))
+                instances.append(
+                    Instance(
+                        origin: SIMD2(clipLeft, baseline - entry.bearing.y - entry.size.y),
+                        size: SIMD2(width, entry.size.y), color: Self.color(color),
+                        uvOrigin: SIMD2(entry.uvOrigin.x + entry.uvSize.x * fraction, entry.uvOrigin.y),
+                        uvSize: SIMD2(entry.uvSize.x * extent, entry.uvSize.y),
+                        kind: entry.isColor ? 2 : 1, atlasPage: UInt32(entry.page)
+                    ))
             }
 
             while column < lastColumn {
@@ -745,43 +765,43 @@ final class TerminalMetalRenderer {
                 // Preserve that ink without extending selection/cursor colors.
                 if column == glyph.columns.lowerBound, left < clipLeft {
                     let outsideColor = unselectedForeground(at: column)
-                    if outsideColor == color { clipLeft = left }
-                    else { appendGlyph(from: left, to: clipLeft, color: outsideColor) }
+                    if outsideColor == color { clipLeft = left } else { appendGlyph(from: left, to: clipLeft, color: outsideColor) }
                 }
                 if end == glyph.columns.upperBound, right > clipRight {
                     let outsideColor = unselectedForeground(at: end - 1)
-                    if outsideColor == color { clipRight = right }
-                    else { appendGlyph(from: clipRight, to: right, color: outsideColor) }
+                    if outsideColor == color { clipRight = right } else { appendGlyph(from: clipRight, to: right, color: outsideColor) }
                 }
                 appendGlyph(from: clipLeft, to: clipRight, color: color)
                 column = end
             }
         }
 
-        for column in 0..<columns {
+        for column in 0 ..< columns {
             let cell = cells[row * columns + column]
             guard cell.flags & UInt16(ZSHELL_CELL_HIDDEN) == 0,
-                  cell.flags & UInt16(ZSHELL_CELL_WIDE_SPACER) == 0
+                cell.flags & UInt16(ZSHELL_CELL_WIDE_SPACER) == 0
             else { continue }
 
             let color = Self.color(foreground(at: column))
             let left = originX + Float(column) * cellWidth
 
             if cell.flags & UInt16(ZSHELL_CELL_UNDERLINE) != 0 {
-                instances.append(Instance(
-                    origin: SIMD2(left, top + Float(metrics.baseline) + cellHeight * 0.12),
-                    size: SIMD2(cellWidth, 1),
-                    color: color,
-                    uvOrigin: .zero, uvSize: .zero, kind: 0
-                ))
+                instances.append(
+                    Instance(
+                        origin: SIMD2(left, top + Float(metrics.baseline) + cellHeight * 0.12),
+                        size: SIMD2(cellWidth, 1),
+                        color: color,
+                        uvOrigin: .zero, uvSize: .zero, kind: 0
+                    ))
             }
             if cell.flags & UInt16(ZSHELL_CELL_STRIKEOUT) != 0 {
-                instances.append(Instance(
-                    origin: SIMD2(left, top + Float(metrics.baseline) - cellHeight * 0.22),
-                    size: SIMD2(cellWidth, 1),
-                    color: color,
-                    uvOrigin: .zero, uvSize: .zero, kind: 0
-                ))
+                instances.append(
+                    Instance(
+                        origin: SIMD2(left, top + Float(metrics.baseline) - cellHeight * 0.22),
+                        size: SIMD2(cellWidth, 1),
+                        color: color,
+                        uvOrigin: .zero, uvSize: .zero, kind: 0
+                    ))
             }
         }
 
@@ -801,13 +821,13 @@ final class TerminalMetalRenderer {
     private static func rowNeverExtendsBackground(
         _ row: Int, cells: UnsafePointer<ZshellCell>, columns: Int, background: UInt32
     ) -> Bool {
-        for column in 0..<columns {
+        for column in 0 ..< columns {
             let cell = cells[row * columns + column]
             if cell.flags & UInt16(ZSHELL_CELL_SEMANTIC_PROMPT) != 0 || cell.bg == background {
                 return true
             }
             switch cell.ch {
-            case 0xE0B0...0xE0C8, 0xE0CA, 0xE0CC...0xE0D2, 0xE0D4: return true
+            case 0xE0B0 ... 0xE0C8, 0xE0CA, 0xE0CC ... 0xE0D2, 0xE0D4: return true
             default: break
             }
         }
@@ -852,11 +872,12 @@ final class TerminalMetalRenderer {
             return
         }
 
-        let (origin, size): (SIMD2<Float>, SIMD2<Float>) = switch snapshot.cursor_shape {
-        case 1: (SIMD2(left, top + cellHeight - 2), SIMD2(cellWidth, 2))
-        case 2: (SIMD2(left, top), SIMD2(2, cellHeight))
-        default: (SIMD2(left, top), SIMD2(cellWidth, cellHeight))
-        }
+        let (origin, size): (SIMD2<Float>, SIMD2<Float>) =
+            switch snapshot.cursor_shape {
+            case 1: (SIMD2(left, top + cellHeight - 2), SIMD2(cellWidth, 2))
+            case 2: (SIMD2(left, top), SIMD2(2, cellHeight))
+            default: (SIMD2(left, top), SIMD2(cellWidth, cellHeight))
+            }
         let cursor = Instance(
             origin: origin, size: size, color: color,
             uvOrigin: .zero, uvSize: .zero, kind: 0
@@ -875,8 +896,8 @@ final class TerminalMetalRenderer {
         let row = snapshot.cursor_line
         let column = snapshot.cursor_column
         guard row >= 0, row < snapshot.rows,
-              row < rowInstances.count,
-              column >= 0, column < snapshot.columns
+            row < rowInstances.count,
+            column >= 0, column < snapshot.columns
         else { return nil }
 
         let precedingInstances = rowInstances[..<row].reduce(0) {
@@ -897,79 +918,79 @@ final class TerminalMetalRenderer {
     // MARK: - Shaders
 
     private static let shaderSource = """
-    #include <metal_stdlib>
-    using namespace metal;
+        #include <metal_stdlib>
+        using namespace metal;
 
-    struct Instance {
-        float2 origin;
-        float2 size;
-        float4 color;
-        float2 uvOrigin;
-        float2 uvSize;
-        uint kind;
-        uint atlasPage;
-    };
+        struct Instance {
+            float2 origin;
+            float2 size;
+            float4 color;
+            float2 uvOrigin;
+            float2 uvSize;
+            uint kind;
+            uint atlasPage;
+        };
 
-    struct VertexOut {
-        float4 position [[position]];
-        float4 color;
-        float2 uv;
-        uint kind;
-        uint atlasPage [[flat]];
-    };
+        struct VertexOut {
+            float4 position [[position]];
+            float4 color;
+            float2 uv;
+            uint kind;
+            uint atlasPage [[flat]];
+        };
 
-    // Quad corners come from vertex_id, so only the instance array is uploaded.
-    constant float2 corners[6] = {
-        float2(0, 0), float2(1, 0), float2(0, 1),
-        float2(0, 1), float2(1, 0), float2(1, 1)
-    };
+        // Quad corners come from vertex_id, so only the instance array is uploaded.
+        constant float2 corners[6] = {
+            float2(0, 0), float2(1, 0), float2(0, 1),
+            float2(0, 1), float2(1, 0), float2(1, 1)
+        };
 
-    vertex VertexOut zshell_terminal_vertex(
-        uint vertexID [[vertex_id]],
-        uint instanceID [[instance_id]],
-        const device Instance *instances [[buffer(0)]],
-        constant float2 &viewport [[buffer(1)]]
-    ) {
-        Instance instance = instances[instanceID];
-        float2 corner = corners[vertexID];
-        float2 point = instance.origin + corner * instance.size;
+        vertex VertexOut zshell_terminal_vertex(
+            uint vertexID [[vertex_id]],
+            uint instanceID [[instance_id]],
+            const device Instance *instances [[buffer(0)]],
+            constant float2 &viewport [[buffer(1)]]
+        ) {
+            Instance instance = instances[instanceID];
+            float2 corner = corners[vertexID];
+            float2 point = instance.origin + corner * instance.size;
 
-        // Points, y-down from the top-left, into clip space.
-        float2 normalized = point / viewport;
-        float2 clip = float2(normalized.x * 2.0 - 1.0, 1.0 - normalized.y * 2.0);
+            // Points, y-down from the top-left, into clip space.
+            float2 normalized = point / viewport;
+            float2 clip = float2(normalized.x * 2.0 - 1.0, 1.0 - normalized.y * 2.0);
 
-        VertexOut out;
-        out.position = float4(clip, 0, 1);
-        out.color = instance.color;
-        out.uv = instance.uvOrigin + corner * instance.uvSize;
-        out.kind = instance.kind;
-        out.atlasPage = instance.atlasPage;
-        return out;
-    }
-
-    fragment float4 zshell_terminal_fragment(
-        VertexOut in [[stage_in]],
-        array<texture2d<float>, 4> atlas [[texture(0)]],
-        sampler atlasSampler [[sampler(0)]]
-    ) {
-        if (in.kind == 0) {
-            return in.color;
+            VertexOut out;
+            out.position = float4(clip, 0, 1);
+            out.color = instance.color;
+            out.uv = instance.uvOrigin + corner * instance.uvSize;
+            out.kind = instance.kind;
+            out.atlasPage = instance.atlasPage;
+            return out;
         }
-        float4 sample = atlas[in.atlasPage % 4].sample(atlasSampler, in.uv);
-        if (in.kind == 3) {
-            return sample;
+
+        fragment float4 zshell_terminal_fragment(
+            VertexOut in [[stage_in]],
+            array<texture2d<float>, 4> atlas [[texture(0)]],
+            sampler atlasSampler [[sampler(0)]]
+        ) {
+            if (in.kind == 0) {
+                return in.color;
+            }
+            float4 sample = atlas[in.atlasPage % 4].sample(atlasSampler, in.uv);
+            if (in.kind == 3) {
+                return sample;
+            }
+            if (in.kind == 2) {
+                // CGContext stores premultiplied pixels. The pipeline uses
+                // straight-alpha blending, so undo that multiplication here.
+                return sample.a > 0.0
+                    ? float4(sample.rgb / sample.a, sample.a)
+                    : float4(0.0);
+            }
+            // Monochrome glyphs use the texture alpha as coverage; their RGB is
+            // deliberately ignored so the terminal cell owns the foreground.
+            float coverage = sample.a;
+            return float4(in.color.rgb, in.color.a * coverage);
         }
-        if (in.kind == 2) {
-            // CGContext stores premultiplied pixels. The pipeline uses
-            // straight-alpha blending, so undo that multiplication here.
-            return sample.a > 0.0
-                ? float4(sample.rgb / sample.a, sample.a)
-                : float4(0.0);
-        }
-        // Monochrome glyphs use the texture alpha as coverage; their RGB is
-        // deliberately ignored so the terminal cell owns the foreground.
-        float coverage = sample.a;
-        return float4(in.color.rgb, in.color.a * coverage);
-    }
-    """
+        """
 }

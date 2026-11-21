@@ -134,7 +134,7 @@ import Testing
         "ab",
         "abc",
         "1234567890",
-        "hello_world_123"
+        "hello_world_123",
     ]
 
     for str in testStrings {

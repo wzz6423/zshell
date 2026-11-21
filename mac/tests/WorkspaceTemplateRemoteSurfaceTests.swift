@@ -46,8 +46,7 @@ struct WorkspaceTemplateRemoteSurfaceTests {
 
     static func main() {
         if RemoteSessionRelay.shouldRun { RemoteSessionRelay.run() }
-        do { try run() }
-        catch { fputs("Remote workspace template surface failed: \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("Remote workspace template surface failed: \(error)\n", stderr); exit(1) }
     }
 
     static func run() throws {
@@ -72,11 +71,14 @@ struct WorkspaceTemplateRemoteSurfaceTests {
         try RemoteHostStore.shared.save(host)
         let sourceDirectory = remoteHome.appendingPathComponent("source-\(backend)").path
         let targetDirectory = remoteHome.appendingPathComponent("target-\(backend)").path
-        for path in [sourceDirectory, targetDirectory] { try FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true) }
+        for path in [sourceDirectory, targetDirectory] {
+            try FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
+        }
 
         let manager = TerminalManager()
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1260, height: 760),
-                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1260, height: 760),
+            styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.identifier = NSUserInterfaceItemIdentifier("main-remote-template-fixture")
         window.orderFront(nil)
         manager.attach(to: window)
@@ -86,7 +88,9 @@ struct WorkspaceTemplateRemoteSurfaceTests {
             if !completed {
                 for project in manager.projects {
                     for session in project.sessions {
-                        print("DIAGNOSTIC \(backend): status=\(String(describing: session.remoteStatus)) text=\(text(session).debugDescription)")
+                        print(
+                            "DIAGNOSTIC \(backend): status=\(String(describing: session.remoteStatus)) text=\(text(session).debugDescription)"
+                        )
                     }
                 }
             }
@@ -102,13 +106,16 @@ struct WorkspaceTemplateRemoteSurfaceTests {
                     }
                 }
             }
-            windows.forEach { $0.contentView = nil; $0.orderOut(nil) }
+            windows.forEach {
+                $0.contentView = nil; $0.orderOut(nil)
+            }
             manager.windowClosed()
         }
 
         func mount(_ session: TerminalSession) {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 420),
-                                  styleMask: [.titled], backing: .buffered, defer: false)
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 800, height: 420),
+                styleMask: [.titled], backing: .buffered, defer: false)
             let surface = session.surface
             surface.frame = window.contentView!.bounds
             window.contentView = surface
@@ -125,10 +132,12 @@ struct WorkspaceTemplateRemoteSurfaceTests {
         func remoteIDs(_ project: Project) -> Set<UUID> { Set(project.sessions.compactMap { $0.remoteConnection?.sessionID }) }
 
         let source = manager.sharedProject(host: host, directory: sourceDirectory)
-        let first = source.newSession(commandArguments: ["/bin/sh", "-c", "printf 'SOURCE_REMOTE\\n'; exec /bin/sh -i"],
-                                      usesConfiguredStartupCommand: false)!
-        let second = source.newSession(launchSettings: TerminalLaunchSettings(initializationCommand: "printf 'SOURCE_INIT\\n'"),
-                                       usesConfiguredStartupCommand: false)!
+        let first = source.newSession(
+            commandArguments: ["/bin/sh", "-c", "printf 'SOURCE_REMOTE\\n'; exec /bin/sh -i"],
+            usesConfiguredStartupCommand: false)!
+        let second = source.newSession(
+            launchSettings: TerminalLaunchSettings(initializationCommand: "printf 'SOURCE_INIT\\n'"),
+            usesConfiguredStartupCommand: false)!
         mount(first)
         mount(second)
         try wait("source remote program ran") { text(first).contains("SOURCE_REMOTE") }
@@ -137,32 +146,42 @@ struct WorkspaceTemplateRemoteSurfaceTests {
         try check(WorkspaceTemplate.canCapture(source), "projects on a saved remote host can be saved as templates")
         let captured = try WorkspaceTemplate.capture(project: source, name: "Remote development")
         let json = String(data: try captured.encoded(), encoding: .utf8)!
-        try check(captured.remote == .init(host: host.name, directory: sourceDirectory), "capture records the saved host name and remote directory")
+        try check(
+            captured.remote == .init(host: host.name, directory: sourceDirectory),
+            "capture records the saved host name and remote directory")
         let capturedDirectories = captured.tabs.flatMap { WorkspaceTemplate.contents(in: $0.layout) }.map { content -> String? in
             if case .session(let directory) = content { return directory }
             return nil
         }
-        try check(capturedDirectories == [".", "."],
-                  "every captured remote terminal starts in the remote directory")
-        try check(captured.tabs[0].terminals[0].argv == ["/bin/sh", "-c", "printf 'SOURCE_REMOTE\\n'; exec /bin/sh -i"]
-                  && captured.tabs[1].terminals[0].initializationCommand == "printf 'SOURCE_INIT\\n'",
-                  "capture keeps remote startup programs and initialization commands")
+        try check(
+            capturedDirectories == [".", "."],
+            "every captured remote terminal starts in the remote directory")
+        try check(
+            captured.tabs[0].terminals[0].argv == ["/bin/sh", "-c", "printf 'SOURCE_REMOTE\\n'; exec /bin/sh -i"]
+                && captured.tabs[1].terminals[0].initializationCommand == "printf 'SOURCE_INIT\\n'",
+            "capture keeps remote startup programs and initialization commands")
         for secret in [address, serverPath, host.id.uuidString, "remoteSessionID", "serverPath"]
-            + sourceIDs.flatMap({ [$0.uuidString, $0.uuidString.lowercased()] }) {
+            + sourceIDs.flatMap({ [$0.uuidString, $0.uuidString.lowercased()] })
+        {
             try check(!json.contains(secret), "remote export excludes runtime value \(secret.count > 20 ? "identity" : secret)")
         }
 
         var ready = try WorkspaceTemplate.decode(Data(json.utf8))
         ready.tabs[0].terminals[0].arguments = ["-c", "printf 'REMOTE_APPLIED\\n'; : > applied-sentinel; exec /bin/sh -i"]
         ready.tabs[1].terminals[0].initializationCommand = "printf 'REMOTE_INIT\\n'; : > initialization-sentinel"
-        ready.tabs.append(.init(layout: .pane(.init(content: .session(workingDirectory: "."), weight: 1)),
-                                focusedPaneIndex: 0, terminals: [.init(paneIndex: 0)]))
+        ready.tabs.append(
+            .init(
+                layout: .pane(.init(content: .session(workingDirectory: "."), weight: 1)),
+                focusedPaneIndex: 0, terminals: [.init(paneIndex: 0)]))
         let projectCount = manager.projects.count
-        do { _ = try awaiting { try await manager.applyRemoteWorkspaceTemplate(ready, host: host, directory: "relative/path") }; throw failure("relative remote directory applied") }
-        catch WorkspaceTemplateError.invalidRemote { }
-        do { _ = try awaiting { try await manager.applyRemoteWorkspaceTemplate(ready, host: host, directory: targetDirectory + "/missing") }; throw failure("missing remote directory applied") }
-        catch let error as WorkspaceTemplateError { throw error }
-        catch { }
+        do {
+            _ = try awaiting { try await manager.applyRemoteWorkspaceTemplate(ready, host: host, directory: "relative/path") };
+            throw failure("relative remote directory applied")
+        } catch WorkspaceTemplateError.invalidRemote {}
+        do {
+            _ = try awaiting { try await manager.applyRemoteWorkspaceTemplate(ready, host: host, directory: targetDirectory + "/missing") };
+            throw failure("missing remote directory applied")
+        } catch let error as WorkspaceTemplateError { throw error } catch {}
         try check(manager.projects.count == projectCount, "invalid or unavailable remote directories create no project")
 
         // Template panes keep their saved commands even when a host profile
@@ -172,16 +191,21 @@ struct WorkspaceTemplateRemoteSurfaceTests {
         profile.startupProgram = "/usr/bin/touch"
         profile.startupArguments = targetDirectory + "/profile-startup-sentinel"
         profile.appearance.fontSize = 17
-        profile.launchSettings = .init(environmentVariables: [.init(name: "TEMPLATE_PROFILE", value: "matched")],
-                                       initializationCommand: ": > " + TerminalSession.shellQuote(targetDirectory + "/profile-initialization-sentinel"))
+        profile.launchSettings = .init(
+            environmentVariables: [.init(name: "TEMPLATE_PROFILE", value: "matched")],
+            initializationCommand: ": > " + TerminalSession.shellQuote(targetDirectory + "/profile-initialization-sentinel"))
         AppSettings.shared.automaticallyApplyTerminalProfiles = true
         AppSettings.shared.terminalProfiles = [profile]
         let homeRelative = "~/" + (targetDirectory as NSString).lastPathComponent
         let applied = try awaiting { try await manager.applyRemoteWorkspaceTemplate(ready, host: host, directory: homeRelative) }
         applied.sessions.forEach(mount)
-        let canonicalTarget = realpath(targetDirectory, nil).map { path in defer { free(path) }; return String(cString: path) } ?? targetDirectory
-        try check(applied.sharedHost?.id == host.id && applied.remoteDirectory == canonicalTarget,
-                  "application creates a shared project at the host's canonical directory")
+        let canonicalTarget =
+            realpath(targetDirectory, nil).map { path in
+                defer { free(path) }; return String(cString: path)
+            } ?? targetDirectory
+        try check(
+            applied.sharedHost?.id == host.id && applied.remoteDirectory == canonicalTarget,
+            "application creates a shared project at the host's canonical directory")
         try wait("applied remote program ran") {
             text(applied.sessions[0]).contains("REMOTE_APPLIED")
                 && FileManager.default.fileExists(atPath: targetDirectory + "/applied-sentinel")
@@ -190,8 +214,9 @@ struct WorkspaceTemplateRemoteSurfaceTests {
             text(applied.sessions[1]).contains("REMOTE_INIT")
                 && FileManager.default.fileExists(atPath: targetDirectory + "/initialization-sentinel")
         }
-        try check(!FileManager.default.fileExists(atPath: targetDirectory + "/profile-startup-sentinel"),
-                  "a host profile's startup program never replaces template commands")
+        try check(
+            !FileManager.default.fileExists(atPath: targetDirectory + "/profile-startup-sentinel"),
+            "a host profile's startup program never replaces template commands")
         for (index, session) in applied.sessions.enumerated().dropFirst() {
             let marker = URL(fileURLWithPath: targetDirectory).appendingPathComponent("profile-env-\(index)")
             session.sendCommand("printf '%s' \"$TEMPLATE_PROFILE\" > " + TerminalSession.shellQuote(marker.path))
@@ -202,32 +227,40 @@ struct WorkspaceTemplateRemoteSurfaceTests {
             try wait("remote template pane \(index) refreshes its connected profile appearance") {
                 session.surface.profileAppearance == profile.appearance
             }
-            try check(session.surface.profileAppearance == profile.appearance,
-                      "remote template pane \(index) retains the profile appearance")
+            try check(
+                session.surface.profileAppearance == profile.appearance,
+                "remote template pane \(index) retains the profile appearance")
         }
-        try check(!FileManager.default.fileExists(atPath: targetDirectory + "/profile-initialization-sentinel"),
-                  "a host profile never replaces template initialization or adds an unlisted command to plain panes")
-        try check(applied.sessions[1].initializationCommandForTemplate == ready.tabs[1].terminals[0].initializationCommand
-                  && applied.sessions[2].initializationCommandForTemplate == nil,
-                  "remote initialization metadata retains both explicit and absent template commands")
+        try check(
+            !FileManager.default.fileExists(atPath: targetDirectory + "/profile-initialization-sentinel"),
+            "a host profile never replaces template initialization or adds an unlisted command to plain panes")
+        try check(
+            applied.sessions[1].initializationCommandForTemplate == ready.tabs[1].terminals[0].initializationCommand
+                && applied.sessions[2].initializationCommandForTemplate == nil,
+            "remote initialization metadata retains both explicit and absent template commands")
         AppSettings.shared.terminalProfiles = []
         let appliedIDs = remoteIDs(applied)
-        try check(applied.tabs.count == 3 && appliedIDs.count == 3 && appliedIDs.isDisjoint(with: sourceIDs),
-                  "application starts new remote sessions instead of reconnecting saved ones")
-        let catalogIDs = Set(try RemoteHostClient.catalog(host: host).first { $0.directory == canonicalTarget }?.sessions
-            .compactMap { UUID(uuidString: $0.sessionId) } ?? [])
-        try check(catalogIDs == appliedIDs, "the preflight session is reused by its pane, so the host runs exactly one session per terminal")
+        try check(
+            applied.tabs.count == 3 && appliedIDs.count == 3 && appliedIDs.isDisjoint(with: sourceIDs),
+            "application starts new remote sessions instead of reconnecting saved ones")
+        let catalogIDs = Set(
+            try RemoteHostClient.catalog(host: host).first { $0.directory == canonicalTarget }?.sessions
+                .compactMap { UUID(uuidString: $0.sessionId) } ?? [])
+        try check(
+            catalogIDs == appliedIDs, "the preflight session is reused by its pane, so the host runs exactly one session per terminal")
         try check(!first.hasExited && text(first).contains("SOURCE_REMOTE"), "applying leaves the source remote session alive")
 
         let again = try awaiting { try await manager.applyRemoteWorkspaceTemplate(ready, host: host, directory: canonicalTarget) }
-        try check(again !== applied && again.remoteDirectory == canonicalTarget && remoteIDs(again).isDisjoint(with: appliedIDs),
-                  "applying twice creates another project with its own new sessions")
+        try check(
+            again !== applied && again.remoteDirectory == canonicalTarget && remoteIDs(again).isDisjoint(with: appliedIDs),
+            "applying twice creates another project with its own new sessions")
         let before = manager.projects.map { remoteIDs($0) }
         try manager.synchronizeRemoteHost(host, projects: try RemoteHostClient.catalog(host: host))
         let after = manager.projects.map { remoteIDs($0) }
         let attached = after.flatMap { $0 }
-        try check(after.count == before.count && Array(after.prefix(before.count)) == before && attached.count == Set(attached).count,
-                  "host synchronization never attaches a template session twice")
+        try check(
+            after.count == before.count && Array(after.prefix(before.count)) == before && attached.count == Set(attached).count,
+            "host synchronization never attaches a template session twice")
 
         let store = WorkspaceTemplateStore(url: home.appendingPathComponent("templates/library.json"))
         var missingHost = ready
@@ -235,8 +268,14 @@ struct WorkspaceTemplateRemoteSurfaceTests {
         missingHost.remote?.host = "Retired host"
         let readyID = try store.add(ready)
         let missingID = try store.add(missingHost)
-        let localID = try store.add(WorkspaceTemplate(name: "Local", tabs: [.init(layout: .pane(.init(content: .session(workingDirectory: "."), weight: 1)),
-                                                                                  focusedPaneIndex: 0, terminals: [.init(paneIndex: 0)])], selectedTabIndex: 0))
+        let localID = try store.add(
+            WorkspaceTemplate(
+                name: "Local",
+                tabs: [
+                    .init(
+                        layout: .pane(.init(content: .session(workingDirectory: "."), weight: 1)),
+                        focusedPaneIndex: 0, terminals: [.init(paneIndex: 0)])
+                ], selectedTabIndex: 0))
         let controller = WorkspaceTemplateController(store: store)
         controller.show(for: manager)
         pump(0.2)
@@ -250,21 +289,28 @@ struct WorkspaceTemplateRemoteSurfaceTests {
         select(readyID)
         let popup = views().compactMap { $0 as? NSPopUpButton }.first!
         let directoryField = views().compactMap { $0 as? NSTextField }.first { $0.isEditable && !$0.isHiddenOrHasHiddenAncestor }!
-        try check(popup.titleOfSelectedItem == host.name && directoryField.stringValue == sourceDirectory,
-                  "the template window preselects the saved host and remote directory")
-        try check(!views().contains { ($0 as? NSButton)?.title == String(localized: "Choose") && !$0.isHiddenOrHasHiddenAncestor },
-                  "remote templates hide the local project root chooser")
+        try check(
+            popup.titleOfSelectedItem == host.name && directoryField.stringValue == sourceDirectory,
+            "the template window preselects the saved host and remote directory")
+        try check(
+            !views().contains { ($0 as? NSButton)?.title == String(localized: "Choose") && !$0.isHiddenOrHasHiddenAncestor },
+            "remote templates hide the local project root chooser")
         select(localID)
-        try check(popup.isHiddenOrHasHiddenAncestor && views().contains { ($0 as? NSButton)?.title == String(localized: "Choose") && !$0.isHiddenOrHasHiddenAncestor },
-                  "local templates show the project root chooser instead of the host picker")
+        try check(
+            popup.isHiddenOrHasHiddenAncestor
+                && views().contains { ($0 as? NSButton)?.title == String(localized: "Choose") && !$0.isHiddenOrHasHiddenAncestor },
+            "local templates show the project root chooser instead of the host picker")
         select(readyID)
         panel.contentView!.layoutSubtreeIfNeeded()
-        try check(!popup.isHiddenOrHasHiddenAncestor && directoryField.frame.width > 300 && popup.frame.width > 300 && !directoryField.hasAmbiguousLayout,
-                  "remote host and directory controls keep full width after switching template kinds")
+        try check(
+            !popup.isHiddenOrHasHiddenAncestor && directoryField.frame.width > 300 && popup.frame.width > 300
+                && !directoryField.hasAmbiguousLayout,
+            "remote host and directory controls keep full width after switching template kinds")
         select(missingID)
         let status = views().compactMap { $0 as? NSTextField }.first { $0.stringValue.contains("Retired host") }
-        try check(popup.titleOfSelectedItem == String(localized: "Choose a Saved Host") && status != nil,
-                  "a missing saved host asks the user to choose one")
+        try check(
+            popup.titleOfSelectedItem == String(localized: "Choose a Saved Host") && status != nil,
+            "a missing saved host asks the user to choose one")
         let applyButton = views().compactMap { $0 as? NSButton }.first { $0.title == String(localized: "Apply Template") }!
         let count = manager.projects.count
         applyButton.performClick(nil)
@@ -272,15 +318,17 @@ struct WorkspaceTemplateRemoteSurfaceTests {
         try check(manager.projects.count == count && panel.isVisible, "applying without a saved host creates no project")
         if let bitmap = panel.contentView!.bitmapImageRepForCachingDisplay(in: panel.contentView!.bounds) {
             panel.contentView!.cacheDisplay(in: panel.contentView!.bounds, to: bitmap)
-            try bitmap.representation(using: .png, properties: [:])?.write(to: resultDirectory.appendingPathComponent("remote-template-\(backend).png"))
+            try bitmap.representation(using: .png, properties: [:])?.write(
+                to: resultDirectory.appendingPathComponent("remote-template-\(backend).png"))
         }
         popup.selectItem(withTitle: host.name)
         directoryField.stringValue = canonicalTarget
         applyButton.performClick(nil)
         try wait("window applies the remote template with the chosen host") { manager.projects.count == count + 1 && !panel.isVisible }
         let chosen = manager.projects.last!
-        try check(chosen.sharedHost?.id == host.id && chosen.customName == "Missing host" && chosen.remoteDirectory == canonicalTarget,
-                  "the chosen saved host replaces the missing one")
+        try check(
+            chosen.sharedHost?.id == host.id && chosen.customName == "Missing host" && chosen.remoteDirectory == canonicalTarget,
+            "the chosen saved host replaces the missing one")
         if offscreen { try check(QuickTerminalOffscreen.isSafe(), "fixture windows stay offscreen without taking application focus") }
         completed = true
         print("Remote workspace template surfaces \(backend): \(checks) passed, 0 failed")

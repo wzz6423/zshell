@@ -184,11 +184,13 @@ public final class TerminalController {
         }
 
         let resolved = resolveEffectiveConfig(colorScheme: scheme)
-        guard applyResolvedConfig(
-            resolved,
-            willChange: willChange,
-            applyState: { effectiveColorScheme = scheme }
-        ) else {
+        guard
+            applyResolvedConfig(
+                resolved,
+                willChange: willChange,
+                applyState: { effectiveColorScheme = scheme }
+            )
+        else {
             return false
         }
 

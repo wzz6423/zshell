@@ -12,8 +12,9 @@ nonisolated struct TerminalCommandNotificationResult {
         guard title.utf8.count <= 128 else { return nil }
         let fields = title.split(separator: ":", omittingEmptySubsequences: false)
         guard fields.count == 4, fields[0] == "zshell-command", let id = UUID(uuidString: String(fields[1])),
-              let sequence = UInt64(fields[2]), sequence > 0,
-              let exitCode = Int(fields[3]), (0...255).contains(exitCode) else { return nil }
+            let sequence = UInt64(fields[2]), sequence > 0,
+            let exitCode = Int(fields[3]), (0 ... 255).contains(exitCode)
+        else { return nil }
         return Self(id: id, sequence: sequence, exitCode: exitCode)
     }
 }

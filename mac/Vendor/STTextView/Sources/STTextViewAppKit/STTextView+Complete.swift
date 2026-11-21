@@ -54,8 +54,8 @@ extension STTextView {
         dispatchPrecondition(condition: .onQueue(.main))
 
         guard let insertionPointLocation = textLayoutManager.insertionPointLocations.first,
-              let textCharacterSegmentRect = textLayoutManager.textSegmentFrame(at: insertionPointLocation, type: .standard),
-              let completionItems = delegateProxy.textView(self, completionItemsAtLocation: insertionPointLocation)
+            let textCharacterSegmentRect = textLayoutManager.textSegmentFrame(at: insertionPointLocation, type: .standard),
+            let completionItems = delegateProxy.textView(self, completionItemsAtLocation: insertionPointLocation)
         else {
             return false
         }
@@ -97,7 +97,7 @@ extension STTextView {
     @MainActor
     private func completionRequest() -> CompletionRequestSnapshot? {
         guard let insertionPointLocation = textLayoutManager.insertionPointLocations.first,
-              let textCharacterSegmentRect = textLayoutManager.textSegmentFrame(at: insertionPointLocation, type: .standard)
+            let textCharacterSegmentRect = textLayoutManager.textSegmentFrame(at: insertionPointLocation, type: .standard)
         else {
             return nil
         }
@@ -112,8 +112,7 @@ extension STTextView {
 
     @MainActor
     private func isValidCompletionRequest(_ request: CompletionRequestSnapshot) -> Bool {
-        request.textChangeGeneration == _completionTextChangeGeneration &&
-        request.selectedRanges == completionSelectedRanges()
+        request.textChangeGeneration == _completionTextChangeGeneration && request.selectedRanges == completionSelectedRanges()
     }
 
     @MainActor
@@ -140,7 +139,9 @@ extension STTextView: STCompletionWindowDelegate {
         cancelComplete(windowController)
     }
 
-    public func completionWindowController(_ windowController: STCompletionWindowController, complete item: any STCompletionItem, movement: NSTextMovement) {
+    public func completionWindowController(
+        _ windowController: STCompletionWindowController, complete item: any STCompletionItem, movement: NSTextMovement
+    ) {
         delegateProxy.textView(self, insertCompletionItem: item)
     }
 }

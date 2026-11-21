@@ -8,7 +8,7 @@
  See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 */
 
-public protocol _TableRowProtocol : TableCellContainer {}
+public protocol _TableRowProtocol: TableCellContainer {}
 
 extension Table {
     /// A row of cells in a table.
@@ -35,13 +35,13 @@ public extension Table.Row {
 
     // MARK: TableCellContainer
 
-    init<Cells>(_ cells: Cells) where Cells : Sequence, Cells.Element == Table.Cell {
+    init<Cells>(_ cells: Cells) where Cells: Sequence, Cells.Element == Table.Cell {
         try! self.init(.tableRow(parsedRange: nil, cells.map { $0.raw.markup }))
     }
 
     // MARK: Visitation
 
-    func accept<V>(_ visitor: inout V) -> V.Result where V : MarkupVisitor {
+    func accept<V>(_ visitor: inout V) -> V.Result where V: MarkupVisitor {
         return visitor.visitTableRow(self)
     }
 }

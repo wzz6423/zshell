@@ -48,7 +48,7 @@ public extension TableCellContainer {
     ///
     /// - parameter newCells: A sequence of ``Table/Cell`` elements that will replace all of the cells in this row.
     mutating func setCells<Cells: Sequence>(_ newCells: Cells) where Cells.Element == Table.Cell {
-        replaceCellsInRange(0..<childCount, with: newCells)
+        replaceCellsInRange(0 ..< childCount, with: newCells)
     }
 
     /// Replace cells in a range with a sequence of cells.
@@ -63,6 +63,6 @@ public extension TableCellContainer {
     ///
     /// - parameter cell: The cell to append to the row.
     mutating func appendCell(_ cell: Table.Cell) {
-        replaceCellsInRange(childCount..<childCount, with: CollectionOfOne(cell))
+        replaceCellsInRange(childCount ..< childCount, with: CollectionOfOne(cell))
     }
 }

@@ -14,12 +14,11 @@ import XCTest
 /// A `Document` that has every kind of element in it at least once.
 let everythingDocument = Document(parsing: try! String(contentsOf: Bundle.module.url(forResource: "Everything", withExtension: "md")!))
 
-
 class MarkupRewriterTests: XCTestCase {
     /// Tests that a rewriter which makes no modifications results in the same document
     func testNullRewriter() {
         /// A MarkupRewriter that leaves the tree unchanged
-        struct NullMarkupRewriter : MarkupRewriter {}
+        struct NullMarkupRewriter: MarkupRewriter {}
 
         var nullRewriter = NullMarkupRewriter()
         // FIXME: Workaround for rdar://problem/47686212
@@ -45,7 +44,7 @@ class MarkupRewriterTests: XCTestCase {
                 defaultVisit(strong)
             }
         }
-        
+
         // FIXME: Workaround for rdar://problem/47686212
         let markup = everythingDocument
 
@@ -80,7 +79,7 @@ class MarkupRewriterTests: XCTestCase {
                 result += text.string
             }
         }
-        
+
         // FIXME: Workaround for rdar://problem/47686212
         let markup = everythingDocument
 

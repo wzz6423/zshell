@@ -200,10 +200,10 @@ final class SearchViewModel {
         // #filePath → .../Examples/FuzzySearch/FuzzySearch/SearchViewModel.swift
         // Navigate up to the FuzzyMatch project root, then into Resources/
         URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()   // FuzzySearch/
-            .deletingLastPathComponent()   // Examples/FuzzySearch/
-            .deletingLastPathComponent()   // Examples/
-            .deletingLastPathComponent()   // FuzzyMatch project root
+            .deletingLastPathComponent() // FuzzySearch/
+            .deletingLastPathComponent() // Examples/FuzzySearch/
+            .deletingLastPathComponent() // Examples/
+            .deletingLastPathComponent() // FuzzyMatch project root
             .appendingPathComponent("Resources/instruments-export.tsv")
     }()
 
@@ -288,7 +288,7 @@ final class SearchViewModel {
     }
 
     private func parseCorpus(_ data: String) {
-        let lines = data.split(separator: "\n").dropFirst()  // skip header
+        let lines = data.split(separator: "\n").dropFirst() // skip header
         instruments.reserveCapacity(lines.count)
 
         for (i, line) in lines.enumerated() {

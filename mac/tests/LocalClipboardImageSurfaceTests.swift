@@ -27,9 +27,10 @@ import ImageIO
         do {
             if CommandLine.arguments.dropFirst().first == "--capture-bracketed" {
                 try captureBracketedPaste()
-            } else { try run() }
-        }
-        catch { fputs("Local clipboard surface failed: \(error)\n", stderr); exit(1) }
+            } else {
+                try run()
+            }
+        } catch { fputs("Local clipboard surface failed: \(error)\n", stderr); exit(1) }
     }
 
     private static func captureBracketedPaste() throws {
@@ -75,7 +76,9 @@ import ImageIO
         var stored: [URL] = []
         var checks = 0
         func check(_ condition: @autoclosure () throws -> Bool, _ label: String) throws {
-            guard try condition() else { throw NSError(domain: "LocalClipboardSurface", code: 2, userInfo: [NSLocalizedDescriptionKey: label]) }
+            guard try condition() else {
+                throw NSError(domain: "LocalClipboardSurface", code: 2, userInfo: [NSLocalizedDescriptionKey: label])
+            }
             checks += 1
             print("PASS \(backend) clipboard: \(label)")
         }
@@ -97,7 +100,8 @@ import ImageIO
             Set(try FileManager.default.contentsOfDirectory(atPath: temporary.path).filter { $0.hasPrefix("zshell-clipboard-") })
         }
         func path(from quoted: String) throws -> URL {
-            let output = try BoundedProcessRunner.run(executableURL: URL(fileURLWithPath: "/bin/sh"),
+            let output = try BoundedProcessRunner.run(
+                executableURL: URL(fileURLWithPath: "/bin/sh"),
                 arguments: ["-c", "printf '%s' " + quoted], timeout: 2, outputLimit: 16_384)
             try check(output.terminationStatus == 0 && !output.output.wasTruncated, "clipboard path is valid shell quoting")
             return URL(fileURLWithPath: output.output.stdout)
@@ -111,8 +115,10 @@ import ImageIO
             try check(source != nil && CGImageSourceCreateImageAtIndex(source!, 0, nil) != nil, "saved PNG actually decodes")
             let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
             let parentAttributes = try FileManager.default.attributesOfItem(atPath: url.deletingLastPathComponent().path)
-            try check((attributes[.posixPermissions] as? NSNumber)?.intValue == 0o600
-                && (parentAttributes[.posixPermissions] as? NSNumber)?.intValue == 0o700, "native paste creates owner-only file and directory")
+            try check(
+                (attributes[.posixPermissions] as? NSNumber)?.intValue == 0o600
+                    && (parentAttributes[.posixPermissions] as? NSNumber)?.intValue == 0o700,
+                "native paste creates owner-only file and directory")
             if let expectedPNG { try check(bytes == expectedPNG, "native PNG paste preserves original bytes") }
         }
         defer {
@@ -126,7 +132,8 @@ import ImageIO
         session.sendCommand("printf 'CLIPBOARD_READY\\n'\r")
         try waitClipboard("local terminal did not respond") { text().split(separator: "\n").contains { $0.hasPrefix("CLIPBOARD_READY") } }
         try check(surface.hasEffectiveTerminalFocus, "local fixture has effective terminal focus")
-        let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 4, pixelsHigh: 3,
+        let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: 4, pixelsHigh: 3,
             bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
             colorSpaceName: .deviceRGB, bytesPerRow: 16, bitsPerPixel: 32)!
         bitmap.bitmapData!.initialize(repeating: 150, count: 48)
@@ -134,36 +141,42 @@ import ImageIO
         let tiff = bitmap.tiffRepresentation!
         let beforeOrdinary = try batches()
         pasteboard.setString("ordinary text", forType: .string)
-        try check(!session.terminalHandleUserPaste(pasteboard, paste: { _ in preconditionFailure("ordinary text intercepted") }),
+        try check(
+            !session.terminalHandleUserPaste(pasteboard, paste: { _ in preconditionFailure("ordinary text intercepted") }),
             "ordinary text retains existing backend paste behavior")
         let original = root.appendingPathComponent("existing file ' screenshot.png")
         try png.write(to: original)
         pasteboard.clearContents()
         pasteboard.writeObjects([original as NSURL])
-        try check(!session.terminalHandleUserPaste(pasteboard, paste: { _ in preconditionFailure("file URL intercepted") }),
+        try check(
+            !session.terminalHandleUserPaste(pasteboard, paste: { _ in preconditionFailure("file URL intercepted") }),
             "local file URLs retain existing backend paste behavior")
         try check(try batches() == beforeOrdinary, "ordinary paste does not create image files")
 
         pasteboard.clearContents()
         pasteboard.setData(tiff, forType: .tiff)
         var converted: String?
-        try check(session.terminalHandleUserPaste(pasteboard, paste: { converted = $0 }), "pure TIFF clipboard is captured by the local session")
+        try check(
+            session.terminalHandleUserPaste(pasteboard, paste: { converted = $0 }), "pure TIFF clipboard is captured by the local session")
         try waitClipboard("TIFF clipboard callback did not complete") { converted != nil }
         try checkImage(path(from: converted!))
 
         // Both real backend selectors read the native clipboard. Preserve its
         // data and avoid restoring over a copy made by the user during the probe.
         let general = NSPasteboard.general
-        let saved = (general.pasteboardItems ?? []).map { item in item.types.compactMap { type in item.data(forType: type).map { (type, $0) } } }
+        let saved = (general.pasteboardItems ?? []).map { item in
+            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+        }
         var ownedPasteboardChangeCount = general.changeCount
         defer {
             if general.changeCount == ownedPasteboardChangeCount {
                 general.clearContents()
-                general.writeObjects(saved.map { values in
-                    let item = NSPasteboardItem()
-                    for (type, bytes) in values { item.setData(bytes, forType: type) }
-                    return item
-                })
+                general.writeObjects(
+                    saved.map { values in
+                        let item = NSPasteboardItem()
+                        for (type, bytes) in values { item.setData(bytes, forType: type) }
+                        return item
+                    })
             }
         }
         for (kind, bytes, label) in [(NSPasteboard.PasteboardType.png, png, "PNG"), (.tiff, tiff, "TIFF")] {
@@ -189,7 +202,8 @@ import ImageIO
         }
 
         let bracketCapture = root.appendingPathComponent("bracketed-input")
-        let bracketed = TerminalSession(initialDirectory: root.path,
+        let bracketed = TerminalSession(
+            initialDirectory: root.path,
             commandArguments: [CommandLine.arguments[0], "--capture-bracketed", bracketCapture.path],
             allowsPersistence: false)
         let bracketSurface = bracketed.surface
@@ -227,7 +241,8 @@ import ImageIO
         window.makeFirstResponder(field)
         window.makeFirstResponder(surface)
         var currentPane: String?
-        try check(session.terminalHandleUserPaste(pasteboard, paste: { currentPane = $0 }), "a new image paste can start after focus returns")
+        try check(
+            session.terminalHandleUserPaste(pasteboard, paste: { currentPane = $0 }), "a new image paste can start after focus returns")
         try waitClipboard("new paste was lost to an old cancelled task") { currentPane != nil }
         pumpClipboard(0.3)
         try check(!stalePane, "a pane that loses and regains focus never receives its stale paste")
@@ -237,13 +252,15 @@ import ImageIO
         try waitClipboard("cancelled pane paste left a private batch") { (try? batches()) == beforeFocus }
 
         var staleWindow = false
-        try check(session.terminalHandleUserPaste(pasteboard, paste: { _ in staleWindow = true }), "image starts before window loses key status")
+        try check(
+            session.terminalHandleUserPaste(pasteboard, paste: { _ in staleWindow = true }), "image starts before window loses key status")
         window.key = false
         NotificationCenter.default.post(name: NSWindow.didResignKeyNotification, object: window)
         window.key = true
         NotificationCenter.default.post(name: NSWindow.didBecomeKeyNotification, object: window)
         var currentWindow: String?
-        try check(session.terminalHandleUserPaste(pasteboard, paste: { currentWindow = $0 }), "a fresh paste starts after the window returns")
+        try check(
+            session.terminalHandleUserPaste(pasteboard, paste: { currentWindow = $0 }), "a fresh paste starts after the window returns")
         try waitClipboard("new window paste did not complete") { currentWindow != nil }
         pumpClipboard(0.3)
         try check(!staleWindow, "window focus loss cancels stale image paste even if focus returns")
@@ -253,12 +270,15 @@ import ImageIO
         try waitClipboard("cancelled window paste left a private batch") { (try? batches()) == beforeFocus }
 
         var staleHidden = false
-        try check(session.terminalHandleUserPaste(pasteboard, paste: { _ in staleHidden = true }), "image starts before parking the surface")
+        try check(
+            session.terminalHandleUserPaste(pasteboard, paste: { _ in staleHidden = true }), "image starts before parking the surface")
         surface.setSurfaceVisible(false)
         surface.setSurfaceVisible(true)
         window.makeFirstResponder(surface)
         var currentVisible: String?
-        try check(session.terminalHandleUserPaste(pasteboard, paste: { currentVisible = $0 }), "a fresh paste starts after the surface is remounted")
+        try check(
+            session.terminalHandleUserPaste(pasteboard, paste: { currentVisible = $0 }),
+            "a fresh paste starts after the surface is remounted")
         try waitClipboard("remounted surface paste did not complete") { currentVisible != nil }
         pumpClipboard(0.3)
         try check(!staleHidden, "a parked surface never receives its stale paste")

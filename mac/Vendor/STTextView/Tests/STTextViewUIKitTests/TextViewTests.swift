@@ -21,9 +21,11 @@
             let textViewDelegate = TextViewDelegate(
                 willChangeText: { _ in
                     willChangeTextExpecation.fulfill()
-                }, didChangeText: { _ in
+                },
+                didChangeText: { _ in
                     didChangeTextExpecation.fulfill()
-                }, didChangeSelection: { _ in
+                },
+                didChangeSelection: { _ in
                     didChangeSelectionExpecation.fulfill()
                 }
             )
@@ -35,7 +37,6 @@
         }
 
     }
-
 
     private class TextViewDelegate: STTextViewDelegate {
         var willChangeText: (Notification) -> Void

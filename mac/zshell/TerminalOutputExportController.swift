@@ -31,7 +31,7 @@ nonisolated private final class TerminalOutputExportJob: @unchecked Sendable {
 final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
     static let shared = TerminalOutputExportController()
     private let worker = DispatchQueue(label: "sh.zshell.terminal-output-export", qos: .userInitiated)
-    private let makeSavePanel: () -> NSSavePanel
+    private let makeSavePanel: @MainActor () -> NSSavePanel
     private struct Export {
         let panel: NSSavePanel
         let job: TerminalOutputExportJob
@@ -40,7 +40,7 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
     nonisolated private enum Failure: Sendable { case read; case write(URL, String) }
     private var exports: [ObjectIdentifier: Export] = [:]
 
-    init(makeSavePanel: @escaping () -> NSSavePanel = { NSSavePanel() }) {
+    init(makeSavePanel: @escaping @MainActor () -> NSSavePanel = { NSSavePanel() }) {
         self.makeSavePanel = makeSavePanel
         super.init()
     }
@@ -48,8 +48,9 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
     isolated deinit { for id in Array(exports.keys) { cancel(id) } }
 
     func menuItem(for surface: any TerminalBackendSurface) -> NSMenuItem {
-        let item = NSMenuItem(title: String(localized: "Save Terminal Output…"),
-                              action: #selector(saveTerminalOutput(_:)), keyEquivalent: "")
+        let item = NSMenuItem(
+            title: String(localized: "Save Terminal Output…"),
+            action: #selector(saveTerminalOutput(_:)), keyEquivalent: "")
         item.identifier = .init("zshell-save-terminal-output")
         item.target = self
         item.representedObject = surface
@@ -78,7 +79,8 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
             return nil
         }
         let responder = window.firstResponder
-        var view = (responder as? NSTextView).flatMap { $0.isFieldEditor ? $0.delegate as? NSView : nil }
+        var view =
+            (responder as? NSTextView).flatMap { $0.isFieldEditor ? $0.delegate as? NSView : nil }
             ?? responder as? NSView
         while let current = view {
             if let surface = current as? any TerminalBackendSurface { return surface }
@@ -113,9 +115,11 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
         let id = ObjectIdentifier(host)
         let job = TerminalOutputExportJob(capture)
         let observations = [NSWindow.willCloseNotification, NSApplication.willTerminateNotification].map { name in
-            NotificationCenter.default.addObserver(forName: name, object: name == NSWindow.willCloseNotification ? host : nil,
-                                                   queue: .main) { [weak self] _ in
-                assumeMainActor { self?.cancel(id) }
+            NotificationCenter.default.addObserver(
+                forName: name, object: name == NSWindow.willCloseNotification ? host : nil,
+                queue: .main
+            ) { [weak self] _ in
+                assumeMainActor { [weak self] in self?.cancel(id) }
             }
         }
         exports[id] = Export(panel: panel, job: job, observations: observations)
@@ -128,14 +132,18 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
                 var failure: Failure?
                 if !job.isCancelled() {
                     if let text {
-                        do { try text.write(to: url, atomically: true, encoding: .utf8) }
-                        catch { failure = .write(url, error.localizedDescription) }
-                    } else { failure = .read }
+                        do { try text.write(to: url, atomically: true, encoding: .utf8) } catch {
+                            failure = .write(url, error.localizedDescription)
+                        }
+                    } else {
+                        failure = .read
+                    }
                 }
                 let result = failure
                 DispatchQueue.main.async { [weak self, weak host] in
                     guard let self, self.finish(id, job: job), !job.isCancelled(),
-                          let failure = result, let host, host.isVisible else { return }
+                        let failure = result, let host, host.isVisible
+                    else { return }
                     self.present(failure, on: host)
                 }
             }
@@ -163,8 +171,10 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
         switch failure {
         case .read: alert.informativeText = String(localized: "The terminal output could not be read.")
         case let .write(url, detail):
-            alert.informativeText = String(localized: "The terminal output could not be written to “\(url.path)”.",
-                                           comment: "The placeholder is the chosen terminal output file's local path.") + "\n\n" + detail
+            alert.informativeText =
+                String(
+                    localized: "The terminal output could not be written to “\(url.path)”.",
+                    comment: "The placeholder is the chosen terminal output file's local path.") + "\n\n" + detail
         }
         alert.addButton(withTitle: String(localized: "OK"))
         alert.beginSheetModal(for: host)

@@ -31,21 +31,24 @@ final class PTYMuxSessionStore: @unchecked Sendable {
         lock.unlock()
         defer { lock.lock(); reservations.remove(id); lock.unlock() }
 
-        let command = command.isEmpty
+        let command =
+            command.isEmpty
             ? [ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh", "-l"] : command
         guard command.count <= 128, command.first?.hasPrefix("/") == true,
-              command.allSatisfy({ $0.utf8.count <= 64 * 1024 && !$0.contains("\0") }),
-              environment.count <= 512,
-              environment.allSatisfy({ !$0.key.contains("=") && !$0.key.contains("\0") && !$0.value.contains("\0") })
+            command.allSatisfy({ $0.utf8.count <= 64 * 1024 && !$0.contains("\0") }),
+            environment.count <= 512,
+            environment.allSatisfy({ !$0.key.contains("=") && !$0.key.contains("\0") && !$0.value.contains("\0") })
         else { throw PTYMuxError.message("Invalid PTY command or environment.") }
         let directory = URL(fileURLWithPath: workingDirectory).standardizedFileURL.path
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: directory, isDirectory: &isDirectory),
-              isDirectory.boolValue else {
+            isDirectory.boolValue
+        else {
             throw PTYMuxError.message("Working directory does not exist: \(workingDirectory)")
         }
         if let launchDirectoryURL,
-           launchDirectoryURL.standardizedFileURL.path != PersistentCLIConnection.launchDirectory(for: uuid).standardizedFileURL.path {
+            launchDirectoryURL.standardizedFileURL.path != PersistentCLIConnection.launchDirectory(for: uuid).standardizedFileURL.path
+        {
             throw PTYMuxError.message("Invalid persistent launch directory.")
         }
         let state = try PersistentTerminalState(columns: columns, rows: rows, theme: theme)
@@ -117,9 +120,11 @@ final class PTYMuxSessionStore: @unchecked Sendable {
                 throw PTYMuxError.message("Could not initialize PTY spawn attributes.")
             }
             defer { posix_spawnattr_destroy(&attributes) }
-            guard posix_spawnattr_setflags(
-                &attributes, Int16(POSIX_SPAWN_CLOEXEC_DEFAULT | POSIX_SPAWN_SETSID)
-            ) == 0 else { throw PTYMuxError.message("Could not configure PTY session.") }
+            guard
+                posix_spawnattr_setflags(
+                    &attributes, Int16(POSIX_SPAWN_CLOEXEC_DEFAULT | POSIX_SPAWN_SETSID)
+                ) == 0
+            else { throw PTYMuxError.message("Could not configure PTY session.") }
             var inherited = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("ZSHELL_") }
             inherited.merge(environment, uniquingKeysWith: { _, value in value })
             inherited["TERM"] = inherited["TERM"] ?? "xterm-256color"

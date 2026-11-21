@@ -80,7 +80,8 @@ final class MobileGhosttyAppUITests: XCTestCase {
         #if targetEnvironment(macCatalyst)
             pointerSelectionCommand = "echo \(catalystPointerSelectionPrefix)\(expectedPointerSelection)\n"
         #else
-            pointerSelectionCommand = isIPad
+            pointerSelectionCommand =
+                isIPad
                 ? "echo \(iPadPointerSelectionPrefix)\(expectedPointerSelection)\n"
                 : "echo \(expectedPointerSelection)\n"
         #endif
@@ -150,9 +151,7 @@ final class MobileGhosttyAppUITests: XCTestCase {
 
             let firstButton = alert.buttons.firstMatch
             guard firstButton.exists else { return false }
-            if firstButton.identifier == "InputSource" ||
-                firstButton.label.hasPrefix("com.apple.inputmethod.")
-            {
+            if firstButton.identifier == "InputSource" || firstButton.label.hasPrefix("com.apple.inputmethod.") {
                 self.app.typeKey(.escape, modifierFlags: [])
                 return true
             }

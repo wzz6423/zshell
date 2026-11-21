@@ -33,7 +33,9 @@ final class BrowserAccessController: nonisolated ObservableObject {
     private let stateQueue: DispatchQueue
 
     init(directory: URL? = nil, stateQueue: DispatchQueue? = nil) {
-        self.directory = directory ?? AppSettings.configURL.deletingLastPathComponent()
+        self.directory =
+            directory
+            ?? AppSettings.configURL.deletingLastPathComponent()
             .appendingPathComponent("browser-access", isDirectory: true)
         self.stateQueue = stateQueue ?? DispatchQueue(label: "sh.zshell.browser-access.state", qos: .utility)
     }
@@ -53,26 +55,31 @@ final class BrowserAccessController: nonisolated ObservableObject {
             }
         }
         monitor.start(queue: DispatchQueue(label: "sh.zshell.browser-access.interfaces", qos: .utility))
-        settingsObservation = Publishers.CombineLatest3(AppSettings.shared.$browserAccessEnabled.removeDuplicates(),
-            AppSettings.shared.$browserAccessInterface.removeDuplicates(), AppSettings.shared.$browserAccessPort.removeDuplicates())
-            .sink { [weak self] enabled, interface, port in
-                guard let self else { return }
-                requested = BrowserAccessConfiguration(enabled: enabled, interfaceID: interface, port: port)
-                reconcile(force: true)
-            }
+        settingsObservation = Publishers.CombineLatest3(
+            AppSettings.shared.$browserAccessEnabled.removeDuplicates(),
+            AppSettings.shared.$browserAccessInterface.removeDuplicates(), AppSettings.shared.$browserAccessPort.removeDuplicates()
+        )
+        .sink { [weak self] enabled, interface, port in
+            guard let self else { return }
+            requested = BrowserAccessConfiguration(enabled: enabled, interfaceID: interface, port: port)
+            reconcile(force: true)
+        }
         let center = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.willSleepNotification, NSWorkspace.didWakeNotification] {
-            workspaceObservations.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
-                MainActor.assumeIsolated {
-                    self?.isSleeping = note.name == NSWorkspace.willSleepNotification
-                    self?.reconcile(force: true)
-                }
-            })
+            workspaceObservations.append(
+                center.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
+                    MainActor.assumeIsolated {
+                        self?.isSleeping = note.name == NSWorkspace.willSleepNotification
+                        self?.reconcile(force: true)
+                    }
+                })
         }
-        localizationObservation = NotificationCenter.default.addObserver(forName: AppLocalization.didChange,
-            object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.server?.updateTranslations(Self.translations()) }
-            }
+        localizationObservation = NotificationCenter.default.addObserver(
+            forName: AppLocalization.didChange,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.server?.updateTranslations(Self.translations()) }
+        }
     }
 
     func stop() {
@@ -99,7 +106,9 @@ final class BrowserAccessController: nonisolated ObservableObject {
         if let server {
             let previous = serverStopTask
             let current = server.stop()
-            serverStopTask = Task { await previous?.value; await current.value }
+            serverStopTask = Task {
+                await previous?.value; await current.value
+            }
         }
         server = nil
         isStarting = false
@@ -128,15 +137,20 @@ final class BrowserAccessController: nonisolated ObservableObject {
             do {
                 let prepared = try await Task.detached(priority: .userInitiated) {
                     try BrowserAccessMuxCapability.prepare()
-                    let certificate = interface.isLoopback ? nil : try BrowserAccessCertificate.loadOrCreate(
-                        directory: directory, address: interface.address)
+                    let certificate =
+                        interface.isLoopback
+                        ? nil
+                        : try BrowserAccessCertificate.loadOrCreate(
+                            directory: directory, address: interface.address)
                     let assets = try Self.assets()
                     return (certificate, assets)
                 }.value
                 guard let self, isRunning, generation == token, !Task.isCancelled else { return }
                 let server = try await stateOperation { [self] in
-                    try BrowserAccessServer(directory: directory, assets: prepared.1,
-                        sessions: { Self.sessions() }, changed: { [weak self] snapshot in
+                    try BrowserAccessServer(
+                        directory: directory, assets: prepared.1,
+                        sessions: { Self.sessions() },
+                        changed: { [weak self] snapshot in
                             Task { @MainActor [weak self] in
                                 guard let self, generation == token else { return }
                                 apply(snapshot)
@@ -148,8 +162,9 @@ final class BrowserAccessController: nonisolated ObservableObject {
                 self.server = server
                 await serverStopTask?.value
                 guard isRunning, generation == token, !Task.isCancelled else { server.stop(); return }
-                try await server.start(interface: interface, port: requested.port,
-                                       certificate: prepared.0, translations: translations)
+                try await server.start(
+                    interface: interface, port: requested.port,
+                    certificate: prepared.0, translations: translations)
                 guard generation == token else { server.stop(); return }
                 isStarting = false
                 startTask = nil
@@ -229,8 +244,7 @@ final class BrowserAccessController: nonisolated ObservableObject {
     private func stateOperation<Value: Sendable>(_ operation: @escaping @Sendable () throws -> Value) async throws -> Value {
         try await withCheckedThrowingContinuation { continuation in
             stateQueue.async {
-                do { continuation.resume(returning: try operation()) }
-                catch { continuation.resume(throwing: error) }
+                do { continuation.resume(returning: try operation()) } catch { continuation.resume(throwing: error) }
             }
         }
     }
@@ -257,36 +271,42 @@ final class BrowserAccessController: nonisolated ObservableObject {
         panel.nameFieldStringValue = "zshell-browser-access.pem"
         panel.begin { result in
             guard result == .OK, let url = panel.url else { return }
-            do { try certificate.write(to: url, options: .atomic) }
-            catch { NSAlert(error: error).runModal() }
+            do { try certificate.write(to: url, options: .atomic) } catch { NSAlert(error: error).runModal() }
         }
     }
 
     private static func sessions() -> [BrowserAccessSession] {
-        Array(TerminalManager.automationManagers.flatMap { manager in
-            manager.projects.flatMap { project in
-                project.sessions.compactMap { session in
-                    guard !session.hasExited, session.persistentSessionID != nil,
-                          session.remoteConnection == nil, session.remotePasteTarget == nil else { return nil }
-                    return BrowserAccessSession(id: session.id,
-                        project: String(decoding: project.name.utf8.prefix(128), as: UTF8.self),
-                        title: String(decoding: session.title.utf8.prefix(128), as: UTF8.self), inputGate: session.browserInputGate)
+        Array(
+            TerminalManager.automationManagers.flatMap { manager in
+                manager.projects.flatMap { project in
+                    project.sessions.compactMap { session in
+                        guard !session.hasExited, session.persistentSessionID != nil,
+                            session.remoteConnection == nil, session.remotePasteTarget == nil
+                        else { return nil }
+                        return BrowserAccessSession(
+                            id: session.id,
+                            project: String(decoding: project.name.utf8.prefix(128), as: UTF8.self),
+                            title: String(decoding: session.title.utf8.prefix(128), as: UTF8.self), inputGate: session.browserInputGate)
+                    }
                 }
-            }
-        }.prefix(128))
+            }.prefix(128))
     }
 
     private nonisolated static func assets() throws -> [String: (Data, String)] {
-        let files = ["index.html": "text/html; charset=utf-8", "browser-access.js": "text/javascript; charset=utf-8",
+        let files = [
+            "index.html": "text/html; charset=utf-8", "browser-access.js": "text/javascript; charset=utf-8",
             "browser-access.css": "text/css; charset=utf-8", "xterm.js": "text/javascript; charset=utf-8",
             "xterm.css": "text/css; charset=utf-8", "addon-fit.js": "text/javascript; charset=utf-8",
-            "addon-unicode11.js": "text/javascript; charset=utf-8"]
+            "addon-unicode11.js": "text/javascript; charset=utf-8",
+        ]
         var assets: [String: (Data, String)] = [:]
         for (file, type) in files {
             let path = (file as NSString).deletingPathExtension
             let ext = (file as NSString).pathExtension
-            guard let url = Bundle.main.url(forResource: path, withExtension: ext, subdirectory: "BrowserAccessWeb")
-                    ?? Bundle.main.url(forResource: path, withExtension: ext) else {
+            guard
+                let url = Bundle.main.url(forResource: path, withExtension: ext, subdirectory: "BrowserAccessWeb")
+                    ?? Bundle.main.url(forResource: path, withExtension: ext)
+            else {
                 throw BrowserAccessError.message(String(localized: "The browser terminal page is unavailable."))
             }
             assets[file == "index.html" ? "/" : "/" + file] = (try Data(contentsOf: url), type)
@@ -295,18 +315,24 @@ final class BrowserAccessController: nonisolated ObservableObject {
     }
 
     private static func translations() -> [String: String] {
-        ["title": String(localized: "Browser Access"), "pair": String(localized: "Request Pairing"),
-         "name": String(localized: "Client name"), "pairing": String(localized: "Compare this code on the Mac, then approve the client in Settings → Browser → Browser Access."),
-         "waiting": String(localized: "Waiting for approval…"), "denied": String(localized: "Pairing was denied or expired."),
-         "connect": String(localized: "Reconnect"), "disconnect": String(localized: "Disconnect"),
-         "forget": String(localized: "Forget This Browser"), "connected": String(localized: "Connected"),
-         "read_only": String(localized: "Read Only"),
-         "disconnected": String(localized: "Disconnected"), "connecting": String(localized: "Connecting…"),
-         "session": String(localized: "Terminal session"), "control": String(localized: "Resize terminal to browser"),
-         "empty": String(localized: "Open a new terminal pane on this Mac after enabling browser access."),
-         "certificate": String(localized: "Export TLS Certificate…"),
-         "trust": String(localized: "Before pairing remotely, compare the TLS certificate fingerprint on this Mac and trust that certificate on your client device."),
-         "failed": String(localized: "Browser access is unavailable. Check the connection and client authorization."),
-         "fingerprint": String(localized: "TLS certificate fingerprint"), "remote": String(localized: "Private network address")]
+        [
+            "title": String(localized: "Browser Access"), "pair": String(localized: "Request Pairing"),
+            "name": String(localized: "Client name"),
+            "pairing": String(localized: "Compare this code on the Mac, then approve the client in Settings → Browser → Browser Access."),
+            "waiting": String(localized: "Waiting for approval…"), "denied": String(localized: "Pairing was denied or expired."),
+            "connect": String(localized: "Reconnect"), "disconnect": String(localized: "Disconnect"),
+            "forget": String(localized: "Forget This Browser"), "connected": String(localized: "Connected"),
+            "read_only": String(localized: "Read Only"),
+            "disconnected": String(localized: "Disconnected"), "connecting": String(localized: "Connecting…"),
+            "session": String(localized: "Terminal session"), "control": String(localized: "Resize terminal to browser"),
+            "empty": String(localized: "Open a new terminal pane on this Mac after enabling browser access."),
+            "certificate": String(localized: "Export TLS Certificate…"),
+            "trust": String(
+                localized:
+                    "Before pairing remotely, compare the TLS certificate fingerprint on this Mac and trust that certificate on your client device."
+            ),
+            "failed": String(localized: "Browser access is unavailable. Check the connection and client authorization."),
+            "fingerprint": String(localized: "TLS certificate fingerprint"), "remote": String(localized: "Private network address"),
+        ]
     }
 }

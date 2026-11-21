@@ -87,7 +87,8 @@ final class TerminalProfileEditorWindowController: NSWindowController,
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard profiles.indices.contains(row) else { return nil }
         let id = NSUserInterfaceItemIdentifier("TerminalProfileName")
-        let label = table.makeView(withIdentifier: id, owner: self) as? NSTextField
+        let label =
+            table.makeView(withIdentifier: id, owner: self) as? NSTextField
             ?? NSTextField(labelWithString: "")
         label.identifier = id
         label.stringValue = profiles[row].name
@@ -205,9 +206,19 @@ final class TerminalProfileEditorWindowController: NSWindowController,
         grid.column(at: 0).width = 155
         grid.column(at: 1).xPlacement = .fill
 
-        let rules = detail(String(localized: "Rules are checked from top to bottom. All filled conditions must match. * matches any text; ? matches one character."))
-        let scope = detail(String(localized: "Appearance changes apply immediately to this pane. Environment and startup settings apply only to new terminals; switching profiles never runs a command."))
-        let environmentHelp = detail(String(localized: "Enter one NAME=value per line; write a line break in a value as \\n. Values are saved as plain text in config.toml."))
+        let rules = detail(
+            String(
+                localized:
+                    "Rules are checked from top to bottom. All filled conditions must match. * matches any text; ? matches one character."))
+        let scope = detail(
+            String(
+                localized:
+                    "Appearance changes apply immediately to this pane. Environment and startup settings apply only to new terminals; switching profiles never runs a command."
+            ))
+        let environmentHelp = detail(
+            String(
+                localized:
+                    "Enter one NAME=value per line; write a line break in a value as \\n. Values are saved as plain text in config.toml."))
         let form = NSStackView(views: [rules, enabled, grid, environmentHelp, scope])
         form.orientation = .vertical
         form.alignment = .leading
@@ -298,8 +309,11 @@ final class TerminalProfileEditorWindowController: NSWindowController,
         table.reloadData()
         emptyList.isHidden = !profiles.isEmpty
         let profile = selected >= 0 ? profiles[selected] : TerminalProfile(name: "")
-        if selected >= 0 { table.selectRowIndexes(IndexSet(integer: selected), byExtendingSelection: false) }
-        else { table.deselectAll(nil) }
+        if selected >= 0 {
+            table.selectRowIndexes(IndexSet(integer: selected), byExtendingSelection: false)
+        } else {
+            table.deselectAll(nil)
+        }
         name.stringValue = profile.name
         enabled.state = profile.enabled ? .on : .off
         host.stringValue = profile.host
@@ -329,7 +343,9 @@ final class TerminalProfileEditorWindowController: NSWindowController,
             popup.addItem(withTitle: value)
             popup.lastItem?.representedObject = value
             popup.select(popup.lastItem)
-        } else { popup.select(item ?? popup.item(at: 0)) }
+        } else {
+            popup.select(item ?? popup.item(at: 0))
+        }
     }
 
     private func readFields() -> TerminalProfile? {
@@ -357,18 +373,21 @@ final class TerminalProfileEditorWindowController: NSWindowController,
         var variables: [TerminalEnvironmentVariable] = []
         for line in environment.string.split(separator: "\n") {
             guard let separator = line.firstIndex(of: "=") else { return nil }
-            variables.append(.init(
-                name: String(line[..<separator]),
-                value: Self.unescapedEnvironmentValue(line[line.index(after: separator)...])
-            ))
+            variables.append(
+                .init(
+                    name: String(line[..<separator]),
+                    value: Self.unescapedEnvironmentValue(line[line.index(after: separator)...])
+                ))
         }
         candidate.launchSettings.environmentVariables = variables
         guard candidate.isValid,
-              [candidate.appearance.themeDark, candidate.appearance.themeLight].compactMap({ $0 }).allSatisfy({ Theme.definition(named: $0) != nil }),
-              case .success = TerminalStartupCommand.resolve(
+            [candidate.appearance.themeDark, candidate.appearance.themeLight].compactMap({ $0 }).allSatisfy({
+                Theme.definition(named: $0) != nil
+            }),
+            case .success = TerminalStartupCommand.resolve(
                 program: candidate.startupProgram, arguments: candidate.startupArguments,
                 requireLocalExecutable: false
-              )
+            )
         else { return nil }
         return candidate
     }
@@ -413,7 +432,13 @@ final class TerminalProfileEditorWindowController: NSWindowController,
 
     private func updateValidation() {
         let valid = selected < 0 || readFields() != nil
-        error.stringValue = valid ? "" : String(localized: "Check the name, patterns, font size (8–32), executable path, and NAME=value entries. Protected terminal variables cannot be overridden.")
+        error.stringValue =
+            valid
+            ? ""
+            : String(
+                localized:
+                    "Check the name, patterns, font size (8–32), executable path, and NAME=value entries. Protected terminal variables cannot be overridden."
+            )
         save.isEnabled = valid
         add.isEnabled = valid && profiles.count < TerminalProfile.maximumCount
         remove.isEnabled = selected >= 0
@@ -450,8 +475,7 @@ final class TerminalProfileEditorWindowController: NSWindowController,
     @objc private func cancelEditing() { dismiss() }
     private func dismiss() {
         guard let window else { return }
-        if let parent = window.sheetParent { parent.endSheet(window) }
-        else { close() }
+        if let parent = window.sheetParent { parent.endSheet(window) } else { close() }
     }
 }
 

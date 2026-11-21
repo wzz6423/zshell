@@ -51,16 +51,17 @@ extension ZshellAutomationRouter {
         guard !browser.automation.isBusy else {
             throw browserError("browser_busy", "Another operation is active in this browser. Wait for it to finish.")
         }
-        let timeout = try browserInteger(params, "timeout_ms", default: 5_000, range: 100...BrowserAutomation.maximumTimeoutMS)
+        let timeout = try browserInteger(params, "timeout_ms", default: 5_000, range: 100 ... BrowserAutomation.maximumTimeoutMS)
         guard let terminalID = caller.session?.id else {
             throw browserError("caller_closed", "The invoking terminal is no longer open.")
         }
         let scopeIsValid: @MainActor () -> Bool = {
             guard let current = context(forSession: terminalID),
-                  current.manager === caller.manager, current.project === caller.project,
-                  current.project.tabs.contains(where: { $0 === target.tab }),
-                  target.tab.allPanes.contains(where: { $0.id == target.pane.id && $0.content.browser === browser }),
-                  browser.belongs(to: caller.manager) else { return false }
+                current.manager === caller.manager, current.project === caller.project,
+                current.project.tabs.contains(where: { $0 === target.tab }),
+                target.tab.allPanes.contains(where: { $0.id == target.pane.id && $0.content.browser === browser }),
+                browser.belongs(to: caller.manager)
+            else { return false }
             return true
         }
         guard scopeIsValid() else {
@@ -81,7 +82,9 @@ extension ZshellAutomationRouter {
                 guard let currentURL = browser.webView.url, BrowserAutomation.isAllowedURL(currentURL) else {
                     throw browserError("unsupported_url", "Only HTTP, HTTPS, and about:blank pages can be automated.")
                 }
-                let historyURL = operation == "back" ? browser.webView.backForwardList.backItem?.url
+                let historyURL =
+                    operation == "back"
+                    ? browser.webView.backForwardList.backItem?.url
                     : operation == "forward" ? browser.webView.backForwardList.forwardItem?.url : browser.webView.url
                 guard let historyURL, BrowserAutomation.isAllowedURL(historyURL) else {
                     throw browserError("navigation_unavailable", "No allowed page exists in that history direction.")
@@ -93,9 +96,10 @@ extension ZshellAutomationRouter {
         case "snapshot":
             try requireLoaded(browser)
             var options: [String: ZshellJSONValue] = [:]
-            options["max_elements"] = .number(Double(try browserInteger(params, "max_elements", default: 100, range: 1...200)))
-            options["max_text"] = .number(Double(try browserInteger(params, "max_text", default: 16_384, range: 1...32_768)))
-            let result = try await browser.automation.perform(operation, in: browser.webView, params: options, timeoutMS: timeout, scopeIsValid: scopeIsValid)
+            options["max_elements"] = .number(Double(try browserInteger(params, "max_elements", default: 100, range: 1 ... 200)))
+            options["max_text"] = .number(Double(try browserInteger(params, "max_text", default: 16_384, range: 1 ... 32_768)))
+            let result = try await browser.automation.perform(
+                operation, in: browser.webView, params: options, timeoutMS: timeout, scopeIsValid: scopeIsValid)
             return browserEnvelope(result, target: target)
 
         case "click", "fill":
@@ -108,7 +112,8 @@ extension ZshellAutomationRouter {
                 options["value"] = .string(value)
             }
             browser.automation.resetNavigationError()
-            let result = try await browser.automation.perform(operation, in: browser.webView, params: options, timeoutMS: timeout, scopeIsValid: scopeIsValid)
+            let result = try await browser.automation.perform(
+                operation, in: browser.webView, params: options, timeoutMS: timeout, scopeIsValid: scopeIsValid)
             return browserEnvelope(result, target: target)
 
         case "wait":
@@ -134,7 +139,9 @@ extension ZshellAutomationRouter {
                 if !browser.navigationIsLoading {
                     let remaining = max(1, Int(deadline.timeIntervalSinceNow * 1_000))
                     do {
-                        let result = try await browser.automation.perform(hasElement ? "wait" : "ready", in: browser.webView, params: options, timeoutMS: remaining, scopeIsValid: scopeIsValid)
+                        let result = try await browser.automation.perform(
+                            hasElement ? "wait" : "ready", in: browser.webView, params: options, timeoutMS: remaining,
+                            scopeIsValid: scopeIsValid)
                         if result.objectValue?[hasElement ? "matched" : "ready"]?.boolValue == true {
                             return browserEnvelope(result, target: target)
                         }
@@ -148,8 +155,9 @@ extension ZshellAutomationRouter {
 
         case "screenshot":
             try requireLoaded(browser)
-            let width = try browserInteger(params, "width", default: 1_024, range: 64...1_600)
-            let result = try await browser.automation.screenshot(in: browser.webView, width: width, timeoutMS: timeout, scopeIsValid: scopeIsValid)
+            let width = try browserInteger(params, "width", default: 1_024, range: 64 ... 1_600)
+            let result = try await browser.automation.screenshot(
+                in: browser.webView, width: width, timeoutMS: timeout, scopeIsValid: scopeIsValid)
             return browserEnvelope(result, target: target)
 
         case "eval":
@@ -169,14 +177,17 @@ extension ZshellAutomationRouter {
             }
             let result: ZshellJSONValue
             if operation == "state.save" {
-                result = try await browser.automation.saveState(in: browser.webView, format: format, timeoutMS: timeout, scopeIsValid: scopeIsValid)
+                result = try await browser.automation.saveState(
+                    in: browser.webView, format: format, timeoutMS: timeout, scopeIsValid: scopeIsValid)
             } else {
                 guard let encoded = params["data_base64"]?.stringValue,
-                      encoded.utf8.count <= (BrowserStorageState.maximumBytes + 2) / 3 * 4,
-                      let data = Data(base64Encoded: encoded), data.count <= BrowserStorageState.maximumBytes else {
+                    encoded.utf8.count <= (BrowserStorageState.maximumBytes + 2) / 3 * 4,
+                    let data = Data(base64Encoded: encoded), data.count <= BrowserStorageState.maximumBytes
+                else {
                     throw browserError("invalid_params", "A base64 storage-state file of at most 256 KiB is required.")
                 }
-                result = try await browser.automation.loadState(data, in: browser.webView, format: format, timeoutMS: timeout, scopeIsValid: scopeIsValid)
+                result = try await browser.automation.loadState(
+                    data, in: browser.webView, format: format, timeoutMS: timeout, scopeIsValid: scopeIsValid)
             }
             return browserEnvelope(result, target: target)
         default:
@@ -203,11 +214,14 @@ extension ZshellAutomationRouter {
         let beside: PaneContext
         if let paneValue = params["pane_id"] {
             guard let raw = paneValue.stringValue, let id = UUID(uuidString: raw),
-                  let context = contexts.first(where: { $0.pane.id == id }) else {
+                let context = contexts.first(where: { $0.pane.id == id })
+            else {
                 throw browserError("pane_not_found", "No matching pane exists in this project.")
             }
             beside = context
-        } else { beside = caller }
+        } else {
+            beside = caller
+        }
         let browser: BrowserTab
         if asTab {
             browser = caller.project.newBrowserTab(initialFocus: .none, focus: focus)
@@ -221,7 +235,8 @@ extension ZshellAutomationRouter {
             case "bottom": edge = .bottom
             default: throw browserError("invalid_params", "edge must be left, right, top, or bottom.")
             }
-            guard let created = caller.project.newBrowserPane(toward: edge, initialFocus: .none, beside: beside.pane.id, focus: focus) else {
+            guard let created = caller.project.newBrowserPane(toward: edge, initialFocus: .none, beside: beside.pane.id, focus: focus)
+            else {
                 throw browserError("pane_not_splittable", "The target pane could not be split.")
             }
             browser = created
@@ -245,9 +260,10 @@ extension ZshellAutomationRouter {
         }
         if let value = params["browser_id"] ?? params["pane_id"] {
             guard let raw = value.stringValue, let id = UUID(uuidString: raw),
-                  let context = contexts.first(where: {
-                      params["browser_id"] != nil ? $0.pane.content.browser?.id == id : $0.pane.id == id
-                  }) else {
+                let context = contexts.first(where: {
+                    params["browser_id"] != nil ? $0.pane.content.browser?.id == id : $0.pane.id == id
+                })
+            else {
                 throw browserError("browser_not_found", "No matching browser exists in this project.")
             }
             return context
@@ -261,8 +277,9 @@ extension ZshellAutomationRouter {
     private static func browserElementTarget(_ params: [String: ZshellJSONValue]) throws -> [String: ZshellJSONValue] {
         let keys = ["ref", "selector"].filter { params[$0] != nil }
         guard keys.count == 1, let key = keys.first,
-              let value = params[key]?.stringValue, !value.isEmpty,
-              value.utf8.count <= (key == "ref" ? 128 : 4_096) else {
+            let value = params[key]?.stringValue, !value.isEmpty,
+            value.utf8.count <= (key == "ref" ? 128 : 4_096)
+        else {
             throw browserError("invalid_params", "Choose exactly one non-empty ref (up to 128 bytes) or selector (up to 4 KiB).")
         }
         return [key: .string(value)]
@@ -274,7 +291,9 @@ extension ZshellAutomationRouter {
         }
     }
 
-    private static func browserInteger(_ params: [String: ZshellJSONValue], _ name: String, default fallback: Int, range: ClosedRange<Int>) throws -> Int {
+    private static func browserInteger(_ params: [String: ZshellJSONValue], _ name: String, default fallback: Int, range: ClosedRange<Int>)
+        throws -> Int
+    {
         guard let value = params[name] else { return fallback }
         guard let number = value.intValue, range.contains(number) else {
             throw browserError("invalid_params", "\(name) must be an integer between \(range.lowerBound) and \(range.upperBound).")
@@ -304,7 +323,9 @@ extension ZshellAutomationRouter {
             "can_go_back": .bool(browser.canGoBack),
             "can_go_forward": .bool(browser.canGoForward),
             "navigation_blocked": .bool(browser.automation.navigationWasRejected),
-            "is_focused": .bool(context.manager.selectedProjectID == context.project.id && context.project.selectedTabID == context.tab.id && context.tab.focusedPaneID == context.pane.id),
+            "is_focused": .bool(
+                context.manager.selectedProjectID == context.project.id && context.project.selectedTabID == context.tab.id
+                    && context.tab.focusedPaneID == context.pane.id),
         ])
     }
 

@@ -10,7 +10,7 @@
 
 extension Table {
     /// The body of a table consisting of zero or more ``Table/Row`` elements.
-    public struct Body : Markup {
+    public struct Body: Markup {
         public var _data: _MarkupData
 
         init(_ data: _MarkupData) {
@@ -57,7 +57,7 @@ public extension Table.Body {
 
     /// Replace all list items with a sequence of items.
     mutating func setRows<Rows: Sequence>(_ newRows: Rows) where Rows.Element == Table.Row {
-        replaceRowsInRange(0..<childCount, with: newRows)
+        replaceRowsInRange(0 ..< childCount, with: newRows)
     }
 
     /// Replace list items in a range with a sequence of items.
@@ -70,12 +70,12 @@ public extension Table.Body {
 
     /// Append a row to the list.
     mutating func appendRow(_ row: Table.Row) {
-        replaceRowsInRange(childCount..<childCount, with: CollectionOfOne(row))
+        replaceRowsInRange(childCount ..< childCount, with: CollectionOfOne(row))
     }
 
     // MARK: Visitation
 
-    func accept<V>(_ visitor: inout V) -> V.Result where V : MarkupVisitor {
+    func accept<V>(_ visitor: inout V) -> V.Result where V: MarkupVisitor {
         return visitor.visitTableBody(self)
     }
 }

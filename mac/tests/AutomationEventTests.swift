@@ -20,9 +20,10 @@ private final class Events: @unchecked Sendable {
             do {
                 _ = try ZshellAutomationSocketServer.followEvents(
                     path: environment["ZSHELL_AUTOMATION_SOCKET"]!,
-                    request: .init(version: 1, id: UUID().uuidString, method: "events.subscribe",
-                                   token: environment["ZSHELL_AUTOMATION_TOKEN"]!,
-                                   terminalID: environment["ZSHELL_TERMINAL_ID"]!, params: params),
+                    request: .init(
+                        version: 1, id: UUID().uuidString, method: "events.subscribe",
+                        token: environment["ZSHELL_AUTOMATION_TOKEN"]!,
+                        terminalID: environment["ZSHELL_TERMINAL_ID"]!, params: params),
                     timeoutMS: 15_000
                 ) { value in
                     self.values.set(self.values.get() + [value])
@@ -34,8 +35,8 @@ private final class Events: @unchecked Sendable {
     }
     func has(_ event: String, terminalID: UUID? = nil) -> Bool {
         values.get().contains { value in
-            value.objectValue?["event"]?.stringValue == event &&
-            (terminalID == nil || value.objectValue?["data"]?.objectValue?["terminal_id"]?.stringValue == terminalID!.uuidString)
+            value.objectValue?["event"]?.stringValue == event
+                && (terminalID == nil || value.objectValue?["data"]?.objectValue?["terminal_id"]?.stringValue == terminalID!.uuidString)
         }
     }
 }
@@ -66,8 +67,9 @@ struct AutomationEventTests {
         let owner = project.selectedSession!
         var windows: [NSWindow] = []
         func mount(_ session: TerminalSession) {
-            let window = EventTestWindow(contentRect: NSRect(x: 0, y: 0, width: 900, height: 600),
-                                  styleMask: [.titled], backing: .buffered, defer: false)
+            let window = EventTestWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 900, height: 600),
+                styleMask: [.titled], backing: .buffered, defer: false)
             window.contentView = session.surface
             session.surface.setSurfaceVisible(true)
             windows.append(window)
@@ -84,10 +86,11 @@ struct AutomationEventTests {
         owner.sendCommand("/usr/bin/env > '" + envPath.path + "'")
         owner.sendEnter()
         wait("terminal environment") { FileManager.default.fileExists(atPath: envPath.path) && owner.isCommandTaskShellReady }
-        let environment = Dictionary(try String(contentsOf: envPath, encoding: .utf8).split(separator: "\n").compactMap { line -> (String, String)? in
-            guard let split = line.firstIndex(of: "=") else { return nil }
-            return (String(line[..<split]), String(line[line.index(after: split)...]))
-        }, uniquingKeysWith: { _, new in new })
+        let environment = Dictionary(
+            try String(contentsOf: envPath, encoding: .utf8).split(separator: "\n").compactMap { line -> (String, String)? in
+                guard let split = line.firstIndex(of: "=") else { return nil }
+                return (String(line[..<split]), String(line[line.index(after: split)...]))
+            }, uniquingKeysWith: { _, new in new })
         let events = Events(environment: environment)
         wait("stream ready") { events.has("stream.ready") }
 
@@ -121,13 +124,17 @@ struct AutomationEventTests {
         mount(target)
         wait("created events") { events.has("session.created", terminalID: target.id) && events.has("pane.created", terminalID: target.id) }
         wait("worker shell ready") { target.isCommandTaskShellReady }
-        let taskResult = try rpc(environment, method: "pane.run", params: [
-            "pane_id": .string(targetPane.uuidString),
-            "argv": .array([.string("/bin/sh"), .string("-c"), .string("printf EVENT-COMMAND-DONE; exit 7")]),
-        ])
+        let taskResult = try rpc(
+            environment, method: "pane.run",
+            params: [
+                "pane_id": .string(targetPane.uuidString),
+                "argv": .array([.string("/bin/sh"), .string("-c"), .string("printf EVENT-COMMAND-DONE; exit 7")]),
+            ])
         let taskID = UUID(uuidString: taskResult.objectValue!["task_id"]!.stringValue!)!
         wait("task finished") { TerminalCommandTaskStore.shared.task(id: taskID, projectID: project.id)?.state == .completed }
-        wait("shell and task events") { events.has("command.finished", terminalID: target.id) && events.has("command.task.finished", terminalID: target.id) }
+        wait("shell and task events") {
+            events.has("command.finished", terminalID: target.id) && events.has("command.task.finished", terminalID: target.id)
+        }
         let task = TerminalCommandTaskStore.shared.task(id: taskID, projectID: project.id)!
         precondition(task.exitCode == 7 && task.output?.contains("EVENT-COMMAND-DONE") == true)
         wait("bundled CLI --once") { !cli.isRunning }
@@ -136,9 +143,11 @@ struct AutomationEventTests {
         let lines = try String(contentsOf: cliOutput, encoding: .utf8).split(separator: "\n")
         precondition(lines.count == 2 && lines.last!.contains("command.task.finished"))
 
-        let filtered = Events(environment: environment, params: [
-            "pane_id": .string(targetPane.uuidString), "events": .array([.string("focus.changed")]),
-        ])
+        let filtered = Events(
+            environment: environment,
+            params: [
+                "pane_id": .string(targetPane.uuidString), "events": .array([.string("focus.changed")]),
+            ])
         wait("pane filter ready") { filtered.has("stream.ready") }
         let originalFocus = project.selectedTab!.focusedPaneID
         project.selectedTab!.focusedPaneID = targetPane
@@ -148,9 +157,10 @@ struct AutomationEventTests {
         project.selectedTab!.focusedPaneID = targetPane
         let beforeReport = events.values.get().count
         let cliPath = "'" + executable.path.replacingOccurrences(of: "'", with: "'\\''") + "'"
-        target.sendCommand(cliPath + " +agent report working --name StreamProgram --progress 25; /bin/sleep 0.2; "
-                           + cliPath + " +agent report blocked --name StreamProgram --attention approval --progress 50; /bin/sleep 0.2; "
-                           + cliPath + " +agent report done --name StreamProgram --progress 100")
+        target.sendCommand(
+            cliPath + " +agent report working --name StreamProgram --progress 25; /bin/sleep 0.2; "
+                + cliPath + " +agent report blocked --name StreamProgram --attention approval --progress 50; /bin/sleep 0.2; "
+                + cliPath + " +agent report done --name StreamProgram --progress 100")
         target.sendEnter()
         wait("authenticated program report completion") {
             events.values.get().dropFirst(beforeReport).contains {
@@ -163,14 +173,18 @@ struct AutomationEventTests {
         target.agentStatus = nil
         // Feed the same status model native hooks and authenticated reports use.
         func status(_ phase: ZshellAgentPhase, progress: Int?, attention: ZshellAgentAttention?) {
-            target.agentStatus = .init(alias: "worker", kind: .codex, phase: phase, authority: .integration,
-                                       reason: "event fixture", updatedAt: Date(), processID: nil, unseen: false,
-                                       progress: progress, attention: attention, tasks: [])
+            target.agentStatus = .init(
+                alias: "worker", kind: .codex, phase: phase, authority: .integration,
+                reason: "event fixture", updatedAt: Date(), processID: nil, unseen: false,
+                progress: progress, attention: attention, tasks: [])
         }
         status(.working, progress: 25, attention: nil)
         status(.blocked, progress: 50, attention: .approval)
         status(.done, progress: 100, attention: nil)
-        wait("agent events") { events.has("agent.progress", terminalID: target.id) && events.has("agent.attention", terminalID: target.id) && events.has("agent.finished", terminalID: target.id) }
+        wait("agent events") {
+            events.has("agent.progress", terminalID: target.id) && events.has("agent.attention", terminalID: target.id)
+                && events.has("agent.finished", terminalID: target.id)
+        }
         target.agentStatus = nil
 
         let foreign = manager.newProject()
@@ -204,9 +218,10 @@ struct AutomationEventTests {
                     && $0.objectValue?["data"]?.objectValue?["tab_id"]?.stringValue == extracted.id.uuidString
             }
         }
-        precondition(!events.values.get().dropFirst(beforeMove).contains {
-            $0.objectValue?["event"]?.stringValue == "session.closed"
-        })
+        precondition(
+            !events.values.get().dropFirst(beforeMove).contains {
+                $0.objectValue?["event"]?.stringValue == "session.closed"
+            })
         precondition(project.moveTab(extracted.id, into: sourceTab.id, toward: .right, beside: originalFocus))
         wait("tab merge metadata updated") {
             events.values.get().filter { $0.objectValue?["event"]?.stringValue == "pane.updated" }.count >= 2
@@ -246,7 +261,9 @@ struct AutomationEventTests {
         }
         sourceTab.layout = replacing(sourceTab.layout, with: .session(replacement))
         project.closeContent(.session(replacement))
-        wait("closed events") { events.has("pane.closed", terminalID: replacement.id) && events.has("session.closed", terminalID: replacement.id) }
+        wait("closed events") {
+            events.has("pane.closed", terminalID: replacement.id) && events.has("session.closed", terminalID: replacement.id)
+        }
         let scope = Events(environment: environment)
         wait("scope stream ready") { scope.has("stream.ready") }
         let ownerTab = project.tabs.first { $0.sessions.contains { $0.id == owner.id } }!
@@ -281,15 +298,20 @@ struct AutomationEventTests {
         wait("closing stream") { closing.has("stream.ready") }
         another.closeContent(.session(owner))
         wait("closing owner revokes") { closing.done.get() }
-        print("\(backend): real PTYs + authenticated socket + CLI: create/close, focus, shell/task exit 7, agent status/progress/attention/finish, tab moves and same-pane replacement, scope/forgery/env removal, project/window moves, token rotation and close passed")
+        print(
+            "\(backend): real PTYs + authenticated socket + CLI: create/close, focus, shell/task exit 7, agent status/progress/attention/finish, tab moves and same-pane replacement, scope/forgery/env removal, project/window moves, token rotation and close passed"
+        )
     }
 
-    private static func rpc(_ environment: [String: String], method: String,
-                            params: [String: ZshellJSONValue]) throws -> ZshellJSONValue {
+    private static func rpc(
+        _ environment: [String: String], method: String,
+        params: [String: ZshellJSONValue]
+    ) throws -> ZshellJSONValue {
         let box = Box<Result<ZshellJSONValue, Error>?>(nil)
         DispatchQueue.global().async {
-            do { box.set(.success(try AppConnection(environment: environment).automationRequest(method: method, params: params))) }
-            catch { box.set(.failure(error)) }
+            do { box.set(.success(try AppConnection(environment: environment).automationRequest(method: method, params: params))) } catch {
+                box.set(.failure(error))
+            }
         }
         wait("RPC \(method)") { box.get() != nil }
         return try box.get()!.get()

@@ -22,10 +22,12 @@ extension ZshellTerminalView {
         foregroundProcessProvider = launch.foregroundProcessProvider
         reportsLocalWorkingDirectory = launch.reportsLocalWorkingDirectory
         launchCommand = launch.commandLine
-        launchTerm = launch.environment["TERM"].flatMap {
-            TerminalLaunchSettings.isValidTermName($0) ? $0 : nil
-        } ?? TerminalLaunchSettings.defaultTerm
-        launchShellIntegration = launch.foregroundProcessProvider == nil && !launch.usesZsh
+        launchTerm =
+            launch.environment["TERM"].flatMap {
+                TerminalLaunchSettings.isValidTermName($0) ? $0 : nil
+            } ?? TerminalLaunchSettings.defaultTerm
+        launchShellIntegration =
+            launch.foregroundProcessProvider == nil && !launch.usesZsh
             ? Self.shellIntegration(for: launch.interactiveShell) : "none"
         supportsInputSelection = launch.usesZsh
         let controller = TerminalController(
@@ -47,9 +49,9 @@ extension ZshellTerminalView {
             AppSettings.shared.$mouseScrollMultiplier.removeDuplicates(),
             AppSettings.shared.$trackpadScrollMultiplier.removeDuplicates()
         )
-            .dropFirst()
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.applyAppearance() }
+        .dropFirst()
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _ in self?.applyAppearance() }
     }
 
     /// Reconfigures libghostty in place when appearance, font, or terminal
@@ -62,9 +64,10 @@ extension ZshellTerminalView {
             terminalConfiguration(command: launchCommand)
         )
         _ = ghosttyController.setTheme(ghosttyTheme())
-        let isDark = NSApp.effectiveAppearance.bestMatch(
-            from: [.darkAqua, .aqua]
-        ) == .darkAqua
+        let isDark =
+            NSApp.effectiveAppearance.bestMatch(
+                from: [.darkAqua, .aqua]
+            ) == .darkAqua
         ghosttyController.setColorScheme(isDark ? .dark : .light)
         didRender()
     }
@@ -96,13 +99,15 @@ extension ZshellTerminalView {
 
     private func terminalConfiguration(command: String) -> TerminalConfiguration {
         let settings = AppSettings.shared
-        let family = profileAppearance.effectiveFontFamily.isEmpty
+        let family =
+            profileAppearance.effectiveFontFamily.isEmpty
             ? TerminalFont.bundledFamily : profileAppearance.effectiveFontFamily
         return TerminalConfiguration { builder in
             builder.withCustom("font-family", "")
             builder.withFontFamily(family)
             if !settings.fontFallbackFamily.isEmpty,
-               settings.fontFallbackFamily != family {
+                settings.fontFallbackFamily != family
+            {
                 builder.withFontFamily(settings.fontFallbackFamily)
             }
             // Keep Zshell's bundled icon font last in the explicit fallback
@@ -126,7 +131,8 @@ extension ZshellTerminalView {
             let cellWidthAdjustment = Int(((settings.terminalCellWidth - 1) * 100).rounded())
             builder.withCustom("adjust-cell-width", "\(cellWidthAdjustment)%")
             let trackpadScroll = TerminalScrollSettings.validMultiplier(settings.trackpadScrollMultiplier)
-            let mouseScroll = TerminalScrollSettings.validMultiplier(settings.mouseScrollMultiplier)
+            let mouseScroll =
+                TerminalScrollSettings.validMultiplier(settings.mouseScrollMultiplier)
                 * TerminalScrollSettings.ghosttyWheelMultiplier
             builder.withCustom("mouse-scroll-multiplier", "precision:\(TOML.number(trackpadScroll)),discrete:\(TOML.number(mouseScroll))")
             builder.withCursorStyle(profileAppearance.effectiveCursorShape.ghosttyValue)
@@ -265,14 +271,16 @@ extension ZshellTerminalView: TerminalSurfaceGridResizeDelegate {
         invalidatePaddingGeometry()
         inputContext?.invalidateCharacterCoordinates()
         hintMode.refreshSnapshot()
-        let scale = window?.backingScaleFactor
+        let scale =
+            window?.backingScaleFactor
             ?? NSScreen.main?.backingScaleFactor
             ?? 2
         guard scale > 0 else { return }
-        events?.terminalDidChangeCellSize(CGSize(
-            width: CGFloat(size.cellWidthPixels) / scale,
-            height: CGFloat(size.cellHeightPixels) / scale
-        ))
+        events?.terminalDidChangeCellSize(
+            CGSize(
+                width: CGFloat(size.cellWidthPixels) / scale,
+                height: CGFloat(size.cellHeightPixels) / scale
+            ))
     }
 }
 
@@ -280,8 +288,9 @@ extension ZshellTerminalView: TerminalSurfaceBackgroundColorDelegate {
     func terminalDidChangeBackgroundColor(red: UInt8, green: UInt8, blue: UInt8) {
         // OSC 111 pins the current default as an override in this engine.
         // Keep its reported color even when it currently matches the theme.
-        reportedBackgroundColor = NSColor(srgbRed: CGFloat(red) / 255, green: CGFloat(green) / 255,
-                                           blue: CGFloat(blue) / 255, alpha: 1)
+        reportedBackgroundColor = NSColor(
+            srgbRed: CGFloat(red) / 255, green: CGFloat(green) / 255,
+            blue: CGFloat(blue) / 255, alpha: 1)
         didRender()
     }
 }
@@ -382,7 +391,8 @@ extension ZshellTerminalView: TerminalSurfaceClipboardConfirmationDelegate {
         events?.terminalDidRequestClipboardConfirmation(
             TerminalClipboardRequest(kind: kind, contents: request.contents) { [weak self] approved in
                 if approved, let self,
-                   kind != .unsafePaste || !self.isReadOnly && self.inputGeneration == generation {
+                    kind != .unsafePaste || !self.isReadOnly && self.inputGeneration == generation
+                {
                     request.approve()
                 } else {
                     request.deny()
@@ -391,7 +401,6 @@ extension ZshellTerminalView: TerminalSurfaceClipboardConfirmationDelegate {
         )
     }
 }
-
 
 extension ZshellTerminalView: TerminalSurfaceCommandRecordsDelegate {
     func terminalCommandRecordsDidChange() { refreshCommandRecords() }
@@ -409,10 +418,11 @@ extension ZshellTerminalView: TerminalSurfaceCommandRecordsDelegate {
 
     func commandRegion(at location: TerminalCommandOutputLocation) -> TerminalCommandRegion? {
         guard commandRecordState.owns(location), let region = semanticCommandRegion(id: location.blockID) else { return nil }
-        return .init(promptStart: .init(row: region.prompt.row, column: region.prompt.column),
-                     inputStart: .init(row: region.input.row, column: region.input.column),
-                     outputStart: .init(row: region.output.row, column: region.output.column),
-                     outputEnd: .init(row: region.end.row, column: region.end.column))
+        return .init(
+            promptStart: .init(row: region.prompt.row, column: region.prompt.column),
+            inputStart: .init(row: region.input.row, column: region.input.column),
+            outputStart: .init(row: region.output.row, column: region.output.column),
+            outputEnd: .init(row: region.end.row, column: region.end.column))
     }
 
     func commandText(at location: TerminalCommandOutputLocation, part: TerminalCommandTextPart) -> String? {

@@ -61,13 +61,15 @@ final class RecommendedToolService: ObservableObject {
         self.defaults = defaults
         self.environment = environment
         self.homeDirectory = homeDirectory
-        self.applicationDirectories = applicationDirectories ?? [
-            URL(fileURLWithPath: "/Applications", isDirectory: true),
-            homeDirectory.appendingPathComponent("Applications", isDirectory: true),
-        ]
+        self.applicationDirectories =
+            applicationDirectories ?? [
+                URL(fileURLWithPath: "/Applications", isDirectory: true),
+                homeDirectory.appendingPathComponent("Applications", isDirectory: true),
+            ]
         homebrewURL = homebrewLocator()
         if let data = defaults.data(forKey: Self.cacheKey),
-           let cache = try? JSONDecoder().decode([String: CachedVersion].self, from: data) {
+            let cache = try? JSONDecoder().decode([String: CachedVersion].self, from: data)
+        {
             versionCache = cache
         }
         for tool in RecommendedTool.allCases {
@@ -162,7 +164,9 @@ final class RecommendedToolService: ObservableObject {
             if let version = (tool.isCask ? casks : formulae)[token] {
                 states[tool]?.hasCheckedInstallation = true
                 states[tool]?.location = .homebrew
-                states[tool]?.installedVersion = tool.applicationName == nil ? version
+                states[tool]?.installedVersion =
+                    tool.applicationName == nil
+                    ? version
                     : await Task.detached(priority: .utility) {
                         RecommendedToolWorker.applicationVersion(tool, directories: applicationDirectories) ?? version
                     }.value
@@ -188,7 +192,7 @@ final class RecommendedToolService: ObservableObject {
         let loader = self.loader
         // Limit simultaneous requests; switching panes reuses the cached result.
         for start in stride(from: 0, to: pending.count, by: 4) {
-            let batch = Array(pending[start..<min(start + 4, pending.count)])
+            let batch = Array(pending[start ..< min(start + 4, pending.count)])
             await withTaskGroup(of: (RecommendedTool, Result<String, RecommendedToolFailure>).self) { group in
                 for tool in batch {
                     group.addTask {
@@ -301,29 +305,34 @@ nonisolated enum RecommendedToolMetadata {
     static func latestVersion(_ data: Data, for tool: RecommendedTool) throws -> String {
         if tool == .quietMD {
             guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let value = object["tag_name"] as? String,
-                  let version = normalizedVersion(value) else { throw RecommendedToolFailure.invalidMetadata }
+                let value = object["tag_name"] as? String,
+                let version = normalizedVersion(value)
+            else { throw RecommendedToolFailure.invalidMetadata }
             return version
         }
         if tool.requiredTap != nil || tool == .python {
             let text = String(decoding: data, as: UTF8.self)
-            let pattern = tool == .python
+            let pattern =
+                tool == .python
                 ? #"(?m)^\s*url\s+"https://www\.python\.org/ftp/python/([0-9.]+)/"#
                 : #"(?m)^\s*version\s+\"([^\"]+)\""#
             guard let expression = try? NSRegularExpression(pattern: pattern),
-                  let match = expression.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-                  let range = Range(match.range(at: 1), in: text),
-                  let version = normalizedVersion(String(text[range])) else { throw RecommendedToolFailure.invalidMetadata }
+                let match = expression.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+                let range = Range(match.range(at: 1), in: text),
+                let version = normalizedVersion(String(text[range]))
+            else { throw RecommendedToolFailure.invalidMetadata }
             if !tool.isCask,
-               let revision = text.range(of: #"(?m)^\s*revision\s+(\d+)"#, options: .regularExpression),
-               let value = text[revision].split(whereSeparator: \.isWhitespace).last, value != "0" {
+                let revision = text.range(of: #"(?m)^\s*revision\s+(\d+)"#, options: .regularExpression),
+                let value = text[revision].split(whereSeparator: \.isWhitespace).last, value != "0"
+            {
                 return "\(version)_\(value)"
             }
             return version
         }
         guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let value = tool.isCask ? object["version"] as? String : (object["versions"] as? [String: Any])?["stable"] as? String,
-              let version = normalizedVersion(value) else { throw RecommendedToolFailure.invalidMetadata }
+            let value = tool.isCask ? object["version"] as? String : (object["versions"] as? [String: Any])?["stable"] as? String,
+            let version = normalizedVersion(value)
+        else { throw RecommendedToolFailure.invalidMetadata }
         let revision = tool.isCask ? 0 : object["revision"] as? Int ?? 0
         return revision > 0 ? "\(version)_\(revision)" : version
     }
@@ -336,7 +345,9 @@ nonisolated enum RecommendedToolWorker {
             .first { FileManager.default.isExecutableFile(atPath: $0.path) }
     }
 
-    static func run(_ executable: URL, _ arguments: [String], _ environment: [String: String], _ timeout: TimeInterval) async throws -> BoundedProcessResult {
+    static func run(_ executable: URL, _ arguments: [String], _ environment: [String: String], _ timeout: TimeInterval) async throws
+        -> BoundedProcessResult
+    {
         try await Task.detached(priority: .utility) {
             try BoundedProcessRunner.run(
                 executableURL: executable, arguments: arguments, timeout: timeout,
@@ -352,7 +363,7 @@ nonisolated enum RecommendedToolWorker {
             request.setValue("application/vnd.github.raw+json", forHTTPHeaderField: "Accept")
         }
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+        guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
             throw RecommendedToolFailure(String(localized: "The server returned HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)."))
         }
         guard data.count <= 2_097_152 else { throw RecommendedToolFailure.invalidMetadata }
@@ -365,8 +376,9 @@ nonisolated enum RecommendedToolWorker {
             let url = directory.appendingPathComponent("\(application).app", isDirectory: true)
             let infoURL = url.appendingPathComponent("Contents/Info.plist")
             if let data = try? Data(contentsOf: infoURL),
-               let info = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
-               let version = info["CFBundleShortVersionString"] as? String {
+                let info = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
+                let version = info["CFBundleShortVersionString"] as? String
+            {
                 return version
             }
         }
@@ -392,9 +404,12 @@ nonisolated enum RecommendedToolWorker {
         for path in paths where FileManager.default.isExecutableFile(atPath: path) {
             // Apple's gcc is Clang, and /usr/bin/java is a launcher that may
             // prompt to install a JDK. Neither establishes this recommendation.
-            if (tool == .gcc && ["/usr/bin/gcc", "/bin/gcc"].contains(path)) || (tool == .openJDK17 && path == "/usr/bin/java") { continue }
+            if (tool == .gcc && ["/usr/bin/gcc", "/bin/gcc"].contains(path)) || (tool == .openJDK17 && path == "/usr/bin/java") {
+                continue
+            }
             guard let output = try? await runner(URL(fileURLWithPath: path), tool.versionArguments, environment, 5),
-                  output.terminationStatus == 0, !output.timedOut else { continue }
+                output.terminationStatus == 0, !output.timedOut
+            else { continue }
             let text = output.output.stdout + "\n" + output.output.stderr
             let version = RecommendedToolMetadata.normalizedVersion(text)
             if tool == .openJDK17, version?.hasPrefix("17.") != true { continue }

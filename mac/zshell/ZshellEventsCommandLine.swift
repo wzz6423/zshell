@@ -3,7 +3,11 @@ import Foundation
 enum ZshellEventsCommandLine {
     static func run(arguments: [String]) throws -> Int32 {
         if arguments == ["--help"] || arguments == ["-h"] {
-            print(String(localized: "Stream live events from this terminal's project as NDJSON. Use --pane UUID, --event NAME, --once, and --timeout MS (0 waits indefinitely)."))
+            print(
+                String(
+                    localized:
+                        "Stream live events from this terminal's project as NDJSON. Use --pane UUID, --event NAME, --once, and --timeout MS (0 waits indefinitely)."
+                ))
             print("zshell +events [--pane UUID] [--event NAME] [--once] [--timeout MS]")
             print(ZshellAutomationEventHub.eventNames.sorted().joined(separator: ", "))
             return 0
@@ -30,7 +34,7 @@ enum ZshellEventsCommandLine {
             case "--once": once = true
             case "--timeout":
                 timeoutMS = try ZshellAutomationCommandLine.integerValue(after: &index, in: arguments, option: "--timeout")
-                guard (0...86_400_000).contains(timeoutMS) else {
+                guard (0 ... 86_400_000).contains(timeoutMS) else {
                     throw CLIError.message(String(localized: "Event timeouts must be between 0 and 86400000 milliseconds."))
                 }
             default:

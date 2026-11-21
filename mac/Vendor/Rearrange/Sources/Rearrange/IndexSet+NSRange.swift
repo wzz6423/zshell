@@ -13,24 +13,24 @@ public extension IndexSet {
         self.init(integersIn: Range<IndexSet.Element>(range)!)
     }
 
-	init(_ range: NSRange) {
-		self.init(integersIn: range)
-	}
+    init(_ range: NSRange) {
+        self.init(integersIn: range)
+    }
 
-	init(ranges: [NSRange]) {
-		self.init()
+    init(ranges: [NSRange]) {
+        self.init()
 
-		insert(ranges: ranges)
-	}
+        insert(ranges: ranges)
+    }
 
     mutating func insert(range: NSRange) {
         insert(integersIn: Range<IndexSet.Element>(range)!)
     }
 
     mutating func insert(ranges: [NSRange]) {
-		for range in ranges {
-			insert(range: range)
-		}
+        for range in ranges {
+            insert(range: range)
+        }
     }
 
     mutating func remove(integersIn range: NSRange) {
@@ -55,7 +55,7 @@ public extension IndexSet {
     }
 
     /// Returns true if at least one location in range is contained
-    func intersects(integersIn range : NSRange) -> Bool {
+    func intersects(integersIn range: NSRange) -> Bool {
         guard let elementRange = Range<IndexSet.Element>(range) else {
             return false
         }
@@ -73,6 +73,6 @@ public extension IndexSet {
             return nil
         }
 
-        return NSRange(start...end)
+        return NSRange(start ... end)
     }
 }

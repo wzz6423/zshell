@@ -20,8 +20,7 @@ private final class NotificationSurfaceDelivery: TerminalNotificationDelivery {
 @MainActor
 struct TerminalNotificationSurfaceTests {
     static func main() {
-        do { try run() }
-        catch { fputs("Notification surface failed: \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("Notification surface failed: \(error)\n", stderr); exit(1) }
     }
 
     static func pump(_ duration: TimeInterval = 0.02) {
@@ -36,8 +35,11 @@ struct TerminalNotificationSurfaceTests {
     }
 
     static func check(_ value: @autoclosure () -> Bool, _ message: String) throws {
-        guard value() else { throw NSError(domain: "NotificationSurface", code: 2,
-                                           userInfo: [NSLocalizedDescriptionKey: message]) }
+        guard value() else {
+            throw NSError(
+                domain: "NotificationSurface", code: 2,
+                userInfo: [NSLocalizedDescriptionKey: message])
+        }
         print("PASS \(CommandLine.arguments[1]): \(message)")
     }
 
@@ -64,7 +66,8 @@ struct TerminalNotificationSurfaceTests {
         AppSettings.shared.quickTerminalMode = .reuse
         let first = TerminalManager(), second = TerminalManager()
         guard let project1 = first.selectedProject, let project2 = second.selectedProject,
-              let session1 = project1.sessions.first, let session2 = project2.sessions.first else {
+            let session1 = project1.sessions.first, let session2 = project2.sessions.first
+        else {
             throw NSError(domain: "NotificationSurface", code: 3)
         }
         var windows: [NSWindow] = []
@@ -86,7 +89,9 @@ struct TerminalNotificationSurfaceTests {
             first.projects.forEach { $0.terminateAll() }
             second.projects.forEach { $0.terminateAll() }
             pump(0.3)
-            windows.forEach { $0.contentView = nil; $0.close() }
+            windows.forEach {
+                $0.contentView = nil; $0.close()
+            }
         }
         try wait("both terminal processes did not launch") { session1.shellPid != nil && session2.shellPid != nil }
         func send(_ text: String, to session: TerminalSession) { session.sendCommand(text); session.sendEnter() }
@@ -95,7 +100,9 @@ struct TerminalNotificationSurfaceTests {
             session2.surface.readVisibleText(maxLines: 100, maxColumns: 200)?.contains("NOTIFICATION_FIXTURE_READY") == true
         }
         let evidence = root.appendingPathComponent("shell-hooks.txt")
-        send("printf '%s %s %s' ${+functions[_zshell_notify_precmd]} ${+functions[_zshell_notify_preexec]} ${_zshell_notify_on_error:-unset} > " + TerminalSession.shellQuote(evidence.path), to: session2)
+        send(
+            "printf '%s %s %s' ${+functions[_zshell_notify_precmd]} ${+functions[_zshell_notify_preexec]} ${_zshell_notify_on_error:-unset} > "
+                + TerminalSession.shellQuote(evidence.path), to: session2)
         try wait("shell integration evidence did not appear") { FileManager.default.fileExists(atPath: evidence.path) }
         let hooks = try String(contentsOf: evidence, encoding: .utf8)
         try check(hooks == "1 1 1", "real zsh loaded the command notification hooks: \(hooks)")
@@ -106,25 +113,31 @@ struct TerminalNotificationSurfaceTests {
             history.records.contains { $0.kind == .command && $0.message == "Fixture failed" && $0.isFailure }
         }
         guard let record = history.records.first(where: { $0.message == "Fixture failed" }) else { preconditionFailure() }
-        try check(record.target.terminalID == session2.id && record.target.projectID == project2.id,
-                  "real PTY delivers structured failure with its window and project")
+        try check(
+            record.target.terminalID == session2.id && record.target.projectID == project2.id,
+            "real PTY delivers structured failure with its window and project")
         let replay = "printf '\\033]777;notify;zshell-command:\(commandID):1:7;Fixture failed\\033\\\\'"
         send(replay, to: session1)
         try wait("duplicate event did not reach the other surface") {
             history.record(id: record.id)?.target.terminalID == session1.id
         }
-        try check(history.records.filter { $0.message == "Fixture failed" }.count == 1,
-                  "replayed command metadata is deduplicated across terminal surfaces")
+        try check(
+            history.records.filter { $0.message == "Fixture failed" }.count == 1,
+            "replayed command metadata is deduplicated across terminal surfaces")
         // Ghostty throttles OSC desktop notifications before they reach the app.
         pump(1.3)
         send("false", to: session2)
         do {
             try wait("zsh failure notification did not arrive") {
-                history.records.contains { $0.kind == .command && $0.isFailure && $0.message.hasPrefix("false failed") && $0.message.contains("exit 1") }
+                history.records.contains {
+                    $0.kind == .command && $0.isFailure && $0.message.hasPrefix("false failed") && $0.message.contains("exit 1")
+                }
             }
         } catch {
             let stateFile = root.appendingPathComponent("shell-notify-state.txt")
-            send("printf '%s %s %s' $_zshell_notify_sequence $_zshell_notify_stamp $_zshell_notify_word > " + TerminalSession.shellQuote(stateFile.path), to: session2)
+            send(
+                "printf '%s %s %s' $_zshell_notify_sequence $_zshell_notify_stamp $_zshell_notify_word > "
+                    + TerminalSession.shellQuote(stateFile.path), to: session2)
             try? wait("shell state did not appear") { FileManager.default.fileExists(atPath: stateFile.path) }
             print("DIAGNOSTIC notify state=\((try? String(contentsOf: stateFile, encoding: .utf8)) ?? "missing")")
             print("DIAGNOSTIC terminal=\(session2.surface.readVisibleText(maxLines: 100, maxColumns: 200) ?? "")")
@@ -146,19 +159,23 @@ struct TerminalNotificationSurfaceTests {
         menu.addItem(terminal)
         controller.installMenu(in: menu)
         controller.installMenu(in: menu)
-        try check(menu.items.count == 1 && notifications.submenu?.items.count == 2,
-                  "native notification menu installs once")
+        try check(
+            menu.items.count == 1 && notifications.submenu?.items.count == 2,
+            "native notification menu installs once")
         controller.show()
         guard let panel = controller.windowController?.window,
-              let content = panel.contentViewController as? TerminalNotificationCenterViewController else { preconditionFailure() }
+            let content = panel.contentViewController as? TerminalNotificationCenterViewController
+        else { preconditionFailure() }
         pump(0.2)
         let views = descendants(content.view)
-        guard let filter = views.compactMap({ $0 as? NSSegmentedControl }).first(where: { $0.identifier?.rawValue == "notification-filter" }),
-              let showPane = views.compactMap({ $0 as? NSButton }).first(where: { $0.identifier?.rawValue == "notification-open" }),
-              let markRead = views.compactMap({ $0 as? NSButton }).first(where: { $0.identifier?.rawValue == "notification-mark-read" }),
-              let allRead = views.compactMap({ $0 as? NSButton }).first(where: { $0.identifier?.rawValue == "notification-mark-all-read" }),
-              let remove = views.compactMap({ $0 as? NSButton }).first(where: { $0.identifier?.rawValue == "notification-remove" }),
-              let clear = views.compactMap({ $0 as? NSButton }).first(where: { $0.identifier?.rawValue == "notification-clear" }) else {
+        guard
+            let filter = views.compactMap({ $0 as? NSSegmentedControl }).first(where: { $0.identifier?.rawValue == "notification-filter" }),
+            let showPane = views.compactMap({ $0 as? NSButton }).first(where: { $0.identifier?.rawValue == "notification-open" }),
+            let markRead = views.compactMap({ $0 as? NSButton }).first(where: { $0.identifier?.rawValue == "notification-mark-read" }),
+            let allRead = views.compactMap({ $0 as? NSButton }).first(where: { $0.identifier?.rawValue == "notification-mark-all-read" }),
+            let remove = views.compactMap({ $0 as? NSButton }).first(where: { $0.identifier?.rawValue == "notification-remove" }),
+            let clear = views.compactMap({ $0 as? NSButton }).first(where: { $0.identifier?.rawValue == "notification-clear" })
+        else {
             preconditionFailure("Notification controls are missing")
         }
         content.view.layoutSubtreeIfNeeded()
@@ -166,13 +183,15 @@ struct TerminalNotificationSurfaceTests {
         try check(remove.isHidden, "remove stays hidden until a notification is selected")
         for control in [filter, showPane, markRead, allRead, clear] as [NSView] {
             let frame = control.convert(control.bounds, to: content.view)
-            try check(!control.isHidden && frame.width > 0 && frame.height > 0 && bounds.contains(frame),
-                      "native control remains visible inside the panel: \(control.identifier?.rawValue ?? "unknown")")
+            try check(
+                !control.isHidden && frame.width > 0 && frame.height > 0 && bounds.contains(frame),
+                "native control remains visible inside the panel: \(control.identifier?.rawValue ?? "unknown")")
         }
         filter.selectedSegment = TerminalNotificationHistoryStore.Filter.failed.rawValue
         NSApp.sendAction(filter.action!, to: filter.target, from: filter)
-        try check(content.table.numberOfRows == history.filtered(.failed).count && content.table.numberOfRows >= 2,
-                  "native panel filters failed notifications")
+        try check(
+            content.table.numberOfRows == history.filtered(.failed).count && content.table.numberOfRows >= 2,
+            "native panel filters failed notifications")
         panel.contentView?.layoutSubtreeIfNeeded()
         if let view = panel.contentView, let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
             view.cacheDisplay(in: view.bounds, to: bitmap)
@@ -190,8 +209,12 @@ struct TerminalNotificationSurfaceTests {
             for control in [filter, showPane, markRead, allRead, remove, clear] as [NSView] {
                 let frame = control.convert(control.bounds, to: content.view)
                 guard frame.width > 0 && content.view.bounds.insetBy(dx: -1, dy: -1).contains(frame) else {
-                    throw NSError(domain: "NotificationSurface", code: 2, userInfo: [NSLocalizedDescriptionKey:
-                        "Minimum-size panel clips \(language.rawValue) control: \(control.identifier?.rawValue ?? "unknown")"])
+                    throw NSError(
+                        domain: "NotificationSurface", code: 2,
+                        userInfo: [
+                            NSLocalizedDescriptionKey:
+                                "Minimum-size panel clips \(language.rawValue) control: \(control.identifier?.rawValue ?? "unknown")"
+                        ])
                 }
             }
         }
@@ -218,8 +241,10 @@ struct TerminalNotificationSurfaceTests {
         let row = history.filtered(.failed).firstIndex { $0.id == record.id }!
         content.table.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
         NSApp.sendAction(content.table.action!, to: content.table.target, from: content.table)
-        try check(first.selectedProjectID == project1.id && project1.selectedTab?.paneID(forContent: session1.id) == project1.selectedTab?.focusedPaneID,
-                  "clicking a row reveals the originating window, project, tab and pane")
+        try check(
+            first.selectedProjectID == project1.id
+                && project1.selectedTab?.paneID(forContent: session1.id) == project1.selectedTab?.focusedPaneID,
+            "clicking a row reveals the originating window, project, tab and pane")
         let latestTarget = history.record(id: record.id)!.target
         session1.terminate()
         try wait("closed terminal did not finish teardown") { session1.hasExited }
@@ -231,12 +256,14 @@ struct TerminalNotificationSurfaceTests {
         try wait("Quick Terminal process did not launch") { quickSession.shellPid != nil }
         quickSession.terminalDidRequestDesktopNotification(title: "Fixture", body: "Quick notice")
         guard let quickRecord = history.records.first(where: { $0.message == "Quick notice" }) else { preconditionFailure() }
-        try check(quickRecord.target.terminalID == quickSession.id && quickRecord.target.projectName != nil,
-                  "Quick Terminal notifications retain their target")
+        try check(
+            quickRecord.target.terminalID == quickSession.id && quickRecord.target.projectName != nil,
+            "Quick Terminal notifications retain their target")
         overlay.toggle()
-        try check(service.open(id: quickRecord.id) && overlay.workspace === quick
-                  && quick.focusedPaneID == quick.paneID(forContent: quickSession.id),
-                  "opening a notification restores and focuses the hidden Quick Terminal")
+        try check(
+            service.open(id: quickRecord.id) && overlay.workspace === quick
+                && quick.focusedPaneID == quick.paneID(forContent: quickSession.id),
+            "opening a notification restores and focuses the hidden Quick Terminal")
         controller.show()
         pump(0.1)
         clear.performClick(nil)

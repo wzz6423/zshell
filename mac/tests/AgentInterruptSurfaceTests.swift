@@ -19,8 +19,7 @@ private final class InterruptTestWindow: NSWindow {
 @MainActor
 struct AgentInterruptSurfaceTests {
     static func main() {
-        do { try run() }
-        catch { fputs("Agent interrupt surfaces failed: \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("Agent interrupt surfaces failed: \(error)\n", stderr); exit(1) }
     }
 
     private static func pump(_ duration: TimeInterval) {
@@ -42,7 +41,8 @@ struct AgentInterruptSurfaceTests {
         AppSettings.shared.terminalStartupProgram = ""
         AppSettings.shared.preserveTerminalSessions = false
         AppSettings.shared.restoreTerminalHistory = false
-        let session = TerminalSession(initialDirectory: root.path,
+        let session = TerminalSession(
+            initialDirectory: root.path,
             commandArguments: ["/usr/bin/python3", fixture.path, root.path], allowsPersistence: false)
         let view = session.surface
         view.frame = NSRect(x: 0, y: 0, width: 1000, height: 600)
@@ -76,7 +76,8 @@ struct AgentInterruptSurfaceTests {
             try check(condition(), label)
         }
         func key(_ characters: String, code: UInt16, flags: NSEvent.ModifierFlags = [], plain: String? = nil) {
-            let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags,
+            let event = NSEvent.keyEvent(
+                with: .keyDown, location: .zero, modifierFlags: flags,
                 timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
                 context: nil, characters: characters, charactersIgnoringModifiers: plain ?? characters,
                 isARepeat: false, keyCode: code)!
@@ -91,27 +92,34 @@ struct AgentInterruptSurfaceTests {
         }
         let owner = session.shellPid!
         if inheritsProcessGroup {
-            try check(session.surface.foregroundPid != owner && getpgid(owner) == session.surface.foregroundPid,
-                      "direct Ghostty launch inherits its exited leader's foreground group")
-            try check(ZshellAgentProcessIdentity(pid: session.surface.foregroundPid!) == nil,
-                      "the inherited foreground leader is no longer a live owner")
+            try check(
+                session.surface.foregroundPid != owner && getpgid(owner) == session.surface.foregroundPid,
+                "direct Ghostty launch inherits its exited leader's foreground group")
+            try check(
+                ZshellAgentProcessIdentity(pid: session.surface.foregroundPid!) == nil,
+                "the inherited foreground leader is no longer a live owner")
         } else {
             try check(session.surface.foregroundPid == owner, "job-controlled provider owns its foreground group")
         }
-        let identity = AgentConversationIdentity(provider: .claude, sessionID: UUID().uuidString,
-                                                  workingDirectory: root.path)!
+        let identity = AgentConversationIdentity(
+            provider: .claude, sessionID: UUID().uuidString,
+            workingDirectory: root.path)!
         try check(session.recordAgentConversation(identity, processID: owner), "provider conversation is retained")
         func hook(_ name: String, child: String? = nil) throws {
-            var payload: [String: ZshellJSONValue] = ["hook_event_name": .string(name),
-                                                      "session_id": .string(identity.sessionID)]
+            var payload: [String: ZshellJSONValue] = [
+                "hook_event_name": .string(name),
+                "session_id": .string(identity.sessionID),
+            ]
             if let child {
                 payload["agent_id"] = .string(child)
                 payload["parent_session_id"] = .string(identity.sessionID)
             }
             let event = ZshellAgentLifecycleEvent.parse(provider: .claude, payload: payload)!
-            try check(session.reportAutomationAgent(phase: event.phase, reason: event.reason,
-                provider: .claude, peerProcessID: owner, attention: event.attention, task: event.task,
-                endsSession: event.endsSession, interrupted: event.interrupted), "verified native \(name) accepted")
+            try check(
+                session.reportAutomationAgent(
+                    phase: event.phase, reason: event.reason,
+                    provider: .claude, peerProcessID: owner, attention: event.attention, task: event.task,
+                    endsSession: event.endsSession, interrupted: event.interrupted), "verified native \(name) accepted")
         }
         func working(restore: Bool = true) throws {
             try hook("UserPromptSubmit")
@@ -130,9 +138,11 @@ struct AgentInterruptSurfaceTests {
             }
             try check(session.agentResume == identity, "interrupt keeps the same conversation")
             try check(session.agentStatus?.unseen == false, "interrupt creates no unread completion")
-            let state = try JSONSerialization.jsonObject(with: Data(contentsOf: root.appendingPathComponent("state.json"))) as! [String: Any]
-            try check(state["oscIdle"] as? Bool == true,
-                      "provider OSC idle does not interfere with native confirmation")
+            let state =
+                try JSONSerialization.jsonObject(with: Data(contentsOf: root.appendingPathComponent("state.json"))) as! [String: Any]
+            try check(
+                state["oscIdle"] as? Bool == true,
+                "provider OSC idle does not interfere with native confirmation")
         }
         func remainsWorking() throws {
             pump(1.7)
@@ -144,12 +154,15 @@ struct AgentInterruptSurfaceTests {
         try escape()
         try wait("provider restores its input without a Stop hook") { !text().contains("esc to interrupt") }
         let idleReport = try ZshellAgentReport(params: ["name": .string("claude-code"), "state": .string("idle")])
-        try check(session.reportAutomationProgram(idleReport, ownerPID: owner, peerProcessID: owner),
-                  "concurrent program idle uses verified process ownership")
-        try check(session.reportAutomationProgram(idleReport, ownerPID: owner, peerProcessID: owner),
-                  "an immediate program refresh remains accepted")
-        try check(session.agentObservation.integrationPhase == .working,
-                  "immediate program refreshes cannot satisfy the stable interval")
+        try check(
+            session.reportAutomationProgram(idleReport, ownerPID: owner, peerProcessID: owner),
+            "concurrent program idle uses verified process ownership")
+        try check(
+            session.reportAutomationProgram(idleReport, ownerPID: owner, peerProcessID: owner),
+            "an immediate program refresh remains accepted")
+        try check(
+            session.agentObservation.integrationPhase == .working,
+            "immediate program refreshes cannot satisfy the stable interval")
         try settled()
         try check(session.agentStatus?.phase == .idle, "Escape returns an interrupted parent to idle")
         try working()
@@ -164,9 +177,10 @@ struct AgentInterruptSurfaceTests {
         try working()
         try escape()
         try settled()
-        try check(session.agentStatus?.phase == .working
-            && session.agentObservation.integrationTasks.contains { $0.id == "active-child" && $0.phase == .working },
-                  "an active child stays working after its parent is interrupted")
+        try check(
+            session.agentStatus?.phase == .working
+                && session.agentObservation.integrationTasks.contains { $0.id == "active-child" && $0.phase == .working },
+            "an active child stays working after its parent is interrupted")
         try hook("SubagentStop", child: "active-child")
 
         try hook("PermissionRequest", child: "waiting-child")
@@ -184,8 +198,9 @@ struct AgentInterruptSurfaceTests {
                 && session.surface.foregroundPid.map { ZshellAgentProcessIdentity(pid: $0) != nil } == true
         }
         try wait("foreground ownership change cancels the candidate") { session.agentObservation.pendingInterrupt == nil }
-        try check(session.agentObservation.integrationPhase == .working,
-                  "a live foreground child cannot settle its parent's turn")
+        try check(
+            session.agentObservation.integrationPhase == .working,
+            "a live foreground child cannot settle its parent's turn")
         key("\u{1b}", code: 53)
         try check(session.agentObservation.pendingInterrupt == nil, "a foreground child cannot start a parent candidate")
         try JSONSerialization.data(withJSONObject: ["busy": true, "foregroundChild": false])
@@ -206,8 +221,9 @@ struct AgentInterruptSurfaceTests {
         try working()
         try escape()
         let inputClient = view as! NSTextInputClient
-        inputClient.setMarkedText("拼", selectedRange: NSRange(location: 1, length: 0),
-                                  replacementRange: NSRange(location: NSNotFound, length: 0))
+        inputClient.setMarkedText(
+            "拼", selectedRange: NSRange(location: 1, length: 0),
+            replacementRange: NSRange(location: NSNotFound, length: 0))
         try check(session.agentObservation.pendingInterrupt == nil, "IME composition cancels the candidate")
         key("\u{1b}", code: 53)
         try check(session.agentObservation.pendingInterrupt == nil, "Escape during IME never starts a candidate")
@@ -237,10 +253,12 @@ struct AgentInterruptSurfaceTests {
 
         try working()
         try escape()
-        let replacementIdentity = AgentConversationIdentity(provider: .claude, sessionID: UUID().uuidString,
-                                                             workingDirectory: root.path)!
-        try check(session.recordAgentConversation(replacementIdentity, processID: owner),
-                  "the same process can bind a newer conversation")
+        let replacementIdentity = AgentConversationIdentity(
+            provider: .claude, sessionID: UUID().uuidString,
+            workingDirectory: root.path)!
+        try check(
+            session.recordAgentConversation(replacementIdentity, processID: owner),
+            "the same process can bind a newer conversation")
         try wait("a conversation change cancels the candidate") { session.agentObservation.pendingInterrupt == nil }
         try remainsWorking()
         try check(session.recordAgentConversation(identity, processID: owner), "the fixture restores its original conversation")

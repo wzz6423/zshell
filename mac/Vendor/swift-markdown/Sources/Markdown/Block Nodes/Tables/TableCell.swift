@@ -86,7 +86,7 @@ public extension Table.Cell {
 
     // MARK: Visitation
 
-    func accept<V>(_ visitor: inout V) -> V.Result where V : MarkupVisitor {
+    func accept<V>(_ visitor: inout V) -> V.Result where V: MarkupVisitor {
         return visitor.visitTableCell(self)
     }
 }

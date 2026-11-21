@@ -338,7 +338,8 @@ struct TerminalClipboardCallbackTests {
 
 @MainActor
 private final class ClipboardConfirmationRecorder:
-    TerminalSurfaceClipboardConfirmationDelegate {
+    TerminalSurfaceClipboardConfirmationDelegate
+{
     private(set) var requests: [TerminalClipboardConfirmationRequest] = []
 
     func terminalDidRequestClipboardConfirmation(

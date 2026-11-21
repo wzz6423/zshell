@@ -193,9 +193,9 @@ import Testing
     let bytes = Array(text.utf8)
     let mask = computeBoundaryMask(bytes: bytes)
     // Boundary at position 0 and after the space
-    #expect((mask & 1) != 0)  // position 0
+    #expect((mask & 1) != 0) // position 0
     let spacePos = Array("нови ".utf8).count
-    #expect((mask & (1 << spacePos)) != 0)  // after space
+    #expect((mask & (1 << spacePos)) != 0) // after space
 }
 
 // MARK: - Mixed Script Tests

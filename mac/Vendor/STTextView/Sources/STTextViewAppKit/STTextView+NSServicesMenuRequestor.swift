@@ -31,7 +31,8 @@ extension STTextView: NSServicesMenuRequestor {
         switch type.rawValue {
         case NSPasteboard.PasteboardType.string.rawValue, "NSStringPboardType":
             if pboard.canReadItem(withDataConformingToTypes: [UTType.plainText.identifier]),
-               let string = pboard.string(forType: type) {
+                let string = pboard.string(forType: type)
+            {
                 replaceCharacters(
                     in: textLayoutManager.textSelections.flatMap(\.textRanges),
                     with: string,
@@ -43,7 +44,8 @@ extension STTextView: NSServicesMenuRequestor {
             }
         case NSPasteboard.PasteboardType.rtf.rawValue, "NSRTFPboardType":
             if pboard.canReadItem(withDataConformingToTypes: [UTType.rtf.identifier]),
-               let attributedString = pboard.readObjects(forClasses: [NSAttributedString.self])?.first as? NSAttributedString {
+                let attributedString = pboard.readObjects(forClasses: [NSAttributedString.self])?.first as? NSAttributedString
+            {
                 replaceCharacters(
                     in: textLayoutManager.textSelections.flatMap(\.textRanges),
                     with: attributedString,
@@ -77,9 +79,10 @@ extension STTextView: NSServicesMenuRequestor {
                 }
 
                 if attachment.image == nil,
-                   let contents = attachment.contents,
-                   let fileType = attachment.fileType,
-                   let uti = UTType(fileType), uti.isSubtype(of: .plainText) {
+                    let contents = attachment.contents,
+                    let fileType = attachment.fileType,
+                    let uti = UTType(fileType), uti.isSubtype(of: .plainText)
+                {
                     var string: String? {
                         switch uti {
                         case .utf8PlainText:
@@ -139,19 +142,27 @@ extension STTextView: NSServicesMenuRequestor {
     }
 
     /// Returns `self` if the text view can provide and accept the specified data types, or nil if it can't
-    @objc override open func validRequestor(forSendType sendType: NSPasteboard.PasteboardType?, returnType: NSPasteboard.PasteboardType?) -> Any? {
+    @objc override open func validRequestor(forSendType sendType: NSPasteboard.PasteboardType?, returnType: NSPasteboard.PasteboardType?)
+        -> Any?
+    {
         var sendOK = false
         var returnOK = false
 
         if sendType == nil {
             sendOK = true
-        } else if !selectedRange().isEmpty, (sendType == .string || sendType?.rawValue == "NSStringPboardType" || sendType == .rtf || sendType?.rawValue == "NSRTFPboardType") {
+        } else if !selectedRange().isEmpty,
+            (sendType == .string || sendType?.rawValue == "NSStringPboardType" || sendType == .rtf
+                || sendType?.rawValue == "NSRTFPboardType")
+        {
             sendOK = true
         }
 
         if returnType == nil {
             returnOK = true
-        } else if isEditable, (returnType == .string || returnType?.rawValue == "NSStringPboardType" || returnType == .rtf || returnType?.rawValue == "NSRTFPboardType") {
+        } else if isEditable,
+            (returnType == .string || returnType?.rawValue == "NSStringPboardType" || returnType == .rtf
+                || returnType?.rawValue == "NSRTFPboardType")
+        {
             returnOK = true
         }
 

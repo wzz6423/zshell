@@ -163,7 +163,8 @@ public extension STTextViewDelegate {
         false
     }
 
-    func textView(_ textView: STTextView, shouldAllowInteractionWith attachment: NSTextAttachment, at location: any NSTextLocation) -> Bool {
+    func textView(_ textView: STTextView, shouldAllowInteractionWith attachment: NSTextAttachment, at location: any NSTextLocation) -> Bool
+    {
         true
     }
 

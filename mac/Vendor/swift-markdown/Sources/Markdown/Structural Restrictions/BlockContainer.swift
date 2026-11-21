@@ -24,11 +24,12 @@ public extension BlockContainer {
 
     /// Replace all inline child elements with a new sequence of inline elements.
     mutating func setBlockChildren<Items: Sequence>(_ newChildren: Items) where Items.Element == BlockMarkup {
-        replaceChildrenInRange(0..<childCount, with: newChildren)
+        replaceChildrenInRange(0 ..< childCount, with: newChildren)
     }
 
     /// Replace child inline elements in a range with a new sequence of elements.
-    mutating func replaceChildrenInRange<Items: Sequence>(_ range: Range<Int>, with incomingItems: Items) where Items.Element == BlockMarkup {
+    mutating func replaceChildrenInRange<Items: Sequence>(_ range: Range<Int>, with incomingItems: Items)
+    where Items.Element == BlockMarkup {
         var rawChildren = raw.markup.copyChildren()
         rawChildren.replaceSubrange(range, with: incomingItems.map { $0.raw.markup })
         let newRaw = raw.markup.withChildren(rawChildren)

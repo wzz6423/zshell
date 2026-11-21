@@ -68,11 +68,12 @@ public extension DoxygenParameter {
             return name
         }
         set {
-            _data = _data.replacingSelf(.doxygenParam(
-                name: newValue,
-                parsedRange: nil,
-                _data.raw.markup.copyChildren()
-            ))
+            _data = _data.replacingSelf(
+                .doxygenParam(
+                    name: newValue,
+                    parsedRange: nil,
+                    _data.raw.markup.copyChildren()
+                ))
         }
     }
 }

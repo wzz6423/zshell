@@ -1,7 +1,7 @@
 import UIKit
 
 public struct Theme {
-    
+
     // MARK: - Props
     public let colors: Colors
     public let fonts: Fonts
@@ -11,17 +11,17 @@ public struct Theme {
         self.colors = colors
         self.fonts = fonts
     }
-    
+
     public func color(forToken tokenName: TokenName) -> UIColor? {
         colors.color(forToken: tokenName)
     }
-    
+
     public func font(forToken tokenName: TokenName) -> UIFont? {
         fonts.font(forToken: tokenName)
     }
 
     public struct Colors {
-        
+
         public let colors: [TokenName: UIColor]
 
         public init(colors: [String: UIColor]) {
@@ -49,10 +49,10 @@ public struct Theme {
                 "text.title": UIColor(named: "\(name)/text.title", in: bundle, compatibleWith: nil)!,
                 "type": UIColor(named: "\(name)/type", in: bundle, compatibleWith: nil)!,
                 "variable.builtin": UIColor(named: "\(name)/variable.builtin", in: bundle, compatibleWith: nil)!,
-                "variable": UIColor(named: "\(name)/variable", in: bundle, compatibleWith: nil)!
+                "variable": UIColor(named: "\(name)/variable", in: bundle, compatibleWith: nil)!,
             ]
         }
-        
+
         public func color(forToken tokenName: TokenName) -> UIColor? {
             colors[tokenName]
         }
@@ -87,7 +87,7 @@ public struct Theme {
                 "text.title": UIFont.monospacedSystemFont(ofSize: 0, weight: .medium),
                 "type": UIFont.monospacedSystemFont(ofSize: 0, weight: .regular),
                 "variable.builtin": UIFont.monospacedSystemFont(ofSize: 0, weight: .regular),
-                "variable": UIFont.monospacedSystemFont(ofSize: 0, weight: .regular)
+                "variable": UIFont.monospacedSystemFont(ofSize: 0, weight: .regular),
             ]
 
         }

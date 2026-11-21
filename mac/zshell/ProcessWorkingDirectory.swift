@@ -48,7 +48,8 @@ func processEffectiveUser(pid: pid_t) -> String? {
     var buffer = [CChar](repeating: 0, count: 16 * 1024)
     var result: UnsafeMutablePointer<passwd>?
     guard getpwuid_r(info.pbi_uid, &account, &buffer, buffer.count, &result) == 0,
-          result != nil, let name = account.pw_name else { return nil }
+        result != nil, let name = account.pw_name
+    else { return nil }
     return String(cString: name)
 }
 
@@ -61,7 +62,7 @@ func processArguments(pid: pid_t) -> [String]? {
     var name = [Int32(CTL_KERN), Int32(KERN_PROCARGS2), pid]
     var size = 0
     guard sysctl(&name, u_int(name.count), nil, &size, nil, 0) == 0,
-          size >= MemoryLayout<Int32>.size
+        size >= MemoryLayout<Int32>.size
     else { return nil }
 
     // A process can change argv between the size and value calls. Give the
@@ -69,9 +70,9 @@ func processArguments(pid: pid_t) -> [String]? {
     var bytes = [UInt8](repeating: 0, count: size + 4_096)
     size = bytes.count
     guard sysctl(&name, u_int(name.count), &bytes, &size, nil, 0) == 0,
-          size >= MemoryLayout<Int32>.size
+        size >= MemoryLayout<Int32>.size
     else { return nil }
-    bytes.removeSubrange(size..<bytes.count)
+    bytes.removeSubrange(size ..< bytes.count)
 
     let argumentCount = bytes.withUnsafeBytes {
         Int($0.loadUnaligned(as: Int32.self))
@@ -90,7 +91,7 @@ func processArguments(pid: pid_t) -> [String]? {
         let start = cursor
         while cursor < bytes.count, bytes[cursor] != 0 { cursor += 1 }
         guard cursor > start else { break }
-        result.append(String(decoding: bytes[start..<cursor], as: UTF8.self))
+        result.append(String(decoding: bytes[start ..< cursor], as: UTF8.self))
         cursor += 1
     }
     return result.isEmpty ? nil : result

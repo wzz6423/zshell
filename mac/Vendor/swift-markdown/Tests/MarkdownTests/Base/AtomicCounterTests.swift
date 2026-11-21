@@ -24,10 +24,10 @@ final class AtomicCounterTests: XCTestCase {
         let collectQueue = DispatchQueue(label: "AtomicCounterTests.testSimultaneousFetch.collect")
         let numTasks = 4
         let idsPerQueue = 200000
-        for _ in 0..<numTasks {
+        for _ in 0 ..< numTasks {
             group.enter()
             fetchQueue.async {
-                let ids = (0..<idsPerQueue).map { _ in AtomicCounter.next() }
+                let ids = (0 ..< idsPerQueue).map { _ in AtomicCounter.next() }
                 collectQueue.sync {
                     for id in ids {
                         counters.insert(id)

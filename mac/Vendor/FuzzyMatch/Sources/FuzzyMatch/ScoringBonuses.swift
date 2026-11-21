@@ -80,7 +80,7 @@ internal func findMatchPositions(
     var candidateIndex = 0
     var positionCount = 0
 
-    for queryIndex in 0..<queryLen {
+    for queryIndex in 0 ..< queryLen {
         let queryChar = query[queryIndex]
 
         // Find the next matching character in candidate
@@ -90,7 +90,7 @@ internal func findMatchPositions(
         // Look ahead for a boundary match first (up to a reasonable distance)
         let searchLimit = min(candidateIndex + queryLen + 5, candidateLength)
 
-        for searchPos in candidateIndex..<searchLimit {
+        for searchPos in candidateIndex ..< searchLimit {
             if candidate[searchPos] == queryChar {
                 // Check if this is a word boundary
                 let isBoundary: Bool
@@ -127,7 +127,7 @@ internal func findMatchPositions(
 
         // If still no match in look-ahead, scan the rest of candidate
         if bestPosition == -1 {
-            for searchPos in searchLimit..<candidateLength {
+            for searchPos in searchLimit ..< candidateLength {
                 if candidate[searchPos] == queryChar {
                     bestPosition = searchPos
                     break
@@ -227,7 +227,7 @@ internal func optimalAlignment(
             gapBuf.initialize(repeating: -.infinity)
 
             // Traceback: 0 = no match, 1 = from consecutive match, 2 = from gap
-            for idx in 0..<matSize {
+            for idx in 0 ..< matSize {
                 state.traceback[idx] = 0
             }
 
@@ -236,7 +236,7 @@ internal func optimalAlignment(
             var bestEndFromMatch = false
 
             // Forward pass
-            for i in 0..<candidateLen {
+            for i in 0 ..< candidateLen {
                 let candidateChar = candidate[i]
 
                 let isBoundary: Bool
@@ -247,7 +247,7 @@ internal func optimalAlignment(
                 }
                 let bBonus = isBoundary ? config.wordBoundaryBonus : 0.0
 
-                for j in 0..<queryLen {
+                for j in 0 ..< queryLen {
                     let idx = i * queryLen + j
 
                     // Gap transition: query[j] was matched at some i' < i, now we're at i without matching
@@ -421,9 +421,9 @@ internal func calculateBonuses(
     guard positionCount > 0 else { return 0.0 }
 
     var bonus: Double = 0.0
-    var previousPosition: Int = -2  // -2 so first match isn't "consecutive"
+    var previousPosition: Int = -2 // -2 so first match isn't "consecutive"
 
-    for i in 0..<positionCount {
+    for i in 0 ..< positionCount {
         let candidatePosition = matchPositions[i]
 
         // Word boundary bonus
@@ -497,9 +497,9 @@ internal func findContiguousSubstring(
 
     var firstMatch = -1
 
-    for startPos in 0...(cLen - qLen) {
+    for startPos in 0 ... (cLen - qLen) {
         var matches = true
-        for i in 0..<qLen {
+        for i in 0 ..< qLen {
             if candidate[startPos + i] != query[i] {
                 matches = false
                 break
@@ -516,7 +516,8 @@ internal func findContiguousSubstring(
             endBound = true
         } else {
             let b = candidate[endPos]
-            let isAlphaNum = (b >= 0x30 && b <= 0x39)
+            let isAlphaNum =
+                (b >= 0x30 && b <= 0x39)
                 || (b >= 0x41 && b <= 0x5A)
                 || (b >= 0x61 && b <= 0x7A)
             endBound = !isAlphaNum

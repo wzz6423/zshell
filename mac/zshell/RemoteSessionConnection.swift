@@ -85,11 +85,14 @@ final class RemoteSessionConnection: ObservableObject {
         [Bundle.main.executableURL?.path ?? CommandLine.arguments[0], RemoteSessionRelay.argument, configurationURL.path]
     }
 
-    init(host: RemoteHost, directory: String, sessionID: UUID, createIfMissing: Bool,
-         command: [String]?, launchSettings: TerminalLaunchSettings) throws {
+    init(
+        host: RemoteHost, directory: String, sessionID: UUID, createIfMissing: Bool,
+        command: [String]?, launchSettings: TerminalLaunchSettings
+    ) throws {
         self.sessionID = sessionID
         clientID = UUID()
-        directoryURL = FileManager.default.temporaryDirectory.appendingPathComponent("zshell-remote-\(UUID().uuidString)", isDirectory: true)
+        directoryURL = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "zshell-remote-\(UUID().uuidString)", isDirectory: true)
         configurationURL = directoryURL.appendingPathComponent("configuration.json")
         statusURL = directoryURL.appendingPathComponent("status.json")
         controlURL = directoryURL.appendingPathComponent("control.json")
@@ -103,7 +106,8 @@ final class RemoteSessionConnection: ObservableObject {
             shellCompletions: AppSettings.shared.shellCompletions
         )
         do {
-            try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+            try FileManager.default.createDirectory(
+                at: directoryURL, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
             try Self.writePrivate(configuration, to: configurationURL)
         } catch {
             try? FileManager.default.removeItem(at: directoryURL)
@@ -157,10 +161,11 @@ final class RemoteSessionConnection: ObservableObject {
 
     private func writeControl() {
         do {
-            try Self.writePrivate(RemoteRelayControl(sequence: controlSequence, action: controlAction,
-                                                    wakeSequence: wakeSequence), to: controlURL)
-        }
-        catch { status = RemoteRelayStatus(state: .failed, message: error.localizedDescription) }
+            try Self.writePrivate(
+                RemoteRelayControl(
+                    sequence: controlSequence, action: controlAction,
+                    wakeSequence: wakeSequence), to: controlURL)
+        } catch { status = RemoteRelayStatus(state: .failed, message: error.localizedDescription) }
     }
 
     private func checkAfterWake() {
@@ -198,11 +203,13 @@ final class RemoteSessionConnection: ObservableObject {
         defer { Darwin.close(descriptor) }
         var metadata = stat()
         guard fstat(descriptor, &metadata) == 0, metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG),
-              metadata.st_size >= 0, metadata.st_size <= limit, !Task.isCancelled else { return nil }
+            metadata.st_size >= 0, metadata.st_size <= limit, !Task.isCancelled
+        else { return nil }
         // Bound the read as well: the file can grow after fstat.
         let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: false)
         guard let bytes = try? handle.read(upToCount: limit + 1), bytes.count <= limit,
-              !Task.isCancelled else { return nil }
+            !Task.isCancelled
+        else { return nil }
         return try? JSONDecoder().decode(RemoteRelayStatus.self, from: bytes)
     }
 

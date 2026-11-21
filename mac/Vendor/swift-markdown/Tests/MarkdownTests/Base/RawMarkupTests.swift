@@ -35,28 +35,42 @@ final class RawMarkupTests: XCTestCase {
         }
 
         do { // Same child count, different structure, nested
-            let document1 = RawMarkup.document(parsedRange: nil, [
-                .paragraph(parsedRange: nil, [
-                    .text(parsedRange: nil, string: "Hello")
-                ]),
-                .paragraph(parsedRange: nil, [
-                    .text(parsedRange: nil, string: "World")
-                ]),
-            ])
-            let document2 = RawMarkup.document(parsedRange: nil, [
-                .paragraph(parsedRange: nil, [
-                    .text(parsedRange: nil, string: "Hello"),
-                ]),
-                .paragraph(parsedRange: nil, [
-                    .emphasis(parsedRange: nil, [
-                        .text(parsedRange: nil, string: "World"),
-                    ]),
-                ]),
-            ])
+            let document1 = RawMarkup.document(
+                parsedRange: nil,
+                [
+                    .paragraph(
+                        parsedRange: nil,
+                        [
+                            .text(parsedRange: nil, string: "Hello")
+                        ]),
+                    .paragraph(
+                        parsedRange: nil,
+                        [
+                            .text(parsedRange: nil, string: "World")
+                        ]),
+                ])
+            let document2 = RawMarkup.document(
+                parsedRange: nil,
+                [
+                    .paragraph(
+                        parsedRange: nil,
+                        [
+                            .text(parsedRange: nil, string: "Hello")
+                        ]),
+                    .paragraph(
+                        parsedRange: nil,
+                        [
+                            .emphasis(
+                                parsedRange: nil,
+                                [
+                                    .text(parsedRange: nil, string: "World")
+                                ])
+                        ]),
+                ])
             XCTAssertFalse(document1.hasSameStructure(as: document2))
         }
     }
-    
+
     /// Verify that tables with different column alignments do not have the same structure.
     func testTableStructure() {
         let table1 = RawMarkup.table(
@@ -65,14 +79,14 @@ final class RawMarkupTests: XCTestCase {
             header: .tableHead(parsedRange: nil, columns: []),
             body: .tableBody(parsedRange: nil, rows: [])
         )
-            
+
         let table2 = RawMarkup.table(
             columnAlignments: [.left, .right],
             parsedRange: nil,
             header: .tableHead(parsedRange: nil, columns: []),
             body: .tableBody(parsedRange: nil, rows: [])
         )
-            
+
         let table3 = RawMarkup.table(
             columnAlignments: [.center, .right],
             parsedRange: nil,
@@ -90,10 +104,11 @@ final class RawMarkupTests: XCTestCase {
             Paragraph(Text("ChangeMe")),
             Paragraph(Text("Unchanged")))
 
-        let firstText = originalRoot.child(through: [
-            0, // Paragraph
-            0, // Text
-        ]) as! Text
+        let firstText =
+            originalRoot.child(through: [
+                0, // Paragraph
+                0, // Text
+            ]) as! Text
 
         var newText = firstText
         newText.string = "Changed"
@@ -102,14 +117,14 @@ final class RawMarkupTests: XCTestCase {
         XCTAssertFalse(originalRoot.child(at: 0)!.raw.markup === newRoot.child(at: 0)!.raw.markup)
         XCTAssertTrue(originalRoot.child(at: 1)!.raw.markup === newRoot.child(at: 1)!.raw.markup)
     }
-    
+
     func testTrulyDeepNestingDeallocation() {
         let depth = 15000
 
         do {
             var current = RawMarkup.text(parsedRange: nil, string: "Deep Leaf")
 
-            for _ in 0..<depth {
+            for _ in 0 ..< depth {
                 current = RawMarkup.blockQuote(parsedRange: nil, [current])
             }
         }

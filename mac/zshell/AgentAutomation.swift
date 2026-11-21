@@ -59,7 +59,7 @@ nonisolated enum ZshellAgentKind: String, CaseIterable, Codable, Sendable {
         }
 
         guard let executablePath,
-              isScriptInterpreter((executablePath as NSString).lastPathComponent)
+            isScriptInterpreter((executablePath as NSString).lastPathComponent)
         else { return nil }
 
         // For the supported wrappers the first non-option operand identifies
@@ -81,7 +81,8 @@ nonisolated enum ZshellAgentKind: String, CaseIterable, Codable, Sendable {
         // such as `grok-1.0.0-macos-aarch64`; foreground PID inspection sees
         // that target even though argv[0] usually preserves the `grok` link.
         if name.hasPrefix("grok-"),
-           name.contains("-macos-") || name.contains("-linux-") {
+            name.contains("-macos-") || name.contains("-linux-")
+        {
             return .grok
         }
         switch name {
@@ -112,7 +113,10 @@ nonisolated enum ZshellAgentKind: String, CaseIterable, Codable, Sendable {
             if ["-c", "-e", "--eval", "--print", "-p", "--command"].contains(value)
                 || value.hasPrefix("--eval=") || value.hasPrefix("--command=")
                 || value.hasPrefix("-e") || value.hasPrefix("-c") || value.hasPrefix("-p")
-                || value.hasPrefix("-") && !value.hasPrefix("--") && value.dropFirst().contains("c") { return nil }
+                || value.hasPrefix("-") && !value.hasPrefix("--") && value.dropFirst().contains("c")
+            {
+                return nil
+            }
             if value == "-m" { return tail.indices.contains(index + 1) ? tail[index + 1] : nil }
             if ["-W", "-X", "--require", "-r", "--import", "--loader"].contains(value) { index += 2; continue }
             if value.hasPrefix("-") || value == "run" { index += 1; continue }
@@ -308,7 +312,8 @@ final class AgentAutomationMonitor {
             session.agentObservation.screenEvidenceSamples = 0
             session.agentObservation.lastScreenCheck = .distantPast
             guard let status = session.agentStatus,
-                  status.authority == .screen || status.authority == .process else { continue }
+                status.authority == .screen || status.authority == .process
+            else { continue }
             if !AppSettings.shared.customAgentRecognitionRules, status.kind == .program {
                 session.clearAutomationAgentStatus()
             } else if status.authority == .screen {
@@ -341,7 +346,8 @@ final class AgentAutomationMonitor {
                 manager.projects.contains { project in
                     project.sessions.contains { session in
                         guard !session.hasExited, let phase = session.agentStatus?.phase,
-                              phase == .working || phase == .blocked || phase == .unknown else { return false }
+                            phase == .working || phase == .blocked || phase == .unknown
+                        else { return false }
                         let directory = URL(fileURLWithPath: session.currentDirectoryPath)
                             .resolvingSymlinksInPath().path
                         return directory == root || directory.hasPrefix(root + "/")
@@ -424,15 +430,18 @@ extension TerminalSession {
         let escape = event.keyCode == 53 && flags.isEmpty
         let controlC = flags == .control && event.charactersIgnoringModifiers?.lowercased() == "c"
         guard escape || controlC, remoteConnection == nil,
-              agentObservation.declaredKind == .claude,
-              agentObservation.integrationPhase == .working,
-              let owner = agentObservation.integrationOwner, owner.isAlive,
-              agentInterruptOwnsForeground(owner), terminalIsAtLiveBottom,
-              agentObservation.integrationTasks.allSatisfy({ $0.phase != .blocked }),
-              !agentObservation.isCollectingAlternateScreenHistory else { return }
-        guard ZshellAgentInterruptEvidence.isClaudeWorking(
+            agentObservation.declaredKind == .claude,
+            agentObservation.integrationPhase == .working,
+            let owner = agentObservation.integrationOwner, owner.isAlive,
+            agentInterruptOwnsForeground(owner), terminalIsAtLiveBottom,
+            agentObservation.integrationTasks.allSatisfy({ $0.phase != .blocked }),
+            !agentObservation.isCollectingAlternateScreenHistory
+        else { return }
+        guard
+            ZshellAgentInterruptEvidence.isClaudeWorking(
                 automationVisibleText(maxLines: 16, maxColumns: 240)
-              ) else { return }
+            )
+        else { return }
         // Claude does not emit Stop on Escape. The key only starts a bounded
         // check; a restored input must remain stable before native state moves.
         agentObservation.pendingInterrupt = .init(
@@ -443,16 +452,19 @@ extension TerminalSession {
     private func refreshAutomationAgentInterrupt(at now: Date) {
         guard var pending = agentObservation.pendingInterrupt else { return }
         guard now < pending.deadline, pending.owner == agentObservation.integrationOwner,
-              pending.owner.isAlive, agentInterruptOwnsForeground(pending.owner),
-              pending.conversationID == agentResume?.sessionID,
-              agentObservation.integrationPhase == .working, terminalIsAtLiveBottom,
-              !agentObservation.isCollectingAlternateScreenHistory else {
+            pending.owner.isAlive, agentInterruptOwnsForeground(pending.owner),
+            pending.conversationID == agentResume?.sessionID,
+            agentObservation.integrationPhase == .working, terminalIsAtLiveBottom,
+            !agentObservation.isCollectingAlternateScreenHistory
+        else {
             agentObservation.pendingInterrupt = nil
             return
         }
-        guard pending.evidence.confirmsClaudeIdle(
-            automationVisibleText(maxLines: 16, maxColumns: 240), at: now
-        ) else {
+        guard
+            pending.evidence.confirmsClaudeIdle(
+                automationVisibleText(maxLines: 16, maxColumns: 240), at: now
+            )
+        else {
             agentObservation.pendingInterrupt = pending
             return
         }
@@ -475,7 +487,8 @@ extension TerminalSession {
     func isAutomationAgentRunning(kind: ZshellAgentKind) -> Bool {
         guard let foreground = surface.foregroundPid else { return false }
         if let status = agentStatus, let recognitionID = status.recognitionID,
-           status.kind == kind, status.processID == foreground {
+            status.kind == kind, status.processID == foreground
+        {
             return AgentRecognitionRulesStore.shared.recognize(processID: foreground)?.id == recognitionID
         }
         return ZshellAgentKind.recognizeBuiltin(processID: foreground) == kind
@@ -486,10 +499,13 @@ extension TerminalSession {
     func automationVisibleText(maxLines: Int, maxColumns: Int) -> String {
         let boundedLines = min(max(maxLines, 1), 500)
         let boundedColumns = min(max(maxColumns, 1), 2_000)
-        guard let text = surface.readVisibleText(
-            maxLines: boundedLines, maxColumns: boundedColumns
-        ) else { return "" }
-        var lines = text
+        guard
+            let text = surface.readVisibleText(
+                maxLines: boundedLines, maxColumns: boundedColumns
+            )
+        else { return "" }
+        var lines =
+            text
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
             .split(separator: "\n", omittingEmptySubsequences: false)
@@ -509,10 +525,11 @@ extension TerminalSession {
             from: surface,
             maxLines: boundedLines,
             maxColumns: boundedColumns
-        ) ?? automationVisibleText(
-            maxLines: boundedLines,
-            maxColumns: boundedColumns
         )
+            ?? automationVisibleText(
+                maxLines: boundedLines,
+                maxColumns: boundedColumns
+            )
     }
 
     /// Collects older transcript pages from an idle full-screen agent when its
@@ -533,11 +550,11 @@ extension TerminalSession {
         )
         let recentLines = Self.automationLines(recent)
         guard recentLines.count < boundedLines,
-              !TerminalHistorySerializer.hasPrimaryScrollback(surface),
-              terminalIsAtLiveBottom,
-              let status = agentStatus,
-              isAutomationAgentRunning(kind: status.kind),
-              !agentObservation.isCollectingAlternateScreenHistory
+            !TerminalHistorySerializer.hasPrimaryScrollback(surface),
+            terminalIsAtLiveBottom,
+            let status = agentStatus,
+            isAutomationAgentRunning(kind: status.kind),
+            !agentObservation.isCollectingAlternateScreenHistory
         else { return recent }
 
         guard status.phase == .idle || status.phase == .done else {
@@ -584,7 +601,7 @@ extension TerminalSession {
         if pagesMoved > 0 {
             // Each downward batch is at least as large as the upward page step;
             // two extra batches cover applications that clamp one wheel burst.
-            for _ in 0..<(pagesMoved + 2) {
+            for _ in 0 ..< (pagesMoved + 2) {
                 guard surface.sendApplicationScroll(lines: -50) else { break }
             }
             try? await Task.sleep(for: .milliseconds(120))
@@ -594,7 +611,8 @@ extension TerminalSession {
     }
 
     private static func automationLines(_ text: String) -> [String] {
-        var lines = text
+        var lines =
+            text
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
             .split(separator: "\n", omittingEmptySubsequences: false)
@@ -693,16 +711,18 @@ extension TerminalSession {
         var owner: ZshellAgentProcessIdentity?
         if let daemonSessionID {
             guard provider == .codex,
-                  CodexDaemonBinding.lifecycleTarget(
+                CodexDaemonBinding.lifecycleTarget(
                     sessionID: daemonSessionID, peerPID: peerProcessID, reporterPID: peerProcessID
-                  )?.session === self else { return false }
+                )?.session === self
+            else { return false }
             owner = foregroundCodexConversationOwner
         } else {
             guard let shell = shellPid,
-                  ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: shell) else { return false }
+                ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: shell)
+            else { return false }
             var candidate = peerProcessID
             var nearestProvider: ZshellAgentProcessIdentity?
-            for _ in 0..<64 {
+            for _ in 0 ..< 64 {
                 if Self.conversationProcessEvidence(candidate)?.isSharedService == true { return false }
                 if ZshellAgentKind.recognizeBuiltin(processID: candidate) == provider {
                     owner = ZshellAgentProcessIdentity(pid: candidate)
@@ -717,14 +737,18 @@ extension TerminalSession {
         }
         guard let owner else { return false }
         if let foreground = surface.foregroundPid,
-           let foregroundKind = ZshellAgentKind.recognizeBuiltin(processID: foreground),
-           foregroundKind != provider { return false }
+            let foregroundKind = ZshellAgentKind.recognizeBuiltin(processID: foreground),
+            foregroundKind != provider
+        {
+            return false
+        }
         agentObservation.pendingInterrupt = nil
         if agentObservation.integrationOwner != owner {
             agentObservation.integrationTasks.removeAll()
             agentObservation.integrationTurnActive = false
         }
-        let alias = agentObservation.declaredKind == provider
+        let alias =
+            agentObservation.declaredKind == provider
             ? agentObservation.alias ?? provider.rawValue : provider.rawValue
         agentObservation.alias = alias
         agentObservation.declaredKind = provider
@@ -741,9 +765,11 @@ extension TerminalSession {
         }
         if let task {
             var tasks = agentObservation.integrationTasks
-            if let index = tasks.firstIndex(where: { $0.id == task.id }) { tasks[index] = task }
-            else if tasks.count < ZshellAgentReport.maximumTasks { tasks.append(task) }
-            else if let index = tasks.firstIndex(where: { $0.phase == .done || $0.phase == .idle }) {
+            if let index = tasks.firstIndex(where: { $0.id == task.id }) {
+                tasks[index] = task
+            } else if tasks.count < ZshellAgentReport.maximumTasks {
+                tasks.append(task)
+            } else if let index = tasks.firstIndex(where: { $0.phase == .done || $0.phase == .idle }) {
                 tasks.remove(at: index)
                 tasks.append(task)
             }
@@ -769,14 +795,16 @@ extension TerminalSession {
         _ report: ZshellAgentReport, ownerPID: pid_t, peerProcessID: pid_t
     ) -> Bool {
         guard !hasExited, let shell = shellPid,
-              ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: ownerPID),
-              ZshellAgentProcessIdentity.isDescendant(ownerPID, of: shell),
-              let owner = ZshellAgentProcessIdentity(pid: ownerPID)
+            ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: ownerPID),
+            ZshellAgentProcessIdentity.isDescendant(ownerPID, of: shell),
+            let owner = ZshellAgentProcessIdentity(pid: ownerPID)
         else { return false }
-        let finished = report.activityPhase == .done
+        let finished =
+            report.activityPhase == .done
             && agentObservation.programReport?.report.activityPhase != .done
         if agentStatus?.authority == .report,
-           agentObservation.programReport?.report.phase != report.phase {
+            agentObservation.programReport?.report.phase != report.phase
+        {
             agentStatus = nil
         }
         agentObservation.programReport = ZshellAgentProgramObservation(
@@ -790,9 +818,11 @@ extension TerminalSession {
 
     func clearAutomationProgram(peerProcessID: pid_t) -> Bool {
         guard let shell = shellPid,
-              ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: shell) else { return false }
+            ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: shell)
+        else { return false }
         if let report = agentObservation.programReport,
-           !ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: report.owner.pid) {
+            !ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: report.owner.pid)
+        {
             return false
         }
         agentObservation.programReport = nil
@@ -811,8 +841,10 @@ extension TerminalSession {
                 return
             }
         } else {
-            guard agentObservation.integrationOwner?.isAlive == true
-                || isAutomationAgentRunning(kind: status.kind) else {
+            guard
+                agentObservation.integrationOwner?.isAlive == true
+                    || isAutomationAgentRunning(kind: status.kind)
+            else {
                 clearAutomationAgentStatus()
                 return
             }
@@ -830,21 +862,27 @@ extension TerminalSession {
 
     private func presentNativeAgentStatus(isFocused: Bool) {
         guard let owner = agentObservation.integrationOwner,
-              let kind = agentObservation.declaredKind,
-              let reported = agentObservation.integrationPhase else { return }
+            let kind = agentObservation.declaredKind,
+            let reported = agentObservation.integrationPhase
+        else { return }
         let tasks = agentObservation.integrationTasks
         let blockedChild = tasks.first(where: { $0.phase == .blocked })
         let childrenWorking = tasks.contains(where: { $0.phase == .working })
-        var phase = blockedChild != nil ? ZshellAgentPhase.blocked
+        var phase =
+            blockedChild != nil
+            ? ZshellAgentPhase.blocked
             : childrenWorking && (reported == .idle || reported == .done) ? .working : reported
         let initialIdle = agentObservation.awaitingInitialPrompt && phase == .idle
-        let completedTurn = agentObservation.integrationTurnActive
+        let completedTurn =
+            agentObservation.integrationTurnActive
             || agentStatus?.phase == .working || agentStatus?.phase == .blocked
-        if initialIdle { phase = .created }
-        else if phase == .idle || phase == .done {
+        if initialIdle {
+            phase = .created
+        } else if phase == .idle || phase == .done {
             // Preserve a previously acknowledged completion when focus changes.
             let unseenCompletion = agentStatus?.authority == .integration && agentStatus?.unseen == true
-            phase = !agentObservation.integrationInterrupted && !isFocused && (completedTurn || unseenCompletion)
+            phase =
+                !agentObservation.integrationInterrupted && !isFocused && (completedTurn || unseenCompletion)
                 ? .done : .idle
             agentObservation.integrationTurnActive = false
         }
@@ -863,8 +901,9 @@ extension TerminalSession {
         if isFocused { markAutomationAgentSeen() }
         let now = Date()
         if agentObservation.integrationUsesRecognitionAlias,
-           let owner = agentObservation.integrationOwner,
-           ZshellAgentKind.recognizeBuiltin(processID: owner.pid) != agentObservation.declaredKind {
+            let owner = agentObservation.integrationOwner,
+            ZshellAgentKind.recognizeBuiltin(processID: owner.pid) != agentObservation.declaredKind
+        {
             invalidateRecognitionAliasAuthority()
         }
         if let owner = agentObservation.integrationOwner, !owner.isAlive {
@@ -884,9 +923,11 @@ extension TerminalSession {
         if let observation = agentObservation.programReport {
             clearAgentScreenEvidence()
             let report = observation.report
-            let seen = agentStatus?.authority == .report && agentStatus?.phase == .idle
+            let seen =
+                agentStatus?.authority == .report && agentStatus?.phase == .idle
                 && agentStatus?.processID == observation.owner.pid
-            let phase = (report.activityPhase == .done && (isFocused || seen))
+            let phase =
+                (report.activityPhase == .done && (isFocused || seen))
                 ? ZshellAgentPhase.idle : report.activityPhase
             updateAutomationAgentStatus(
                 alias: report.name, kind: .program, phase: phase, authority: .report,
@@ -900,7 +941,8 @@ extension TerminalSession {
         let rules = AgentRecognitionRulesStore.shared
         let identity = foreground.flatMap(rules.recognize(processID:))
         if foreground != agentObservation.lastForegroundPID || identity?.id != agentObservation.recognitionID
-            || rules.revision != agentObservation.recognitionRevision {
+            || rules.revision != agentObservation.recognitionRevision
+        {
             agentObservation.lastForegroundPID = foreground
             agentObservation.recognitionID = identity?.id
             agentObservation.recognitionRevision = rules.revision
@@ -915,8 +957,10 @@ extension TerminalSession {
             return
         }
         let kind = identity.kind
-        if let previous = agentStatus, previous.kind != kind || previous.processID != foreground
-            || previous.recognitionID.map({ $0 != identity.id }) == true {
+        if let previous = agentStatus,
+            previous.kind != kind || previous.processID != foreground
+                || previous.recognitionID.map({ $0 != identity.id }) == true
+        {
             clearNativeAgentObservation()
             agentObservation.alias = nil
             agentObservation.awaitingInitialPrompt = false
@@ -929,7 +973,8 @@ extension TerminalSession {
         agentObservation.alias = alias
         agentObservation.declaredKind = kind
 
-        let canInfer = AppSettings.shared.agentScreenInference && terminalIsAtLiveBottom
+        let canInfer =
+            AppSettings.shared.agentScreenInference && terminalIsAtLiveBottom
             && !agentObservation.isCollectingAlternateScreenHistory
         if !canInfer {
             agentObservation.screenRequestID = nil
@@ -946,17 +991,21 @@ extension TerminalSession {
                     guard let self, !self.hasExited, self.agentObservation.screenRequestID == requestID else { return }
                     self.agentObservation.screenRequestID = nil
                     guard AppSettings.shared.agentScreenInference, AppSettings.shared.customAgentRecognitionRules,
-                          rules.revision == revision, self.surface.foregroundPid == foreground,
-                          self.terminalIsAtLiveBottom, !self.agentObservation.isCollectingAlternateScreenHistory,
-                          self.agentObservation.integrationOwner == nil, self.agentObservation.programReport == nil else { return }
+                        rules.revision == revision, self.surface.foregroundPid == foreground,
+                        self.terminalIsAtLiveBottom, !self.agentObservation.isCollectingAlternateScreenHistory,
+                        self.agentObservation.integrationOwner == nil, self.agentObservation.programReport == nil
+                    else { return }
                     if case .skip = match { return }
                     self.recordAgentScreenEvidence(match?.evidence)
                     self.refreshAutomationAgentState(isFocused: self.id == TerminalManager.automationFocusedSessionID)
                 }
-            } else { recordAgentScreenEvidence(ZshellAgentScreenEvidence.detect(kind: kind, text: text)) }
+            } else {
+                recordAgentScreenEvidence(ZshellAgentScreenEvidence.detect(kind: kind, text: text))
+            }
         }
         if let evidence = agentObservation.screenEvidence,
-           agentObservation.screenEvidenceSamples >= 2 {
+            agentObservation.screenEvidenceSamples >= 2
+        {
             updateAutomationAgentStatus(
                 alias: alias, kind: kind, phase: evidence.phase, authority: .screen,
                 reason: evidence.reason, processID: foreground, unseen: false,
@@ -985,7 +1034,8 @@ extension TerminalSession {
     }
 
     private func recordAgentScreenEvidence(_ evidence: ZshellAgentScreenEvidence?) {
-        agentObservation.screenEvidenceSamples = evidence == agentObservation.screenEvidence
+        agentObservation.screenEvidenceSamples =
+            evidence == agentObservation.screenEvidence
             ? min(agentObservation.screenEvidenceSamples + 1, 2) : 1
         agentObservation.screenEvidence = evidence
     }
@@ -1015,7 +1065,8 @@ extension TerminalSession {
             if agentStatus?.authority == .integration { agentStatus = nil }
         }
         if let owner = agentConversationOwner,
-           ZshellAgentKind.recognize(processID: owner.pid)?.rawValue != agentResume?.provider.rawValue {
+            ZshellAgentKind.recognize(processID: owner.pid)?.rawValue != agentResume?.provider.rawValue
+        {
             recordAgentConversation(nil, processID: nil)
         }
     }
@@ -1052,18 +1103,19 @@ extension TerminalSession {
         recognizedName: String? = nil
     ) {
         if let current = agentStatus,
-           current.alias == alias,
-           current.kind == kind,
-           current.phase == phase,
-           current.authority == authority,
-           current.reason == reason,
-           current.processID == processID,
-           current.unseen == unseen,
-           current.progress == progress,
-           current.attention == attention,
-           current.tasks == tasks,
-           current.recognitionID == recognitionID,
-           current.recognizedName == recognizedName {
+            current.alias == alias,
+            current.kind == kind,
+            current.phase == phase,
+            current.authority == authority,
+            current.reason == reason,
+            current.processID == processID,
+            current.unseen == unseen,
+            current.progress == progress,
+            current.attention == attention,
+            current.tasks == tasks,
+            current.recognitionID == recognitionID,
+            current.recognizedName == recognizedName
+        {
             return
         }
 
@@ -1097,9 +1149,11 @@ extension PaneTab {
         let visibleStatuses = statuses.filter {
             $0.phase != .idle && $0.phase != .unknown
         }
-        guard let phase = visibleStatuses.map(\.phase).max(by: {
-            $0.rollupPriority < $1.rollupPriority
-        }) else { return nil }
+        guard
+            let phase = visibleStatuses.map(\.phase).max(by: {
+                $0.rollupPriority < $1.rollupPriority
+            })
+        else { return nil }
         return ZshellAgentRollup(
             phase: phase,
             count: visibleStatuses.filter { $0.phase == phase }.count,

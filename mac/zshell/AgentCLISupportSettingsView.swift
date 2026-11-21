@@ -50,8 +50,9 @@ final class AgentCLISupportSettingsView: NSView {
 
         textStack.translatesAutoresizingMaskIntoConstraints = false
         toggle.translatesAutoresizingMaskIntoConstraints = false
-        let icon = SettingsIconView(symbolName: "point.3.connected.trianglepath.dotted",
-                                    color: SettingsCategory.automation.iconColor, size: SettingsMetrics.rowIconSize)
+        let icon = SettingsIconView(
+            symbolName: "point.3.connected.trianglepath.dotted",
+            color: SettingsCategory.automation.iconColor, size: SettingsMetrics.rowIconSize)
         addSubview(icon)
         addSubview(textStack)
         addSubview(toggle)

@@ -39,8 +39,9 @@ final class TerminalSessionDirectorySettingsView: NSView, NSTextFieldDelegate {
         detailLabel.maximumNumberOfLines = 0
         detailLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let heading = SettingsRow(title: String(localized: "New session directory"), control: policyPopup,
-                                  symbolName: "folder.fill", symbolColor: .systemIndigo)
+        let heading = SettingsRow(
+            title: String(localized: "New session directory"), control: policyPopup,
+            symbolName: "folder.fill", symbolColor: .systemIndigo)
         let stack = NSStackView(views: [heading, directoryRow, detailLabel])
         stack.orientation = .vertical
         stack.alignment = .leading
@@ -83,36 +84,47 @@ final class TerminalSessionDirectorySettingsView: NSView, NSTextFieldDelegate {
             switch TerminalSessionDirectory.customDirectory(directoryField.stringValue) {
             case .success: break
             case .failure(.invalidPath):
-                showError(String(
-                    localized: "Enter an absolute path or ~/folder. New sessions use the current directory until this path is valid.",
-                    defaultValue: "Enter an absolute path or ~/folder. Explicit, pinned, and group directories still take precedence. Otherwise, new sessions use the current directory if available, or your home directory.",
-                    bundle: localization.bundle, locale: localization.locale
-                ))
+                showError(
+                    String(
+                        localized: "Enter an absolute path or ~/folder. New sessions use the current directory until this path is valid.",
+                        defaultValue:
+                            "Enter an absolute path or ~/folder. Explicit, pinned, and group directories still take precedence. Otherwise, new sessions use the current directory if available, or your home directory.",
+                        bundle: localization.bundle, locale: localization.locale
+                    ))
                 return
             case .failure(.missingDirectory):
-                showError(String(
-                    localized: "This directory does not exist. New sessions use the current directory until it is available.",
-                    defaultValue: "This directory does not exist. Explicit, pinned, and group directories still take precedence. Otherwise, new sessions use the current directory if available, or your home directory.",
-                    bundle: localization.bundle, locale: localization.locale
-                ))
+                showError(
+                    String(
+                        localized: "This directory does not exist. New sessions use the current directory until it is available.",
+                        defaultValue:
+                            "This directory does not exist. Explicit, pinned, and group directories still take precedence. Otherwise, new sessions use the current directory if available, or your home directory.",
+                        bundle: localization.bundle, locale: localization.locale
+                    ))
                 return
             case .failure(.notDirectory):
-                showError(String(
-                    localized: "This path is a file, not a directory. New sessions use the current directory.",
-                    defaultValue: "This path is a file, not a directory. Explicit, pinned, and group directories still take precedence. Otherwise, new sessions use the current directory if available, or your home directory.",
-                    bundle: localization.bundle, locale: localization.locale
-                ))
+                showError(
+                    String(
+                        localized: "This path is a file, not a directory. New sessions use the current directory.",
+                        defaultValue:
+                            "This path is a file, not a directory. Explicit, pinned, and group directories still take precedence. Otherwise, new sessions use the current directory if available, or your home directory.",
+                        bundle: localization.bundle, locale: localization.locale
+                    ))
                 return
             case .failure(.inaccessibleDirectory):
-                showError(String(
-                    localized: "Zshell cannot access this directory. New sessions use the current directory.",
-                    defaultValue: "Zshell cannot access this directory. Explicit, pinned, and group directories still take precedence. Otherwise, new sessions use the current directory if available, or your home directory.",
-                    bundle: localization.bundle, locale: localization.locale
-                ))
+                showError(
+                    String(
+                        localized: "Zshell cannot access this directory. New sessions use the current directory.",
+                        defaultValue:
+                            "Zshell cannot access this directory. Explicit, pinned, and group directories still take precedence. Otherwise, new sessions use the current directory if available, or your home directory.",
+                        bundle: localization.bundle, locale: localization.locale
+                    ))
                 return
             }
         }
-        detailLabel.stringValue = String(localized: "Applies to new local sessions. Explicit, pinned, and group directories take precedence; splits keep their source directory.")
+        detailLabel.stringValue = String(
+            localized:
+                "Applies to new local sessions. Explicit, pinned, and group directories take precedence; splits keep their source directory."
+        )
     }
 
     private func showError(_ message: String) {

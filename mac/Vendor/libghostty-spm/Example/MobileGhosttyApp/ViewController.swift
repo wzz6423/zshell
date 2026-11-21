@@ -74,9 +74,11 @@ final class ViewController: UIViewController {
     // MARK: - Persistence
 
     private static func savedTerminalTheme() -> TerminalTheme {
-        let lightConfig = savedThemeDefinition(forKey: lightThemeKey)?
+        let lightConfig =
+            savedThemeDefinition(forKey: lightThemeKey)?
             .toTerminalConfiguration() ?? .alabaster
-        let darkConfig = savedThemeDefinition(forKey: darkThemeKey)?
+        let darkConfig =
+            savedThemeDefinition(forKey: darkThemeKey)?
             .toTerminalConfiguration() ?? .afterglow
         return TerminalTheme(light: lightConfig, dark: darkConfig)
     }
@@ -248,9 +250,9 @@ private extension UIColor {
     convenience init?(hexString: String) {
         let hex = hexString.hasPrefix("#") ? String(hexString.dropFirst()) : hexString
         guard hex.count == 6,
-              let r = UInt8(hex.prefix(2), radix: 16),
-              let g = UInt8(hex.dropFirst(2).prefix(2), radix: 16),
-              let b = UInt8(hex.dropFirst(4).prefix(2), radix: 16)
+            let r = UInt8(hex.prefix(2), radix: 16),
+            let g = UInt8(hex.dropFirst(2).prefix(2), radix: 16),
+            let b = UInt8(hex.dropFirst(4).prefix(2), radix: 16)
         else { return nil }
         self.init(
             red: CGFloat(r) / 255,

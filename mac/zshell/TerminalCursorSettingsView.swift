@@ -33,8 +33,9 @@ final class TerminalCursorShapeSettingsView: NSView {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         popup.translatesAutoresizingMaskIntoConstraints = false
         popup.setContentHuggingPriority(.required, for: .horizontal)
-        let icon = SettingsIconView(symbolName: "cursorarrow", color: SettingsCategory.appearance.iconColor,
-                                    size: SettingsMetrics.rowIconSize)
+        let icon = SettingsIconView(
+            symbolName: "cursorarrow", color: SettingsCategory.appearance.iconColor,
+            size: SettingsMetrics.rowIconSize)
         addSubview(icon)
         addSubview(titleLabel)
         addSubview(popup)
@@ -60,9 +61,11 @@ final class TerminalCursorShapeSettingsView: NSView {
     }
 
     func apply(shape: TerminalCursorShape) {
-        guard let index = popup.itemArray.firstIndex(where: {
-            $0.representedObject as? String == shape.rawValue
-        }) else { return }
+        guard
+            let index = popup.itemArray.firstIndex(where: {
+                $0.representedObject as? String == shape.rawValue
+            })
+        else { return }
         popup.selectItem(at: index)
     }
 
@@ -105,8 +108,9 @@ final class TerminalCursorBlinkingSettingsView: NSView {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         toggle.translatesAutoresizingMaskIntoConstraints = false
         toggle.setContentHuggingPriority(.required, for: .horizontal)
-        let icon = SettingsIconView(symbolName: "cursorarrow.rays", color: SettingsCategory.appearance.iconColor,
-                                    size: SettingsMetrics.rowIconSize)
+        let icon = SettingsIconView(
+            symbolName: "cursorarrow.rays", color: SettingsCategory.appearance.iconColor,
+            size: SettingsMetrics.rowIconSize)
         addSubview(icon)
         addSubview(titleLabel)
         addSubview(toggle)

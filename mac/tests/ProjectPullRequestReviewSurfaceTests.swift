@@ -74,7 +74,8 @@ struct ProjectPullRequestReviewSurfaceTests {
         AppSettings.shared.fontSize = 12
         let root = CommandLine.arguments[1]
         let diff = DiffTab(repoRoot: root, path: "Review.swift", staged: false, untracked: false, origPath: nil)
-        let window = NSWindow(contentRect: NSRect(x: -100_000, y: -100_000, width: 820, height: 560),
+        let window = NSWindow(
+            contentRect: NSRect(x: -100_000, y: -100_000, width: 820, height: 560),
             styleMask: [.borderless], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         let view = DiffViewerNSView(diff: diff)
@@ -92,7 +93,8 @@ struct ProjectPullRequestReviewSurfaceTests {
         }
         wait("普通diff未完成加载") { !diff.isLoading && diff.webHostView != nil && diff.web.isReady }
         guard let ordinary = diff.webHostView,
-              let ordinaryWeb = descendants(ordinary).compactMap({ $0 as? WKWebView }).first else { fatalError("普通diff缺少WKWebView") }
+            let ordinaryWeb = descendants(ordinary).compactMap({ $0 as? WKWebView }).first
+        else { fatalError("普通diff缺少WKWebView") }
         wait("PR入口未出现") { diff.canShowPullRequestComments }
         let log = URL(fileURLWithPath: ProcessInfo.processInfo.environment["ZSHELL_PR_REVIEW_QUERY_LOG"]!)
         func queries() -> [String] { ((try? String(contentsOf: log, encoding: .utf8)) ?? "").split(separator: "\n").map(String.init) }
@@ -101,35 +103,51 @@ struct ProjectPullRequestReviewSurfaceTests {
         diff.setDiffStyle(.split)
         diff.setEditing(true)
         wait("普通diff编辑器未创建") {
-            (evaluate(ordinaryWeb, "document.querySelector('diffs-container')?.shadowRoot?.querySelectorAll('[contenteditable=true]').length || 0") as? Int ?? 0) > 0
+            (evaluate(
+                ordinaryWeb, "document.querySelector('diffs-container')?.shadowRoot?.querySelectorAll('[contenteditable=true]').length || 0"
+            ) as? Int ?? 0) > 0
         }
         _ = evaluate(ordinaryWeb, "window.reviewPreserved = 'ordinary'; document.getElementById('diff-container').scrollTop = 45")
         pump(0.15)
         let scrollBefore = evaluate(ordinaryWeb, "document.getElementById('diff-container').scrollTop") as? Double ?? 0
-        guard let comments = descendants(view).compactMap({ $0 as? NSButton }).first(where: { $0.title == String(localized: "PR Comments") }) else {
+        guard
+            let comments = descendants(view).compactMap({ $0 as? NSButton }).first(where: { $0.title == String(localized: "PR Comments") })
+        else {
             fatalError("PR Comments控件未出现")
         }
         comments.performClick(nil)
-        wait("PR评论未显示") { if case .ready = diff.pullRequestReviewState { return diff.pullRequestWeb.isReady }; return false }
+        wait("PR评论未显示") {
+            if case .ready = diff.pullRequestReviewState { return diff.pullRequestWeb.isReady }; return false
+        }
         guard let review = diff.pullRequestWebHostView,
-              let reviewWeb = descendants(review).compactMap({ $0 as? WKWebView }).first,
-              case .ready(let file) = diff.pullRequestReviewState else { fatalError("评论视图缺少WKWebView或数据") }
+            let reviewWeb = descendants(review).compactMap({ $0 as? WKWebView }).first,
+            case .ready(let file) = diff.pullRequestReviewState
+        else { fatalError("评论视图缺少WKWebView或数据") }
         wait("行内评论未渲染") { annotations(reviewWeb).count == 3 }
-        precondition(file.headOID == CommandLine.arguments[2] && file.mergeBaseOID == CommandLine.arguments[3],
-                     "评论必须读取精确PR版本")
-        precondition(file.newContents != initialNewContents && diff.web.newContent == initialNewContents,
-                     "PR版本与普通未提交diff必须各自保留")
+        precondition(
+            file.headOID == CommandLine.arguments[2] && file.mergeBaseOID == CommandLine.arguments[3],
+            "评论必须读取精确PR版本")
+        precondition(
+            file.newContents != initialNewContents && diff.web.newContent == initialNewContents,
+            "PR版本与普通未提交diff必须各自保留")
         let shown = annotations(reviewWeb)
         precondition(Set(shown.compactMap { $0["id"] as? String }) == ["left", "right", "reply"], "分页回复或左右评论缺失")
         precondition(shown.allSatisfy { $0["readOnly"] as? Bool == true && $0["role"] as? String == "link" }, "PR评论不得显示编辑删除控件")
         precondition(evaluate(reviewWeb, "window.reviewInjected === true") as? Bool == false, "评论HTML不得执行")
         precondition(shown.contains { ($0["html"] as? String)?.contains("&lt;script&gt;") == true }, "评论必须按纯文本显示")
-        precondition((evaluate(reviewWeb, "document.querySelector('diffs-container')?.shadowRoot?.querySelectorAll('[contenteditable=true]').length || 0") as? Int ?? 0) == 0,
-                     "普通diff启用编辑后，PR评论仍须只读")
+        precondition(
+            (evaluate(
+                reviewWeb, "document.querySelector('diffs-container')?.shadowRoot?.querySelectorAll('[contenteditable=true]').length || 0")
+                as? Int ?? 0) == 0,
+            "普通diff启用编辑后，PR评论仍须只读")
         let left = shown.first { $0["id"] as? String == "left" }!, right = shown.first { $0["id"] as? String == "right" }!
-        precondition((left["slot"] as? String)?.contains("deletions-10") == true
-            && (right["slot"] as? String)?.contains("additions-30") == true, "评论slot必须对应LEFT旧10行和RIGHT新30行")
-        _ = evaluate(reviewWeb, "Array.from(document.querySelectorAll('diffs-container')).flatMap(node => Array.from(node.querySelectorAll('[data-annotation-id]'))).find(node => node.dataset.annotationId === 'right')?.click()")
+        precondition(
+            (left["slot"] as? String)?.contains("deletions-10") == true
+                && (right["slot"] as? String)?.contains("additions-30") == true, "评论slot必须对应LEFT旧10行和RIGHT新30行")
+        _ = evaluate(
+            reviewWeb,
+            "Array.from(document.querySelectorAll('diffs-container')).flatMap(node => Array.from(node.querySelectorAll('[data-annotation-id]'))).find(node => node.dataset.annotationId === 'right')?.click()"
+        )
         wait("点击行内评论未打开原生讨论") { app.windows.contains { $0.title == String(localized: "Pull Request Review") && $0.isVisible } }
         let discussionWindow = app.windows.first { $0.title == String(localized: "Pull Request Review") && $0.isVisible }!
         let discussionViews = descendants(discussionWindow.contentView!)
@@ -137,7 +155,9 @@ struct ProjectPullRequestReviewSurfaceTests {
         let replyEditor = discussionViews.compactMap { $0 as? NSTextView }.first { $0.isEditable }!
         wait("讨论未加载或权限缺失") {
             discussionViews.compactMap { $0 as? NSTextView }.contains { $0.string.contains("当前行的意见") }
-                && discussionViews.compactMap { $0 as? NSButton }.contains { $0.title == String(localized: "Resolve Discussion") && $0.isEnabled }
+                && discussionViews.compactMap { $0 as? NSButton }.contains {
+                    $0.title == String(localized: "Resolve Discussion") && $0.isEnabled
+                }
         }
         precondition(ReviewOpenFixture.opened == nil, "查看讨论不得自动跳转GitHub或提交")
         precondition(!replyButton.isEnabled, "空回复不得提交")
@@ -146,13 +166,17 @@ struct ProjectPullRequestReviewSurfaceTests {
         wait("非空回复未启用") { replyButton.isEnabled }
         replyButton.performClick(nil)
         wait("权限错误未展示") {
-            discussionViews.compactMap { $0 as? NSTextField }.contains { $0.stringValue == ProjectPullRequestReviewActionError.forbidden.message }
+            discussionViews.compactMap { $0 as? NSTextField }.contains {
+                $0.stringValue == ProjectPullRequestReviewActionError.forbidden.message
+            }
         }
         precondition(replyEditor.string.contains("Unsent reply"), "提交失败必须保留回复草稿")
         for language in AppLanguage.allCases where language != .system {
             AppLocalization.apply(language)
             wait("语言切换未刷新评审错误或回复按钮") {
-                discussionViews.compactMap { $0 as? NSTextField }.contains { $0.stringValue == ProjectPullRequestReviewActionError.forbidden.message }
+                discussionViews.compactMap { $0 as? NSTextField }.contains {
+                    $0.stringValue == ProjectPullRequestReviewActionError.forbidden.message
+                }
                     && replyButton.title == String(localized: "Reply")
             }
             precondition(replyEditor.string.contains("Unsent reply"), "语言切换必须保留回复草稿")
@@ -173,8 +197,9 @@ struct ProjectPullRequestReviewSurfaceTests {
         wait("评审提交窗口未显示") { discussionWindow.isVisible }
         let decision = discussionViews.compactMap { $0 as? NSPopUpButton }.first!
         wait("评审权限未加载") { decision.isEnabled }
-        precondition(decision.indexOfSelectedItem == 0 && decision.numberOfItems == 3,
-                     "评审必须默认Comment，提供Approve和Request Changes")
+        precondition(
+            decision.indexOfSelectedItem == 0 && decision.numberOfItems == 3,
+            "评审必须默认Comment，提供Approve和Request Changes")
         let fixtures = URL(fileURLWithPath: ProcessInfo.processInfo.environment["ZSHELL_PR_REVIEW_FIXTURES"]!)
         let actionDelay = fixtures.appendingPathComponent("action-thread-delay")
         let actionStarted = fixtures.appendingPathComponent("action-thread-started")
@@ -182,13 +207,15 @@ struct ProjectPullRequestReviewSurfaceTests {
         diff.showPullRequestReview(threadID: "right")
         wait("延迟讨论查询未开始") { FileManager.default.fileExists(atPath: actionStarted.path) }
         diff.showPullRequestReview()
-        precondition(!discussionViews.compactMap { $0 as? NSTextView }.contains { $0.string.contains("当前行的意见") },
-                     "切换评审目标必须立即清除旧讨论")
+        precondition(
+            !discussionViews.compactMap { $0 as? NSTextView }.contains { $0.string.contains("当前行的意见") },
+            "切换评审目标必须立即清除旧讨论")
         wait("切换后评审权限未加载") { decision.isEnabled }
         pump(0.6)
-        precondition(discussionViews.compactMap { $0 as? NSTextView }.contains {
-            $0.string == String(localized: "Submit your review of this pull request. The review is attached to the displayed commit.")
-        }, "旧讨论的异步响应不得覆盖新的评审目标")
+        precondition(
+            discussionViews.compactMap { $0 as? NSTextView }.contains {
+                $0.string == String(localized: "Submit your review of this pull request. The review is attached to the displayed commit.")
+            }, "旧讨论的异步响应不得覆盖新的评审目标")
         try! FileManager.default.removeItem(at: actionDelay)
         try! FileManager.default.removeItem(at: actionStarted)
         discussionWindow.close()
@@ -197,14 +224,20 @@ struct ProjectPullRequestReviewSurfaceTests {
             .appendingPathComponent("status-delay")
         try! Data().write(to: statusDelay)
         diff.pullRequest.refresh()
-        wait("PR后台刷新未进入加载状态") { if case .loading = diff.pullRequest.state { return true }; return false }
+        wait("PR后台刷新未进入加载状态") {
+            if case .loading = diff.pullRequest.state { return true }; return false
+        }
         pump(0.05)
-        precondition(diff.currentPullRequestIdentity == file.identity && diff.pullRequestReviewState == .ready(file),
-                     "同一分支的PR后台刷新不得使已显示评论失效")
-        wait("PR后台刷新未完成") { if case .pullRequest = diff.pullRequest.state { return true }; return false }
+        precondition(
+            diff.currentPullRequestIdentity == file.identity && diff.pullRequestReviewState == .ready(file),
+            "同一分支的PR后台刷新不得使已显示评论失效")
+        wait("PR后台刷新未完成") {
+            if case .pullRequest = diff.pullRequest.state { return true }; return false
+        }
         try! FileManager.default.removeItem(at: statusDelay)
-        precondition(review.superview != nil && diff.pullRequestReviewState == .ready(file),
-                     "后台刷新完成必须保留评论文档")
+        precondition(
+            review.superview != nil && diff.pullRequestReviewState == .ready(file),
+            "后台刷新完成必须保留评论文档")
 
         for language in [AppLanguage.simplifiedChinese, .english] {
             AppLocalization.apply(language)
@@ -214,27 +247,37 @@ struct ProjectPullRequestReviewSurfaceTests {
                 descendants(view).compactMap { $0 as? NSButton }.contains { $0.toolTip == back }
             }
             let segments = descendants(view).compactMap { $0 as? NSSegmentedControl }
-            precondition(segments.contains { $0.label(forSegment: 0) == String(localized: "Review")
-                && $0.label(forSegment: 1) == String(localized: "Edit") }, "语言切换未刷新Diff模式")
-            precondition(segments.contains { $0.label(forSegment: 0) == String(localized: "Unified")
-                && $0.label(forSegment: 1) == String(localized: "Split") }, "语言切换未刷新Diff布局")
+            precondition(
+                segments.contains {
+                    $0.label(forSegment: 0) == String(localized: "Review")
+                        && $0.label(forSegment: 1) == String(localized: "Edit")
+                }, "语言切换未刷新Diff模式")
+            precondition(
+                segments.contains {
+                    $0.label(forSegment: 0) == String(localized: "Unified")
+                        && $0.label(forSegment: 1) == String(localized: "Split")
+                }, "语言切换未刷新Diff布局")
             wait("语言切换未刷新评论状态") { diff.pullRequestWeb.annotations == file.annotations }
-            precondition(diff.pullRequestWebHostView === review && diff.webHostView === ordinary,
-                         "语言切换不得重建评论或本地diff文档")
+            precondition(
+                diff.pullRequestWebHostView === review && diff.webHostView === ordinary,
+                "语言切换不得重建评论或本地diff文档")
         }
         for name in [NSAppearance.Name.darkAqua, .aqua] {
             window.appearance = NSAppearance(named: name)
             pump(0.1)
             wait("外观切换未刷新评论") { diff.pullRequestWeb.usesDarkAppearance == (name == .darkAqua) }
-            precondition(diff.pullRequestWebHostView === review && annotations(reviewWeb).count == 3,
-                         "外观切换不得丢失评论文档")
+            precondition(
+                diff.pullRequestWebHostView === review && annotations(reviewWeb).count == 3,
+                "外观切换不得丢失评论文档")
         }
 
         let screenshotPath = ProcessInfo.processInfo.environment["ZSHELL_PR_REVIEW_SCREENSHOT"]
         if let screenshotPath {
             var snapshot: NSImage?
             var finished = false
-            reviewWeb.takeSnapshot(with: nil) { image, _ in snapshot = image; finished = true }
+            reviewWeb.takeSnapshot(with: nil) { image, _ in
+                snapshot = image; finished = true
+            }
             wait("WebKit截图未完成") { finished }
             if let data = snapshot?.tiffRepresentation, let image = NSBitmapImageRep(data: data) {
                 try! image.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: screenshotPath))
@@ -251,23 +294,30 @@ struct ProjectPullRequestReviewSurfaceTests {
         }
         diff.hidePullRequestComments()
         wait("返回普通diff后未恢复同一视图") { ordinary.superview != nil && review.superview == nil }
-        precondition(diff.webHostView === ordinary && evaluate(ordinaryWeb, "window.reviewPreserved") as? String == "ordinary",
-                     "返回普通diff必须复用同一WebKit文档")
+        precondition(
+            diff.webHostView === ordinary && evaluate(ordinaryWeb, "window.reviewPreserved") as? String == "ordinary",
+            "返回普通diff必须复用同一WebKit文档")
         let scrollAfter = evaluate(ordinaryWeb, "document.getElementById('diff-container').scrollTop") as? Double ?? 0
         precondition(abs(scrollAfter - scrollBefore) <= 1, "返回普通diff必须保持滚动位置")
-        precondition((evaluate(ordinaryWeb, "document.querySelector('diffs-container')?.shadowRoot?.querySelectorAll('[contenteditable=true]').length || 0") as? Int ?? 0) > 0,
-                     "返回普通diff必须保留编辑器")
+        precondition(
+            (evaluate(
+                ordinaryWeb, "document.querySelector('diffs-container')?.shadowRoot?.querySelectorAll('[contenteditable=true]').length || 0"
+            ) as? Int ?? 0) > 0,
+            "返回普通diff必须保留编辑器")
         diff.showPullRequestComments()
         wait("重新打开评论未复用已加载视图") { review.superview != nil && diff.pullRequestWeb.isReady }
         precondition(diff.pullRequestWebHostView === review, "评论视图必须长期保留")
         let previousQueryCount = queries().filter { $0.contains("reviewThreads") }.count
         diff.showPullRequestComments(force: true)
         wait("刷新未重新查询") { queries().filter { $0.contains("reviewThreads") }.count > previousQueryCount }
-        wait("刷新后评论未显示") { if case .ready = diff.pullRequestReviewState { return annotations(reviewWeb).count == 3 }; return false }
+        wait("刷新后评论未显示") {
+            if case .ready = diff.pullRequestReviewState { return annotations(reviewWeb).count == 3 }; return false
+        }
 
         let peerDiff = DiffTab(repoRoot: CommandLine.arguments[5], path: "Review.swift", staged: false, untracked: false, origPath: nil)
         let peerView = DiffViewerNSView(diff: peerDiff)
-        let peerWindow = NSWindow(contentRect: NSRect(x: -100_000, y: -100_000, width: 820, height: 560),
+        let peerWindow = NSWindow(
+            contentRect: NSRect(x: -100_000, y: -100_000, width: 820, height: 560),
             styleMask: [.borderless], backing: .buffered, defer: false)
         peerWindow.isReleasedWhenClosed = false
         peerWindow.contentView = peerView
@@ -281,9 +331,13 @@ struct ProjectPullRequestReviewSurfaceTests {
         }
         wait("第二个worktree未完成PR状态加载") { !peerDiff.isLoading && peerDiff.canShowPullRequestComments }
         peerDiff.showPullRequestComments()
-        wait("第二个worktree未显示PR评论") { if case .ready = peerDiff.pullRequestReviewState { return peerDiff.pullRequestWeb.isReady }; return false }
+        wait("第二个worktree未显示PR评论") {
+            if case .ready = peerDiff.pullRequestReviewState { return peerDiff.pullRequestWeb.isReady }; return false
+        }
         peerDiff.showPullRequestReview(threadID: "right")
-        let peerPanel = app.windows.first { $0 !== discussionWindow && $0.title == String(localized: "Pull Request Review") && $0.isVisible }!
+        let peerPanel = app.windows.first {
+            $0 !== discussionWindow && $0.title == String(localized: "Pull Request Review") && $0.isVisible
+        }!
         let peerViews = descendants(peerPanel.contentView!)
         let peerEditor = peerViews.compactMap { $0 as? NSTextView }.first { $0.isEditable }!
         let peerReply = peerViews.compactMap { $0 as? NSButton }.first { $0.title == String(localized: "Reply") }!
@@ -312,10 +366,14 @@ struct ProjectPullRequestReviewSurfaceTests {
         wait("成功回复未启用提交") { replyButton.isEnabled }
         replyButton.performClick(nil)
         wait("成功回复未返回") { mutations() == ["reply"] && replyEditor.string.isEmpty }
-        wait("成功回复后未开始延迟diff刷新") { if case .loading = diff.pullRequestReviewState { return true }; return false }
+        wait("成功回复后未开始延迟diff刷新") {
+            if case .loading = diff.pullRequestReviewState { return true }; return false
+        }
         pump(0.25)
         precondition(!replyButton.isEnabled && !resolution.isEnabled, "diff刷新完成前不得再次写入")
-        wait("成功回复后diff未恢复") { if case .ready = diff.pullRequestReviewState { return true }; return false }
+        wait("成功回复后diff未恢复") {
+            if case .ready = diff.pullRequestReviewState { return true }; return false
+        }
         wait("成功回复后讨论或解决按钮未恢复") { renderedDiscussion(successBody, in: discussionViews) && resolution.isEnabled }
         precondition(replyEditor.string.isEmpty, "成功回复必须清空草稿")
         replyEditor.string = "Second successful reply"
@@ -333,7 +391,9 @@ struct ProjectPullRequestReviewSurfaceTests {
         }
         if case .ready = peerDiff.pullRequestReviewState {
             wait("同PR另worktree讨论窗口未刷新") { renderedDiscussion("Second successful reply", in: peerViews) && peerReply.isEnabled }
-        } else { precondition(!peerReply.isEnabled, "失效的另worktree讨论不得继续写入") }
+        } else {
+            precondition(!peerReply.isEnabled, "失效的另worktree讨论不得继续写入")
+        }
         precondition(peerEditor.string == "Peer draft survives another worktree's write", "跨worktree刷新必须保留未发送草稿")
         peerEditor.string = ""
         NotificationCenter.default.post(name: NSText.didChangeNotification, object: peerEditor)
@@ -350,8 +410,9 @@ struct ProjectPullRequestReviewSurfaceTests {
             resolution.title == String(localized: "Resolve Discussion") && resolution.isEnabled
                 && renderedDiscussion(String(localized: "Unresolved"), in: discussionViews)
         }
-        precondition(mutations() == ["reply", "reply", "resolveReviewThread", "unresolveReviewThread"],
-                     "解决与重开必须各提交一次")
+        precondition(
+            mutations() == ["reply", "reply", "resolveReviewThread", "unresolveReviewThread"],
+            "解决与重开必须各提交一次")
         print("成功解决／重开讨论通过")
 
         for (index, event) in ["COMMENT", "APPROVE", "REQUEST_CHANGES"].enumerated() {
@@ -366,7 +427,9 @@ struct ProjectPullRequestReviewSurfaceTests {
             replyButton.performClick(nil)
             wait("成功评审未关闭窗口：\(event)") { !discussionWindow.isVisible && mutations().last == event }
             precondition(replyEditor.string.isEmpty, "成功评审必须清空草稿")
-            wait("成功评审后diff未恢复") { if case .ready = diff.pullRequestReviewState { return true }; return false }
+            wait("成功评审后diff未恢复") {
+                if case .ready = diff.pullRequestReviewState { return true }; return false
+            }
         }
         print("Comment／Approve／Request Changes成功关窗通过")
 
@@ -375,7 +438,7 @@ struct ProjectPullRequestReviewSurfaceTests {
         diff.hidePullRequestComments()
         wait("讨论窗口打开时未返回本地diff") { !diff.showsPullRequestComments && ordinary.superview != nil && review.superview == nil }
         let hiddenStart = mutations().count
-        for index in 1...2 {
+        for index in 1 ... 2 {
             replyEditor.string = "Reply from local diff \(index)"
             NotificationCenter.default.post(name: NSText.didChangeNotification, object: replyEditor)
             wait("本地diff中的讨论不能回复") { replyButton.isEnabled }
@@ -384,12 +447,15 @@ struct ProjectPullRequestReviewSurfaceTests {
             wait("本地diff中的回复后操作未恢复") {
                 resolution.isEnabled && renderedDiscussion("Reply from local diff \(index)", in: discussionViews)
             }
-            precondition(!diff.showsPullRequestComments && ordinary.superview != nil && review.superview == nil,
-                         "讨论成功回复不得将本地diff切回PR评论")
+            precondition(
+                !diff.showsPullRequestComments && ordinary.superview != nil && review.superview == nil,
+                "讨论成功回复不得将本地diff切回PR评论")
         }
         print("切回本地diff后连续回复与视图保留通过")
         diff.showPullRequestComments()
-        wait("生命周期测试后评论未恢复") { if case .ready = diff.pullRequestReviewState { return review.superview != nil }; return false }
+        wait("生命周期测试后评论未恢复") {
+            if case .ready = diff.pullRequestReviewState { return review.superview != nil }; return false
+        }
 
         peerDiff.showPullRequestReview(threadID: "right")
         wait("释放源标签测试前peer讨论未加载") {
@@ -410,7 +476,9 @@ struct ProjectPullRequestReviewSurfaceTests {
             source!.pullRequest.sync(directory: root, force: true)
             wait("待关闭源标签未加载PR身份") { source!.canShowPullRequestComments }
             source!.showPullRequestComments()
-            wait("待关闭源标签未加载评论") { if case .ready = source!.pullRequestReviewState { return true }; return false }
+            wait("待关闭源标签未加载评论") {
+                if case .ready = source!.pullRequestReviewState { return true }; return false
+            }
             source!.showPullRequestReview(threadID: "right")
             do {
                 let panel = app.windows.first {
@@ -470,7 +538,9 @@ struct ProjectPullRequestReviewSurfaceTests {
         NotificationCenter.default.post(name: NSText.didChangeNotification, object: replyEditor)
         try! FileManager.default.removeItem(at: fixtures.appendingPathComponent("changed-head"))
         diff.showPullRequestComments(force: true)
-        wait("恢复head后diff未完成") { if case .ready(let restored) = diff.pullRequestReviewState { return restored.headOID == file.headOID }; return false }
+        wait("恢复head后diff未完成") {
+            if case .ready(let restored) = diff.pullRequestReviewState { return restored.headOID == file.headOID }; return false
+        }
         discussionWindow.close()
         diff.showPullRequestReview(threadID: "right")
         wait("分支变化检查前讨论未加载") { resolution.isEnabled }
@@ -482,7 +552,9 @@ struct ProjectPullRequestReviewSurfaceTests {
         checkout.waitUntilExit()
         precondition(checkout.terminationStatus == 0)
         diff.pullRequest.sync(directory: root, force: true)
-        wait("分支切换仍显示旧评论") { if case .failed(.changed) = diff.pullRequestReviewState { return review.superview == nil }; return false }
+        wait("分支切换仍显示旧评论") {
+            if case .failed(.changed) = diff.pullRequestReviewState { return review.superview == nil }; return false
+        }
         ReviewOpenFixture.opened = nil
         diff.pullRequestWeb.onAnnotationClick?("right")
         pump(0.1)

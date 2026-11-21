@@ -9,7 +9,7 @@ let package = Package(
         .library(
             name: "STTextKitPlus",
             targets: ["STTextKitPlus"]
-        ),
+        )
     ],
     targets: [
         .target(
@@ -18,6 +18,6 @@ let package = Package(
         .testTarget(
             name: "STTextKitPlusTests",
             dependencies: ["STTextKitPlus"]
-        )
+        ),
     ]
 )

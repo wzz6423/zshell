@@ -85,16 +85,20 @@ final class TerminalNotificationHistoryStore: ObservableObject {
             while !list.isAtEnd {
                 let decoder = try list.superDecoder()
                 if let record = try? TerminalNotificationRecord(from: decoder), record.isValid,
-                   ids.insert(record.id).inserted, keys.insert(record.eventKey).inserted {
+                    ids.insert(record.id).inserted, keys.insert(record.eventKey).inserted
+                {
                     records.append(record)
                 }
             }
             eventKeys = try values.decode([String].self, forKey: .eventKeys)
             episodes = try values.decode([AgentEpisode].self, forKey: .episodes)
             guard eventKeys.count <= maximumEventKeys, episodes.count <= maximumEpisodes,
-                  eventKeys.allSatisfy({ !$0.isEmpty && $0.utf8.count <= 256 }),
-                  episodes.allSatisfy({ $0.sourceKey.utf8.count <= 128 && $0.signature.utf8.count <= 256
-                      && !$0.eventKey.isEmpty && $0.eventKey.utf8.count <= 256 }) else {
+                eventKeys.allSatisfy({ !$0.isEmpty && $0.utf8.count <= 256 }),
+                episodes.allSatisfy({
+                    $0.sourceKey.utf8.count <= 128 && $0.signature.utf8.count <= 256
+                        && !$0.eventKey.isEmpty && $0.eventKey.utf8.count <= 256
+                })
+            else {
                 throw CocoaError(.coderReadCorrupt)
             }
         }
@@ -184,11 +188,13 @@ final class TerminalNotificationHistoryStore: ObservableObject {
 
     init(url: URL? = nil) {
         #if DEBUG
-        let directory = "zshell-dev"
+            let directory = "zshell-dev"
         #else
-        let directory = "zshell"
+            let directory = "zshell"
         #endif
-        let url = url ?? FileManager.default.homeDirectoryForCurrentUser
+        let url =
+            url
+            ?? FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/\(directory)/notifications/records.json")
         persistence = Persistence(url: url)
         persistence.load { [weak self] saved, error in
@@ -212,8 +218,10 @@ final class TerminalNotificationHistoryStore: ObservableObject {
         var seen = Set(current.map(\.eventKey))
         var combined = current
         if !ignoredLoadedRecords {
-            for var record in saved.records where !removedWhileLoading.contains(record.eventKey)
-                && seen.insert(record.eventKey).inserted {
+            for var record in saved.records
+            where !removedWhileLoading.contains(record.eventKey)
+                && seen.insert(record.eventKey).inserted
+            {
                 if markedLoadedRecordsRead { record.isRead = true }
                 combined.append(record)
             }
@@ -252,7 +260,10 @@ final class TerminalNotificationHistoryStore: ObservableObject {
     /// not turn a dismissed notification into a new unread alert.
     func agentEventKey(sourceKey: String, signature: String, stableKey: String? = nil) -> String {
         if let previous = episodes.last(where: { $0.sourceKey == sourceKey }),
-           previous.signature == signature { return previous.eventKey }
+            previous.signature == signature
+        {
+            return previous.eventKey
+        }
         let key = stableKey ?? UUID().uuidString
         episodes.removeAll { $0.sourceKey == sourceKey }
         episodes.append(AgentEpisode(sourceKey: sourceKey, signature: signature, eventKey: key))
@@ -270,16 +281,20 @@ final class TerminalNotificationHistoryStore: ObservableObject {
     }
 
     @discardableResult
-    func note(message: String, target: TerminalNotificationTarget, kind: TerminalNotificationRecord.Kind = .terminal,
-              eventKey: String? = nil, isFailure: Bool = false, isPending: Bool = false,
-              at date: Date = Date()) -> (record: TerminalNotificationRecord?, isNew: Bool) {
+    func note(
+        message: String, target: TerminalNotificationTarget, kind: TerminalNotificationRecord.Kind = .terminal,
+        eventKey: String? = nil, isFailure: Bool = false, isPending: Bool = false,
+        at date: Date = Date()
+    ) -> (record: TerminalNotificationRecord?, isNew: Bool) {
         guard let message = AgentConversationHistoryRecord.normalizedText(message, maximumBytes: 2_048),
-              date.timeIntervalSince1970.isFinite else { return (nil, false) }
+            date.timeIntervalSince1970.isFinite
+        else { return (nil, false) }
         let key = eventKey ?? UUID().uuidString
         guard !key.isEmpty, key.utf8.count <= 256 else { return (nil, false) }
         if let index = records.firstIndex(where: {
-            $0.eventKey == key || eventKey == nil && $0.target.sourceKey == target.sourceKey && $0.kind == kind
-                && $0.message == message && (0...2).contains(date.timeIntervalSince($0.createdAt))
+            $0.eventKey == key
+                || eventKey == nil && $0.target.sourceKey == target.sourceKey && $0.kind == kind
+                    && $0.message == message && (0 ... 2).contains(date.timeIntervalSince($0.createdAt))
         }) {
             if records[index].target != target || records[index].isPending != isPending {
                 records[index].target = target
@@ -289,7 +304,8 @@ final class TerminalNotificationHistoryStore: ObservableObject {
             return (records[index], false)
         }
         guard !eventKeys.contains(key) else { return (nil, false) }
-        let record = TerminalNotificationRecord(id: UUID(), eventKey: key, kind: kind, message: message,
+        let record = TerminalNotificationRecord(
+            id: UUID(), eventKey: key, kind: kind, message: message,
             target: target, createdAt: date, isRead: false, isFailure: isFailure, isPending: isPending)
         guard record.isValid else { return (nil, false) }
         records.insert(record, at: 0)
@@ -307,14 +323,18 @@ final class TerminalNotificationHistoryStore: ObservableObject {
 
     func markAllRead() {
         if isLoading { markedLoadedRecordsRead = true }
-        records = records.map { var record = $0; record.isRead = true; return record }
+        records = records.map {
+            var record = $0; record.isRead = true; return record
+        }
         persist()
     }
 
     func resolvePending(sourceKey: String, exceptEventKey: String? = nil) {
-        guard records.contains(where: {
-            $0.target.sourceKey == sourceKey && $0.isPending && $0.eventKey != exceptEventKey
-        }) else { return }
+        guard
+            records.contains(where: {
+                $0.target.sourceKey == sourceKey && $0.isPending && $0.eventKey != exceptEventKey
+            })
+        else { return }
         records = records.map {
             var record = $0
             if record.target.sourceKey == sourceKey && record.eventKey != exceptEventKey { record.isPending = false }

@@ -21,7 +21,7 @@ nonisolated struct TerminalCommandHistoryEntry: Codable, Equatable, Identifiable
             && workingDirectory.unicodeScalars.allSatisfy { !Self.isControlCode($0) }
             && startedAt.timeIntervalSince1970.isFinite
             && (finishedAt.map { $0.timeIntervalSince1970.isFinite && $0 >= startedAt } ?? true)
-            && (exitCode.map { (0...255).contains($0) } ?? true)
+            && (exitCode.map { (0 ... 255).contains($0) } ?? true)
     }
 
     // JSON escaping can expand one byte to six; cap memory before encoding
@@ -29,7 +29,7 @@ nonisolated struct TerminalCommandHistoryEntry: Codable, Equatable, Identifiable
     var storageCost: Int { 512 + 6 * (command.utf8.count + workingDirectory.utf8.count) }
 
     private static func isControlCode(_ scalar: Unicode.Scalar) -> Bool {
-        scalar.value < 0x20 || (0x7f...0x9f).contains(scalar.value)
+        scalar.value < 0x20 || (0x7f ... 0x9f).contains(scalar.value)
     }
 }
 
@@ -50,11 +50,13 @@ final class TerminalCommandHistoryStore: ObservableObject {
 
     init(url: URL? = nil) {
         #if DEBUG
-        let name = "zshell-dev"
+            let name = "zshell-dev"
         #else
-        let name = "zshell"
+            let name = "zshell"
         #endif
-        let url = url ?? FileManager.default.homeDirectoryForCurrentUser
+        let url =
+            url
+            ?? FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/\(name)/command-history/records.json")
         persistence = Persistence(url: url)
         persistence.load { [weak self] loaded, error in
@@ -68,9 +70,11 @@ final class TerminalCommandHistoryStore: ObservableObject {
         guard isLoading else { return }
         if !discardLoadedEntries {
             let currentIDs = Set(entries.map(\.id))
-            entries = Self.bounded(entries + loaded.filter {
-                !currentIDs.contains($0.id) && !removedDuringLoad.contains($0.id)
-            })
+            entries = Self.bounded(
+                entries
+                    + loaded.filter {
+                        !currentIDs.contains($0.id) && !removedDuringLoad.contains($0.id)
+                    })
             storageBytes = 128 + entries.reduce(0) { $0 + $1.storageCost }
         }
         removedDuringLoad.removeAll()
@@ -157,7 +161,8 @@ final class TerminalCommandHistoryStore: ObservableObject {
         var ids = Set<UUID>()
         return entries.sorted(by: ranksBefore).filter { entry in
             guard ids.count < maximumRecords, entry.isValid,
-                  !ids.contains(entry.id), bytes + entry.storageCost <= maximumBytes else { return false }
+                !ids.contains(entry.id), bytes + entry.storageCost <= maximumBytes
+            else { return false }
             ids.insert(entry.id)
             bytes += entry.storageCost
             return true
@@ -197,23 +202,28 @@ final class TerminalCommandHistoryStore: ObservableObject {
         func load(completion: @escaping @Sendable ([TerminalCommandHistoryEntry], String?) -> Void) {
             queue.async { [self] in
                 do {
-                    try FileManager.default.createDirectory(at: url.deletingLastPathComponent().deletingLastPathComponent(),
-                                                            withIntermediateDirectories: true)
+                    try FileManager.default.createDirectory(
+                        at: url.deletingLastPathComponent().deletingLastPathComponent(),
+                        withIntermediateDirectories: true)
                     try PersistentCLIConnection.preparePrivateDirectory(url.deletingLastPathComponent())
                     guard FileManager.default.fileExists(atPath: url.path) else {
                         didLoad([], error: nil, completion: completion)
                         return
                     }
-                    let saved = try JSONDecoder().decode(SavedEntries.self, from:
-                        PersistentCLIConnection.readPrivate(url, maximumBytes: maximumBytes))
+                    let saved = try JSONDecoder().decode(
+                        SavedEntries.self,
+                        from:
+                            PersistentCLIConnection.readPrivate(url, maximumBytes: maximumBytes))
                     guard saved.version == 1 else { throw CLIError.message("Unsupported command history version.") }
                     didLoad(TerminalCommandHistoryStore.bounded(saved.entries), error: nil, completion: completion)
                 } catch { didLoad([], error: String(describing: error), completion: completion) }
             }
         }
 
-        private func didLoad(_ entries: [TerminalCommandHistoryEntry], error: String?,
-                             completion: @Sendable ([TerminalCommandHistoryEntry], String?) -> Void) {
+        private func didLoad(
+            _ entries: [TerminalCommandHistoryEntry], error: String?,
+            completion: @Sendable ([TerminalCommandHistoryEntry], String?) -> Void
+        ) {
             state.withLock {
                 $0.loaded = LoadedEntries(entries: entries, error: error)
                 $0.error = error

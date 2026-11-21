@@ -1,6 +1,6 @@
-use crate::paste::{PasteBatch, PasteStore};
 use crate::agent_history::History;
 use crate::codex_binding::Bindings;
+use crate::paste::{PasteBatch, PasteStore};
 use crate::protocol::*;
 use crate::session::{Attachment, Session, SessionInfo};
 use crate::transport::*;
@@ -143,15 +143,34 @@ impl Daemon {
             } else {
                 if request.kind == "agentHook" {
                     self.wait_until_started(&request);
-                    let hook = request.hook.as_ref().ok_or_else(|| invalid("A native Agent hook is required"));
+                    let hook = request
+                        .hook
+                        .as_ref()
+                        .ok_or_else(|| invalid("A native Agent hook is required"));
                     hook.and_then(|hook| {
-                        if hook.provider == "codex" && stream.peer_pid().and_then(|peer| crate::agent_process::shared_codex_service(peer, hook.reporter_pid)).is_some() {
-                            let sessions: Vec<_> = self.sessions.lock().unwrap().values().cloned().collect();
+                        if hook.provider == "codex"
+                            && stream
+                                .peer_pid()
+                                .and_then(|peer| {
+                                    crate::agent_process::shared_codex_service(
+                                        peer,
+                                        hook.reporter_pid,
+                                    )
+                                })
+                                .is_some()
+                        {
+                            let sessions: Vec<_> =
+                                self.sessions.lock().unwrap().values().cloned().collect();
                             self.bindings.accept(hook, stream.peer_pid(), &sessions)?;
-                        } else { self.session(&request)?.accept_hook(hook, stream.peer_pid())?; }
+                        } else {
+                            self.session(&request)?
+                                .accept_hook(hook, stream.peer_pid())?;
+                        }
                         Ok(json!({"accepted": true}))
                     })
-                } else { self.request(&request) }
+                } else {
+                    self.request(&request)
+                }
             };
             let response = match result {
                 Ok(result) => Frame::success(&request, result),
@@ -262,27 +281,54 @@ impl Daemon {
                 Ok(json!(infos))
             }
             "agentHistory" => {
-                let project = project_path(request.project.as_deref().ok_or_else(|| invalid("A project directory is required"))?)?;
+                let project = project_path(
+                    request
+                        .project
+                        .as_deref()
+                        .ok_or_else(|| invalid("A project directory is required"))?,
+                )?;
                 Ok(json!(self.history.list(&project)))
             }
             "agentResume" | "agentFork" => {
-                let project = project_path(request.project.as_deref().ok_or_else(|| invalid("A project directory is required"))?)?;
-                let provider = request.provider.as_deref().ok_or_else(|| invalid("A provider is required"))?;
-                let id = request.conversation_id.as_deref().ok_or_else(|| invalid("An exact provider conversation ID is required"))?;
+                let project = project_path(
+                    request
+                        .project
+                        .as_deref()
+                        .ok_or_else(|| invalid("A project directory is required"))?,
+                )?;
+                let provider = request
+                    .provider
+                    .as_deref()
+                    .ok_or_else(|| invalid("A provider is required"))?;
+                let id = request
+                    .conversation_id
+                    .as_deref()
+                    .ok_or_else(|| invalid("An exact provider conversation ID is required"))?;
                 let record = self.history.find(&project, provider, id)?;
                 let fork = request.kind == "agentFork";
                 let live = |sessions: &HashMap<String, Arc<Session>>| {
-                    if fork { return Ok(None); }
-                    Ok(sessions.values().map(|session| session.info()).find(|info| {
-                        info.project == project && info.running && info.conversation.as_ref() == Some(&record.identity)
-                    }))
+                    if fork {
+                        return Ok(None);
+                    }
+                    Ok(sessions
+                        .values()
+                        .map(|session| session.info())
+                        .find(|info| {
+                            info.project == project
+                                && info.running
+                                && info.conversation.as_ref() == Some(&record.identity)
+                        }))
                 };
                 // A running conversation is reattached even if its provider has
                 // since left PATH; only a new launch needs the executable.
                 if let Some(info) = live(&self.sessions.lock().unwrap())? {
                     return Ok(json!(info));
                 }
-                let (command, environment) = if fork { record.identity.fork()? } else { record.identity.resume()? };
+                let (command, environment) = if fork {
+                    record.identity.fork()?
+                } else {
+                    record.identity.resume()?
+                };
                 let mut create = Frame::new("create");
                 create.project = Some(project.clone());
                 create.working_directory = Some(record.identity.working_directory.clone());
@@ -294,7 +340,11 @@ impl Daemon {
                     create.provider = Some(record.identity.provider.clone());
                     create.conversation_id = Some(record.identity.session_id.clone());
                 }
-                let reservation = if fork { session_id } else { format!("{provider}:{id}@{project}") };
+                let reservation = if fork {
+                    session_id
+                } else {
+                    format!("{provider}:{id}@{project}")
+                };
                 self.start_session(&create, reservation, live)
             }
             "create" => {
@@ -380,7 +430,11 @@ impl Daemon {
             if starting.contains_key(&reservation) {
                 return Err(invalid("This remote session is still starting"));
             }
-            let session_id = request.session_id.as_deref().unwrap_or_default().to_ascii_lowercase();
+            let session_id = request
+                .session_id
+                .as_deref()
+                .unwrap_or_default()
+                .to_ascii_lowercase();
             starting.insert(reservation.clone(), session_id);
             match make_room(&mut sessions, starting.len()) {
                 Some(evicted) => evicted,
@@ -394,7 +448,13 @@ impl Daemon {
         };
         // Spawning waits for the child to enter its directory and exec, which can
         // stall on a slow filesystem; other clients must still reach their sessions.
-        let session = Session::spawn(request, &self.state_path, self.history.clone(), self.bindings.clone(), Arc::downgrade(&self.sessions));
+        let session = Session::spawn(
+            request,
+            &self.state_path,
+            self.history.clone(),
+            self.bindings.clone(),
+            Arc::downgrade(&self.sessions),
+        );
         let mut sessions = self.sessions.lock().unwrap();
         self.starting.lock().unwrap().remove(&reservation);
         let session = match session {
@@ -402,7 +462,12 @@ impl Daemon {
             Err(error) => {
                 // The new session never existed: give the exited ones their slots back.
                 for (id, session) in evicted {
-                    if sessions.contains_key(&id) { session.terminate(); } else { session.restore_eviction(); sessions.insert(id, session); }
+                    if sessions.contains_key(&id) {
+                        session.terminate();
+                    } else {
+                        session.restore_eviction();
+                        sessions.insert(id, session);
+                    }
                 }
                 return Err(error);
             }
@@ -424,9 +489,18 @@ impl Daemon {
     /// An Agent can report SessionStart before its spawning session is listed;
     /// hold the hook until the spawn settles (within the hook's 3s deadline).
     fn wait_until_started(&self, request: &Frame) {
-        let Some(id) = request.session_id.as_deref().map(str::to_ascii_lowercase) else { return };
+        let Some(id) = request.session_id.as_deref().map(str::to_ascii_lowercase) else {
+            return;
+        };
         let deadline = Instant::now() + Duration::from_secs(2);
-        while Instant::now() < deadline && self.starting.lock().unwrap().values().any(|starting| *starting == id) {
+        while Instant::now() < deadline
+            && self
+                .starting
+                .lock()
+                .unwrap()
+                .values()
+                .any(|starting| *starting == id)
+        {
             thread::sleep(Duration::from_millis(10));
         }
     }
@@ -462,7 +536,10 @@ impl Daemon {
 // Exited sessions keep their output for a later attachment only until their slot
 // is needed: the oldest one that no client is viewing makes room first. The
 // evicted sessions are returned so a failed spawn can restore them.
-fn make_room(sessions: &mut HashMap<String, Arc<Session>>, starting: usize) -> Option<Vec<(String, Arc<Session>)>> {
+fn make_room(
+    sessions: &mut HashMap<String, Arc<Session>>,
+    starting: usize,
+) -> Option<Vec<(String, Arc<Session>)>> {
     let mut evicted: Vec<(String, Arc<Session>)> = Vec::new();
     while sessions.len() + starting > MAX_SESSIONS {
         let mut candidates: Vec<_> = sessions
@@ -472,8 +549,14 @@ fn make_room(sessions: &mut HashMap<String, Arc<Session>>, starting: usize) -> O
             .collect();
         candidates.sort_by(|first, second| first.started_at.total_cmp(&second.started_at));
         // An attach may register a client after the snapshot; try_evict rechecks.
-        let Some(id) = candidates.into_iter().map(|info| info.session_id).find(|id| sessions[id].try_evict()) else {
-            for (_, session) in &evicted { session.restore_eviction(); }
+        let Some(id) = candidates
+            .into_iter()
+            .map(|info| info.session_id)
+            .find(|id| sessions[id].try_evict())
+        else {
+            for (_, session) in &evicted {
+                session.restore_eviction();
+            }
             sessions.extend(evicted);
             return None;
         };

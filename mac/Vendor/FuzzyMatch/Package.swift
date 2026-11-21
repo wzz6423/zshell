@@ -8,7 +8,7 @@ let package = Package(
         .macOS(.v14),
         .iOS(.v17),
         .visionOS(.v1),
-        .watchOS(.v10)
+        .watchOS(.v10),
     ],
     products: [
         .library(
@@ -25,6 +25,6 @@ let package = Package(
             name: "FuzzyMatchTests",
             dependencies: ["FuzzyMatch"],
             path: "Tests/FuzzyMatchTests"
-        )
+        ),
     ]
 )

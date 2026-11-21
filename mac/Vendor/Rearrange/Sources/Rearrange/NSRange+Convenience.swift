@@ -19,20 +19,20 @@ extension NSRange {
     }
 }
 
-extension NSRange: Sequence {
+extension NSRange: @retroactive Sequence {
     public typealias Element = Range<Int>.Element
     public typealias Iterator = Range<Int>.Iterator
 
     public func makeIterator() -> Range<Int>.Iterator {
-        return (location..<NSMaxRange(self)).makeIterator()
+        return (location ..< NSMaxRange(self)).makeIterator()
     }
 }
 
 extension NSRange {
-	public init<Calculator: TextRangeCalculating>(_ textRange: Calculator.TextRange, with calculator: Calculator) {
-		let location = calculator.offset(from: calculator.beginningOfDocument, to: textRange.lowerBound)
-		let length = calculator.offset(from: textRange.lowerBound, to: textRange.upperBound)
+    public init<Calculator: TextRangeCalculating>(_ textRange: Calculator.TextRange, with calculator: Calculator) {
+        let location = calculator.offset(from: calculator.beginningOfDocument, to: textRange.lowerBound)
+        let length = calculator.offset(from: textRange.lowerBound, to: textRange.upperBound)
 
-		self.init(location: location, length: length)
-	}
+        self.init(location: location, length: length)
+    }
 }

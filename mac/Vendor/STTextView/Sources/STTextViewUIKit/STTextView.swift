@@ -148,7 +148,8 @@ open class STTextView: UIScrollView, STTextViewProtocol {
     @Invalidating(.layout)
     public var showsInvisibleCharacters = false {
         didSet {
-            textLayoutManager.invalidateLayout(for: textLayoutManager.textViewportLayoutController.viewportRange ?? textLayoutManager.documentRange)
+            textLayoutManager.invalidateLayout(
+                for: textLayoutManager.textViewportLayoutController.viewportRange ?? textLayoutManager.documentRange)
         }
     }
 
@@ -385,7 +386,7 @@ open class STTextView: UIScrollView, STTextViewProtocol {
     var _defaultTypingAttributes: [NSAttributedString.Key: Any] = [
         .paragraphStyle: NSParagraphStyle.default,
         .font: UIFont.preferredFont(forTextStyle: .body),
-        .foregroundColor: UIColor.label
+        .foregroundColor: UIColor.label,
     ]
 
     /// The attributes to apply to new text that the user enters.
@@ -423,7 +424,7 @@ open class STTextView: UIScrollView, STTextViewProtocol {
         .textEffect,
         .backgroundColor,
         .underlineColor,
-        .underlineStyle
+        .underlineStyle,
     ]
 
     func updateTypingAttributes(at location: NSTextLocation? = nil) {
@@ -432,7 +433,8 @@ open class STTextView: UIScrollView, STTextViewProtocol {
         } else {
             // TODO: doesn't work work correctly (at all) for multiple insertion points where each has different typing attribute
             if let insertionPointSelection = textLayoutManager.insertionPointSelections.first,
-               let startLocation = insertionPointSelection.textRanges.first?.location {
+                let startLocation = insertionPointSelection.textRanges.first?.location
+            {
                 self.typingAttributes = typingAttributes(at: startLocation)
             }
         }
@@ -456,8 +458,9 @@ open class STTextView: UIScrollView, STTextViewProtocol {
 
         textContentManager.enumerateTextElements(from: startLocation, options: options) { textElement in
             if let attributedTextElement = textElement as? STAttributedTextElement,
-               let elementRange = textElement.elementRange,
-               let textContentManager = textElement.textContentManager {
+                let elementRange = textElement.elementRange,
+                let textContentManager = textElement.textContentManager
+            {
                 let offset = textContentManager.offset(from: elementRange.location, to: startLocation)
                 assert(offset != NSNotFound, "Unexpected location")
                 typingAttrs = attributedTextElement.attributedString.attributes(at: offset + offsetDiff, effectiveRange: nil)
@@ -474,7 +477,8 @@ open class STTextView: UIScrollView, STTextViewProtocol {
     @available(*, deprecated, message: "Use STTextLayoutFragment metrics")
     var typingLineHeight: CGFloat {
         let font = typingAttributes[.font] as? UIFont ?? _defaultTypingAttributes[.font] as! UIFont
-        let paragraphStyle = typingAttributes[.paragraphStyle] as? NSParagraphStyle ?? _defaultTypingAttributes[.paragraphStyle] as! NSParagraphStyle
+        let paragraphStyle =
+            typingAttributes[.paragraphStyle] as? NSParagraphStyle ?? _defaultTypingAttributes[.paragraphStyle] as! NSParagraphStyle
         return calculateDefaultLineHeight(for: font) * paragraphStyle.stLineHeightMultiple
     }
 
@@ -553,9 +557,12 @@ open class STTextView: UIScrollView, STTextViewProtocol {
         if let didChangeSelectionNotificationObserver {
             NotificationCenter.default.removeObserver(didChangeSelectionNotificationObserver)
         }
-        didChangeSelectionNotificationObserver = NotificationCenter.default.addObserver(forName: STTextLayoutManager.didChangeSelectionNotification, object: textLayoutManager, queue: .main) { [weak self] notification in
+        didChangeSelectionNotificationObserver = NotificationCenter.default.addObserver(
+            forName: STTextLayoutManager.didChangeSelectionNotification, object: textLayoutManager, queue: .main
+        ) { [weak self] notification in
             guard let self else { return }
-            let textViewNotification = Notification(name: Self.didChangeSelectionNotification, object: self, userInfo: notification.userInfo)
+            let textViewNotification = Notification(
+                name: Self.didChangeSelectionNotification, object: self, userInfo: notification.userInfo)
 
             NotificationCenter.default.post(textViewNotification)
             self.delegateProxy.textViewDidChangeSelection(textViewNotification)
@@ -651,7 +658,6 @@ open class STTextView: UIScrollView, STTextViewProtocol {
             (textContentManager as? NSTextContentStorage)?.textStorage?.setAttributes(attrs, range: NSRange(range, in: textContentManager))
         }
 
-
         if updateLayout {
             setNeedsViewportLayout()
         }
@@ -675,7 +681,8 @@ open class STTextView: UIScrollView, STTextViewProtocol {
     func removeAttribute(_ attribute: NSAttributedString.Key, range: NSTextRange, updateLayout: Bool = true) {
 
         textContentManager.performEditingTransaction {
-            (textContentManager as? NSTextContentStorage)?.textStorage?.removeAttribute(attribute, range: NSRange(range, in: textContentManager))
+            (textContentManager as? NSTextContentStorage)?.textStorage?.removeAttribute(
+                attribute, range: NSRange(range, in: textContentManager))
         }
 
         if updateLayout {
@@ -724,7 +731,8 @@ open class STTextView: UIScrollView, STTextViewProtocol {
             case let attributedString as NSAttributedString:
                 replaceCharacters(in: textLayoutManager.documentRange, with: attributedString, allowsTypingCoalescing: false)
             case let string as String:
-                replaceCharacters(in: textLayoutManager.documentRange, with: string, useTypingAttributes: true, allowsTypingCoalescing: false)
+                replaceCharacters(
+                    in: textLayoutManager.documentRange, with: string, useTypingAttributes: true, allowsTypingCoalescing: false)
             default:
                 assertionFailure()
                 return
@@ -774,7 +782,8 @@ open class STTextView: UIScrollView, STTextViewProtocol {
     func updateContentSizeIfNeeded() {
         // Updating contentSize cancels the current bounce animation.
         // Remember the skipped update so the scroll-driven layout pass can retry it.
-        let isBouncing = (contentOffset.y < -contentInset.top || contentOffset.y > max(0, contentSize.height - bounds.height + contentInset.bottom))
+        let isBouncing =
+            (contentOffset.y < -contentInset.top || contentOffset.y > max(0, contentSize.height - bounds.height + contentInset.bottom))
             && (isTracking || isDecelerating)
         guard !isBouncing else {
             needsContentSizeUpdate = true
@@ -801,11 +810,12 @@ open class STTextView: UIScrollView, STTextViewProtocol {
         let horizontalInsets = textContainerInset.left + textContainerInset.right
         let verticalInsets = textContainerInset.top + textContainerInset.bottom
         let minimumHeight = viewportSize.height - contentInset.top - contentInset.bottom
-        let contentWidth = if isHorizontallyResizable {
-            max(textSize.width + gutterWidth + horizontalInsets, viewportSize.width)
-        } else {
-            viewportSize.width
-        }
+        let contentWidth =
+            if isHorizontallyResizable {
+                max(textSize.width + gutterWidth + horizontalInsets, viewportSize.width)
+            } else {
+                viewportSize.width
+            }
 
         let newContentSize = CGSize(
             width: contentWidth,
@@ -887,7 +897,8 @@ open class STTextView: UIScrollView, STTextViewProtocol {
 
     open func replaceCharacters(in range: NSRange, with string: String) {
         guard let textContentManager = textLayoutManager.textContentManager,
-              let textRange = NSTextRange(range, in: textContentManager) else {
+            let textRange = NSTextRange(range, in: textContentManager)
+        else {
             return
         }
         replaceCharacters(in: textRange, with: string)
@@ -895,13 +906,16 @@ open class STTextView: UIScrollView, STTextViewProtocol {
 
     open func replaceCharacters(in range: NSRange, with string: NSAttributedString) {
         guard let textContentManager = textLayoutManager.textContentManager,
-              let textRange = NSTextRange(range, in: textContentManager) else {
+            let textRange = NSTextRange(range, in: textContentManager)
+        else {
             return
         }
         replaceCharacters(in: textRange, with: string, allowsTypingCoalescing: false)
     }
 
-    func replaceCharacters(in textRanges: [NSTextRange], with replacementString: String, useTypingAttributes: Bool, allowsTypingCoalescing: Bool) {
+    func replaceCharacters(
+        in textRanges: [NSTextRange], with replacementString: String, useTypingAttributes: Bool, allowsTypingCoalescing: Bool
+    ) {
         self.replaceCharacters(
             in: textRanges,
             with: NSAttributedString(string: replacementString, attributes: useTypingAttributes ? typingAttributes : [:]),
@@ -916,7 +930,9 @@ open class STTextView: UIScrollView, STTextViewProtocol {
         }
     }
 
-    func replaceCharacters(in textRange: NSTextRange, with replacementString: String, useTypingAttributes: Bool, allowsTypingCoalescing: Bool) {
+    func replaceCharacters(
+        in textRange: NSTextRange, with replacementString: String, useTypingAttributes: Bool, allowsTypingCoalescing: Bool
+    ) {
         self.replaceCharacters(
             in: textRange,
             with: NSAttributedString(string: replacementString, attributes: useTypingAttributes ? typingAttributes : [:]),
@@ -925,7 +941,8 @@ open class STTextView: UIScrollView, STTextViewProtocol {
     }
 
     func replaceCharacters(in textRange: NSTextRange, with replacementString: NSAttributedString, allowsTypingCoalescing: Bool) {
-        let previousStringInRange = (textContentManager as? NSTextContentStorage)!.attributedString!.attributedSubstring(from: NSRange(textRange, in: textContentManager))
+        let previousStringInRange = (textContentManager as? NSTextContentStorage)!.attributedString!.attributedSubstring(
+            from: NSRange(textRange, in: textContentManager))
 
         textWillChange(self)
         delegateProxy.textView(self, willChangeTextIn: textRange, replacementString: replacementString.string)
@@ -944,10 +961,11 @@ open class STTextView: UIScrollView, STTextViewProtocol {
 
         // Reach to NSTextStorage because NSTextContentStorage range extraction is cumbersome.
         // A range that is as long as replacement string, so when undo it undo
-        let undoRange = NSTextRange(
-            location: textRange.location,
-            end: textContentManager.location(textRange.location, offsetBy: replacementString.length)
-        ) ?? textRange
+        let undoRange =
+            NSTextRange(
+                location: textRange.location,
+                end: textContentManager.location(textRange.location, offsetBy: replacementString.length)
+            ) ?? textRange
 
         if let coalescingUndoManager = undoManager as? CoalescingUndoManager, !undoManager.isUndoing, !undoManager.isRedoing {
             if allowsTypingCoalescing /* && processingKeyEvent */ {
@@ -1168,8 +1186,8 @@ open class STTextView: UIScrollView, STTextViewProtocol {
     // Update selected line highlight layer
     func updateSelectedLineHighlight() {
         guard highlightSelectedLine,
-              textLayoutManager.textSelectionsRanges(.withoutInsertionPoints).isEmpty,
-              !textLayoutManager.insertionPointSelections.isEmpty
+            textLayoutManager.textSelectionsRanges(.withoutInsertionPoints).isEmpty,
+            !textLayoutManager.insertionPointSelections.isEmpty
         else {
             // don't highlight when there's selection
             lineHighlightView.isHidden = true
@@ -1183,16 +1201,17 @@ open class STTextView: UIScrollView, STTextViewProtocol {
             // - empty document has no layout fragments, nothing, it's empty and has to be handled explicitly.
             // - there's no layout fragment at the document endLocation (technically it's out of bounds), has to be handled explicitly.
             if let selectionFrame = textLayoutManager.textSegmentFrame(at: textLayoutManager.documentRange.location, type: .standard) {
-                lineHighlightView.frame = CGRect(
-                    origin: CGPoint(
-                        x: 0,
-                        y: selectionFrame.origin.y
-                    ),
-                    size: CGSize(
-                        width: contentView.frame.width,
-                        height: selectionFrame.height
-                    )
-                ).pixelAligned
+                lineHighlightView.frame =
+                    CGRect(
+                        origin: CGPoint(
+                            x: 0,
+                            y: selectionFrame.origin.y
+                        ),
+                        size: CGSize(
+                            width: contentView.frame.width,
+                            height: selectionFrame.height
+                        )
+                    ).pixelAligned
             }
         } else if let viewportRange = textLayoutManager.textViewportLayoutController.viewportRange {
             // build the rectangle out of fragments rectangles
@@ -1208,7 +1227,8 @@ open class STTextView: UIScrollView, STTextViewProtocol {
             // to find the layout fragment and us its frame as highlight area. It has its issue when it comes to the
             // extra line fragment area (sic).
             textLayoutManager.enumerateTextLayoutFragments(in: viewportRange) { layoutFragment in
-                let contentRangeInElement = (layoutFragment.textElement as? NSTextParagraph)?.paragraphContentRange ?? layoutFragment.rangeInElement
+                let contentRangeInElement =
+                    (layoutFragment.textElement as? NSTextParagraph)?.paragraphContentRange ?? layoutFragment.rangeInElement
                 for textLineFragment in layoutFragment.textLineFragments {
 
                     let isLineSelected = STGutterCalculations.isLineSelected(

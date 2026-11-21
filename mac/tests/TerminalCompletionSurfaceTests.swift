@@ -72,7 +72,8 @@ struct TerminalCompletionSurfaceTests {
         AppSettings.shared.preserveTerminalSessions = persistent
         AppSettings.shared.terminalStartupProgram = ""
         AppSettings.shared.shellCompletions = true
-        let session = TerminalSession(initialDirectory: directory.path,
+        let session = TerminalSession(
+            initialDirectory: directory.path,
             additionalEnvironment: ["ZDOTDIR": directory.path, "LC_ALL": "en_US.UTF-8"])
         let view = session.surface
         let window = CompletionTestWindow(contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: false)
@@ -104,7 +105,9 @@ struct TerminalCompletionSurfaceTests {
         func control(_ text: String) {
             if let ghostty = view as? ZshellTerminalView {
                 ghostty.performBindingAction("text:" + text.utf8.map { String(format: "\\x%02x", $0) }.joined())
-            } else { view.sendText(text) }
+            } else {
+                view.sendText(text)
+            }
         }
         func key(_ text: String, code: UInt16) {
             let event = NSEvent.keyEvent(
@@ -129,7 +132,8 @@ struct TerminalCompletionSurfaceTests {
         try wait("shell starts", { session.terminalPromptSelectionIsReady && lines().contains("READY>") })
         try wait("startup input reaches the prompt", { lines().contains("READY> z") })
         guard !lines().contains("z%"),
-              try state().first == "z" else {
+            try state().first == "z"
+        else {
             fputs("FAIL: \(backend) startup input\n\(lines())\n", stderr)
             throw NSError(domain: "StartupInputEcho", code: 1)
         }

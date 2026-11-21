@@ -22,7 +22,8 @@ final class QuickLaunchPanel: NSPanel {
         }
 
         if flags == [.command, .shift],
-           event.charactersIgnoringModifiers?.lowercased() == "n" {
+            event.charactersIgnoringModifiers?.lowercased() == "n"
+        {
             controller.addEntry()
             return true
         }
@@ -109,7 +110,8 @@ final class QuickLaunchPanelController: NSObject {
     /// The entry shown at a table row, or nil for a group header.
     private func entry(atRow row: Int) -> QuickLaunchEntry? {
         guard displayRows.indices.contains(row),
-              case .entry(let entry) = displayRows[row] else { return nil }
+            case .entry(let entry) = displayRows[row]
+        else { return nil }
         return entry
     }
 
@@ -167,7 +169,8 @@ final class QuickLaunchPanelController: NSObject {
     }
 
     private func contentSize() -> NSSize {
-        let listHeight = displayRows.isEmpty
+        let listHeight =
+            displayRows.isEmpty
             ? Self.emptyListHeight
             : min(
                 displayRows.reduce(0) { partial, row in
@@ -249,10 +252,11 @@ final class QuickLaunchPanelController: NSObject {
             comment: "Placeholder of the Quick Launch search field."
         )
         searchField.delegate = self
-        searchField.setAccessibilityLabel(String(
-            localized: "Search quick launch entries…",
-            comment: "Accessibility label of the Quick Launch search field."
-        ))
+        searchField.setAccessibilityLabel(
+            String(
+                localized: "Search quick launch entries…",
+                comment: "Accessibility label of the Quick Launch search field."
+            ))
 
         // Two distinct affordances at the bar's right: the clear glyph is
         // the native search-field "erase" style and only appears while the
@@ -267,10 +271,11 @@ final class QuickLaunchPanelController: NSObject {
         clearButton.contentTintColor = .tertiaryLabelColor
         clearButton.target = self
         clearButton.action = #selector(clearClicked)
-        clearButton.setAccessibilityLabel(String(
-            localized: "Clear Search",
-            comment: "Accessibility label of the Quick Launch search clear button."
-        ))
+        clearButton.setAccessibilityLabel(
+            String(
+                localized: "Clear Search",
+                comment: "Accessibility label of the Quick Launch search clear button."
+            ))
 
         let closeButton = NSButton(
             image: NSImage(
@@ -286,10 +291,11 @@ final class QuickLaunchPanelController: NSObject {
         closeButton.isBordered = false
         closeButton.keyEquivalent = "\u{1b}"
         closeButton.contentTintColor = .secondaryLabelColor
-        closeButton.setAccessibilityLabel(String(
-            localized: "Close",
-            comment: "Accessibility label of the Quick Launch panel's close button."
-        ))
+        closeButton.setAccessibilityLabel(
+            String(
+                localized: "Close",
+                comment: "Accessibility label of the Quick Launch panel's close button."
+            ))
 
         let bar = NSStackView(views: [icon, searchField, clearButton, closeButton])
         bar.orientation = .horizontal
@@ -350,10 +356,11 @@ final class QuickLaunchPanelController: NSObject {
         // Row buttons handle their own clicks; the launch action ignores
         // events arriving after the panel closes, including a second click.
         tableView.action = #selector(tableViewClicked)
-        tableView.setAccessibilityLabel(String(
-            localized: "Quick Launch entries",
-            comment: "Accessibility label of the Quick Launch entry list."
-        ))
+        tableView.setAccessibilityLabel(
+            String(
+                localized: "Quick Launch entries",
+                comment: "Accessibility label of the Quick Launch entry list."
+            ))
 
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("entry"))
         column.width = Self.panelWidth
@@ -413,10 +420,16 @@ final class QuickLaunchPanelController: NSObject {
         // The old footer was static key hints; they are buttons now so every
         // action also has a visible, clickable affordance.
         let hints: [(key: String, label: String, action: Selector)] = [
-            ("↩", String(localized: "Launch", comment: "Quick Launch footer hint: Return launches the selected entry."), #selector(launchClicked)),
+            (
+                "↩", String(localized: "Launch", comment: "Quick Launch footer hint: Return launches the selected entry."),
+                #selector(launchClicked)
+            ),
             ("⌘⇧N", String(localized: "New", comment: "Quick Launch footer hint: ⌘⇧N creates an entry."), #selector(newClicked)),
             ("⌘E", String(localized: "Edit", comment: "Quick Launch footer hint: ⌘E edits the selected entry."), #selector(editClicked)),
-            ("⌘⌫", String(localized: "Delete", comment: "Quick Launch footer hint: ⌘⌫ deletes the selected entry."), #selector(deleteClicked)),
+            (
+                "⌘⌫", String(localized: "Delete", comment: "Quick Launch footer hint: ⌘⌫ deletes the selected entry."),
+                #selector(deleteClicked)
+            ),
         ]
         var views: [NSView] = []
         for hint in hints {
@@ -440,17 +453,19 @@ final class QuickLaunchPanelController: NSObject {
 
         let spacer = NSView()
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        let cliHint = NSTextField(labelWithString: String(
-            localized: "Run: zshell <name>",
-            comment: "Quick Launch footer hint. Keep zshell unchanged; <name> is the saved entry name."
-        ))
+        let cliHint = NSTextField(
+            labelWithString: String(
+                localized: "Run: zshell <name>",
+                comment: "Quick Launch footer hint. Keep zshell unchanged; <name> is the saved entry name."
+            ))
         cliHint.font = .systemFont(ofSize: 11)
         cliHint.textColor = .secondaryLabelColor
         cliHint.alignment = .right
         cliHint.lineBreakMode = .byTruncatingTail
         cliHint.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         cliHint.toolTip = String(
-            localized: "In the Zshell terminal, run zshell followed by the exact entry name. Quote names containing spaces, for example: zshell \"My Command\".",
+            localized:
+                "In the Zshell terminal, run zshell followed by the exact entry name. Quote names containing spaces, for example: zshell \"My Command\".",
             comment: "Explains how to launch a saved Quick Launch entry from the bundled zshell CLI. Keep zshell unchanged."
         )
         cliHint.setAccessibilityHelp(cliHint.toolTip)
@@ -488,7 +503,8 @@ final class QuickLaunchPanelController: NSObject {
         // differs from the panel's. Resolve layer colors in the panel's scope.
         content.effectiveAppearance.performAsCurrentDrawingAppearance {
             layer.backgroundColor = Theme.background.usingColorSpace(.sRGB)?.cgColor
-            layer.borderColor = Theme.divider.usingColorSpace(.sRGB)?
+            layer.borderColor =
+                Theme.divider.usingColorSpace(.sRGB)?
                 .withAlphaComponent(0.5)
                 .cgColor
         }
@@ -527,9 +543,11 @@ final class QuickLaunchPanelController: NSObject {
                 entriesByGroup[group]?.append(entry)
             }
             for group in groupOrder {
-                displayRows.append(.header(group.isEmpty
-                    ? String(localized: "Ungrouped", comment: "Section title for Quick Launch entries without a group.")
-                    : group))
+                displayRows.append(
+                    .header(
+                        group.isEmpty
+                            ? String(localized: "Ungrouped", comment: "Section title for Quick Launch entries without a group.")
+                            : group))
                 displayRows.append(
                     contentsOf: entriesByGroup[group, default: []].map { DisplayRow.entry($0) }
                 )
@@ -552,9 +570,11 @@ final class QuickLaunchPanelController: NSObject {
             var candidate = [entry.name, entry.detail, entry.group]
                 .compactMap { $0 }
                 .joined(separator: " ")
-            guard let score = candidate.withUTF8({ bytes in
-                Self.fuzzyMatcher.score(utf8: bytes, against: fuzzyQuery, buffer: &buffer)?.score
-            }) else { continue }
+            guard
+                let score = candidate.withUTF8({ bytes in
+                    Self.fuzzyMatcher.score(utf8: bytes, against: fuzzyQuery, buffer: &buffer)?.score
+                })
+            else { continue }
             matches.append((entry, score, order))
         }
         matches.sort {
@@ -602,9 +622,10 @@ final class QuickLaunchPanelController: NSObject {
         } else {
             emptyStateView.isHidden = true
             scrollView.isHidden = false
-            let selectedRow = selectedID.flatMap { id in
-                displayRows.indices.first { entry(atRow: $0)?.id == id }
-            }
+            let selectedRow =
+                selectedID.flatMap { id in
+                    displayRows.indices.first { entry(atRow: $0)?.id == id }
+                }
                 ?? displayRows.firstIndex(where: \.isEntry)
             if let selectedRow {
                 tableView.selectRowIndexes(IndexSet(integer: selectedRow), byExtendingSelection: false)
@@ -776,18 +797,20 @@ extension QuickLaunchPanelController: NSTableViewDataSource, NSTableViewDelegate
     ) -> NSView? {
         switch displayRows[row] {
         case .header(let title):
-            let cell = (tableView.makeView(
-                withIdentifier: NSUserInterfaceItemIdentifier("quickLaunchHeader"),
-                owner: nil
-            ) as? QuickLaunchHeaderView) ?? QuickLaunchHeaderView()
+            let cell =
+                (tableView.makeView(
+                    withIdentifier: NSUserInterfaceItemIdentifier("quickLaunchHeader"),
+                    owner: nil
+                ) as? QuickLaunchHeaderView) ?? QuickLaunchHeaderView()
             cell.identifier = NSUserInterfaceItemIdentifier("quickLaunchHeader")
             cell.configure(title: title)
             return cell
         case .entry(let entry):
-            let cell = (tableView.makeView(
-                withIdentifier: NSUserInterfaceItemIdentifier("quickLaunchRow"),
-                owner: nil
-            ) as? QuickLaunchRowView) ?? QuickLaunchRowView()
+            let cell =
+                (tableView.makeView(
+                    withIdentifier: NSUserInterfaceItemIdentifier("quickLaunchRow"),
+                    owner: nil
+                ) as? QuickLaunchRowView) ?? QuickLaunchRowView()
             cell.identifier = NSUserInterfaceItemIdentifier("quickLaunchRow")
             cell.configure(entry: entry)
             cell.onEdit = { [weak self] in self?.editSelectedEntry(entry) }
@@ -859,10 +882,11 @@ private final class QuickLaunchRowView: NSView {
         )
         editButton.isBordered = false
         editButton.contentTintColor = .tertiaryLabelColor
-        editButton.setAccessibilityLabel(String(
-            localized: "Edit",
-            comment: "Accessibility label of a Quick Launch row's edit button."
-        ))
+        editButton.setAccessibilityLabel(
+            String(
+                localized: "Edit",
+                comment: "Accessibility label of a Quick Launch row's edit button."
+            ))
         let deleteButton = NSButton(
             image: NSImage(
                 systemSymbolName: "trash",
@@ -873,10 +897,11 @@ private final class QuickLaunchRowView: NSView {
         )
         deleteButton.isBordered = false
         deleteButton.contentTintColor = .tertiaryLabelColor
-        deleteButton.setAccessibilityLabel(String(
-            localized: "Delete",
-            comment: "Accessibility label of a Quick Launch row's delete button."
-        ))
+        deleteButton.setAccessibilityLabel(
+            String(
+                localized: "Delete",
+                comment: "Accessibility label of a Quick Launch row's delete button."
+            ))
 
         let trailingSpacer = NSView()
         trailingSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)

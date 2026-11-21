@@ -6,7 +6,9 @@ enum ZshellAgentSessionHooks {
     enum HookError: Error, LocalizedError {
         case message(String)
         var errorDescription: String? {
-            switch self { case .message(let message): message }
+            switch self {
+            case .message(let message): message
+            }
         }
     }
 
@@ -100,7 +102,8 @@ enum ZshellAgentSessionHooks {
             let root = provider.installationRoot(homeURL: homeURL, environment: environment)
             var directory: ObjCBool = false
             guard FileManager.default.fileExists(atPath: root.path, isDirectory: &directory),
-                  directory.boolValue else { return nil }
+                directory.boolValue
+            else { return nil }
             if provider == .opencode {
                 return try openCodePlan(root: root, bundle: bundle, installing: installing)
             }
@@ -152,7 +155,8 @@ enum ZshellAgentSessionHooks {
                 var remaining: [[String: Any]] = []
                 for handler in handlers {
                     if let command = handler["command"] as? String,
-                       command == previous[event] {
+                        command == previous[event]
+                    {
                         let expected: [String: Any] = ["type": "command", "command": command, "timeout": 5]
                         guard NSDictionary(dictionary: handler).isEqual(to: expected) else {
                             throw HookError.message(String(localized: "Zshell's integration at \(eventPath) has local changes."))
@@ -170,7 +174,7 @@ enum ZshellAgentSessionHooks {
                 }
             }
             if installing, let hook = requested.first(where: { $0.event == event }) {
-                guard hook.action.utf8.allSatisfy({ (97...122).contains($0) || $0 == 45 || $0 == 95 }) else {
+                guard hook.action.utf8.allSatisfy({ (97 ... 122).contains($0) || $0 == 45 || $0 == 95 }) else {
                     throw HookError.message(String(localized: "Invalid provider hooks at \(eventPath)."))
                 }
                 let command = "/bin/sh \(shellQuote(link.path)) \(provider.rawValue) \(hook.action)"
@@ -181,27 +185,36 @@ enum ZshellAgentSessionHooks {
                 next[event] = command
                 changed = true
             }
-            if kept.isEmpty { events.removeValue(forKey: event) }
-            else { events[event] = kept }
+            if kept.isEmpty { events.removeValue(forKey: event) } else { events[event] = kept }
         }
-        if events.isEmpty { settings.removeValue(forKey: "hooks") }
-        else { settings["hooks"] = events }
+        if events.isEmpty { settings.removeValue(forKey: "hooks") } else { settings["hooks"] = events }
 
         let updated: Data?
         if changed {
-            var serialized = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+            var serialized = try JSONSerialization.data(
+                withJSONObject: settings, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
             serialized.append(0x0A)
             if let original,
-               NSDictionary(dictionary: try object(from: original, path: config.path)).isEqual(to: settings) {
+                NSDictionary(dictionary: try object(from: original, path: config.path)).isEqual(to: settings)
+            {
                 updated = original
-            } else { updated = serialized }
-        } else { updated = original }
-        let title = provider == .codex
-            ? try CodexTitleConfiguration.plan(root: root, previous: manifest?.codexTitle,
-                                              installing: installing, environment: environment) : nil
-        let manifestData = installing
-            ? try JSONEncoder().encode(Manifest(version: 1, provider: provider, commands: next, configFile: nil,
-                                               codexTitle: title?.state))
+            } else {
+                updated = serialized
+            }
+        } else {
+            updated = original
+        }
+        let title =
+            provider == .codex
+            ? try CodexTitleConfiguration.plan(
+                root: root, previous: manifest?.codexTitle,
+                installing: installing, environment: environment) : nil
+        let manifestData =
+            installing
+            ? try JSONEncoder().encode(
+                Manifest(
+                    version: 1, provider: provider, commands: next, configFile: nil,
+                    codexTitle: title?.state))
             : nil
         return Plan(
             configURL: config, original: original, updated: updated,
@@ -223,7 +236,9 @@ enum ZshellAgentSessionHooks {
                 directories: ["AgentIntegrations/opencode", "opencode", nil],
                 marker: "ZSHELL_INTEGRATION_ID=opencode-conversation"
             )
-        } else { source = nil }
+        } else {
+            source = nil
+        }
         if itemExists(link), !isManagedLink(link, sourceURL: source) {
             throw HookError.message(String(localized: "Zshell's integration at \(link.path) has local changes."))
         }
@@ -234,7 +249,9 @@ enum ZshellAgentSessionHooks {
                 throw HookError.message(String(localized: "Zshell's hook manifest at \(manifestURL.path) has local changes."))
             }
             config = match
-        } else { config = candidates.first { itemExists($0) } ?? candidates[1] }
+        } else {
+            config = candidates.first { itemExists($0) } ?? candidates[1]
+        }
         let spec = link.absoluteString
         if let manifest, manifest.commands != ["plugin": spec] {
             throw HookError.message(String(localized: "Zshell's hook manifest at \(manifestURL.path) has local changes."))
@@ -243,9 +260,12 @@ enum ZshellAgentSessionHooks {
         let updated = try JSONCPluginList.updating(
             original ?? Data("{}\n".utf8), spec: spec, installing: installing, path: config.path
         )
-        let manifestData = installing ? try JSONEncoder().encode(Manifest(
-            version: 1, provider: .opencode, commands: ["plugin": spec], configFile: config.path
-        )) : nil
+        let manifestData =
+            installing
+            ? try JSONEncoder().encode(
+                Manifest(
+                    version: 1, provider: .opencode, commands: ["plugin": spec], configFile: config.path
+                )) : nil
         return Plan(
             configURL: config, original: original, updated: original == nil && !installing ? nil : updated,
             linkURL: link, sourceURL: source,
@@ -257,12 +277,14 @@ enum ZshellAgentSessionHooks {
     private static func apply(_ plan: Plan, installing: Bool) throws {
         // Never overwrite a settings edit made since the multi-provider preflight.
         guard try readFileIfPresent(plan.configURL) == plan.original,
-              try readFileIfPresent(plan.manifestURL) == plan.originalManifest else {
+            try readFileIfPresent(plan.manifestURL) == plan.originalManifest
+        else {
             throw HookError.message(String(localized: "\(plan.configURL.path) changed while Zshell was updating hooks."))
         }
         let titleURL = plan.configURL.deletingLastPathComponent().appendingPathComponent("config.toml")
         if let title = plan.codexTitle,
-           try readFileIfPresent(titleURL) != title.original {
+            try readFileIfPresent(titleURL) != title.original
+        {
             throw HookError.message(String(localized: "\(titleURL.path) changed while Zshell was updating hooks."))
         }
         if installing, let source = plan.sourceURL {
@@ -272,8 +294,11 @@ enum ZshellAgentSessionHooks {
             try writeAtomic(updated, to: plan.configURL)
         }
         if let title = plan.codexTitle, title.updated != title.original {
-            if let updated = title.updated { try writeAtomic(updated, to: titleURL) }
-            else if itemExists(titleURL) { try FileManager.default.removeItem(at: titleURL) }
+            if let updated = title.updated {
+                try writeAtomic(updated, to: titleURL)
+            } else if itemExists(titleURL) {
+                try FileManager.default.removeItem(at: titleURL)
+            }
         }
         if let data = plan.manifestData {
             try writeAtomic(data, to: plan.manifestURL, permissions: 0o600)
@@ -292,8 +317,9 @@ enum ZshellAgentSessionHooks {
     ) throws -> URL {
         for subdirectory in directories {
             if let url = bundle.url(forResource: name, withExtension: suffix, subdirectory: subdirectory),
-               let data = try? Data(contentsOf: url),
-               String(decoding: data, as: UTF8.self).contains(marker) {
+                let data = try? Data(contentsOf: url),
+                String(decoding: data, as: UTF8.self).contains(marker)
+            {
                 return url.standardizedFileURL
             }
         }
@@ -303,7 +329,8 @@ enum ZshellAgentSessionHooks {
     private static func readManifest(at url: URL, provider: AgentConversationIdentity.Provider) throws -> Manifest? {
         guard let data = try readFileIfPresent(url) else { return nil }
         guard let manifest = try? JSONDecoder().decode(Manifest.self, from: data),
-              manifest.version == 1, manifest.provider == provider else {
+            manifest.version == 1, manifest.provider == provider
+        else {
             throw HookError.message(String(localized: "Zshell's hook manifest at \(url.path) has local changes."))
         }
         return manifest
@@ -312,7 +339,8 @@ enum ZshellAgentSessionHooks {
     private static func object(from data: Data?, path: String) throws -> [String: Any] {
         guard let data, !data.isEmpty else { return [:] }
         guard data.count <= 1_048_576,
-              let value = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            let value = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
             throw HookError.message(String(localized: "\(path) must be a JSON object."))
         }
         return value
@@ -327,14 +355,13 @@ enum ZshellAgentSessionHooks {
     }
 
     private static func readFileIfPresent(_ url: URL) throws -> Data? {
-        do { return try Data(contentsOf: url) }
-        catch CocoaError.fileReadNoSuchFile { return nil }
-        catch { throw error }
+        do { return try Data(contentsOf: url) } catch CocoaError.fileReadNoSuchFile { return nil } catch { throw error }
     }
 
     private static func isManagedLink(_ url: URL, sourceURL: URL?) -> Bool {
         guard let path = try? FileManager.default.destinationOfSymbolicLink(atPath: url.path) else { return false }
-        let target = path.hasPrefix("/")
+        let target =
+            path.hasPrefix("/")
             ? URL(fileURLWithPath: path)
             : url.deletingLastPathComponent().appendingPathComponent(path)
         if target.standardizedFileURL == sourceURL?.standardizedFileURL { return true }
@@ -413,11 +440,14 @@ enum ZshellAgentSessionHooks {
                     } else if bytes[index + 1] == 42 {
                         index += 2
                         while index + 1 < bytes.count,
-                              !(bytes[index] == 42 && bytes[index + 1] == 47) { index += 1 }
+                            !(bytes[index] == 42 && bytes[index + 1] == 47)
+                        { index += 1 }
                         guard index + 1 < bytes.count else { throw invalid() }
                         index += 2
-                    } else { throw invalid() }
-                    for offset in start..<index where bytes[offset] != 10 && bytes[offset] != 13 {
+                    } else {
+                        throw invalid()
+                    }
+                    for offset in start ..< index where bytes[offset] != 10 && bytes[offset] != 13 {
                         parsed[offset] = 32
                     }
                     continue
@@ -433,12 +463,13 @@ enum ZshellAgentSessionHooks {
                     index += 1
                 } else {
                     while index < bytes.count,
-                          ![9, 10, 13, 32, 44, 58, 91, 93, 123, 125, 47].contains(bytes[index]) {
+                        ![9, 10, 13, 32, 44, 58, 91, 93, 123, 125, 47].contains(bytes[index])
+                    {
                         index += 1
                     }
                     guard index > start else { throw invalid() }
                 }
-                list.append(Token(kind: byte, range: start..<index))
+                list.append(Token(kind: byte, range: start ..< index))
             }
             for position in list.indices.dropLast() where list[position].kind == 44 {
                 if [93, 125].contains(list[position + 1].kind) {
@@ -446,7 +477,8 @@ enum ZshellAgentSessionHooks {
                 }
             }
             guard let object = try? JSONSerialization.jsonObject(with: Data(parsed)) as? [String: Any],
-                  list.first?.kind == 123, list.last?.kind == 125 else { throw invalid() }
+                list.first?.kind == 123, list.last?.kind == 125
+            else { throw invalid() }
             settings = object
             tokens = list
         }
@@ -454,9 +486,8 @@ enum ZshellAgentSessionHooks {
         func endOfValue(_ start: Int) -> Int {
             guard [91, 123].contains(tokens[start].kind) else { return start + 1 }
             var depth = 0
-            for index in start..<tokens.count {
-                if [91, 123].contains(tokens[index].kind) { depth += 1 }
-                else if [93, 125].contains(tokens[index].kind) { depth -= 1 }
+            for index in start ..< tokens.count {
+                if [91, 123].contains(tokens[index].kind) { depth += 1 } else if [93, 125].contains(tokens[index].kind) { depth -= 1 }
                 if depth == 0 { return index + 1 }
             }
             return tokens.count
@@ -466,9 +497,10 @@ enum ZshellAgentSessionHooks {
             var properties: [String: Int] = [:]
             var index = start + 1
             while tokens[index].kind != 125 {
-                let name = try JSONSerialization.jsonObject(
-                    with: Data(bytes[tokens[index].range]), options: .fragmentsAllowed
-                ) as! String
+                let name =
+                    try JSONSerialization.jsonObject(
+                        with: Data(bytes[tokens[index].range]), options: .fragmentsAllowed
+                    ) as! String
                 guard properties[name] == nil else {
                     throw HookError.message(String(localized: "\(path) must be a JSON object."))
                 }
@@ -485,8 +517,9 @@ enum ZshellAgentSessionHooks {
             var object = document.settings
             var properties = try document.properties(at: 0)
             if properties["plugin"] == nil,
-               let nested = properties["tui"], document.tokens[nested].kind == 123,
-               let settings = object["tui"] as? [String: Any] {
+                let nested = properties["tui"], document.tokens[nested].kind == 123,
+                let settings = object["tui"] as? [String: Any]
+            {
                 objectStart = nested
                 object = settings
                 properties = try document.properties(at: nested)
@@ -497,8 +530,9 @@ enum ZshellAgentSessionHooks {
                 let close = document.endOfValue(objectStart) - 1
                 let comma = !properties.isEmpty && document.tokens[close - 1].kind != 44 ? "," : ""
                 var bytes = document.bytes
-                bytes.insert(contentsOf: Array("\(comma)\n  \"plugin\": [".utf8) + encoded + Array("]\n".utf8),
-                             at: document.tokens[close].range.lowerBound)
+                bytes.insert(
+                    contentsOf: Array("\(comma)\n  \"plugin\": [".utf8) + encoded + Array("]\n".utf8),
+                    at: document.tokens[close].range.lowerBound)
                 return Data(bytes)
             }
             guard let plugins = object["plugin"] as? [Any], document.tokens[arrayStart].kind == 91 else {
@@ -509,17 +543,18 @@ enum ZshellAgentSessionHooks {
             var index = arrayStart + 1
             while document.tokens[index].kind != 93 {
                 let end = document.endOfValue(index)
-                items.append(index..<end)
+                items.append(index ..< end)
                 index = end
                 if document.tokens[index].kind == 44 {
                     commas[items.count - 1] = index
                     index += 1
                 }
             }
-            let managed = Set(plugins.indices.filter { item in
-                if plugins[item] as? String == spec { return true }
-                return (plugins[item] as? [Any])?.first as? String == spec
-            })
+            let managed = Set(
+                plugins.indices.filter { item in
+                    if plugins[item] as? String == spec { return true }
+                    return (plugins[item] as? [Any])?.first as? String == spec
+                })
             for item in managed where plugins[item] as? String != spec {
                 throw HookError.message(String(localized: "Zshell's integration at \(path) has local changes."))
             }
@@ -527,20 +562,25 @@ enum ZshellAgentSessionHooks {
                 guard managed.isEmpty else { return data }
                 let comma = !items.isEmpty && commas[items.count - 1] == nil ? "," : ""
                 var bytes = document.bytes
-                bytes.insert(contentsOf: Array("\(comma)\n    ".utf8) + encoded + Array("\n".utf8),
-                             at: document.tokens[index].range.lowerBound)
+                bytes.insert(
+                    contentsOf: Array("\(comma)\n    ".utf8) + encoded + Array("\n".utf8),
+                    at: document.tokens[index].range.lowerBound)
                 return Data(bytes)
             }
             guard !managed.isEmpty else { return data }
             var removed = Set<Int>()
             for item in managed {
-                let range = document.tokens[items[item].lowerBound].range.lowerBound..<document.tokens[items[item].upperBound - 1].range.upperBound
+                let range =
+                    document.tokens[items[item].lowerBound].range.lowerBound
+                    ..< document.tokens[items[item].upperBound - 1].range.upperBound
                 removed.formUnion(range)
             }
             let kept = plugins.indices.filter { !managed.contains($0) }
             let trailingComma = !items.isEmpty && commas[items.count - 1] != nil
-            for (item, comma) in commas where managed.contains(item)
-                || (!trailingComma && item == kept.last) {
+            for (item, comma) in commas
+            where managed.contains(item)
+                || (!trailingComma && item == kept.last)
+            {
                 removed.formUnion(document.tokens[comma].range)
             }
             return Data(document.bytes.enumerated().compactMap { removed.contains($0.offset) ? nil : $0.element })

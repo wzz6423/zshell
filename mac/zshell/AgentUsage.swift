@@ -9,14 +9,15 @@ import Foundation
 nonisolated enum AgentUsagePaths {
     static let applicationSupportDirectory: URL = {
         #if DEBUG
-        let directory = "zshell-dev"
+            let directory = "zshell-dev"
         #else
-        let directory = "zshell"
+            let directory = "zshell"
         #endif
-        let base = FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first ?? FileManager.default.temporaryDirectory
+        let base =
+            FileManager.default.urls(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask
+            ).first ?? FileManager.default.temporaryDirectory
         return base.appendingPathComponent(directory, isDirectory: true)
     }()
 }
@@ -38,8 +39,8 @@ nonisolated enum ProcessRunner {
             let candidate = URL(fileURLWithPath: String(directory)).appendingPathComponent(name)
             var isDirectory: ObjCBool = false
             guard FileManager.default.fileExists(atPath: candidate.path, isDirectory: &isDirectory),
-                  !isDirectory.boolValue,
-                  FileManager.default.isExecutableFile(atPath: candidate.path)
+                !isDirectory.boolValue,
+                FileManager.default.isExecutableFile(atPath: candidate.path)
             else { continue }
             return candidate
         }
@@ -71,16 +72,18 @@ nonisolated enum ProcessRunner {
             let remaining = max(Self.maximumBytes - storage.count, 0)
             if remaining > 0 { storage.append(data.prefix(remaining)) }
             if !sawResponse, let responseID,
-               storage.split(separator: 0x0A).contains(where: {
-                   (try? JSONDecoder().decode(ResponseEnvelope.self, from: $0))?.id == responseID
-               }) {
+                storage.split(separator: 0x0A).contains(where: {
+                    (try? JSONDecoder().decode(ResponseEnvelope.self, from: $0))?.id == responseID
+                })
+            {
                 sawResponse = true
                 responseReady.signal()
             }
             if !sawSecondResponse, let secondResponseID,
-               storage.split(separator: 0x0A).contains(where: {
-                   (try? JSONDecoder().decode(ResponseEnvelope.self, from: $0))?.id == secondResponseID
-               }) {
+                storage.split(separator: 0x0A).contains(where: {
+                    (try? JSONDecoder().decode(ResponseEnvelope.self, from: $0))?.id == secondResponseID
+                })
+            {
                 sawSecondResponse = true
                 secondResponseReady.signal()
             }
@@ -245,9 +248,13 @@ nonisolated enum ProcessRunner {
             if status == 0 || status < 0 && errno == EINTR { continue }
             guard status > 0 else { return }
             let count = Darwin.read(descriptor, &buffer, buffer.count)
-            if count > 0 { data.append(Data(buffer.prefix(count))) }
-            else if count == 0 { return }
-            else if errno != EINTR && errno != EAGAIN { return }
+            if count > 0 {
+                data.append(Data(buffer.prefix(count)))
+            } else if count == 0 {
+                return
+            } else if errno != EINTR && errno != EAGAIN {
+                return
+            }
         }
     }
 }

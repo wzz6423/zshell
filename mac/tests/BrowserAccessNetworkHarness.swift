@@ -18,15 +18,20 @@ struct BrowserAccessNetworkHarness {
             throw BrowserAccessError.message("Requested interface is unavailable.")
         }
         let port = CommandLine.arguments.count > 4 ? Int(CommandLine.arguments[4]) ?? 7443 : 7443
-        let certificate = interface.isLoopback ? nil : try BrowserAccessCertificate.loadOrCreate(
-            directory: root.appendingPathComponent("tls"), address: interface.address)
+        let certificate =
+            interface.isLoopback
+            ? nil
+            : try BrowserAccessCertificate.loadOrCreate(
+                directory: root.appendingPathComponent("tls"), address: interface.address)
         try PTYMuxCommandLine.startDaemonIfNeeded()
         try BrowserAccessMuxCapability.prepare()
         var sessionIDs: [UUID] = []
-        for _ in 0..<2 {
-            let create = try PTYMuxCommandLine.exchange(method: "create", params: [
-                "workingDirectory": .string(root.path), "command": .array([.string("/bin/zsh"), .string("-f")]),
-            ])
+        for _ in 0 ..< 2 {
+            let create = try PTYMuxCommandLine.exchange(
+                method: "create",
+                params: [
+                    "workingDirectory": .string(root.path), "command": .array([.string("/bin/zsh"), .string("-f")]),
+                ])
             sessionIDs.append(UUID(uuidString: create.result!.objectValue!["id"]!.stringValue!)!)
         }
         // Production sessions supply the current renderer theme. The standalone
@@ -36,29 +41,39 @@ struct BrowserAccessNetworkHarness {
         theme.background = 0x111318
         theme.cursor = 0xeeeeee
         withUnsafeMutableBytes(of: &theme.palette) { raw in
-            let colors: [UInt32] = [0x000000, 0xcd0000, 0x00cd00, 0xcdcd00, 0x0000ee, 0xcd00cd, 0x00cdcd, 0xe5e5e5,
-                0x7f7f7f, 0xff0000, 0x00ff00, 0xffff00, 0x5c5cff, 0xff00ff, 0x00ffff, 0xffffff]
+            let colors: [UInt32] = [
+                0x000000, 0xcd0000, 0x00cd00, 0xcdcd00, 0x0000ee, 0xcd00cd, 0x00cdcd, 0xe5e5e5,
+                0x7f7f7f, 0xff0000, 0x00ff00, 0xffff00, 0x5c5cff, 0xff00ff, 0x00ffff, 0xffffff,
+            ]
             let palette = raw.bindMemory(to: UInt32.self)
-            for index in 0..<256 { palette[index] = colors[index % 16] }
+            for index in 0 ..< 256 { palette[index] = colors[index % 16] }
         }
         let encodedTheme = withUnsafeBytes(of: &theme) { Data($0).base64EncodedString() }
         for sessionID in sessionIDs {
-            _ = try PTYMuxCommandLine.exchange(method: "theme", params: ["id": .string(sessionID.uuidString), "theme": .string(encodedTheme)])
+            _ = try PTYMuxCommandLine.exchange(
+                method: "theme", params: ["id": .string(sessionID.uuidString), "theme": .string(encodedTheme)])
         }
         let visibleSessions = sessionIDs
         var assets: [String: (Data, String)] = [:]
-        for file in ["index.html", "browser-access.js", "browser-access.css", "xterm.js", "xterm.css", "addon-fit.js", "addon-unicode11.js"] {
-            assets[file == "index.html" ? "/" : "/" + file] = (try Data(contentsOf: web.appendingPathComponent(file)),
-                file.hasSuffix(".html") ? "text/html; charset=utf-8" : file.hasSuffix(".css") ? "text/css" : "text/javascript")
+        for file in [
+            "index.html", "browser-access.js", "browser-access.css", "xterm.js", "xterm.css", "addon-fit.js", "addon-unicode11.js",
+        ] {
+            assets[file == "index.html" ? "/" : "/" + file] = (
+                try Data(contentsOf: web.appendingPathComponent(file)),
+                file.hasSuffix(".html") ? "text/html; charset=utf-8" : file.hasSuffix(".css") ? "text/css" : "text/javascript"
+            )
         }
-        let server = try BrowserAccessServer(directory: root.appendingPathComponent("authorization"), assets: assets,
+        let server = try BrowserAccessServer(
+            directory: root.appendingPathComponent("authorization"), assets: assets,
             sessions: {
                 visibleSessions.compactMap { sessionID in
                     guard let info = try? PTYMuxCommandLine.exchange(method: "get", params: ["id": .string(sessionID.uuidString)]).result,
-                          info.objectValue?["running"]?.boolValue == true else { return nil }
+                        info.objectValue?["running"]?.boolValue == true
+                    else { return nil }
                     return BrowserAccessSession(id: sessionID, project: "Fixture 中文", title: "zsh")
                 }
-            }, changed: { snapshot in
+            },
+            changed: { snapshot in
                 if let local = snapshot.localURL {
                     output(["type": "endpoint", "url": local.absoluteString, "remoteURL": snapshot.remoteURL?.absoluteString ?? ""])
                 }
@@ -102,11 +117,15 @@ struct BrowserAccessNetworkHarness {
                         }
                     case "inspect":
                         if parts.count == 2,
-                           let value = try? PTYMuxCommandLine.exchange(method: "get", params: [
-                               "id": .string(String(parts[1])), "tailBytes": .number(65_536),
-                           ]).result,
-                           let data = try? JSONEncoder().encode(value),
-                           let info = try? JSONSerialization.jsonObject(with: data) {
+                            let value = try? PTYMuxCommandLine.exchange(
+                                method: "get",
+                                params: [
+                                    "id": .string(String(parts[1])), "tailBytes": .number(65_536),
+                                ]
+                            ).result,
+                            let data = try? JSONEncoder().encode(value),
+                            let info = try? JSONSerialization.jsonObject(with: data)
+                        {
                             output(["type": "inspected", "info": info])
                         }
                     case "quit":

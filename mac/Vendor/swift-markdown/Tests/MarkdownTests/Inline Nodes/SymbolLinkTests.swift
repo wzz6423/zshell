@@ -49,9 +49,9 @@ class SymbolLinkTests: XCTestCase {
 
     func testMultilineSymbolLink() {
         let source = """
-        Test of a ``multi
-        line symbolink``
-        """
+            Test of a ``multi
+            line symbolink``
+            """
         let document = Document(parsing: source, options: .parseSymbolLinks)
         let expectedDump = """
             Document @1:1-2:17

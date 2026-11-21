@@ -43,8 +43,9 @@ final class BrowserWebExtensionManager: NSObject, NSWindowDelegate, NSTableViewD
     }
 
     private func configure() {
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 640, height: 430),
-                            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 430),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.minSize = NSSize(width: 500, height: 340)
         panel.isReleasedWhenClosed = false
         panel.delegate = self
@@ -66,8 +67,10 @@ final class BrowserWebExtensionManager: NSObject, NSWindowDelegate, NSTableViewD
         notice.textColor = .secondaryLabelColor
         status.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         status.textColor = .systemRed
-        for (button, action) in [(installButton, #selector(install)), (enableButton, #selector(toggleEnabled)),
-                                 (permissionsButton, #selector(showPermissions)), (removeButton, #selector(remove))] {
+        for (button, action) in [
+            (installButton, #selector(install)), (enableButton, #selector(toggleEnabled)),
+            (permissionsButton, #selector(showPermissions)), (removeButton, #selector(remove)),
+        ] {
             button.target = self
             button.action = action
             button.bezelStyle = .rounded
@@ -102,7 +105,10 @@ final class BrowserWebExtensionManager: NSObject, NSWindowDelegate, NSTableViewD
         installButton.title = String(localized: "Install Extension…")
         permissionsButton.title = String(localized: "Permissions…")
         removeButton.title = String(localized: "Remove")
-        notice.stringValue = String(localized: "Install compatible WebExtensions from a directory or ZIP. Use the page’s Extensions menu for actions. Reload open pages after changes.")
+        notice.stringValue = String(
+            localized:
+                "Install compatible WebExtensions from a directory or ZIP. Use the page’s Extensions menu for actions. Reload open pages after changes."
+        )
         updateButtons()
         table.reloadData()
     }
@@ -154,9 +160,10 @@ final class BrowserWebExtensionManager: NSObject, NSWindowDelegate, NSTableViewD
                         alert.beginSheetModal(for: panel) { continuation.resume(returning: $0) }
                     }
                     if answer == .alertFirstButtonReturn {
-                        do { try store.install(entry) }
-                        catch { store.discard(entry); throw error }
-                    } else { store.discard(entry) }
+                        do { try store.install(entry) } catch { store.discard(entry); throw error }
+                    } else {
+                        store.discard(entry)
+                    }
                 } catch { self.report(error, store: store) }
             }
         }
@@ -164,8 +171,7 @@ final class BrowserWebExtensionManager: NSObject, NSWindowDelegate, NSTableViewD
 
     @objc private func toggleEnabled() {
         guard let store, let entry = selected else { return }
-        do { try store.setEnabled(!entry.isEnabled, id: entry.id) }
-        catch { report(error, store: store) }
+        do { try store.setEnabled(!entry.isEnabled, id: entry.id) } catch { report(error, store: store) }
     }
 
     @objc private func remove() {
@@ -174,8 +180,7 @@ final class BrowserWebExtensionManager: NSObject, NSWindowDelegate, NSTableViewD
         updateButtons()
         Task { @MainActor in
             defer { installing = false; updateButtons() }
-            do { try await store.remove(id: entry.id) }
-            catch { report(error, store: store) }
+            do { try await store.remove(id: entry.id) } catch { report(error, store: store) }
         }
     }
 
@@ -190,7 +195,10 @@ final class BrowserWebExtensionManager: NSObject, NSWindowDelegate, NSTableViewD
     static func permissionAlert(name: String, details: [String], installing: Bool) -> NSAlert {
         let alert = NSAlert()
         alert.messageText = name
-        alert.informativeText = String(localized: "This extension can use the listed APIs and read or change pages on the listed websites. With activeTab, it can read or change the current page when you invoke its action. Only install extensions you trust.")
+        alert.informativeText = String(
+            localized:
+                "This extension can use the listed APIs and read or change pages on the listed websites. With activeTab, it can read or change the current page when you invoke its action. Only install extensions you trust."
+        )
         let text = NSTextView(frame: NSRect(x: 0, y: 0, width: 440, height: 150))
         text.isEditable = false
         text.isRichText = false
@@ -211,10 +219,12 @@ final class BrowserWebExtensionManager: NSObject, NSWindowDelegate, NSTableViewD
 
     func showOptions(_ context: WKWebExtensionContext, relativeTo window: NSWindow?, runtime: BrowserWebExtensionRuntime) {
         guard let host = AppWindowPresentation.hostWindow(relativeTo: window), let url = context.optionsPageURL,
-              let configuration = context.webViewConfiguration else { return }
+            let configuration = context.webViewConfiguration
+        else { return }
         options?.close()
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 720, height: 500),
-                            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 500),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
         panel.delegate = self
         panel.title = context.webExtension.displayName ?? String(localized: "Options")
@@ -232,7 +242,9 @@ final class BrowserWebExtensionManager: NSObject, NSWindowDelegate, NSTableViewD
     func windowWillClose(_ notification: Notification) {
         if notification.object as? NSWindow === panel { observation = nil }
         if notification.object as? NSWindow === options {
-            options?.contentView?.subviews.compactMap { $0 as? WKWebView }.forEach { $0.stopLoading(); $0.removeFromSuperview() }
+            options?.contentView?.subviews.compactMap { $0 as? WKWebView }.forEach {
+                $0.stopLoading(); $0.removeFromSuperview()
+            }
             options = nil
             optionsRuntime = nil
             optionsContext = nil

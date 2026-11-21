@@ -1,10 +1,10 @@
-use crate::protocol::*;
-use crate::pty::{default_command, Pty};
 use crate::agent::{self, InterruptEvidence, Osc, Records, Report, Scanner, Status};
-use crate::agent_history::{History, Identity, timestamp};
+use crate::agent_history::{timestamp, History, Identity};
 use crate::agent_hooks::Hook;
 use crate::agent_process;
 use crate::codex_binding::{Bindings, TitleEvidence};
+use crate::protocol::*;
+use crate::pty::{default_command, Pty};
 use crate::terminal::Terminal;
 use crate::transport::{project_path, Stream};
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -175,8 +175,13 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn spawn(request: &Frame, state_path: &std::path::Path, history: Arc<History>, bindings: Arc<Bindings>,
-        registry: std::sync::Weak<Mutex<HashMap<String, Arc<Session>>>>) -> io::Result<Arc<Self>> {
+    pub fn spawn(
+        request: &Frame,
+        state_path: &std::path::Path,
+        history: Arc<History>,
+        bindings: Arc<Bindings>,
+        registry: std::sync::Weak<Mutex<HashMap<String, Arc<Session>>>>,
+    ) -> io::Result<Arc<Self>> {
         let id = request
             .session_id
             .as_deref()
@@ -190,10 +195,27 @@ impl Session {
                 .as_deref()
                 .ok_or_else(|| invalid("A project directory is required"))?,
         )?;
-        let working_directory = request.working_directory.as_deref().map(project_path).transpose()?.unwrap_or_else(|| project.clone());
-        if !std::path::Path::new(&working_directory).starts_with(&project) { return Err(invalid("Remote working directory belongs to a different project")); }
-        let fork_source = request.provider.as_deref().zip(request.conversation_id.as_deref())
-            .map(|(provider, id)| history.find(&project, provider, id).map(|record| record.identity)).transpose()?;
+        let working_directory = request
+            .working_directory
+            .as_deref()
+            .map(project_path)
+            .transpose()?
+            .unwrap_or_else(|| project.clone());
+        if !std::path::Path::new(&working_directory).starts_with(&project) {
+            return Err(invalid(
+                "Remote working directory belongs to a different project",
+            ));
+        }
+        let fork_source = request
+            .provider
+            .as_deref()
+            .zip(request.conversation_id.as_deref())
+            .map(|(provider, id)| {
+                history
+                    .find(&project, provider, id)
+                    .map(|record| record.identity)
+            })
+            .transpose()?;
         let (columns, rows) = request.dimensions()?;
         let mut command = request
             .command
@@ -223,7 +245,10 @@ impl Session {
             ));
         }
         let mut environment = request.environment.clone().unwrap_or_default();
-        if fork_source.as_ref().is_some_and(|identity| identity.provider == "codex") {
+        if fork_source
+            .as_ref()
+            .is_some_and(|identity| identity.provider == "codex")
+        {
             // A server may inherit its parent's thread ID; the new native
             // fork owns a different thread and must report that identity.
             environment.insert("CODEX_THREAD_ID".into(), String::new());
@@ -244,16 +269,29 @@ impl Session {
             && request.command.as_ref().is_none_or(Vec::is_empty)
         {
             crate::shell_completions::Integration::prepare(state_path, &mut environment)?
-        } else { None };
+        } else {
+            None
+        };
         let hook_token = new_id()? + &new_id()?;
-        for (key, value) in [("ZSHELL_AUTOMATION", "1".into()), ("ZSHELL_AUTOMATION_TOKEN", hook_token.clone()),
-            ("ZSHELL_TERMINAL_ID", id.to_ascii_lowercase()), ("ZSHELL_REMOTE_PROJECT", project.clone()),
-            ("ZSHELL_REMOTE_STATE", state_path.to_string_lossy().into_owned()),
-            ("ZSHELL_EXECUTABLE", std::env::current_exe()?.to_string_lossy().into_owned())] {
+        for (key, value) in [
+            ("ZSHELL_AUTOMATION", "1".into()),
+            ("ZSHELL_AUTOMATION_TOKEN", hook_token.clone()),
+            ("ZSHELL_TERMINAL_ID", id.to_ascii_lowercase()),
+            ("ZSHELL_REMOTE_PROJECT", project.clone()),
+            (
+                "ZSHELL_REMOTE_STATE",
+                state_path.to_string_lossy().into_owned(),
+            ),
+            (
+                "ZSHELL_EXECUTABLE",
+                std::env::current_exe()?.to_string_lossy().into_owned(),
+            ),
+        ] {
             environment.insert(key.into(), value);
         }
         let terminal = Terminal::new(columns, rows)?;
-        let (pty, mut child) = Pty::spawn(&command, &working_directory, environment, columns, rows)?;
+        let (pty, mut child) =
+            Pty::spawn(&command, &working_directory, environment, columns, rows)?;
         let info = SessionInfo {
             session_id: id.to_ascii_lowercase(),
             project,
@@ -270,7 +308,10 @@ impl Session {
             client_count: 0,
             active_client_id: None,
             total_output_bytes: 0,
-            agent_status: Status { phase: "idle".into(), ..Status::default() },
+            agent_status: Status {
+                phase: "idle".into(),
+                ..Status::default()
+            },
             conversation: None,
             profile_context: crate::profile_context::snapshot(pty.pid()),
         };
@@ -333,7 +374,9 @@ impl Session {
             state.records.drop_live();
             state.info.agent_status = state.records.status();
             if let Some(identity) = state.info.conversation.take() {
-                let _ = reaper_session.history.ended(&identity, &state.info.session_id);
+                let _ = reaper_session
+                    .history
+                    .ended(&identity, &state.info.session_id);
             }
             state.agent_owner = None;
             let mut frame = Frame::new("exited");
@@ -357,44 +400,80 @@ impl Session {
     fn refresh_profile_context(&self, state: &mut State) {
         if state.info.running {
             state.info.profile_context = crate::profile_context::snapshot(
-                self.pty.foreground_pid().unwrap_or(state.info.pid)
+                self.pty.foreground_pid().unwrap_or(state.info.pid),
             );
         }
     }
 
     pub fn accept_hook(&self, hook: &Hook, peer_pid: Option<i32>) -> io::Result<()> {
-        let peer_pid = peer_pid.ok_or_else(|| invalid("Native Agent hooks require local process credentials"))?;
-        if hook.token != self.hook_token || hook.token.len() != 72 || !self.pty.owns_process(peer_pid) {
+        let peer_pid = peer_pid
+            .ok_or_else(|| invalid("Native Agent hooks require local process credentials"))?;
+        if hook.token != self.hook_token
+            || hook.token.len() != 72
+            || !self.pty.owns_process(peer_pid)
+        {
             return Err(invalid("Agent hook belongs to another terminal"));
         }
         let mut state = self.state.lock().unwrap();
-        if !state.info.running || self.terminating.load(Ordering::Acquire) { return Err(invalid("Remote Agent terminal has exited")); }
-        let root = agent_process::root_agent(peer_pid, hook.reporter_pid, state.info.pid, self.pty.foreground_pid(), &hook.provider)
-            .ok_or_else(|| invalid("Only the foreground root Agent can report this terminal"))?;
-        let owner = agent_process::process(root).ok_or_else(|| invalid("Remote Agent process has exited"))?;
+        if !state.info.running || self.terminating.load(Ordering::Acquire) {
+            return Err(invalid("Remote Agent terminal has exited"));
+        }
+        let root = agent_process::root_agent(
+            peer_pid,
+            hook.reporter_pid,
+            state.info.pid,
+            self.pty.foreground_pid(),
+            &hook.provider,
+        )
+        .ok_or_else(|| invalid("Only the foreground root Agent can report this terminal"))?;
+        let owner = agent_process::process(root)
+            .ok_or_else(|| invalid("Remote Agent process has exited"))?;
         let record = hook.record(&state.info.agent_status.phase)?;
-        if hook.event != "SessionStart" && hook.conversation_id.as_deref().is_some_and(|id|
-            state.info.conversation.as_ref().is_some_and(|identity| identity.provider != hook.provider || identity.session_id != id)) {
-            return Err(invalid("Agent lifecycle belongs to a different conversation"));
+        if hook.event != "SessionStart"
+            && hook.conversation_id.as_deref().is_some_and(|id| {
+                state.info.conversation.as_ref().is_some_and(|identity| {
+                    identity.provider != hook.provider || identity.session_id != id
+                })
+            })
+        {
+            return Err(invalid(
+                "Agent lifecycle belongs to a different conversation",
+            ));
         }
         if let Some(identity) = &hook.identity {
             identity.validate()?;
             let directory = project_path(&identity.working_directory)?;
-            if identity.provider != hook.provider || !std::path::Path::new(&directory).starts_with(&state.info.project) {
+            if identity.provider != hook.provider
+                || !std::path::Path::new(&directory).starts_with(&state.info.project)
+            {
                 return Err(invalid("Agent conversation belongs to a different project"));
             }
-            if state.fork_source.as_ref().is_some_and(|source| !source.accepts_fork(identity)) {
-                return Err(invalid("The fork must report an independent provider conversation"));
+            if state
+                .fork_source
+                .as_ref()
+                .is_some_and(|source| !source.accepts_fork(identity))
+            {
+                return Err(invalid(
+                    "The fork must report an independent provider conversation",
+                ));
             }
             state.fork_source = None;
             if let Some(previous) = &state.info.conversation {
-                if previous != identity { self.history.ended(previous, &state.info.session_id)?; }
+                if previous != identity {
+                    self.history.ended(previous, &state.info.session_id)?;
+                }
             }
-            self.history.note(identity.clone(), &state.info.project, &state.info.session_id)?;
+            self.history.note(
+                identity.clone(),
+                &state.info.project,
+                &state.info.session_id,
+            )?;
             state.info.conversation = Some(identity.clone());
         }
         if hook.event == "SessionEnd" && hook.task_id.is_none() {
-            if let Some(previous) = state.info.conversation.take() { self.history.ended(&previous, &state.info.session_id)?; }
+            if let Some(previous) = state.info.conversation.take() {
+                self.history.ended(&previous, &state.info.session_id)?;
+            }
         }
         state.agent_owner = Some((root, owner.started));
         state.shared_codex = false;
@@ -408,39 +487,83 @@ impl Session {
     pub fn codex_title_evidence(&self) -> Option<TitleEvidence> {
         let state = self.state.lock().unwrap();
         let (title, owner) = state.codex_title.as_ref()?;
-        if state.fork_source.as_ref().is_some_and(|source| title.matches(&source.session_id)) { return None; }
+        if state
+            .fork_source
+            .as_ref()
+            .is_some_and(|source| title.matches(&source.session_id))
+        {
+            return None;
+        }
         (state.info.running
-            && agent_process::foreground_agent(state.info.pid, self.pty.foreground_pid(), "codex").as_ref() == Some(owner)
-            && self.pty.owns_process(owner.0)).then(|| title.clone())
+            && agent_process::foreground_agent(state.info.pid, self.pty.foreground_pid(), "codex")
+                .as_ref()
+                == Some(owner)
+            && self.pty.owns_process(owner.0))
+        .then(|| title.clone())
     }
 
-    pub fn sync_shared_codex(&self, identity: &Identity, service: (i32, u64), records: &Records, revision: u64, ending: bool) -> io::Result<()> {
+    pub fn sync_shared_codex(
+        &self,
+        identity: &Identity,
+        service: (i32, u64),
+        records: &Records,
+        revision: u64,
+        ending: bool,
+    ) -> io::Result<()> {
         let mut state = self.state.lock().unwrap();
-        let Some((title, owner)) = state.codex_title.as_ref() else { return Err(invalid("Remote Codex TUI title is unavailable")); };
+        let Some((title, owner)) = state.codex_title.as_ref() else {
+            return Err(invalid("Remote Codex TUI title is unavailable"));
+        };
         let owner = *owner;
-        if !title.matches(&identity.session_id) || identity.provider != "codex" || !state.info.running
-            || agent_process::foreground_agent(state.info.pid, self.pty.foreground_pid(), "codex") != Some(owner)
-            || !self.pty.owns_process(owner.0) { return Err(invalid("Remote Codex TUI no longer owns its title")); }
+        if !title.matches(&identity.session_id)
+            || identity.provider != "codex"
+            || !state.info.running
+            || agent_process::foreground_agent(state.info.pid, self.pty.foreground_pid(), "codex")
+                != Some(owner)
+            || !self.pty.owns_process(owner.0)
+        {
+            return Err(invalid("Remote Codex TUI no longer owns its title"));
+        }
         let directory = project_path(&identity.working_directory)?;
-        if !std::path::Path::new(&directory).starts_with(&state.info.project) { return Err(invalid("Shared Agent conversation belongs to a different project")); }
-        if state.fork_source.as_ref().is_some_and(|source| !source.accepts_fork(identity)) {
-            return Err(invalid("The fork must report an independent provider conversation"));
+        if !std::path::Path::new(&directory).starts_with(&state.info.project) {
+            return Err(invalid(
+                "Shared Agent conversation belongs to a different project",
+            ));
+        }
+        if state
+            .fork_source
+            .as_ref()
+            .is_some_and(|source| !source.accepts_fork(identity))
+        {
+            return Err(invalid(
+                "The fork must report an independent provider conversation",
+            ));
         }
         state.fork_source = None;
         if state.info.conversation.as_ref() != Some(identity) || state.agent_owner != Some(owner) {
-            if let Some(previous) = &state.info.conversation { self.history.ended(previous, &state.info.session_id)?; }
-            self.history.note(identity.clone(), &state.info.project, &state.info.session_id)?;
+            if let Some(previous) = &state.info.conversation {
+                self.history.ended(previous, &state.info.session_id)?;
+            }
+            self.history.note(
+                identity.clone(),
+                &state.info.project,
+                &state.info.session_id,
+            )?;
             state.info.conversation = Some(identity.clone());
             state.agent_owner = Some(owner);
             state.shared_codex = true;
         }
-        if state.shared_codex_revision == Some(revision) { return Ok(()); }
+        if state.shared_codex_revision == Some(revision) {
+            return Ok(());
+        }
         state.shared_codex_revision = Some(revision);
         state.shared_codex_service = Some(service);
         state.records.replace(records);
         state.info.agent_status = state.records.status();
         if ending {
-            if let Some(previous) = state.info.conversation.take() { self.history.ended(&previous, &state.info.session_id)?; }
+            if let Some(previous) = state.info.conversation.take() {
+                self.history.ended(&previous, &state.info.session_id)?;
+            }
             state.codex_title = None;
             state.shared_codex = false;
             state.shared_codex_revision = None;
@@ -453,30 +576,52 @@ impl Session {
 
     pub fn clear_shared_codex(&self) {
         let mut state = self.state.lock().unwrap();
-        if !state.shared_codex { return; }
+        if !state.shared_codex {
+            return;
+        }
         state.shared_codex = false;
         state.shared_codex_revision = None;
         state.shared_codex_service = None;
         state.records.reset();
         state.info.agent_status = state.records.status();
-        if let Some(previous) = state.info.conversation.take() { let _ = self.history.ended(&previous, &state.info.session_id); }
+        if let Some(previous) = state.info.conversation.take() {
+            let _ = self.history.ended(&previous, &state.info.session_id);
+        }
         state.agent_owner = None;
         broadcast_state(&state);
     }
 
     fn refresh_agent_owner(&self, state: &mut State) {
-        let Some((pid, started)) = state.agent_owner else { return; };
+        let Some((pid, started)) = state.agent_owner else {
+            return;
+        };
         if agent_process::process(pid).is_some_and(|process| process.started == started)
-            && (!state.shared_codex || (state.codex_title.as_ref().is_some_and(|(_, owner)|
-                *owner == (pid, started) && agent_process::foreground_agent(state.info.pid, self.pty.foreground_pid(), "codex") == Some(*owner))
-                && state.shared_codex_service.is_some_and(|(service, started)| agent_process::process(service).is_some_and(|process| process.started == started)))) { return; }
+            && (!state.shared_codex
+                || (state.codex_title.as_ref().is_some_and(|(_, owner)| {
+                    *owner == (pid, started)
+                        && agent_process::foreground_agent(
+                            state.info.pid,
+                            self.pty.foreground_pid(),
+                            "codex",
+                        ) == Some(*owner)
+                }) && state
+                    .shared_codex_service
+                    .is_some_and(|(service, started)| {
+                        agent_process::process(service)
+                            .is_some_and(|process| process.started == started)
+                    })))
+        {
+            return;
+        }
         state.agent_owner = None;
         state.shared_codex = false;
         state.shared_codex_revision = None;
         state.shared_codex_service = None;
         state.records.drop_live();
         state.info.agent_status = state.records.status();
-        if let Some(identity) = state.info.conversation.take() { let _ = self.history.ended(&identity, &state.info.session_id); }
+        if let Some(identity) = state.info.conversation.take() {
+            let _ = self.history.ended(&identity, &state.info.session_id);
+        }
         broadcast_state(state);
     }
 
@@ -506,18 +651,24 @@ impl Session {
     /// attach registers clients with, so no client can join it afterwards.
     pub fn try_evict(&self) -> bool {
         let mut state = self.state.lock().unwrap();
-        if state.info.running || !state.clients.is_empty() || state.evicted { return false; }
+        if state.info.running || !state.clients.is_empty() || state.evicted {
+            return false;
+        }
         state.evicted = true;
         true
     }
 
-    pub fn restore_eviction(&self) { self.state.lock().unwrap().evicted = false; }
+    pub fn restore_eviction(&self) {
+        self.state.lock().unwrap().evicted = false;
+    }
 
     pub fn attach(&self, attachment: Arc<Attachment>, request: &Frame) -> io::Result<()> {
         let (columns, rows) = request.dimensions()?;
         let mut state = self.state.lock().unwrap();
         if state.evicted {
-            return Err(invalid("Remote session is unavailable; create a new session explicitly"));
+            return Err(invalid(
+                "Remote session is unavailable; create a new session explicitly",
+            ));
         }
         if let Some(previous) = state.clients.remove(&attachment.id) {
             previous.attachment.disconnect();
@@ -618,16 +769,28 @@ impl Session {
                     && state.info.active_client_id.as_deref() == Some(&attachment.id)
                 {
                     state.pending_interrupt = None;
-                    let owner = state.agent_owner.filter(|owner|
+                    let owner = state.agent_owner.filter(|owner| {
                         InterruptEvidence::is_interrupt_input(&bytes)
-                        && !state.shared_codex && state.records.has_working_native("claude")
-                        && state.info.agent_status.phase != "blocked"
-                        && agent_process::foreground_agent(state.info.pid, self.pty.foreground_pid(), "claude") == Some(*owner));
+                            && !state.shared_codex
+                            && state.records.has_working_native("claude")
+                            && state.info.agent_status.phase != "blocked"
+                            && agent_process::foreground_agent(
+                                state.info.pid,
+                                self.pty.foreground_pid(),
+                                "claude",
+                            ) == Some(*owner)
+                    });
                     if let Some(owner) = owner {
                         if InterruptEvidence::claude_working(&state.terminal.viewport_footer()) {
                             state.pending_interrupt = Some(PendingInterrupt {
-                                owner, conversation_id: state.info.conversation.as_ref().map(|identity| identity.session_id.clone()),
-                                generation: state.records.native_generation(), deadline: Instant::now() + Duration::from_secs(10),
+                                owner,
+                                conversation_id: state
+                                    .info
+                                    .conversation
+                                    .as_ref()
+                                    .map(|identity| identity.session_id.clone()),
+                                generation: state.records.native_generation(),
+                                deadline: Instant::now() + Duration::from_secs(10),
                                 evidence: InterruptEvidence::default(),
                             });
                         }
@@ -706,18 +869,35 @@ impl Session {
     }
 
     fn refresh_agent_interrupt(&self, state: &mut State) {
-        let Some(mut pending) = state.pending_interrupt.take() else { return; };
-        if Instant::now() >= pending.deadline || state.shared_codex
+        let Some(mut pending) = state.pending_interrupt.take() else {
+            return;
+        };
+        if Instant::now() >= pending.deadline
+            || state.shared_codex
             || state.agent_owner != Some(pending.owner)
             || state.records.native_generation() != pending.generation
-            || state.info.conversation.as_ref().map(|identity| &identity.session_id) != pending.conversation_id.as_ref()
-            || agent_process::foreground_agent(state.info.pid, self.pty.foreground_pid(), "claude") != Some(pending.owner) { return; }
-        if pending.evidence.confirms_claude_idle(&state.terminal.viewport_footer(), Instant::now()) {
+            || state
+                .info
+                .conversation
+                .as_ref()
+                .map(|identity| &identity.session_id)
+                != pending.conversation_id.as_ref()
+            || agent_process::foreground_agent(state.info.pid, self.pty.foreground_pid(), "claude")
+                != Some(pending.owner)
+        {
+            return;
+        }
+        if pending
+            .evidence
+            .confirms_claude_idle(&state.terminal.viewport_footer(), Instant::now())
+        {
             if state.records.interrupt_native("claude", pending.generation) {
                 state.info.agent_status = state.records.status();
                 broadcast_state(state);
             }
-        } else { state.pending_interrupt = Some(pending); }
+        } else {
+            state.pending_interrupt = Some(pending);
+        }
     }
 
     fn read_output(&self) {
@@ -743,18 +923,40 @@ impl Session {
                 let previous = state.info.agent_status.clone();
                 for event in state.scanner.scan(bytes) {
                     match event {
-                        Osc::Reset => { state.records.reset(); state.codex_title = None; state.terminal_title = None; changed_codex_title = true; }
+                        Osc::Reset => {
+                            state.records.reset();
+                            state.codex_title = None;
+                            state.terminal_title = None;
+                            changed_codex_title = true;
+                        }
                         Osc::Title(bytes) => {
-                            state.terminal_title = std::str::from_utf8(&bytes).ok()
-                                .filter(|title| agent::valid_text(title, 4096)).map(str::to_owned);
-                            let title = state.terminal_title.as_deref().and_then(TitleEvidence::parse)
-                                .and_then(|title| agent_process::foreground_agent(state.info.pid, self.pty.foreground_pid(), "codex").map(|owner| (title, owner)));
-                            if state.codex_title != title { state.codex_title = title; changed_codex_title = true; }
+                            state.terminal_title = std::str::from_utf8(&bytes)
+                                .ok()
+                                .filter(|title| agent::valid_text(title, 4096))
+                                .map(str::to_owned);
+                            let title = state
+                                .terminal_title
+                                .as_deref()
+                                .and_then(TitleEvidence::parse)
+                                .and_then(|title| {
+                                    agent_process::foreground_agent(
+                                        state.info.pid,
+                                        self.pty.foreground_pid(),
+                                        "codex",
+                                    )
+                                    .map(|owner| (title, owner))
+                                });
+                            if state.codex_title != title {
+                                state.codex_title = title;
+                                changed_codex_title = true;
+                            }
                         }
                         Osc::Body(body) if body.starts_with(b"7501;") => {
                             if let Ok(body) = std::str::from_utf8(&body[5..]) {
                                 match agent::parse_status(body, (timestamp() * 1000.0) as u64) {
-                                    Some(Report::Query) => { let _ = self.queue_input(agent::QUERY_REPLY.to_vec()); }
+                                    Some(Report::Query) => {
+                                        let _ = self.queue_input(agent::QUERY_REPLY.to_vec());
+                                    }
                                     Some(Report::Record(record)) => state.records.apply(record),
                                     None => {}
                                 }
@@ -762,7 +964,9 @@ impl Session {
                         }
                         Osc::Body(body) if body.starts_with(b"133;A") => {
                             state.records.drop_live();
-                            if let Some(identity) = state.info.conversation.take() { let _ = self.history.ended(&identity, &state.info.session_id); }
+                            if let Some(identity) = state.info.conversation.take() {
+                                let _ = self.history.ended(&identity, &state.info.session_id);
+                            }
                             state.agent_owner = None;
                             state.codex_title = None;
                             changed_codex_title = true;
@@ -782,12 +986,16 @@ impl Session {
                 for client in state.clients.values() {
                     client.attachment.send(frame.clone(), false);
                 }
-                if previous != state.info.agent_status { broadcast_state(&state); }
+                if previous != state.info.agent_status {
+                    broadcast_state(&state);
+                }
             }
-            if changed_codex_title { if let Some(registry) = self.registry.upgrade() {
-                let sessions: Vec<_> = registry.lock().unwrap().values().cloned().collect();
-                self.bindings.reconcile(&sessions);
-            } }
+            if changed_codex_title {
+                if let Some(registry) = self.registry.upgrade() {
+                    let sessions: Vec<_> = registry.lock().unwrap().values().cloned().collect();
+                    self.bindings.reconcile(&sessions);
+                }
+            }
         }
     }
 

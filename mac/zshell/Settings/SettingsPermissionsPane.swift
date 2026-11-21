@@ -22,38 +22,42 @@ final class SettingsPermissionsPane: SettingsPaneViewController {
     }
 
     override func makeGroups() -> [NSView] {
-        [SettingsGroup(rows: SettingsPermission.allCases.map { permission in
-            let control = SettingsPermissionControl(status: coordinator.statuses[permission] ?? .unavailable) { [weak self] in
-                self?.coordinator.performAction(for: permission)
-            }
-            control.button.setAccessibilityIdentifier("permission-\(permission.rawValue)")
-            let row = SettingsRow(
-                title: permission.title, description: permission.explanation, control: control,
-                symbolName: permission.symbolName, symbolColor: SettingsCategory.permissions.iconColor
-            )
-            rows[permission] = row
-            controls[permission] = control
-            return row
-        })]
+        [
+            SettingsGroup(
+                rows: SettingsPermission.allCases.map { permission in
+                    let control = SettingsPermissionControl(status: coordinator.statuses[permission] ?? .unavailable) { [weak self] in
+                        self?.coordinator.performAction(for: permission)
+                    }
+                    control.button.setAccessibilityIdentifier("permission-\(permission.rawValue)")
+                    let row = SettingsRow(
+                        title: permission.title, description: permission.explanation, control: control,
+                        symbolName: permission.symbolName, symbolColor: SettingsCategory.permissions.iconColor
+                    )
+                    rows[permission] = row
+                    controls[permission] = control
+                    return row
+                })
+        ]
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         coordinator.onOpenSettings = { [weak self] permission in
             guard let self else { return }
-            if permission.supportsAppDrop { self.dragHelper.show() }
-            else { self.dragHelper.hide() }
+            if permission.supportsAppDrop { self.dragHelper.show() } else { self.dragHelper.hide() }
         }
         observe(coordinator.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.sync() })
-        observe(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification).sink { [weak self] _ in
-            guard let self, self.view.window?.isVisible == true, self.view.superview != nil else { return }
-            self.coordinator.refresh()
-        })
-        observe(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification).sink { [weak self] notification in
-            guard let self, notification.object as? NSWindow === self.view.window else { return }
-            self.dragHelper.hide()
-            self.coordinator.deactivate()
-        })
+        observe(
+            NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification).sink { [weak self] _ in
+                guard let self, self.view.window?.isVisible == true, self.view.superview != nil else { return }
+                self.coordinator.refresh()
+            })
+        observe(
+            NotificationCenter.default.publisher(for: NSWindow.willCloseNotification).sink { [weak self] notification in
+                guard let self, notification.object as? NSWindow === self.view.window else { return }
+                self.dragHelper.hide()
+                self.coordinator.deactivate()
+            })
         sync()
     }
 

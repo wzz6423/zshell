@@ -108,7 +108,10 @@ fileprivate struct MarkupConverterState {
     private(set) var headerSeen: Bool
     private(set) var pendingTableBody: PendingTableBody?
 
-    init(source: URL?, iterator: UnsafeMutablePointer<cmark_iter>?, event: cmark_event_type, node: UnsafeMutablePointer<cmark_node>?, options: ParseOptions, headerSeen: Bool, pendingTableBody: PendingTableBody?) {
+    init(
+        source: URL?, iterator: UnsafeMutablePointer<cmark_iter>?, event: cmark_event_type, node: UnsafeMutablePointer<cmark_node>?,
+        options: ParseOptions, headerSeen: Bool, pendingTableBody: PendingTableBody?
+    ) {
         self.source = source
         self.iterator = iterator
         self.event = event
@@ -127,8 +130,9 @@ fileprivate struct MarkupConverterState {
             }
         case (CMARK_EVENT_EXIT, .table):
             if let endOfTable = self.range(self.node)?.upperBound,
-               let pendingTableRange = self.pendingTableBody?.range {
-                self.pendingTableBody?.range = pendingTableRange.lowerBound..<endOfTable
+                let pendingTableRange = self.pendingTableBody?.range
+            {
+                self.pendingTableBody?.range = pendingTableRange.lowerBound ..< endOfTable
             }
         default:
             break
@@ -139,7 +143,9 @@ fileprivate struct MarkupConverterState {
     func next(clearPendingTableBody: Bool = false) -> MarkupConverterState {
         let newEvent = cmark_iter_next(iterator)
         let newNode = cmark_iter_get_node(iterator)
-        return MarkupConverterState(source: source, iterator: iterator, event: newEvent, node: newNode, options: options, headerSeen: clearPendingTableBody ? false : headerSeen, pendingTableBody: clearPendingTableBody ? nil : pendingTableBody)
+        return MarkupConverterState(
+            source: source, iterator: iterator, event: newEvent, node: newNode, options: options,
+            headerSeen: clearPendingTableBody ? false : headerSeen, pendingTableBody: clearPendingTableBody ? nil : pendingTableBody)
     }
 
     /// The type of the last parsed cmark node.
@@ -177,27 +183,27 @@ fileprivate struct MarkupConverterState {
 
         // Sometimes the cmark range is invalid (rdar://73376719)
         guard start <= end else { return nil }
-        return start..<end
+        return start ..< end
     }
 }
 
 /// Parses markup source and returns a `Markup` node representing the parsed source.
 struct MarkupParser {
-    
+
     /// Represents an active container node while iteratively converting the
     /// cmark AST into `RawMarkup`.
     private struct ParsingFrame {
-        
+
         /// The underlying cmark node associated with this frame.
         let node: UnsafeMutablePointer<cmark_node>
-        
+
         /// Cached node type to avoid repeated string conversions while the
         /// frame remains on the work stack.
         let nodeType: CommonMarkNodeType
-        
+
         /// Source range reported by cmark for this node.
         let parsedRange: SourceRange?
-        
+
         /// Converted child nodes accumulated between ENTER and EXIT events.
         var children: [RawMarkup] = []
     }
@@ -264,8 +270,9 @@ struct MarkupParser {
         let parsedRange = state.range(state.node)
         let literalContent = getLiteralContent(node: state.node)
         if state.options.contains(.parseSymbolLinks),
-           cmark_node_get_backtick_count(state.node) > 1,
-           !literalContent.contains("`") {
+            cmark_node_get_backtick_count(state.node) > 1,
+            !literalContent.contains("`")
+        {
             return .symbolLink(parsedRange: parsedRange, destination: literalContent)
         } else {
             return .inlineCode(parsedRange: parsedRange, code: literalContent)
@@ -360,7 +367,9 @@ struct MarkupParser {
         case .link:
             let destination = String(cString: cmark_node_get_url(node))
             let title = String(cString: cmark_node_get_title(node))
-            return .link(destination: destination.isEmpty ? nil : destination, title: title.isEmpty ? nil : title, parsedRange: parsedRange, children)
+            return .link(
+                destination: destination.isEmpty ? nil : destination, title: title.isEmpty ? nil : title, parsedRange: parsedRange, children
+            )
         case .image:
             let source = String(cString: cmark_node_get_url(node))
             let title = String(cString: cmark_node_get_title(node))
@@ -372,7 +381,7 @@ struct MarkupParser {
             return .listItem(checkbox: checkbox, parsedRange: parsedRange, children)
         case .table:
             let columnCount = Int(cmark_gfm_extensions_get_table_columns(node))
-            let columnAlignments = (0..<columnCount).map { column -> Table.ColumnAlignment? in
+            let columnAlignments = (0 ..< columnCount).map { column -> Table.ColumnAlignment? in
                 let ascii = cmark_gfm_extensions_get_table_alignments(node)[column]
                 switch UnicodeScalar(ascii) {
                 case "l": return .left
@@ -424,16 +433,19 @@ struct MarkupParser {
         if !options.contains(.disableSourcePosOpts) {
             cmarkOptions |= CMARK_OPT_SOURCEPOS
         }
-        
+
         let parser = cmark_parser_new(cmarkOptions)
-        
+
         cmark_parser_attach_syntax_extension(parser, cmark_find_syntax_extension("table"))
         cmark_parser_attach_syntax_extension(parser, cmark_find_syntax_extension("strikethrough"))
         cmark_parser_attach_syntax_extension(parser, cmark_find_syntax_extension("tasklist"))
         cmark_parser_feed(parser, string, string.utf8.count)
         let rawDocument = cmark_parser_finish(parser)
-        var state = MarkupConverterState(source: source, iterator: cmark_iter_new(rawDocument), event: CMARK_EVENT_NONE, node: nil, options: options, headerSeen: false, pendingTableBody: nil).next()
-        
+        var state = MarkupConverterState(
+            source: source, iterator: cmark_iter_new(rawDocument), event: CMARK_EVENT_NONE, node: nil, options: options, headerSeen: false,
+            pendingTableBody: nil
+        ).next()
+
         precondition(state.event == CMARK_EVENT_ENTER)
         precondition(state.nodeType == .document)
 
@@ -444,7 +456,7 @@ struct MarkupParser {
                 state = state.next()
                 continue
             }
-            
+
             let nodeType = state.nodeType
             let parsedRange = state.range(node)
 
@@ -457,26 +469,26 @@ struct MarkupParser {
                     stack.append(ParsingFrame(node: node, nodeType: nodeType, parsedRange: parsedRange))
                 }
                 state = state.next()
-                
+
             } else if state.event == CMARK_EVENT_EXIT {
                 precondition(!nodeType.isLeaf, "cmark iterators should never return EXIT events for leaf nodes.")
-                
+
                 let frame = stack.removeLast()
                 precondition(frame.node == node)
-                
+
                 let container = createContainer(frame: frame, state: state)
-                
+
                 if stack.isEmpty {
                     precondition(frame.nodeType == .document)
                     let iterator = state.iterator
-                    
+
                     cmark_iter_free(iterator)
                     cmark_node_free(rawDocument)
                     cmark_parser_free(parser)
-                    
+
                     let data = _MarkupData(AbsoluteRawMarkup(markup: container, metadata: MarkupMetadata(id: .newRoot(), indexInParent: 0)))
                     return makeMarkup(data) as! Document
-                    
+
                 } else {
                     stack[stack.count - 1].children.append(container)
                     state = state.next(clearPendingTableBody: nodeType == .table)

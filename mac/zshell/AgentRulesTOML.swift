@@ -53,7 +53,9 @@ nonisolated enum AgentRulesTOML {
                     advance()
                 } else if character == "#" {
                     while current != nil, current != "\n" { advance() }
-                } else { break }
+                } else {
+                    break
+                }
             }
         }
 
@@ -70,7 +72,8 @@ nonisolated enum AgentRulesTOML {
             if current == "\"" || current == "'" { return try string() }
             var result = ""
             while let character = current,
-                  character.isASCII && (character.isLetter || character.isNumber || character == "_" || character == "-") {
+                character.isASCII && (character.isLetter || character.isNumber || character == "_" || character == "-")
+            {
                 result.append(character)
                 advance()
             }
@@ -85,7 +88,8 @@ nonisolated enum AgentRulesTOML {
             while let character = current {
                 advance()
                 if character == quote { return result }
-                guard character != "\n", character != "\r", !character.unicodeScalars.contains(where: { $0.value < 0x20 && $0 != "\t" }) else {
+                guard character != "\n", character != "\r", !character.unicodeScalars.contains(where: { $0.value < 0x20 && $0 != "\t" })
+                else {
                     throw failure()
                 }
                 if character != "\\" || quote == "'" { result.append(character); continue }
@@ -100,7 +104,7 @@ nonisolated enum AgentRulesTOML {
                 case "r": result.append("\r")
                 case "u", "U":
                     var digits = ""
-                    for _ in 0..<(escaped == "u" ? 4 : 8) {
+                    for _ in 0 ..< (escaped == "u" ? 4 : 8) {
                         guard let digit = current, digit.isHexDigit else { throw failure() }
                         digits.append(digit)
                         advance()
@@ -177,7 +181,8 @@ nonisolated enum AgentRulesTOML {
                     try require("]")
                     try require("]")
                     guard names.first == "agents", names.count <= 8,
-                          names.dropFirst().allSatisfy({ ["rules", "all", "any", "not"].contains($0) }) else { throw failure() }
+                        names.dropFirst().allSatisfy({ ["rules", "all", "any", "not"].contains($0) })
+                    else { throw failure() }
                     path = try appendTable(names, to: &root)
                 } else {
                     let name = try key()
@@ -195,7 +200,9 @@ nonisolated enum AgentRulesTOML {
                 whitespace(newlines: true)
             }
             guard let agents = root.table?["agents"]?.array else { return [] }
-            return try agents.map { guard let table = $0.table else { throw failure() }; return table }
+            return try agents.map {
+                guard let table = $0.table else { throw failure() }; return table
+            }
         }
 
         func appendTable(_ names: [String], to root: inout Value) throws -> [Path] {

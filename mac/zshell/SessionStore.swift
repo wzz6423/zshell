@@ -156,7 +156,8 @@ struct SessionSnapshot: Codable {
 
             init(from decoder: any Decoder) throws {
                 if let container = try? decoder.container(keyedBy: CodingKeys.self),
-                   container.contains(.layout) {
+                    container.contains(.layout)
+                {
                     layout = try container.decode(LayoutSnapshot.self, forKey: .layout)
                     focusedPaneIndex =
                         (try? container.decode(Int.self, forKey: .focusedPaneIndex)) ?? 0
@@ -175,9 +176,10 @@ struct SessionSnapshot: Codable {
                     return
                 }
                 if let container = try? decoder.container(keyedBy: CodingKeys.self),
-                   let columns = try? container.decode(
-                       [ColumnSnapshot].self, forKey: .columns
-                   ), !columns.isEmpty {
+                    let columns = try? container.decode(
+                        [ColumnSnapshot].self, forKey: .columns
+                    ), !columns.isEmpty
+                {
                     let nonEmptyColumns = columns.filter { !$0.panes.isEmpty }
                     guard !nonEmptyColumns.isEmpty else {
                         throw DecodingError.dataCorruptedError(
@@ -192,7 +194,8 @@ struct SessionSnapshot: Codable {
                         (try? container.decode(Int.self, forKey: .focusedRow)) ?? 0
                     layout = Self.layout(from: nonEmptyColumns)
                     let clampedColumn = min(max(0, focusedColumn), columns.count - 1)
-                    focusedPaneIndex = columns[..<clampedColumn]
+                    focusedPaneIndex =
+                        columns[..<clampedColumn]
                         .reduce(0) { $0 + $1.panes.count }
                         + min(
                             max(0, focusedRow),
@@ -268,7 +271,8 @@ struct SessionSnapshot: Codable {
                     $0 + max(0, $1.1)
                 }
                 let total = firstWeight + remainingWeight
-                let fraction = total > 0
+                let fraction =
+                    total > 0
                     ? firstWeight / total
                     : 1 / Double(nodes.count)
                 return .split(
@@ -306,7 +310,8 @@ struct SessionSnapshot: Codable {
         var selectedTabIndex: Int?
 
         enum CodingKeys: String, CodingKey {
-            case customName, isPinned, markerColorHex, customDirectory, groupID, conversationHistoryProjectID, tabGroups, launchSettings, location, tabs, selectedTabIndex
+            case customName, isPinned, markerColorHex, customDirectory, groupID, conversationHistoryProjectID, tabGroups, launchSettings,
+                location, tabs, selectedTabIndex
         }
 
         init(
@@ -346,9 +351,10 @@ struct SessionSnapshot: Codable {
             groupID = try container.decodeIfPresent(UUID.self, forKey: .groupID)
             conversationHistoryProjectID = try container.decodeIfPresent(UUID.self, forKey: .conversationHistoryProjectID)
             tabGroups = try container.decodeIfPresent([SessionTabGroup].self, forKey: .tabGroups) ?? []
-            launchSettings = try container.decodeIfPresent(
-                TerminalLaunchSettings.self, forKey: .launchSettings
-            ) ?? .init()
+            launchSettings =
+                try container.decodeIfPresent(
+                    TerminalLaunchSettings.self, forKey: .launchSettings
+                ) ?? .init()
             location = try container.decodeIfPresent(
                 ProjectLocation.self, forKey: .location
             )

@@ -147,8 +147,10 @@ final class AgentStatusBadgeView: NSView {
     }
 
     func apply(phase: ZshellAgentPhase, count: Int, detail: String = "", progress: Int? = nil) {
-        guard self.phase != phase || self.count != count
-            || self.detail != detail || self.progress != progress else { return }
+        guard
+            self.phase != phase || self.count != count
+                || self.detail != detail || self.progress != progress
+        else { return }
         let previous = self.phase
         self.phase = phase
         self.count = count
@@ -250,11 +252,10 @@ final class AgentStatusBadgeView: NSView {
     private var badgeWidth: CGFloat {
         let hasCount = hasLabel
         if isCapsule {
-            return Metrics.capsulePad + Metrics.glyphBox + (
-                hasCount
+            return Metrics.capsulePad + Metrics.glyphBox
+                + (hasCount
                     ? Metrics.capsuleCountGap + countSize.width + Metrics.capsuleCountTrailingPad
-                    : Metrics.capsulePad
-            )
+                    : Metrics.capsulePad)
         }
         return Metrics.glyphBox + (hasCount ? Metrics.bareCountGap + countSize.width : 0)
     }
@@ -286,14 +287,16 @@ final class AgentStatusBadgeView: NSView {
                 ringLayer.isHidden = false
                 ringLayer.lineDashPattern = nil
                 ringLayer.lineWidth = Metrics.ringWidth
-                ringLayer.strokeColor = NSColor.systemBlue
+                ringLayer.strokeColor =
+                    NSColor.systemBlue
                     .withAlphaComponent(isDark ? 0.32 : 0.25).cgColor
                 arcLayer.isHidden = false
                 arcLayer.strokeColor = NSColor.systemBlue.cgColor
                 countLabel.textColor = .systemBlue
             case .blocked:
                 capsuleLayer.isHidden = false
-                capsuleLayer.backgroundColor = NSColor.systemOrange
+                capsuleLayer.backgroundColor =
+                    NSColor.systemOrange
                     .withAlphaComponent(isDark ? 0.27 : 0.17).cgColor
                 showSymbol(
                     "exclamationmark.triangle.fill",
@@ -302,7 +305,8 @@ final class AgentStatusBadgeView: NSView {
                 countLabel.textColor = .systemOrange
             case .done:
                 capsuleLayer.isHidden = false
-                capsuleLayer.backgroundColor = NSColor.systemGreen
+                capsuleLayer.backgroundColor =
+                    NSColor.systemGreen
                     .withAlphaComponent(isDark ? 0.24 : 0.17).cgColor
                 showSymbol("checkmark", pointSize: 9, weight: .bold, tint: .systemGreen)
                 countLabel.textColor = .systemGreen

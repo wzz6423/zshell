@@ -13,49 +13,48 @@ import SwiftUI
 @Observable
 public final class DiffStateManager: @unchecked Sendable {
 
-  // MARK: Lifecycle
+    // MARK: Lifecycle
 
-  public init() {}
+    public init() {}
 
-  // MARK: Public
+    // MARK: Public
 
-  public var stateCount: Int {
-    states.count
-  }
-
-  /// Get state for a message
-  public func getState(for messageID: UUID) -> DiffState {
-    states[messageID] ?? .empty
-  }
-
-  @MainActor
-  public func process(diffs: [DiffResult], for messageID: UUID) async {
-    guard !diffs.isEmpty, let firstResult = diffs.first else {
-      return
+    public var stateCount: Int {
+        states.count
     }
 
-    // Skip if we already have the same content
-    if
-      let existingState = states[messageID],
-      existingState.diffResult.original == firstResult.original,
-      existingState.diffResult.updated == firstResult.updated
-    {
-      return
+    /// Get state for a message
+    public func getState(for messageID: UUID) -> DiffState {
+        states[messageID] ?? .empty
     }
 
-    // Store the DiffResult - @pierre/diffs handles all rendering
-    states[messageID] = DiffState(diffResult: firstResult)
-  }
+    @MainActor
+    public func process(diffs: [DiffResult], for messageID: UUID) async {
+        guard !diffs.isEmpty, let firstResult = diffs.first else {
+            return
+        }
 
-  public func removeState(for messageID: UUID) {
-    states.removeValue(forKey: messageID)
-  }
+        // Skip if we already have the same content
+        if let existingState = states[messageID],
+            existingState.diffResult.original == firstResult.original,
+            existingState.diffResult.updated == firstResult.updated
+        {
+            return
+        }
 
-  public func clearAllStates() {
-    states.removeAll()
-  }
+        // Store the DiffResult - @pierre/diffs handles all rendering
+        states[messageID] = DiffState(diffResult: firstResult)
+    }
 
-  // MARK: Private
+    public func removeState(for messageID: UUID) {
+        states.removeValue(forKey: messageID)
+    }
 
-  private var states: [UUID: DiffState] = [:]
+    public func clearAllStates() {
+        states.removeAll()
+    }
+
+    // MARK: Private
+
+    private var states: [UUID: DiffState] = [:]
 }

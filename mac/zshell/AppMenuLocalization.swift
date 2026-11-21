@@ -79,7 +79,8 @@ final class AppMenuLocalization: NSObject {
                 case "performZoom:": title = String(localized: "Zoom")
                 case "arrangeInFront:": title = String(localized: "Bring All to Front")
                 case "toggleFullScreen:":
-                    title = NSApp.keyWindow?.styleMask.contains(.fullScreen) == true
+                    title =
+                        NSApp.keyWindow?.styleMask.contains(.fullScreen) == true
                         ? String(localized: "Exit Full Screen") : String(localized: "Enter Full Screen")
                 case "editProjectTerminalEnvironment": title = String(localized: "Project Terminal Environment…")
                 case "editTabTerminalEnvironment": title = String(localized: "Tab Terminal Environment…")

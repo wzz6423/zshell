@@ -184,11 +184,12 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         super.viewDidMoveToWindow()
         if let window {
             for name in [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification] {
-                windowFocusObservers.append(NotificationCenter.default.addObserver(
-                    forName: name, object: window, queue: .main
-                ) { [weak self] notification in
-                    MainActor.assumeIsolated { self?.effectiveFocusChanged(notification) }
-                })
+                windowFocusObservers.append(
+                    NotificationCenter.default.addObserver(
+                        forName: name, object: window, queue: .main
+                    ) { [weak self] notification in
+                        MainActor.assumeIsolated { self?.effectiveFocusChanged(notification) }
+                    })
             }
         }
         updateDirectoryPolling()
@@ -196,7 +197,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     @objc private func effectiveFocusChanged(_ notification: Notification) {
         if notification.name == NSWindow.didResignKeyNotification,
-           let notificationWindow = notification.object as? NSWindow, notificationWindow === window {
+            let notificationWindow = notification.object as? NSWindow, notificationWindow === window
+        {
             events?.terminalDidResignFocus()
         }
         updateDirectoryPolling()
@@ -204,7 +206,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     private func updateDirectoryPolling() {
-        let shouldPoll = reportsLocalWorkingDirectory && !usesOSCWorkingDirectory
+        let shouldPoll =
+            reportsLocalWorkingDirectory && !usesOSCWorkingDirectory
             && isSurfaceVisible
             && window?.isKeyWindow == true
         guard shouldPoll else {
@@ -223,9 +226,9 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     private func reportWorkingDirectory() {
         guard reportsLocalWorkingDirectory, !usesOSCWorkingDirectory,
-              let pid = foregroundPid,
-              let path = processWorkingDirectory(pid: pid),
-              path != lastReportedDirectory
+            let pid = foregroundPid,
+            let path = processWorkingDirectory(pid: pid),
+            path != lastReportedDirectory
         else { return }
         lastReportedDirectory = path
         events?.terminalDidChangeWorkingDirectory(path)
@@ -284,23 +287,26 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     func readVisibleSnapshot() -> TerminalViewportSnapshot? {
         guard let size = viewportGridMetrics,
-              size.columns > 0, size.rows > 0,
-              Int(size.columns) * Int(size.rows) <= TerminalViewportSnapshot.maximumCells
+            size.columns > 0, size.rows > 0,
+            Int(size.columns) * Int(size.rows) <= TerminalViewportSnapshot.maximumCells
         else { return nil }
         let columns = Int(size.columns)
         let scale = window?.backingScaleFactor ?? 1
-        let cellSize = CGSize(width: CGFloat(size.cellWidthPixels) / scale,
-                              height: CGFloat(size.cellHeightPixels) / scale)
+        let cellSize = CGSize(
+            width: CGFloat(size.cellWidthPixels) / scale,
+            height: CGFloat(size.cellHeightPixels) / scale)
         guard cellSize.width > 0, cellSize.height > 0,
-              let first = readViewportText(row: 0, columns: 0..<1) else { return nil }
+            let first = readViewportText(row: 0, columns: 0 ..< 1)
+        else { return nil }
         // Ghostty balances the padding and the fractional cell remainder.
         // Its read_text origin is a baseline; the centered grid stays valid
         // even when scrolling hides the live cursor from imePoint.
-        let origin = CGPoint(x: first.origin.x,
-                             y: (bounds.height - CGFloat(size.rows) * cellSize.height) / 2)
+        let origin = CGPoint(
+            x: first.origin.x,
+            y: (bounds.height - CGFloat(size.rows) * cellSize.height) / 2)
         var rows: [TerminalViewportRow] = []
-        for row in 0..<Int(size.rows) {
-            guard let full = readViewportText(row: row, columns: 0..<columns) else { return nil }
+        for row in 0 ..< Int(size.rows) {
+            guard let full = readViewportText(row: row, columns: 0 ..< columns) else { return nil }
             var cells: [TerminalViewportCell] = []
             var column = 0
             for character in full.text {
@@ -315,12 +321,13 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             }
             if column < full.text.utf16.count {
                 while column < columns {
-                    guard let cell = readViewportText(row: row, columns: column..<(column + 1)) else { return nil }
+                    guard let cell = readViewportText(row: row, columns: column ..< (column + 1)) else { return nil }
                     var width = 1
                     if !cell.text.isEmpty, !cell.text.unicodeScalars.allSatisfy({ $0.isASCII }), column + 1 < columns,
-                       let next = readViewportText(row: row, columns: (column + 1)..<(column + 2)), next.text == cell.text,
-                       let prefix = readViewportText(row: row, columns: 0..<(column + 1)),
-                       let withNext = readViewportText(row: row, columns: 0..<(column + 2)), prefix.text == withNext.text {
+                        let next = readViewportText(row: row, columns: (column + 1) ..< (column + 2)), next.text == cell.text,
+                        let prefix = readViewportText(row: row, columns: 0 ..< (column + 1)),
+                        let withNext = readViewportText(row: row, columns: 0 ..< (column + 2)), prefix.text == withNext.text
+                    {
                         // Selecting a wide tail returns its head's text too.
                         // Equal prefixes prove it is one glyph, rather than
                         // two adjacent identical narrow Unicode characters.
@@ -339,7 +346,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             // as soft-wrapped. Read two edge cells, never the whole buffer.
             var wraps = false
             if row + 1 < Int(size.rows),
-               let edge = readViewportText(fromRow: row, column: columns - 1, toRow: row + 1, column: 1) {
+                let edge = readViewportText(fromRow: row, column: columns - 1, toRow: row + 1, column: 1)
+            {
                 wraps = !edge.contains("\n")
             }
             rows.append(TerminalViewportRow(cells: cells, wraps: wraps))
@@ -372,7 +380,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         )
         let maximum = Double(TerminalScrollSettings.maximumApplicationLines)
         // Ghostty normalizes discrete vertical ticks before its native multiplier.
-        let verticalLimit = precise
+        let verticalLimit =
+            precise
             ? maximum * Double(grid.cellHeightPixels) / multiplier
             : maximum / (TerminalScrollSettings.ghosttyWheelMultiplier * multiplier)
         // Precise deltas arrive in points. Scale them to pixels before the
@@ -387,7 +396,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         )
         let x: Double
         if precise {
-            let pointCellWidth = Double(grid.cellWidthPixels)
+            let pointCellWidth =
+                Double(grid.cellWidthPixels)
                 / TerminalScrollSettings.ghosttyPrecisePixels(1, backingScale: backingScale)
             let columns = horizontalTrackpadScroll.consume(
                 event.scrollingDeltaX / pointCellWidth, multiplier: multiplier,
@@ -396,16 +406,22 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             x = Double(columns) * Double(grid.cellWidthPixels)
         } else {
             // The native horizontal path rounds each tick and has no multiplier.
-            x = Double(horizontalWheelScroll.consume(
-                event.scrollingDeltaX.rounded(), multiplier: multiplier,
-                limit: TerminalScrollSettings.maximumApplicationLines
-            ))
+            x = Double(
+                horizontalWheelScroll.consume(
+                    event.scrollingDeltaX.rounded(), multiplier: multiplier,
+                    limit: TerminalScrollSettings.maximumApplicationLines
+                ))
         }
         let momentum: TerminalScrollModifiers.Momentum
-        if event.momentumPhase.contains(.began) { momentum = .began }
-        else if event.momentumPhase.contains(.stationary) { momentum = .stationary }
-        else if event.momentumPhase.contains(.changed) { momentum = .changed }
-        else { momentum = .none }
+        if event.momentumPhase.contains(.began) {
+            momentum = .began
+        } else if event.momentumPhase.contains(.stationary) {
+            momentum = .stationary
+        } else if event.momentumPhase.contains(.changed) {
+            momentum = .changed
+        } else {
+            momentum = .none
+        }
         sendMouseScroll(x: x, y: y, modifiers: TerminalScrollModifiers(precision: precise, momentum: momentum))
     }
 
@@ -543,7 +559,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         finalizePointerSelectionBeforeInput()
         recordPromptInputStart()
         if aiInputEditor.deferWhileBusy({ [weak self] in self?.insertAccessibilityText(text) })
-            || aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) }) {
+            || aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) })
+        {
             return
         }
         activatePendingPromptSelection()
@@ -610,7 +627,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         updateCursorClickToMove()
         recordPromptInputStart()
         if canEditPromptSelection { performBindingAction("text:\\x1b[27;2;27~") }
-        let aiContext = event.clickCount == 1 && event.modifierFlags.intersection([.command, .option, .control]).isEmpty
+        let aiContext =
+            event.clickCount == 1 && event.modifierFlags.intersection([.command, .option, .control]).isEmpty
             ? aiInputContext(for: event) : nil
         aiInputPointerActive = aiContext?.caret != nil
         aiInputEditor.beginPointer(at: aiContext?.caret, in: aiContext?.snapshot)
@@ -657,11 +675,12 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             at: aiContext?.caret, in: aiContext?.snapshot, dragged: pointerSelectionDragged
         )
         if hadInputSelection, let anchor = promptSelectionAnchor,
-           let endpoint = promptCaret(for: event, allowZeroClick: true),
-           let snapshot = readViewportTextSnapshot(),
-           let toAnchor = promptCursorMovement(
+            let endpoint = promptCaret(for: event, allowZeroClick: true),
+            let snapshot = readViewportTextSnapshot(),
+            let toAnchor = promptCursorMovement(
                 from: (snapshot.cursorRow, snapshot.cursorColumn), to: anchor
-           ), let toEndpoint = promptCursorMovement(from: anchor, to: endpoint) {
+            ), let toEndpoint = promptCursorMovement(from: anchor, to: endpoint)
+        {
             performBindingAction("text:" + toAnchor + "\\x1f" + toEndpoint + "\\x1e")
             pendingPromptSelectionActivation = true
         }
@@ -686,9 +705,11 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     private func updateSelectionAutoscroll(at location: NSPoint) {
-        guard TerminalSelectionAutoscrollDirection(
-            locationY: location.y, bounds: bounds
-        ) != nil else {
+        guard
+            TerminalSelectionAutoscrollDirection(
+                locationY: location.y, bounds: bounds
+            ) != nil
+        else {
             stopSelectionAutoscroll()
             return
         }
@@ -704,25 +725,28 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     private func autoscrollSelection() {
         guard pointerSelectionDragged,
-              isSurfaceVisible,
-              !isMouseCaptured,
-              let window,
-              window.isKeyWindow,
-              window.firstResponder === self,
-              let lastScroll
+            isSurfaceVisible,
+            !isMouseCaptured,
+            let window,
+            window.isKeyWindow,
+            window.firstResponder === self,
+            let lastScroll
         else {
             stopSelectionAutoscroll()
             return
         }
         let location = convert(window.mouseLocationOutsideOfEventStream, from: nil)
-        guard let direction = TerminalSelectionAutoscrollDirection(
-            locationY: location.y, bounds: bounds
-        ) else {
+        guard
+            let direction = TerminalSelectionAutoscrollDirection(
+                locationY: location.y, bounds: bounds
+            )
+        else {
             stopSelectionAutoscroll()
             return
         }
 
-        let lastTopRow = lastScroll.totalRows > lastScroll.viewportRows
+        let lastTopRow =
+            lastScroll.totalRows > lastScroll.viewportRows
             ? lastScroll.totalRows - lastScroll.viewportRows : 0
         let targetRow: UInt64
         switch direction {
@@ -740,7 +764,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             targetRow = lastScroll.topRow + 1
         }
         guard scrollToRow(UInt(clamping: targetRow)),
-              let dragEvent = NSEvent.mouseEvent(
+            let dragEvent = NSEvent.mouseEvent(
                 with: .leftMouseDragged,
                 location: window.mouseLocationOutsideOfEventStream,
                 modifierFlags: selectionAutoscrollModifierFlags,
@@ -750,7 +774,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
                 eventNumber: 0,
                 clickCount: 1,
                 pressure: 0
-              )
+            )
         else {
             stopSelectionAutoscroll()
             return
@@ -766,13 +790,14 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     override func keyDown(with event: NSEvent) {
         if hintMode.consumesKeyDown(event) { return }
         if isReadOnly, event.modifierFlags.intersection([.command, .control, .option]) == .command {
-            let action: String? = switch Int(event.keyCode) {
-            case 115: "scroll_to_top"
-            case 119: "scroll_to_bottom"
-            case 116: "scroll_page_up"
-            case 121: "scroll_page_down"
-            default: nil
-            }
+            let action: String? =
+                switch Int(event.keyCode) {
+                case 115: "scroll_to_top"
+                case 119: "scroll_to_bottom"
+                case 116: "scroll_page_up"
+                case 121: "scroll_page_down"
+                default: nil
+                }
             if let action { performBindingAction(action); return }
         }
         guard !isReadOnly else {
@@ -784,10 +809,14 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         finalizePointerSelectionBeforeInput()
         recordPromptInputStart()
         if !hasMarkedText(),
-           aiInputEditor.handleKeyDown(event, replay: { [weak self] in self?.keyDown(with: event) }) { return }
+            aiInputEditor.handleKeyDown(event, replay: { [weak self] in self?.keyDown(with: event) })
+        {
+            return
+        }
         activatePendingPromptSelection(for: event)
         if ([36, 76].contains(Int(event.keyCode)) && !event.modifierFlags.contains(.shift))
-            || (event.modifierFlags.contains(.control) && event.charactersIgnoringModifiers == "c") {
+            || (event.modifierFlags.contains(.control) && event.charactersIgnoringModifiers == "c")
+        {
             promptInputStart = nil
         }
         if !hasMarkedText() { events?.terminalWillSendKey(event) }
@@ -806,7 +835,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             // Ghostty's IME handler needs the current NSEvent, which may be
             // gone by the time cursor movement acknowledges this commit.
             if aiInputEditor.deferWhileBusy({ [weak self] in self?.pasteAIInput(text) })
-                || aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) }) { return }
+                || aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) })
+            {
+                return
+            }
         }
         activatePendingPromptSelection()
         super.insertText(string, replacementRange: range)
@@ -836,9 +868,14 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         finalizePointerSelectionBeforeInput()
         recordPromptInputStart()
         if aiInputEditor.deferWhileBusy({ [weak self] in self?.paste(sender) }) { return }
-        if events?.terminalHandleUserPaste(NSPasteboard.general, paste: { [weak self] text in
-            self?.pasteAIInput(text)
-        }) == true { return }
+        if events?.terminalHandleUserPaste(
+            NSPasteboard.general,
+            paste: { [weak self] text in
+                self?.pasteAIInput(text)
+            }) == true
+        {
+            return
+        }
         if aiInputEditor.hasSelection, let text = NSPasteboard.general.string(forType: .string) {
             if text.contains("\n") || text.contains("\r") {
                 let generation = inputGeneration
@@ -867,12 +904,14 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private func sendAIInputControl(_ text: String) {
         guard !isReadOnly else { return }
         var remaining = text[...]
-        if remaining.hasPrefix("\u{1b}[3~"), let event = NSEvent.keyEvent(
-            with: .keyDown, location: .zero, modifierFlags: [],
-            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window?.windowNumber ?? 0,
-            context: nil, characters: "\u{f728}", charactersIgnoringModifiers: "\u{f728}",
-            isARepeat: false, keyCode: 117
-        ) {
+        if remaining.hasPrefix("\u{1b}[3~"),
+            let event = NSEvent.keyEvent(
+                with: .keyDown, location: .zero, modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window?.windowNumber ?? 0,
+                context: nil, characters: "\u{f728}", charactersIgnoringModifiers: "\u{f728}",
+                isARepeat: false, keyCode: 117
+            )
+        {
             // Raw PTY writes leave Ghostty's highlight intact. Deliver the first
             // Delete as a key so editing clears it without touching the clipboard.
             super.keyDown(with: event)
@@ -887,27 +926,27 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         snapshot: TerminalAIInputSnapshot, caret: TerminalAIInputCaret?
     )? {
         guard !isReadOnly, !hasMarkedText(), hasEffectiveTerminalFocus,
-              lastScroll?.position ?? 1 >= 1,
-              let foregroundPid, ZshellAgentKind.recognizeBuiltin(processID: foregroundPid) == .claude,
-              let viewport = readViewportTextSnapshot(), viewport.cursorColumn >= 2,
-              let cursorPrefix = readViewportText(
-                row: viewport.cursorRow, columns: 0..<viewport.cursorColumn,
+            lastScroll?.position ?? 1 >= 1,
+            let foregroundPid, ZshellAgentKind.recognizeBuiltin(processID: foregroundPid) == .claude,
+            let viewport = readViewportTextSnapshot(), viewport.cursorColumn >= 2,
+            let cursorPrefix = readViewportText(
+                row: viewport.cursorRow, columns: 0 ..< viewport.cursorColumn,
                 preservingTrailingSpaces: true
-              )?.text,
-              let snapshot = TerminalAIInputSnapshot(
+            )?.text,
+            let snapshot = TerminalAIInputSnapshot(
                 processID: foregroundPid, columns: viewport.columns, lines: viewport.lines,
                 cursorRow: viewport.cursorRow, cursorPrefix: cursorPrefix
-              )
+            )
         else { return nil }
         guard let event else { return (snapshot, nil) }
         let point = convert(event.locationInWindow, from: nil)
         let row = Int(((bounds.height - point.y - viewport.origin.y) / viewport.cellSize.height).rounded(.down))
         let rawColumn = Int(((point.x - viewport.origin.x) / viewport.cellSize.width).rounded())
         guard row >= 0, row < viewport.lines.count,
-              clampingDrag || (rawColumn >= 0 && rawColumn <= viewport.columns)
+            clampingDrag || (rawColumn >= 0 && rawColumn <= viewport.columns)
         else { return (snapshot, nil) }
         let column = min(viewport.columns, max(clampingDrag ? 2 : 0, rawColumn))
-        guard let prefix = readViewportText(row: row, columns: 0..<column, preservingTrailingSpaces: true)?.text
+        guard let prefix = readViewportText(row: row, columns: 0 ..< column, preservingTrailingSpaces: true)?.text
         else { return (snapshot, nil) }
         return (snapshot, snapshot.caret(viewportRow: row, prefix: prefix))
     }
@@ -923,10 +962,14 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private func activatePendingPromptSelection(for event: NSEvent? = nil) {
         guard pendingPromptSelectionActivation else { return }
         if let event, event.modifierFlags.intersection([.command, .control, .option, .shift]) == .command,
-           event.charactersIgnoringModifiers?.lowercased() == "c" { return }
+            event.charactersIgnoringModifiers?.lowercased() == "c"
+        {
+            return
+        }
         if let event,
-           !event.modifierFlags.intersection([.command, .control, .option]).isEmpty
-                || [115, 116, 119, 121, 123, 124, 125, 126].contains(Int(event.keyCode)) {
+            !event.modifierFlags.intersection([.command, .control, .option]).isEmpty
+                || [115, 116, 119, 121, 123, 124, 125, 126].contains(Int(event.keyCode))
+        {
             pendingPromptSelectionActivation = false
             if canEditPromptSelection { performBindingAction("text:\\x1b[27;2;27~") }
             return
@@ -937,10 +980,13 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     func recordPromptInputStart() {
         guard promptInputStart == nil, canEditPromptSelection, events?.terminalPromptQueueIsReady == true,
-              let snapshot = readViewportTextSnapshot() else { return }
-        let top = (lastScroll?.totalRows ?? 0) - min(
-            lastScroll?.totalRows ?? 0, lastScroll?.viewportRows ?? 0
-        )
+            let snapshot = readViewportTextSnapshot()
+        else { return }
+        let top =
+            (lastScroll?.totalRows ?? 0)
+            - min(
+                lastScroll?.totalRows ?? 0, lastScroll?.viewportRows ?? 0
+            )
         promptInputStart = (top + UInt64(snapshot.cursorRow), snapshot.cursorColumn)
     }
 
@@ -952,23 +998,25 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         for event: NSEvent, allowZeroClick: Bool = false
     ) -> (row: Int, column: Int)? {
         guard canEditPromptSelection,
-              event.clickCount == 1 || (allowZeroClick && event.clickCount == 0),
-              event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty,
-              let start = promptInputStart, let snapshot = readViewportTextSnapshot()
+            event.clickCount == 1 || (allowZeroClick && event.clickCount == 0),
+            event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty,
+            let start = promptInputStart, let snapshot = readViewportTextSnapshot()
         else { return nil }
         let point = convert(event.locationInWindow, from: nil)
         let row = Int(((bounds.height - point.y - snapshot.origin.y) / snapshot.cellSize.height).rounded(.down))
         let column = Int(((point.x - snapshot.origin.x) / snapshot.cellSize.width).rounded())
-        let top = (lastScroll?.totalRows ?? 0) - min(
-            lastScroll?.totalRows ?? 0, lastScroll?.viewportRows ?? 0
-        )
+        let top =
+            (lastScroll?.totalRows ?? 0)
+            - min(
+                lastScroll?.totalRows ?? 0, lastScroll?.viewportRows ?? 0
+            )
         let lastInputRow = max(
             snapshot.cursorRow,
             snapshot.lines.lastIndex(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) ?? 0
         )
         guard snapshot.lines.indices.contains(row), column >= 0, column <= snapshot.columns,
-              row <= lastInputRow,
-              (top + UInt64(row), column) >= (start.row, start.column)
+            row <= lastInputRow,
+            (top + UInt64(row), column) >= (start.row, start.column)
         else { return nil }
         return (row, column)
     }
@@ -979,9 +1027,11 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         let forward = (target.row, target.column) > (origin.row, origin.column)
         let start = forward ? origin : target
         let end = forward ? target : origin
-        guard let text = readViewportText(
-            fromRow: start.row, column: start.column, toRow: end.row, column: end.column
-        ) else { return nil }
+        guard
+            let text = readViewportText(
+                fromRow: start.row, column: start.column, toRow: end.row, column: end.column
+            )
+        else { return nil }
         let distance = text.unicodeScalars.filter { $0.value != 0x0d }.count
         guard distance <= TerminalAIInputEditor.maxCursorSteps else { return nil }
         return String(repeating: forward ? "\\x1b[C" : "\\x1b[D", count: distance)
@@ -997,9 +1047,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     private var canEditPromptSelection: Bool {
         guard !isReadOnly, supportsInputSelection, events?.terminalPromptSelectionIsReady == true,
-              !isMouseCaptured,
-              lastScroll?.position ?? 1 >= 1,
-              let foregroundPid else { return false }
+            !isMouseCaptured,
+            lastScroll?.position ?? 1 >= 1,
+            let foregroundPid
+        else { return false }
         var name = [CChar](repeating: 0, count: 256)
         guard proc_name(foregroundPid, &name, UInt32(name.count)) > 0 else { return false }
         return String(cString: name) == "zsh"
@@ -1033,8 +1084,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        guard event.type == .leftMouseDown && event.modifierFlags.contains(.control)
-            || !shouldForwardRightMouse(event) else { return nil }
+        guard
+            event.type == .leftMouseDown && event.modifierFlags.contains(.control)
+                || !shouldForwardRightMouse(event)
+        else { return nil }
         focusForInteraction()
         return TerminalContextMenu.make(for: self, event: event, linkTarget: linkTarget(for: event))
     }
@@ -1074,9 +1127,14 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         guard !isReadOnly, let urls = fileURLs(sender), !urls.isEmpty else { return false }
         focusForInteraction()
-        if events?.terminalHandleFileDrop(urls, paste: { [weak self] text in
-            self?.sendPaste(text + " ")
-        }) == true { return true }
+        if events?.terminalHandleFileDrop(
+            urls,
+            paste: { [weak self] text in
+                self?.sendPaste(text + " ")
+            }) == true
+        {
+            return true
+        }
         let text = urls.map { Self.shellToken(for: $0.path) }.joined(separator: " ")
         return sendPaste(text + " ")
     }

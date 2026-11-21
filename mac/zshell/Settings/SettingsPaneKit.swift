@@ -48,7 +48,8 @@ enum SettingsRowSymbols {
         if let icon = localized[title] { return icon }
         let toolAction = String(localized: "Manage \(title)")
         if control?.accessibilityLabel() == toolAction
-            || (control as? NSStackView)?.arrangedSubviews.contains(where: { $0.accessibilityLabel() == toolAction }) == true {
+            || (control as? NSStackView)?.arrangedSubviews.contains(where: { $0.accessibilityLabel() == toolAction }) == true
+        {
             return Icon(name: "shippingbox", category: .recommendations)
         }
         if control is NSProgressIndicator {
@@ -73,8 +74,12 @@ enum SettingsRowSymbols {
             ([String(localized: "Light theme")], "sun.max.fill", .appearance),
             ([String(localized: "Terminal theme only")], "terminal", .appearance),
             ([String(localized: "Minimum contrast")], "circle.lefthalf.filled", .appearance),
-            ([String(localized: "Latin family"), String(localized: "Size"), String(localized: "Font size"),
-              String(localized: "Sidebar font size")], "textformat.size", .appearance),
+            (
+                [
+                    String(localized: "Latin family"), String(localized: "Size"), String(localized: "Font size"),
+                    String(localized: "Sidebar font size"),
+                ], "textformat.size", .appearance
+            ),
             ([String(localized: "CJK fallback")], "character.book.closed", .appearance),
             ([String(localized: "Font ligatures"), String(localized: "OpenType features")], "textformat", .appearance),
             ([String(localized: "Thicken font strokes"), String(localized: "Stroke strength")], "bold", .appearance),
@@ -82,8 +87,12 @@ enum SettingsRowSymbols {
             ([String(localized: "Cell width")], "arrow.left.and.right", .appearance),
             ([String(localized: "Cursor shape")], "cursorarrow", .appearance),
             ([String(localized: "Blink cursor")], "cursorarrow.rays", .appearance),
-            ([String(localized: "Opacity"), String(localized: "Terminal background opacity"),
-              String(localized: "Pane focus ring opacity")], "circle.dotted", .appearance),
+            (
+                [
+                    String(localized: "Opacity"), String(localized: "Terminal background opacity"),
+                    String(localized: "Pane focus ring opacity"),
+                ], "circle.dotted", .appearance
+            ),
             ([String(localized: "Blur behind window")], "drop.halffull", .appearance),
             ([String(localized: "Padding color")], "rectangle.inset.filled", .appearance),
             ([String(localized: "Interface size")], "arrow.up.left.and.arrow.down.right", .appearance),
@@ -91,8 +100,10 @@ enum SettingsRowSymbols {
             ([String(localized: "Double-click empty space to create a session")], "plus.rectangle", .appearance),
             ([String(localized: "New session directory")], "folder.fill", .terminal),
             ([String(localized: "Startup"), String(localized: "Backend")], "terminal", .terminal),
-            ([String(localized: "Keep sessions running after quitting"), String(localized: "Session behavior")],
-             "arrow.clockwise", .terminal),
+            (
+                [String(localized: "Keep sessions running after quitting"), String(localized: "Session behavior")],
+                "arrow.clockwise", .terminal
+            ),
             ([String(localized: "Apply terminal profiles automatically")], "person.text.rectangle", .terminal),
             ([String(localized: "Enable Quick Terminal")], "terminal", .terminal),
             ([String(localized: "Shortcut")], "keyboard", .terminal),
@@ -100,25 +111,37 @@ enum SettingsRowSymbols {
             ([String(localized: "Quick Terminal default opacity")], "circle.dotted", .terminal),
             ([String(localized: "Mouse wheel")], "computermouse", .terminal),
             ([String(localized: "Trackpad")], "hand.draw", .terminal),
-            ([String(localized: "Shell completions"), String(localized: "Show terminal text hints"),
-              String(localized: "Vim command hints")], "text.bubble", .terminal),
-            ([String(localized: "Use Option as Alt/Meta"), String(localized: "Shift+Enter inserts a newline")],
-             "keyboard", .terminal),
+            (
+                [
+                    String(localized: "Shell completions"), String(localized: "Show terminal text hints"),
+                    String(localized: "Vim command hints"),
+                ], "text.bubble", .terminal
+            ),
+            (
+                [String(localized: "Use Option as Alt/Meta"), String(localized: "Shift+Enter inserts a newline")],
+                "keyboard", .terminal
+            ),
             ([String(localized: "Copy on select")], "doc.on.doc", .terminal),
             ([String(localized: "Right-click action")], "computermouse", .terminal),
             ([String(localized: "Focus follows mouse")], "cursorarrow", .terminal),
-            ([String(localized: "Upload copied files and images"), String(localized: "Upload dropped files")],
-             "square.and.arrow.up", .terminal),
-            ([String(localized: "Record command history"), String(localized: "Restore session history on relaunch")],
-             "clock.arrow.circlepath", .terminal),
+            (
+                [String(localized: "Upload copied files and images"), String(localized: "Upload dropped files")],
+                "square.and.arrow.up", .terminal
+            ),
+            (
+                [String(localized: "Record command history"), String(localized: "Restore session history on relaunch")],
+                "clock.arrow.circlepath", .terminal
+            ),
             ([String(localized: "Enable Prompt Queue")], "text.badge.plus", .terminal),
             ([String(localized: "Send queued prompts automatically")], "paperplane", .terminal),
             ([String(localized: "Long-running commands")], "timer", .terminal),
             ([String(localized: "Failed commands")], "exclamationmark.triangle", .terminal),
             ([String(localized: "Terminal bell")], "bell", .terminal),
             ([String(localized: "External editor")], "square.and.pencil", .editor),
-            ([String(localized: "Wrap lines to editor width"), String(localized: "Wrap lines to diff width")],
-             "arrow.turn.down.left", .editor),
+            (
+                [String(localized: "Wrap lines to editor width"), String(localized: "Wrap lines to diff width")],
+                "arrow.turn.down.left", .editor
+            ),
             ([String(localized: "Protect against save conflicts")], "checkmark.shield", .editor),
             ([String(localized: "Back up unsaved drafts")], "clock.arrow.circlepath", .editor),
             ([String(localized: "Allow remote file changes")], "network", .editor),
@@ -130,13 +153,19 @@ enum SettingsRowSymbols {
             ([String(localized: "Use custom recognition rules")], "slider.horizontal.3", .automation),
             ([String(localized: "Infer agent state from the screen")], "text.viewfinder", .automation),
             ([String(localized: "Resume agent conversations")], "bubble.left.and.bubble.right", .automation),
-            ([String(localized: "Notify when agents need attention"), String(localized: "Notify when agents finish")],
-             "bell", .automation),
+            (
+                [String(localized: "Notify when agents need attention"), String(localized: "Notify when agents finish")],
+                "bell", .automation
+            ),
             ([String(localized: "Automatically check for updates")], "arrow.clockwise", .updates),
             ([String(localized: "Automatically download updates")], "arrow.down.circle", .updates),
             ([String(localized: "Automatically install updates")], "shippingbox", .updates),
-            ([String(localized: "New Session"), String(localized: "New Project"), String(localized: "New Window"),
-              String(localized: "New Session in Worktree…")], "plus.rectangle", .shortcuts),
+            (
+                [
+                    String(localized: "New Session"), String(localized: "New Project"), String(localized: "New Window"),
+                    String(localized: "New Session in Worktree…"),
+                ], "plus.rectangle", .shortcuts
+            ),
             ([String(localized: "Close Pane")], "xmark.rectangle", .shortcuts),
             ([String(localized: "Command Palette…")], "command", .shortcuts),
             ([String(localized: "Toggle Left Sidebar"), String(localized: "Toggle Right Sidebar")], "sidebar.left", .shortcuts),
@@ -181,9 +210,10 @@ final class SettingsIconView: NSView {
     init(symbolName: String, color: NSColor, size: CGFloat) {
         self.color = color
         let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
-            .withSymbolConfiguration(.init(pointSize: SettingsMetrics.rowSymbolSize, weight: .medium)
-                .applying(.init(paletteColors: [.white]))
-                .applying(.preferringMonochrome()))
+            .withSymbolConfiguration(
+                .init(pointSize: SettingsMetrics.rowSymbolSize, weight: .medium)
+                    .applying(.init(paletteColors: [.white]))
+                    .applying(.preferringMonochrome()))
         visibleBounds = image.map { Self.visibleBounds(of: $0, named: symbolName) } ?? .zero
         symbol = image
         super.init(frame: .zero)
@@ -206,11 +236,12 @@ final class SettingsIconView: NSView {
         NSBezierPath(roundedRect: bounds, xRadius: radius, yRadius: radius).fill()
         guard let image = symbol, !visibleBounds.isEmpty else { return }
         // NSImageView rounds its drawing origin, shifting some glyphs by a pixel.
-        image.draw(in: NSRect(
-            x: bounds.midX - visibleBounds.midX,
-            y: bounds.midY - visibleBounds.midY,
-            width: image.size.width, height: image.size.height
-        ))
+        image.draw(
+            in: NSRect(
+                x: bounds.midX - visibleBounds.midX,
+                y: bounds.midY - visibleBounds.midY,
+                width: image.size.width, height: image.size.height
+            ))
     }
 
     private static func visibleBounds(of image: NSImage, named name: String) -> NSRect {
@@ -221,8 +252,8 @@ final class SettingsIconView: NSView {
         let bitmap = NSBitmapImageRep(cgImage: cgImage)
         var minX = bitmap.pixelsWide, minY = bitmap.pixelsHigh, maxX = -1, maxY = -1
         // Ignore the antialiased fringe when finding the glyph's visual center.
-        for y in 0..<bitmap.pixelsHigh {
-            for x in 0..<bitmap.pixelsWide where (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.5 {
+        for y in 0 ..< bitmap.pixelsHigh {
+            for x in 0 ..< bitmap.pixelsWide where (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.5 {
                 minX = min(minX, x); maxX = max(maxX, x)
                 minY = min(minY, y); maxY = max(maxY, y)
             }
@@ -230,10 +261,11 @@ final class SettingsIconView: NSView {
         guard maxX >= minX, maxY >= minY else { return .zero }
         let scaleX = image.size.width / CGFloat(bitmap.pixelsWide)
         let scaleY = image.size.height / CGFloat(bitmap.pixelsHigh)
-        let bounds = NSRect(x: CGFloat(minX) * scaleX,
-                            y: CGFloat(bitmap.pixelsHigh - maxY - 1) * scaleY,
-                            width: CGFloat(maxX - minX + 1) * scaleX,
-                            height: CGFloat(maxY - minY + 1) * scaleY)
+        let bounds = NSRect(
+            x: CGFloat(minX) * scaleX,
+            y: CGFloat(bitmap.pixelsHigh - maxY - 1) * scaleY,
+            width: CGFloat(maxX - minX + 1) * scaleX,
+            height: CGFloat(maxY - minY + 1) * scaleY)
         visibleSymbolBounds[name] = bounds
         return bounds
     }

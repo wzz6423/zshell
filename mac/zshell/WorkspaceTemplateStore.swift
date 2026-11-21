@@ -30,7 +30,8 @@ final class WorkspaceTemplateStore: ObservableObject {
             let data = try PersistentCLIConnection.readPrivate(url, maximumBytes: 8 * WorkspaceTemplate.maximumBytes)
             let library = try JSONDecoder().decode(Library.self, from: data)
             guard library.version == 1, library.entries.count <= 128,
-                  Set(library.entries.map(\.id)).count == library.entries.count else {
+                Set(library.entries.map(\.id)).count == library.entries.count
+            else {
                 throw WorkspaceTemplateError.libraryUnavailable
             }
             for entry in library.entries { try entry.template.validate() }
@@ -69,9 +70,9 @@ final class WorkspaceTemplateStore: ObservableObject {
     @discardableResult
     func importTemplate(from url: URL) throws -> UUID {
         let text: String
-        do { text = try SettingsConfigFile.read(at: url) }
-        catch SettingsConfigFile.Failure.tooLarge { throw WorkspaceTemplateError.fileTooLarge }
-        catch { throw WorkspaceTemplateError.invalidFile }
+        do { text = try SettingsConfigFile.read(at: url) } catch SettingsConfigFile.Failure.tooLarge {
+            throw WorkspaceTemplateError.fileTooLarge
+        } catch { throw WorkspaceTemplateError.invalidFile }
         return try add(WorkspaceTemplate.decode(Data(text.utf8)))
     }
 

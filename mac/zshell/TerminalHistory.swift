@@ -28,7 +28,7 @@ enum TerminalHistorySerializer {
         func read() -> String? {
             defer { removeCaptureFile(file) }
             guard let data = try? Data(contentsOf: file.fileURL),
-                  let text = String(data: data, encoding: .utf8)
+                let text = String(data: data, encoding: .utf8)
             else { return nil }
             return plainLogText(in: text)
         }
@@ -58,7 +58,7 @@ enum TerminalHistorySerializer {
         from surface: any TerminalBackendSurface, maxLines: Int
     ) -> CaptureResult {
         guard maxLines > 0,
-              let captureFile = validatedCaptureFile(for: surface.exportScreenFile())
+            let captureFile = validatedCaptureFile(for: surface.exportScreenFile())
         else { return .failed }
         defer { removeCaptureFile(captureFile) }
 
@@ -80,7 +80,7 @@ enum TerminalHistorySerializer {
         maxColumns: Int
     ) -> String? {
         guard maxLines > 0, maxColumns > 0,
-              let captureFile = validatedCaptureFile(for: surface.exportScreenFile())
+            let captureFile = validatedCaptureFile(for: surface.exportScreenFile())
         else { return nil }
         defer { removeCaptureFile(captureFile) }
 
@@ -100,7 +100,7 @@ enum TerminalHistorySerializer {
             return nil
         }
         guard let data = try? handle.read(upToCount: Int(end - start)),
-              !data.isEmpty
+            !data.isEmpty
         else { return nil }
 
         var capture = String(decoding: data, as: UTF8.self)
@@ -109,16 +109,19 @@ enum TerminalHistorySerializer {
         if start > 0, let newline = capture.firstIndex(of: "\n") {
             capture.removeSubrange(...newline)
         }
-        capture = capture
+        capture =
+            capture
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
 
-        var lines = capture
+        var lines =
+            capture
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map { visibleText(in: String($0)) }
 
         while let last = lines.last,
-              last.trimmingCharacters(in: .whitespaces).isEmpty {
+            last.trimmingCharacters(in: .whitespaces).isEmpty
+        {
             lines.removeLast()
         }
         guard !lines.isEmpty else { return nil }
@@ -139,9 +142,11 @@ enum TerminalHistorySerializer {
     /// inconclusive.
     @MainActor
     static func hasPrimaryScrollback(_ surface: any TerminalBackendSurface) -> Bool {
-        guard let captureFile = validatedCaptureFile(
-            for: surface.exportScrollbackFile()
-        ) else { return false }
+        guard
+            let captureFile = validatedCaptureFile(
+                for: surface.exportScrollbackFile()
+            )
+        else { return false }
         removeCaptureFile(captureFile)
         return true
     }
@@ -192,7 +197,8 @@ enum TerminalHistorySerializer {
         foregroundPID: pid_t?
     ) {
         guard rootShellIsForeground(shellPID: shellPID, foregroundPID: foregroundPID),
-              case .captured(let captured) = capture else { return }
+            case .captured(let captured) = capture
+        else { return }
         snapshot = captured
     }
 
@@ -208,7 +214,8 @@ enum TerminalHistorySerializer {
         maxLines: Int
     ) -> String? {
         if !rootShellIsForeground(shellPID: shellPID, foregroundPID: foregroundPID),
-           !hasPrimaryScrollback(surface) {
+            !hasPrimaryScrollback(surface)
+        {
             // A primary screen with no rows above the viewport and an
             // alternate screen both have no scrollback export. The root shell
             // is foreground only in the former case; a TUI owns its own
@@ -255,10 +262,12 @@ enum TerminalHistorySerializer {
     private static let restoredBannerTexts: Set<String> = {
         var labels = Set([restoredBannerSourceLabel, restoredBannerLabel])
         for localization in Bundle.main.localizations {
-            guard let path = Bundle.main.path(
-                forResource: localization,
-                ofType: "lproj"
-            ), let bundle = Bundle(path: path) else { continue }
+            guard
+                let path = Bundle.main.path(
+                    forResource: localization,
+                    ofType: "lproj"
+                ), let bundle = Bundle(path: path)
+            else { continue }
             labels.insert(
                 bundle.localizedString(
                     forKey: restoredBannerSourceLabel,
@@ -293,7 +302,8 @@ enum TerminalHistorySerializer {
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
 
-        var lines = capture
+        var lines =
+            capture
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map(String.init)
             .filter { !isRestoredBanner($0) }
@@ -335,7 +345,7 @@ enum TerminalHistorySerializer {
             }
 
             if !isColorConfigurationCommand(in: scalars[sequence.payload]) {
-                output.unicodeScalars.append(contentsOf: scalars[index..<sequence.end])
+                output.unicodeScalars.append(contentsOf: scalars[index ..< sequence.end])
             }
             index = sequence.end
         }
@@ -350,7 +360,7 @@ enum TerminalHistorySerializer {
         var index = payload.startIndex
         while index < payload.endIndex {
             let value = payload[index].value
-            guard (48...57).contains(value) else { break }
+            guard (48 ... 57).contains(value) else { break }
             digitCount += 1
             // Every color command of interest is at most three digits. Bail
             // out before arithmetic on an attacker-controlled OSC can overflow.
@@ -360,11 +370,11 @@ enum TerminalHistorySerializer {
         }
 
         guard digitCount > 0,
-              index == payload.endIndex || payload[index].value == 59
+            index == payload.endIndex || payload[index].value == 59
         else { return false }
 
         switch command {
-        case 4, 5, 10...19, 104, 105, 110...119:
+        case 4, 5, 10 ... 19, 104, 105, 110 ... 119:
             return true
         default:
             return false
@@ -380,8 +390,9 @@ enum TerminalHistorySerializer {
         if scalars[index].value == 0x9d {
             payloadStart = index + 1
         } else if scalars[index].value == 0x1b,
-                  index + 1 < scalars.count,
-                  scalars[index + 1].value == 0x5d {
+            index + 1 < scalars.count,
+            scalars[index + 1].value == 0x5d
+        {
             payloadStart = index + 2
         } else {
             return nil
@@ -391,10 +402,11 @@ enum TerminalHistorySerializer {
         while cursor < scalars.count {
             switch scalars[cursor].value {
             case 0x07, 0x9c:
-                return (payloadStart..<cursor, cursor + 1)
-            case 0x1b where cursor + 1 < scalars.count
+                return (payloadStart ..< cursor, cursor + 1)
+            case 0x1b
+            where cursor + 1 < scalars.count
                 && scalars[cursor + 1].value == 0x5c:
-                return (payloadStart..<cursor, cursor + 2)
+                return (payloadStart ..< cursor, cursor + 2)
             default:
                 cursor += 1
             }
@@ -445,8 +457,9 @@ enum TerminalHistorySerializer {
         if scalars[index].value == 0x9b {
             parameterStart = index + 1
         } else if scalars[index].value == 0x1b,
-                  index + 1 < scalars.count,
-                  scalars[index + 1].value == 0x5b {
+            index + 1 < scalars.count,
+            scalars[index + 1].value == 0x5b
+        {
             parameterStart = index + 2
         } else {
             return nil
@@ -454,7 +467,7 @@ enum TerminalHistorySerializer {
 
         var cursor = parameterStart
         while cursor < scalars.count {
-            if (0x40...0x7e).contains(scalars[cursor].value) {
+            if (0x40 ... 0x7e).contains(scalars[cursor].value) {
                 return cursor + 1
             }
             cursor += 1
@@ -464,7 +477,7 @@ enum TerminalHistorySerializer {
 
     private static func containsANSI(in string: String) -> Bool {
         string.unicodeScalars.contains {
-            $0.value == 0x1b || (0x80...0x9f).contains($0.value)
+            $0.value == 0x1b || (0x80 ... 0x9f).contains($0.value)
         }
     }
 
@@ -497,14 +510,15 @@ enum TerminalHistorySerializer {
         let manager = FileManager.default
         let unresolvedFile = URL(fileURLWithPath: path).standardizedFileURL
         let unresolvedParent = unresolvedFile.deletingLastPathComponent()
-        guard let fileValues = try? unresolvedFile.resourceValues(
-                  forKeys: [.isRegularFileKey, .isSymbolicLinkKey]),
-              fileValues.isRegularFile == true,
-              fileValues.isSymbolicLink != true,
-              let parentValues = try? unresolvedParent.resourceValues(
-                  forKeys: [.isDirectoryKey, .isSymbolicLinkKey]),
-              parentValues.isDirectory == true,
-              parentValues.isSymbolicLink != true
+        guard
+            let fileValues = try? unresolvedFile.resourceValues(
+                forKeys: [.isRegularFileKey, .isSymbolicLinkKey]),
+            fileValues.isRegularFile == true,
+            fileValues.isSymbolicLink != true,
+            let parentValues = try? unresolvedParent.resourceValues(
+                forKeys: [.isDirectoryKey, .isSymbolicLinkKey]),
+            parentValues.isDirectory == true,
+            parentValues.isSymbolicLink != true
         else { return nil }
 
         let fileURL = unresolvedFile.resolvingSymlinksInPath()
@@ -546,14 +560,16 @@ enum TerminalHistoryStore {
     /// an installed production build's history.
     private static let fileURL: URL = {
         #if DEBUG
-        let directory = "zshell-dev"
+            let directory = "zshell-dev"
         #else
-        let directory = "zshell"
+            let directory = "zshell"
         #endif
-        let base = FileManager.default.urls(
-            for: .applicationSupportDirectory, in: .userDomainMask
-        ).first ?? FileManager.default.temporaryDirectory
-        return base
+        let base =
+            FileManager.default.urls(
+                for: .applicationSupportDirectory, in: .userDomainMask
+            ).first ?? FileManager.default.temporaryDirectory
+        return
+            base
             .appendingPathComponent(directory, isDirectory: true)
             .appendingPathComponent("terminal-history.json")
     }()
@@ -568,8 +584,7 @@ enum TerminalHistoryStore {
             if histories.isEmpty {
                 // Remove stale output when history restore is disabled or no
                 // remaining session has a saved capture.
-                do { try FileManager.default.removeItem(at: fileURL) }
-                catch let error as CocoaError where error.code == .fileNoSuchFile { }
+                do { try FileManager.default.removeItem(at: fileURL) } catch let error as CocoaError where error.code == .fileNoSuchFile {}
             } else {
                 let data = try JSONEncoder().encode(histories)
                 try FileManager.default.createDirectory(
@@ -584,7 +599,7 @@ enum TerminalHistoryStore {
 
     static func load() -> [String: String] {
         guard let data = try? Data(contentsOf: fileURL),
-              let histories = try? JSONDecoder().decode([String: String].self, from: data)
+            let histories = try? JSONDecoder().decode([String: String].self, from: data)
         else {
             savedHistories = nil
             return [:]

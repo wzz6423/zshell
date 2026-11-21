@@ -33,7 +33,8 @@ final class MainHeaderNSView: NSView {
     private let windowDrag = WorkspaceWindowDragView()
     private let leftButton = WorkspaceChromeButton(symbol: "sidebar.left", label: AppCommand.toggleLeftSidebar.title)
     private let rightButton = WorkspaceChromeButton(symbol: "sidebar.right", label: AppCommand.toggleRightSidebar.title)
-    private let zoomButton = WorkspaceChromeButton(symbol: "arrow.down.forward.and.arrow.up.backward", label: String(localized: "Exit Pane Zoom (⇧⌘↩)"))
+    private let zoomButton = WorkspaceChromeButton(
+        symbol: "arrow.down.forward.and.arrow.up.backward", label: String(localized: "Exit Pane Zoom (⇧⌘↩)"))
     private let dropTarget = HeaderDropTargetView(frame: .zero)
     private var observations: [AnyCancellable] = []
     private var refreshScheduled = false
@@ -55,9 +56,11 @@ final class MainHeaderNSView: NSView {
         rightButton.onAction = { [weak manager] in manager?.toggleSidebar() }
         zoomButton.onAction = { [weak manager] in manager?.togglePaneZoom() }
         strip.onWidthChange = { [weak self] in self?.needsLayout = true }
-        for publisher in [manager.objectWillChange.eraseToAnyPublisher(),
-                          AppSettings.shared.objectWillChange.eraseToAnyPublisher(),
-                          Theme.changes.objectWillChange.eraseToAnyPublisher()] {
+        for publisher in [
+            manager.objectWillChange.eraseToAnyPublisher(),
+            AppSettings.shared.objectWillChange.eraseToAnyPublisher(),
+            Theme.changes.objectWillChange.eraseToAnyPublisher(),
+        ] {
             publisher.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.scheduleRefresh() }
                 .store(in: &observations)
         }
@@ -87,16 +90,17 @@ final class MainHeaderNSView: NSView {
     private func raiseHostAboveTerminal() {
         guard presentsWindowOverlay else { return }
         guard let host = superview, let parent = host.superview,
-              parent.subviews.last !== host else { return }
+            parent.subviews.last !== host
+        else { return }
         parent.addSubview(host, positioned: .above, relativeTo: nil)
     }
 
     private func installWindowOverlay() {
         guard presentsWindowOverlay,
-              let window,
-              let contentView = window.contentView,
-              let container = contentView.superview,
-              overlayHeader == nil
+            let window,
+            let contentView = window.contentView,
+            let container = contentView.superview,
+            overlayHeader == nil
         else { return }
 
         let header = MainHeaderNSView(
@@ -117,26 +121,27 @@ final class MainHeaderNSView: NSView {
             NSWindow.didExitFullScreenNotification,
         ]
         for name in names {
-            overlayObservers.append(NotificationCenter.default.addObserver(
-                forName: name, object: window, queue: .main
-            ) { [weak self] _ in
-                DispatchQueue.main.async {
-                    MainActor.assumeIsolated {
-                        self?.syncWindowOverlay()
+            overlayObservers.append(
+                NotificationCenter.default.addObserver(
+                    forName: name, object: window, queue: .main
+                ) { [weak self] _ in
+                    DispatchQueue.main.async {
+                        MainActor.assumeIsolated {
+                            self?.syncWindowOverlay()
+                        }
                     }
-                }
-            })
+                })
         }
         syncWindowOverlay()
     }
 
     private func syncWindowOverlay() {
         guard presentsWindowOverlay,
-              let window,
-              let header = overlayHeader,
-              let host = superview,
-              let contentView = window.contentView,
-              let container = contentView.superview
+            let window,
+            let header = overlayHeader,
+            let host = superview,
+            let contentView = window.contentView,
+            let container = contentView.superview
         else { return }
 
         let frame = host.convert(host.bounds, to: container)
@@ -176,7 +181,8 @@ final class MainHeaderNSView: NSView {
         zoomButton.isHidden = !manager.isPaneZoomed
         leftButton.configure(symbol: "sidebar.left", command: .toggleLeftSidebar, pointSize: 12 * scale)
         rightButton.configure(symbol: "sidebar.right", command: .toggleRightSidebar, pointSize: 12 * scale)
-        zoomButton.configure(symbol: "arrow.down.forward.and.arrow.up.backward", label: String(localized: "Exit Pane Zoom (⇧⌘↩)"), pointSize: 12 * scale)
+        zoomButton.configure(
+            symbol: "arrow.down.forward.and.arrow.up.backward", label: String(localized: "Exit Pane Zoom (⇧⌘↩)"), pointSize: 12 * scale)
         zoomButton.contentTintColor = Theme.accent
         strip.configure(manager: manager, project: manager.selectedProject, tabDrag: tabDrag)
         strip.isHidden = manager.selectedProject == nil
@@ -236,12 +242,13 @@ final class MainHeaderNSView: NSView {
     override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); refresh() }
 
     private func updateDropTarget(animated: Bool = true) {
-        let isTarget = manager.selectedProject.map {
-            tabDrag.projectDrag?.targetProjectID == $0.id
-                || tabDrag.groupDrag?.targetProjectID == $0.id
-                || (tabDrag.paneDrag?.targetsTabStrip == true
-                    && tabDrag.paneDrag?.sourceProjectID == $0.id)
-        } ?? false
+        let isTarget =
+            manager.selectedProject.map {
+                tabDrag.projectDrag?.targetProjectID == $0.id
+                    || tabDrag.groupDrag?.targetProjectID == $0.id
+                    || (tabDrag.paneDrag?.targetsTabStrip == true
+                        && tabDrag.paneDrag?.sourceProjectID == $0.id)
+            } ?? false
         dropTarget.setActive(isTarget, animated: animated)
     }
 
@@ -250,7 +257,8 @@ final class MainHeaderNSView: NSView {
 
 private final class SessionStripScrollView: NSScrollView {
     override func scrollWheel(with event: NSEvent) {
-        let dominantDelta = abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY)
+        let dominantDelta =
+            abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY)
             ? event.scrollingDeltaX : event.scrollingDeltaY
         guard dominantDelta != 0 else { return }
         let maximum = max(0, (documentView?.bounds.width ?? 0) - contentSize.width)
@@ -313,8 +321,8 @@ private final class SessionStripOverlayScroller: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? {
         let localPoint = convert(point, from: superview)
         guard !isHidden,
-              bounds.contains(localPoint),
-              trackRect.insetBy(dx: 0, dy: -5).contains(localPoint)
+            bounds.contains(localPoint),
+            trackRect.insetBy(dx: 0, dy: -5).contains(localPoint)
         else { return nil }
         return self
     }
@@ -322,7 +330,8 @@ private final class SessionStripOverlayScroller: NSView {
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         let thumb = thumbRect
-        dragOffset = thumb.insetBy(dx: -4, dy: -5).contains(point)
+        dragOffset =
+            thumb.insetBy(dx: -4, dy: -5).contains(point)
             ? min(max(point.x - thumb.minX, 0), thumb.width)
             : thumb.width / 2
         isDragging = true
@@ -480,8 +489,8 @@ final class SessionTabsNSView: NSView {
     // Keep an ungrouped release target reachable when the tab strip overflows.
     private var trailingDropWidth: CGFloat {
         guard let draggedItem,
-              case .tab(let id) = draggedItem,
-              project?.tabs.first(where: { $0.id == id })?.tabGroupID != nil
+            case .tab(let id) = draggedItem,
+            project?.tabs.first(where: { $0.id == id })?.tabGroupID != nil
         else { return 0 }
         return 28 * scale
     }
@@ -568,13 +577,14 @@ final class SessionTabsNSView: NSView {
         let groupColor = project.tabGroup(id: tab.tabGroupID).map {
             $0.markerColor ?? .defaultColor
         }
-        row.apply(title: tab.displayTitle ?? String(localized: "Tab"), icon: image,
-                  selected: tab.id == project.selectedTabID, grouped: tab.tabGroupID != nil,
-                  pinned: tab.isPinned, marker: groupColor ?? tab.markerColor,
-                  count: tab.allPanes.count > 1 ? tab.allPanes.count : nil,
-                  rollup: tab.agentRollup, dirty: content?.isDirty == true, scale: scale,
-                  tabStrip: true,
-                  action: { [weak project, weak tab] in if let tab { project?.close(tab) } })
+        row.apply(
+            title: tab.displayTitle ?? String(localized: "Tab"), icon: image,
+            selected: tab.id == project.selectedTabID, grouped: tab.tabGroupID != nil,
+            pinned: tab.isPinned, marker: groupColor ?? tab.markerColor,
+            count: tab.allPanes.count > 1 ? tab.allPanes.count : nil,
+            rollup: tab.agentRollup, dirty: content?.isDirty == true, scale: scale,
+            tabStrip: true,
+            action: { [weak project, weak tab] in if let tab { project?.close(tab) } })
         row.toolTip = content?.fileIconPath ?? tab.displayTitle
         row.onSelect = { [weak project, weak tab] in if let tab { project?.selectedTabID = tab.id } }
         row.onRename = { [weak row, weak tab] in
@@ -590,11 +600,12 @@ final class SessionTabsNSView: NSView {
     }
 
     private func configure(_ row: WorkspaceItemView, group: SessionTabGroup, project: Project) {
-        row.apply(title: group.name, icon: nil,
-                  selected: project.selectedTab?.tabGroupID == group.id,
-                  group: true, collapsed: group.isCollapsed, grouped: true,
-                  marker: group.markerColor ?? .defaultColor, compactGroup: true, scale: scale,
-                  tabStrip: true)
+        row.apply(
+            title: group.name, icon: nil,
+            selected: project.selectedTab?.tabGroupID == group.id,
+            group: true, collapsed: group.isCollapsed, grouped: true,
+            marker: group.markerColor ?? .defaultColor, compactGroup: true, scale: scale,
+            tabStrip: true)
         row.toolTip = String(localized: group.isCollapsed ? "Expand Group" : "Collapse Group")
         row.onSelect = { [weak project] in
             guard let current = project?.tabGroup(id: group.id) else { return }
@@ -623,9 +634,10 @@ final class SessionTabsNSView: NSView {
                 },
             ]
             if current.markerColor != nil {
-                items.append(.action(title: String(localized: "Remove Color Marker")) {
-                    project.setTabGroupColor(nil, id: group.id)
-                })
+                items.append(
+                    .action(title: String(localized: "Remove Color Marker")) {
+                        project.setTabGroupColor(nil, id: group.id)
+                    })
             }
             items += [
                 .separator,
@@ -680,7 +692,8 @@ final class SessionTabsNSView: NSView {
 
     private func revealSelectedRow() {
         guard let project, let tab = project.selectedTab else { return }
-        let item: Item = project.tabGroup(id: tab.tabGroupID)?.isCollapsed == true
+        let item: Item =
+            project.tabGroup(id: tab.tabGroupID)?.isCollapsed == true
             ? .group(tab.tabGroupID!) : .tab(tab.id)
         guard let row = rows[item] else { return }
         row.scrollToVisible(row.bounds.insetBy(dx: -3, dy: 0))
@@ -721,8 +734,8 @@ final class SessionTabsNSView: NSView {
 
     private func handlesScrollWheel(_ event: NSEvent) -> Bool {
         guard let window,
-              event.window === window,
-              let rootView = window.contentView?.superview
+            event.window === window,
+            let rootView = window.contentView?.superview
         else { return false }
         let point = rootView.superview?.convert(event.locationInWindow, from: nil) ?? event.locationInWindow
         guard let hitView = rootView.hitTest(point) else { return false }
@@ -820,7 +833,8 @@ final class SessionTabsNSView: NSView {
             let sourceTab = project.tabs.first { $0.id == source }
             let destinationTab = project.tabs.first { $0.id == destination }
             if sourceTab?.isPinned != destinationTab?.isPinned,
-               let groupID = destinationTab?.tabGroupID {
+                let groupID = destinationTab?.tabGroupID
+            {
                 project.moveTab(source, toGroup: groupID)
             } else {
                 project.moveTab(source, to: destination)
@@ -862,9 +876,11 @@ final class SessionTabsNSView: NSView {
         guard let project, let manager else { return [] }
         var items: [AppKitContextMenuItem] = []
         if !project.isRemote {
-            items += [.action(title: AppCommand.newSessionInWorktree.title) {
-                manager.promptForWorktreeSession(in: project)
-            }, .separator]
+            items += [
+                .action(title: AppCommand.newSessionInWorktree.title) {
+                    manager.promptForWorktreeSession(in: project)
+                }, .separator,
+            ]
         }
         items += [
             .action(title: String(localized: tab.isPinned ? "Unpin Tab" : "Pin Tab")) { project.setPinned(!tab.isPinned, for: tab) },
@@ -875,7 +891,7 @@ final class SessionTabsNSView: NSView {
             .action(title: String(localized: "New Tab Group")) { [weak self] in
                 project.createTabGroup(containing: tab)
                 self?.refresh()
-            },
+            }
         ]
         let otherGroups = project.tabGroups.filter { tab.tabGroupID != $0.id }
         if !otherGroups.isEmpty { groupItems.append(.separator) }
@@ -887,31 +903,40 @@ final class SessionTabsNSView: NSView {
             groupItems.append(.action(title: String(localized: "Remove from Group")) { project.moveTab(tab.id, toGroup: nil) })
         }
         items.append(.separator)
-        if groupItems.count == 1 { items += groupItems }
-        else { items.append(.submenu(title: String(localized: "Move to Group"), items: groupItems)) }
+        if groupItems.count == 1 {
+            items += groupItems
+        } else {
+            items.append(.submenu(title: String(localized: "Move to Group"), items: groupItems))
+        }
         items.append(.separator)
-        items.append(.action(title: String(localized: "Set Color Marker…")) {
-            ProjectTabColorPanelController.shared.present(
-                tab: tab,
-                hostWindow: self.rows[.tab(tab.id)]?.window
-            )
-        })
+        items.append(
+            .action(title: String(localized: "Set Color Marker…")) {
+                ProjectTabColorPanelController.shared.present(
+                    tab: tab,
+                    hostWindow: self.rows[.tab(tab.id)]?.window
+                )
+            })
         if tab.markerColor != nil { items.append(.action(title: String(localized: "Remove Color Marker")) { tab.markerColor = nil }) }
         if case .file(let file) = tab.focusedContent, !project.isRemote {
-            items.append(.action(title: String(localized: "Reveal in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file.path)]) })
-            items.append(.action(title: String(localized: "Copy Absolute Path")) {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(file.path, forType: .string)
-            })
+            items.append(
+                .action(title: String(localized: "Reveal in Finder")) {
+                    NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file.path)])
+                })
+            items.append(
+                .action(title: String(localized: "Copy Absolute Path")) {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(file.path, forType: .string)
+                })
         }
         if case .browser(let browser) = tab.focusedContent, !browser.urlString.isEmpty {
             if browser.shareURL != nil {
                 items.append(.action(title: String(localized: "Open in Default Browser")) { browser.openInDefaultBrowser() })
             }
-            items.append(.action(title: String(localized: "Copy Address")) {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(browser.urlString, forType: .string)
-            })
+            items.append(
+                .action(title: String(localized: "Copy Address")) {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(browser.urlString, forType: .string)
+                })
         }
         if tab.diffs.isEmpty {
             let destinations = manager.tabMoveDestinations(for: tab.id, in: project.id).filter(\.isEnabled)
@@ -919,7 +944,7 @@ final class SessionTabsNSView: NSView {
                 .action(title: String(localized: "New Ungrouped Project")) { [weak self] in
                     let result = manager.moveTabToNewProject(id: tab.id, from: project.id, in: nil)
                     if let failure = result.failure { self?.tabDrag?.presentMoveFailure(failure) }
-                },
+                }
             ]
             if !destinations.isEmpty { moveItems.append(.separator) }
             moveItems += destinations.map { destination in
@@ -930,7 +955,9 @@ final class SessionTabsNSView: NSView {
                 }
             }
             items += [.separator, .submenu(title: String(localized: "Move Tab to Project"), items: moveItems), .separator]
-        } else { items.append(.separator) }
+        } else {
+            items.append(.separator)
+        }
         items.append(.action(title: String(localized: "Close")) { project.close(tab) })
         if project.tabs.count > 1 {
             items.append(.action(title: String(localized: "Close Others")) { project.closeOthers(tab) })

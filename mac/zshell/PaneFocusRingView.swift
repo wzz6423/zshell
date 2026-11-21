@@ -62,8 +62,7 @@ private final class PaneFocusRingView: NSView {
         path.lineWidth = lineWidth
         (drawsAccent
             ? Theme.accent.withAlphaComponent(focusedOpacity)
-            : NSColor.labelColor.withAlphaComponent(0.06)
-        ).setStroke()
+            : NSColor.labelColor.withAlphaComponent(0.06)).setStroke()
         path.stroke()
     }
 

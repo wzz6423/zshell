@@ -130,10 +130,11 @@ final class ProjectTabColorPanelController: NSObject {
             panel.accessoryView = chromePalette
             let contentSize = panel.contentView?.bounds.size ?? .zero
             if contentSize.width < chromePalette.intrinsicContentSize.width {
-                panel.setContentSize(NSSize(
-                    width: chromePalette.intrinsicContentSize.width,
-                    height: contentSize.height
-                ))
+                panel.setContentSize(
+                    NSSize(
+                        width: chromePalette.intrinsicContentSize.width,
+                        height: contentSize.height
+                    ))
             }
         } else {
             panel.accessoryView = nil

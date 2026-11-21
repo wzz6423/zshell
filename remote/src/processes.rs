@@ -34,7 +34,9 @@ pub fn descendants(shell: i32) -> io::Result<Vec<ProcessItem>> {
     // not a cut-off of that file, e.g. for busybox applets or scripts.
     #[cfg(target_os = "linux")]
     for item in &mut items {
-        let Ok(path) = std::fs::read_link(format!("/proc/{}/exe", item.pid)) else { continue };
+        let Ok(path) = std::fs::read_link(format!("/proc/{}/exe", item.pid)) else {
+            continue;
+        };
         let path = path.to_string_lossy().into_owned();
         let file = path.rsplit('/').next().unwrap_or(&path);
         if file.starts_with(&item.name) {
@@ -76,13 +78,16 @@ fn parse(text: &str, shell: i32) -> Vec<ProcessItem> {
         if executable.is_empty() {
             continue;
         }
-        items.insert(pid, ProcessItem {
+        items.insert(
             pid,
-            name: executable.rsplit('/').next().unwrap_or(&executable).into(),
-            executable,
-            cpu: cpu.parse().unwrap_or(0.0),
-            memory_kb: rss.parse().unwrap_or(0),
-        });
+            ProcessItem {
+                pid,
+                name: executable.rsplit('/').next().unwrap_or(&executable).into(),
+                executable,
+                cpu: cpu.parse().unwrap_or(0.0),
+                memory_kb: rss.parse().unwrap_or(0),
+            },
+        );
     }
     // Breadth-first: the commands the user ran come before their workers.
     let mut result = Vec::new();

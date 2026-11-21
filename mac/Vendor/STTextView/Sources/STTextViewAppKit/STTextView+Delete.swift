@@ -1,7 +1,6 @@
 //  Created by Marcin Krzyzanowski
 //  https://github.com/krzyzanowskim/STTextView/blob/main/LICENSE.md
 
-
 import AppKit
 
 extension STTextView {
@@ -73,7 +72,9 @@ extension STTextView {
     }
 
     @discardableResult
-    private func delete(direction: NSTextSelectionNavigation.Direction, destination: NSTextSelectionNavigation.Destination, allowsDecomposition: Bool) -> String? {
+    private func delete(
+        direction: NSTextSelectionNavigation.Direction, destination: NSTextSelectionNavigation.Destination, allowsDecomposition: Bool
+    ) -> String? {
         let textRanges = textLayoutManager.textSelections.flatMap { textSelection -> [NSTextRange] in
             if destination == .word {
                 // FB9925766. deletionRanges only works correctly if textSelection is at the end of the word

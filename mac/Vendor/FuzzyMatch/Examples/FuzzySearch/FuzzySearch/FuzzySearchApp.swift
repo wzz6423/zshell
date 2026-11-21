@@ -181,7 +181,7 @@ struct ConfigurationPanel: View {
             ParameterSlider(
                 label: "Min Score",
                 value: $viewModel.minScore,
-                range: 0...1,
+                range: 0 ... 1,
                 step: 0.05,
                 format: "%.2f"
             )
@@ -202,17 +202,17 @@ struct ConfigurationPanel: View {
             ParameterStepper(
                 label: "Max Edit Distance",
                 value: $viewModel.edConfig.maxEditDistance,
-                range: 0...5
+                range: 0 ... 5
             )
             ParameterStepper(
                 label: "Long Query Max ED",
                 value: $viewModel.edConfig.longQueryMaxEditDistance,
-                range: 0...5
+                range: 0 ... 5
             )
             ParameterStepper(
                 label: "Long Query Threshold",
                 value: $viewModel.edConfig.longQueryThreshold,
-                range: 1...50
+                range: 1 ... 50
             )
         }
 
@@ -220,21 +220,21 @@ struct ConfigurationPanel: View {
             ParameterSlider(
                 label: "Prefix",
                 value: $viewModel.edConfig.prefixWeight,
-                range: 0...3,
+                range: 0 ... 3,
                 step: 0.1,
                 format: "%.1f"
             )
             ParameterSlider(
                 label: "Substring",
                 value: $viewModel.edConfig.substringWeight,
-                range: 0...3,
+                range: 0 ... 3,
                 step: 0.1,
                 format: "%.1f"
             )
             ParameterSlider(
                 label: "Acronym",
                 value: $viewModel.edConfig.acronymWeight,
-                range: 0...3,
+                range: 0 ... 3,
                 step: 0.1,
                 format: "%.1f"
             )
@@ -244,28 +244,28 @@ struct ConfigurationPanel: View {
             ParameterSlider(
                 label: "Word Boundary",
                 value: $viewModel.edConfig.wordBoundaryBonus,
-                range: 0...0.5,
+                range: 0 ... 0.5,
                 step: 0.01,
                 format: "%.3f"
             )
             ParameterSlider(
                 label: "Consecutive",
                 value: $viewModel.edConfig.consecutiveBonus,
-                range: 0...0.3,
+                range: 0 ... 0.3,
                 step: 0.005,
                 format: "%.3f"
             )
             ParameterSlider(
                 label: "First Match",
                 value: $viewModel.edConfig.firstMatchBonus,
-                range: 0...0.5,
+                range: 0 ... 0.5,
                 step: 0.01,
                 format: "%.3f"
             )
             ParameterStepper(
                 label: "First Match Range",
                 value: $viewModel.edConfig.firstMatchBonusRange,
-                range: 1...50
+                range: 1 ... 50
             )
         }
 
@@ -273,7 +273,7 @@ struct ConfigurationPanel: View {
             ParameterSlider(
                 label: "Length Penalty",
                 value: $viewModel.edConfig.lengthPenalty,
-                range: 0...0.02,
+                range: 0 ... 0.02,
                 step: 0.001,
                 format: "%.4f"
             )
@@ -291,7 +291,7 @@ struct ConfigurationPanel: View {
                 ParameterSlider(
                     label: "Per Character",
                     value: $viewModel.gapLinearRate,
-                    range: 0...0.1,
+                    range: 0 ... 0.1,
                     step: 0.001,
                     format: "%.3f"
                 )
@@ -299,14 +299,14 @@ struct ConfigurationPanel: View {
                 ParameterSlider(
                     label: "Gap Open",
                     value: $viewModel.gapAffineOpen,
-                    range: 0...0.2,
+                    range: 0 ... 0.2,
                     step: 0.005,
                     format: "%.3f"
                 )
                 ParameterSlider(
                     label: "Gap Extend",
                     value: $viewModel.gapAffineExtend,
-                    range: 0...0.05,
+                    range: 0 ... 0.05,
                     step: 0.001,
                     format: "%.4f"
                 )
@@ -322,17 +322,17 @@ struct ConfigurationPanel: View {
             ParameterStepper(
                 label: "Score Match",
                 value: $viewModel.swConfig.scoreMatch,
-                range: 1...50
+                range: 1 ... 50
             )
             ParameterStepper(
                 label: "Gap Start Penalty",
                 value: $viewModel.swConfig.penaltyGapStart,
-                range: 0...20
+                range: 0 ... 20
             )
             ParameterStepper(
                 label: "Gap Extend Penalty",
                 value: $viewModel.swConfig.penaltyGapExtend,
-                range: 0...20
+                range: 0 ... 20
             )
         }
 
@@ -340,32 +340,32 @@ struct ConfigurationPanel: View {
             ParameterStepper(
                 label: "Consecutive",
                 value: $viewModel.swConfig.bonusConsecutive,
-                range: 0...30
+                range: 0 ... 30
             )
             ParameterStepper(
                 label: "Boundary",
                 value: $viewModel.swConfig.bonusBoundary,
-                range: 0...30
+                range: 0 ... 30
             )
             ParameterStepper(
                 label: "Whitespace Boundary",
                 value: $viewModel.swConfig.bonusBoundaryWhitespace,
-                range: 0...30
+                range: 0 ... 30
             )
             ParameterStepper(
                 label: "Delimiter Boundary",
                 value: $viewModel.swConfig.bonusBoundaryDelimiter,
-                range: 0...30
+                range: 0 ... 30
             )
             ParameterStepper(
                 label: "camelCase",
                 value: $viewModel.swConfig.bonusCamelCase,
-                range: 0...30
+                range: 0 ... 30
             )
             ParameterStepper(
                 label: "First Char Multiplier",
                 value: $viewModel.swConfig.bonusFirstCharMultiplier,
-                range: 1...10
+                range: 1 ... 10
             )
         }
 

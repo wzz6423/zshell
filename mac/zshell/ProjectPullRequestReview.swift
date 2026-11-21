@@ -10,9 +10,10 @@ nonisolated struct ProjectPullRequestReviewIdentity: Hashable, Sendable {
     init?(_ pr: ProjectPullRequest, context: ProjectPullRequestContext) {
         let parts = pr.url.path.split(separator: "/")
         guard pr.number > 0, pr.url.scheme == "https", pr.url.host == "github.com", pr.url.port == nil,
-              pr.url.user == nil, pr.url.password == nil, pr.url.query == nil, pr.url.fragment == nil,
-              parts.count == 4, parts[2] == "pull", Int(parts[3]) == pr.number,
-              let repository = GitHubRepository("\(parts[0])/\(parts[1])") else { return nil }
+            pr.url.user == nil, pr.url.password == nil, pr.url.query == nil, pr.url.fragment == nil,
+            parts.count == 4, parts[2] == "pull", Int(parts[3]) == pr.number,
+            let repository = GitHubRepository("\(parts[0])/\(parts[1])")
+        else { return nil }
         self.context = context
         self.number = pr.number
         self.repository = repository
@@ -54,7 +55,8 @@ nonisolated struct ProjectPullRequestReviewThread: Decodable, Equatable, Sendabl
         // GitHub supplies the current mapped line separately from originalLine;
         // a discussion remains valid after a later commit when it is not outdated.
         guard !isOutdated, subjectType == "LINE", let line, line > 0,
-              !comments.nodes.isEmpty else { return false }
+            !comments.nodes.isEmpty
+        else { return false }
         if let startLine {
             return startLine > 0 && startLine <= line
                 && (startDiffSide == diffSide || (startLine == line && startDiffSide == nil))
@@ -81,10 +83,11 @@ nonisolated struct ProjectPullRequestReviewFile: Equatable, Sendable {
     let outdatedThreadCount: Int
 
     var annotationURLs: [String: URL] {
-        Dictionary(threads.flatMap(\.comments.nodes).compactMap { comment in
-            guard let url = Self.commentURL(comment.url, identity: identity) else { return nil }
-            return (comment.id, url)
-        }, uniquingKeysWith: { first, _ in first })
+        Dictionary(
+            threads.flatMap(\.comments.nodes).compactMap { comment in
+                guard let url = Self.commentURL(comment.url, identity: identity) else { return nil }
+                return (comment.id, url)
+            }, uniquingKeysWith: { first, _ in first })
     }
 
     var annotations: [DiffAnnotation] {
@@ -93,8 +96,11 @@ nonisolated struct ProjectPullRequestReviewFile: Equatable, Sendable {
                 let author = comment.author?.login ?? String(localized: "Deleted user")
                 let range = thread.startLine.map { "\($0)–\(thread.line!)" } ?? "\(thread.line!)"
                 let resolved = thread.isResolved ? " · " + String(localized: "Resolved") : ""
-                return DiffAnnotation(side: thread.diffSide == .left ? .deletions : .additions,
-                    lineNumber: thread.line!, metadata: AnnotationMetadata(id: comment.id, author: author,
+                return DiffAnnotation(
+                    side: thread.diffSide == .left ? .deletions : .additions,
+                    lineNumber: thread.line!,
+                    metadata: AnnotationMetadata(
+                        id: comment.id, author: author,
                         body: comment.body, subtitle: "\(author) · L\(range)\(resolved)", isReadOnly: true))
             }
         }
@@ -102,9 +108,10 @@ nonisolated struct ProjectPullRequestReviewFile: Equatable, Sendable {
 
     static func commentURL(_ value: String, identity: ProjectPullRequestReviewIdentity) -> URL? {
         guard let components = URLComponents(string: value), components.scheme == "https",
-              components.host == "github.com", components.port == nil,
-              components.user == nil, components.password == nil,
-              components.path.lowercased() == "/\(identity.repository.nameWithOwner)/pull/\(identity.number)" else { return nil }
+            components.host == "github.com", components.port == nil,
+            components.user == nil, components.password == nil,
+            components.path.lowercased() == "/\(identity.repository.nameWithOwner)/pull/\(identity.number)"
+        else { return nil }
         return components.url
     }
 }
@@ -152,8 +159,9 @@ nonisolated enum GitHubPullRequestReviewWorker {
         environment: [String: String] = GitProxy.processEnvironment(inheriting: ProcessInfo.processInfo.environment),
         locate: @Sendable ([String: String]) -> URL? = { ProcessRunner.resolveExecutable("gh", environment: $0) },
         command: Command = {
-            try BoundedProcessRunner.run(executableURL: $0, arguments: $1, timeout: $2,
-                                         outputLimit: outputLimit, environment: $3)
+            try BoundedProcessRunner.run(
+                executableURL: $0, arguments: $1, timeout: $2,
+                outputLimit: outputLimit, environment: $3)
         },
         git: GitCommand = { GitCommandRunner.runData($0, in: $1, limit: $2, timeout: $3) }
     ) -> ProjectPullRequestReviewState {
@@ -185,15 +193,18 @@ nonisolated enum GitHubPullRequestReviewWorker {
         }
         func pullRequest(cursor: String? = nil, threads: Bool = true) throws -> PullRequestResponse.PullRequest {
             let parts = identity.repository.nameWithOwner.split(separator: "/")
-            var args = ["api", "graphql", "--hostname", "github.com", "-f", "query=" + (threads ? reviewQuery : versionQuery),
-                        "-f", "owner=" + parts[0], "-f", "name=" + parts[1], "-F", "number=\(identity.number)"]
+            var args = [
+                "api", "graphql", "--hostname", "github.com", "-f", "query=" + (threads ? reviewQuery : versionQuery),
+                "-f", "owner=" + parts[0], "-f", "name=" + parts[1], "-F", "number=\(identity.number)",
+            ]
             if let cursor { args += ["-f", "cursor=" + cursor] }
             let response = try decode(PullRequestResponse.self, run(args))
             guard response.errors?.isEmpty != false, let pr = response.data?.repository?.pullRequest,
-                  pr.number == identity.number, pr.url.lowercased() == identity.url,
-                  pr.headRefName == identity.context.headBranch,
-                  pr.headRepository.flatMap({ GitHubRepository($0.nameWithOwner) }) == identity.context.headRepository,
-                  validOID(pr.headRefOid), validOID(pr.baseRefOid) else {
+                pr.number == identity.number, pr.url.lowercased() == identity.url,
+                pr.headRefName == identity.context.headBranch,
+                pr.headRepository.flatMap({ GitHubRepository($0.nameWithOwner) }) == identity.context.headRepository,
+                validOID(pr.headRefOid), validOID(pr.baseRefOid)
+            else {
                 throw ProjectPullRequestReviewState.Failure.changed
             }
             return pr
@@ -220,14 +231,16 @@ nonisolated enum GitHubPullRequestReviewWorker {
             }
             while true {
                 guard pr.headRefOid == initial.headRefOid, pr.baseRefOid == initial.baseRefOid,
-                      let connection = pr.reviewThreads else { throw ProjectPullRequestReviewState.Failure.changed }
+                    let connection = pr.reviewThreads
+                else { throw ProjectPullRequestReviewState.Failure.changed }
                 for var thread in connection.nodes {
                     guard seenThreadIDs.insert(thread.id).inserted, validPath(thread.path) else {
                         throw ProjectPullRequestReviewState.Failure.unavailable
                     }
                     let initialCommentIDs = thread.comments.nodes.map(\.id)
                     guard initialCommentIDs.allSatisfy({ !$0.isEmpty }),
-                          Set(initialCommentIDs).count == initialCommentIDs.count else {
+                        Set(initialCommentIDs).count == initialCommentIDs.count
+                    else {
                         throw ProjectPullRequestReviewState.Failure.unavailable
                     }
                     // File quotas must not be consumed by discussions on unrelated files.
@@ -239,12 +252,17 @@ nonisolated enum GitHubPullRequestReviewWorker {
                         var info = thread.comments.pageInfo
                         var commentIDs = Set(thread.comments.nodes.map(\.id))
                         while let cursor = try nextCursor(info, seen: &commentCursors) {
-                            let response = try decode(ThreadResponse.self, run(["api", "graphql", "--hostname", "github.com",
-                                "-f", "query=" + commentsQuery, "-f", "id=" + thread.id, "-f", "cursor=" + cursor]))
+                            let response = try decode(
+                                ThreadResponse.self,
+                                run([
+                                    "api", "graphql", "--hostname", "github.com",
+                                    "-f", "query=" + commentsQuery, "-f", "id=" + thread.id, "-f", "cursor=" + cursor,
+                                ]))
                             guard response.errors?.isEmpty != false, let node = response.data?.node,
-                                  node.id == thread.id, node.pullRequest.number == initial.number,
-                                  node.pullRequest.url == initial.url, node.pullRequest.headRefOid == initial.headRefOid,
-                                  node.pullRequest.baseRefOid == initial.baseRefOid else {
+                                node.id == thread.id, node.pullRequest.number == initial.number,
+                                node.pullRequest.url == initial.url, node.pullRequest.headRefOid == initial.headRefOid,
+                                node.pullRequest.baseRefOid == initial.baseRefOid
+                            else {
                                 throw ProjectPullRequestReviewState.Failure.changed
                             }
                             try account(node.comments.nodes)
@@ -263,14 +281,21 @@ nonisolated enum GitHubPullRequestReviewWorker {
                 pr = try pullRequest(cursor: cursor)
             }
             let localBase = try local(["merge-base", "--all", initial.baseRefOid, initial.headRefOid], limit: 1_024)
-            var mergeBase = localBase.status == 0 && !localBase.truncated
+            var mergeBase =
+                localBase.status == 0 && !localBase.truncated
                 ? String(decoding: localBase.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines) : ""
             if !validOID(mergeBase) {
-                let head = identity.repository == identity.context.headRepository ? initial.headRefOid
+                let head =
+                    identity.repository == identity.context.headRepository
+                    ? initial.headRefOid
                     : String(identity.context.headRepository.nameWithOwner.split(separator: "/")[0]) + ":" + initial.headRefOid
-                let compare = try decode(CompareResponse.self, run(["api",
-                    "repos/\(identity.repository.nameWithOwner)/compare/\(initial.baseRefOid)...\(head)",
-                    "--hostname", "github.com", "--method", "GET", "--jq", "{merge_base_commit:{sha:.merge_base_commit.sha}} "]))
+                let compare = try decode(
+                    CompareResponse.self,
+                    run([
+                        "api",
+                        "repos/\(identity.repository.nameWithOwner)/compare/\(initial.baseRefOid)...\(head)",
+                        "--hostname", "github.com", "--method", "GET", "--jq", "{merge_base_commit:{sha:.merge_base_commit.sha}} ",
+                    ]))
                 mergeBase = compare.merge_base_commit.sha
                 guard validOID(mergeBase) else { throw ProjectPullRequestReviewState.Failure.unavailable }
             }
@@ -280,10 +305,14 @@ nonisolated enum GitHubPullRequestReviewWorker {
                 changed = try changedFiles(names.stdout).first { $0.filename == path }
             } else {
                 var selected: ChangedFile?
-                for page in 1...30 {
-                    let files = try decode([ChangedFile].self, run(["api", "repos/\(identity.repository.nameWithOwner)/pulls/\(identity.number)/files",
-                        "--hostname", "github.com", "--method", "GET", "-F", "per_page=100", "-F", "page=\(page)",
-                        "--jq", "[.[]|{filename,previous_filename,status}]"]))
+                for page in 1 ... 30 {
+                    let files = try decode(
+                        [ChangedFile].self,
+                        run([
+                            "api", "repos/\(identity.repository.nameWithOwner)/pulls/\(identity.number)/files",
+                            "--hostname", "github.com", "--method", "GET", "-F", "per_page=100", "-F", "page=\(page)",
+                            "--jq", "[.[]|{filename,previous_filename,status}]",
+                        ]))
                     guard files.allSatisfy({ validPath($0.filename) && ($0.previous_filename.map(validPath) ?? true) }) else {
                         throw ProjectPullRequestReviewState.Failure.unavailable
                     }
@@ -305,21 +334,31 @@ nonisolated enum GitHubPullRequestReviewWorker {
                 } else {
                     let encodedPath = path.split(separator: "/", omittingEmptySubsequences: false)
                         .map { String($0).addingPercentEncoding(withAllowedCharacters: .alphanumerics)! }.joined(separator: "/")
-                    let remote = try decode(ContentResponse.self, run(["api", "repos/\(repository.nameWithOwner)/contents/\(encodedPath)",
-                        "--hostname", "github.com", "--method", "GET", "-f", "ref=" + oid,
-                        "--jq", "{type,size,encoding,content,sha}"]))
+                    let remote = try decode(
+                        ContentResponse.self,
+                        run([
+                            "api", "repos/\(repository.nameWithOwner)/contents/\(encodedPath)",
+                            "--hostname", "github.com", "--method", "GET", "-f", "ref=" + oid,
+                            "--jq", "{type,size,encoding,content,sha}",
+                        ]))
                     guard remote.type == "file", remote.size <= fileLimit else {
                         throw remote.size > fileLimit ? ProjectPullRequestReviewState.Failure.tooLarge : .binary
                     }
                     if remote.encoding == "base64", let content = remote.content,
-                       let decoded = Data(base64Encoded: content, options: .ignoreUnknownCharacters) {
+                        let decoded = Data(base64Encoded: content, options: .ignoreUnknownCharacters)
+                    {
                         data = decoded
                     } else {
                         guard validOID(remote.sha) else { throw ProjectPullRequestReviewState.Failure.unavailable }
-                        let remoteBlob = try decode(BlobResponse.self, run(["api", "repos/\(repository.nameWithOwner)/git/blobs/\(remote.sha)",
-                            "--hostname", "github.com", "--jq", "{size,encoding,content}"]))
+                        let remoteBlob = try decode(
+                            BlobResponse.self,
+                            run([
+                                "api", "repos/\(repository.nameWithOwner)/git/blobs/\(remote.sha)",
+                                "--hostname", "github.com", "--jq", "{size,encoding,content}",
+                            ]))
                         guard remoteBlob.size <= fileLimit, remoteBlob.encoding == "base64",
-                              let decoded = Data(base64Encoded: remoteBlob.content, options: .ignoreUnknownCharacters) else {
+                            let decoded = Data(base64Encoded: remoteBlob.content, options: .ignoreUnknownCharacters)
+                        else {
                             throw ProjectPullRequestReviewState.Failure.tooLarge
                         }
                         data = decoded
@@ -332,7 +371,8 @@ nonisolated enum GitHubPullRequestReviewWorker {
                 return string
             }
             let old = try content(mergeBase, path: oldPath, repository: identity.repository, absent: changed.status == "added")
-            let new = try content(initial.headRefOid, path: path, repository: identity.context.headRepository, absent: changed.status == "removed")
+            let new = try content(
+                initial.headRefOid, path: path, repository: identity.context.headRepository, absent: changed.status == "removed")
             let verified = try pullRequest(threads: false)
             guard verified.headRefOid == initial.headRefOid, verified.baseRefOid == initial.baseRefOid else {
                 throw ProjectPullRequestReviewState.Failure.changed
@@ -341,16 +381,17 @@ nonisolated enum GitHubPullRequestReviewWorker {
                 let contents = thread.diffSide == .left ? old : new
                 return thread.isCurrent && thread.line! <= lineCount(contents)
             }
-            return .ready(ProjectPullRequestReviewFile(identity: identity, baseOID: initial.baseRefOid,
-                headOID: initial.headRefOid, mergeBaseOID: mergeBase, path: path, oldPath: oldPath,
-                oldContents: old, newContents: new, threads: visible,
-                outdatedThreadCount: fileThreads.filter(\.isOutdated).count))
-        } catch let failure as ProjectPullRequestReviewState.Failure { return .failed(failure) }
-        catch { return .failed(.unavailable) }
+            return .ready(
+                ProjectPullRequestReviewFile(
+                    identity: identity, baseOID: initial.baseRefOid,
+                    headOID: initial.headRefOid, mergeBaseOID: mergeBase, path: path, oldPath: oldPath,
+                    oldContents: old, newContents: new, threads: visible,
+                    outdatedThreadCount: fileThreads.filter(\.isOutdated).count))
+        } catch let failure as ProjectPullRequestReviewState.Failure { return .failed(failure) } catch { return .failed(.unavailable) }
     }
 
     static func validOID(_ value: String) -> Bool {
-        value.count == 40 && value.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
+        value.count == 40 && value.utf8.allSatisfy { (48 ... 57).contains($0) || (97 ... 102).contains($0) }
     }
     static func validPath(_ path: String) -> Bool {
         !path.isEmpty && path.utf8.count <= 4_096 && !path.hasPrefix("/")
@@ -373,10 +414,14 @@ nonisolated enum GitHubPullRequestReviewWorker {
             if kind == "R" || kind == "C" {
                 guard index < records.count else { throw ProjectPullRequestReviewState.Failure.unavailable }
                 path = String(records[index]); index += 1
-            } else { path = oldPath }
+            } else {
+                path = oldPath
+            }
             guard validPath(path), validPath(oldPath) else { throw ProjectPullRequestReviewState.Failure.unavailable }
-            files.append(ChangedFile(filename: path, previous_filename: kind == "R" || kind == "C" ? oldPath : nil,
-                status: kind == "A" ? "added" : kind == "D" ? "removed" : "modified"))
+            files.append(
+                ChangedFile(
+                    filename: path, previous_filename: kind == "R" || kind == "C" ? oldPath : nil,
+                    status: kind == "A" ? "added" : kind == "D" ? "removed" : "modified"))
         }
         return files
     }
@@ -429,7 +474,9 @@ nonisolated enum GitHubPullRequestReviewWorker {
     }
     private struct CompareResponse: Decodable { struct Commit: Decodable { let sha: String }; let merge_base_commit: Commit }
     private struct ChangedFile: Decodable { let filename: String; let previous_filename: String?; let status: String }
-    private struct ContentResponse: Decodable { let type: String; let size: Int; let encoding: String?; let content: String?; let sha: String }
+    private struct ContentResponse: Decodable {
+        let type: String; let size: Int; let encoding: String?; let content: String?; let sha: String
+    }
     private struct BlobResponse: Decodable { let size: Int; let encoding: String; let content: String }
 }
 
@@ -443,8 +490,10 @@ actor ProjectPullRequestReviewCache {
     private let now: @Sendable () -> Date
     private var entries: [Key: Entry] = [:]
     private var pending: [Key: Pending] = [:]
-    init(now: @escaping @Sendable () -> Date = { Date() },
-         lookup: @escaping Lookup = { await GitHubPullRequestReviewWorker.lookup($0, path: $1) }) {
+    init(
+        now: @escaping @Sendable () -> Date = { Date() },
+        lookup: @escaping Lookup = { await GitHubPullRequestReviewWorker.lookup($0, path: $1) }
+    ) {
         self.now = now
         self.lookup = lookup
     }
@@ -460,8 +509,7 @@ actor ProjectPullRequestReviewCache {
             existing.readers += 1
             pending[key] = existing
             request = existing
-        }
-        else {
+        } else {
             guard pending.count < 8 else { return .failed(.unavailable) }
             let lookup = lookup
             request = Pending(id: UUID(), task: Task { await lookup(identity, path) }, readers: 1)

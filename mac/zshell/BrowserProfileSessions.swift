@@ -8,8 +8,9 @@ nonisolated struct BrowserImportedPage: Codable, Hashable, Sendable {
 
     static func safeURL(_ string: String) -> Bool {
         guard let url = URL(string: string), let scheme = url.scheme?.lowercased(),
-              ["http", "https"].contains(scheme), url.host?.isEmpty == false,
-              url.user == nil, url.password == nil else { return false }
+            ["http", "https"].contains(scheme), url.host?.isEmpty == false,
+            url.user == nil, url.password == nil
+        else { return false }
         return true
     }
 }
@@ -30,17 +31,20 @@ nonisolated enum BrowserProfileSessionReader {
     private static func firefoxRoot(_ file: URL) throws -> [String: Any] {
         let data = try boundedData(file)
         guard data.count >= 12, data.prefix(8) == Data("mozLz40\0".utf8),
-              let size = integer(data, 8), size > 0, size <= maximumBytes else { throw ReadError.invalidFile }
+            let size = integer(data, 8), size > 0, size <= maximumBytes
+        else { throw ReadError.invalidFile }
         var decoded = Data(count: size)
         let written = decoded.withUnsafeMutableBytes { destination in
             data.withUnsafeBytes { source in
-                compression_decode_buffer(destination.bindMemory(to: UInt8.self).baseAddress!, size,
-                                          source.bindMemory(to: UInt8.self).baseAddress!.advanced(by: 12),
-                                          data.count - 12, nil, COMPRESSION_LZ4_RAW)
+                compression_decode_buffer(
+                    destination.bindMemory(to: UInt8.self).baseAddress!, size,
+                    source.bindMemory(to: UInt8.self).baseAddress!.advanced(by: 12),
+                    data.count - 12, nil, COMPRESSION_LZ4_RAW)
             }
         }
         guard written == size,
-              let root = try JSONSerialization.jsonObject(with: decoded) as? [String: Any] else { throw ReadError.invalidFile }
+            let root = try JSONSerialization.jsonObject(with: decoded) as? [String: Any]
+        else { throw ReadError.invalidFile }
         return root
     }
 
@@ -52,7 +56,8 @@ nonisolated enum BrowserProfileSessionReader {
             for tab in window["tabs"] as? [[String: Any]] ?? [] {
                 result.total += 1
                 guard (tab["userContextId"] as? Int ?? 0) == 0,
-                      let entries = tab["entries"] as? [[String: Any]], !entries.isEmpty else { result.skipped += 1; continue }
+                    let entries = tab["entries"] as? [[String: Any]], !entries.isEmpty
+                else { result.skipped += 1; continue }
                 let selected = tab["index"] as? Int ?? entries.count
                 let index = min(max(1, selected), entries.count) - 1
                 let entry = entries[index]
@@ -66,7 +71,8 @@ nonisolated enum BrowserProfileSessionReader {
     static func firefoxCookies(_ file: URL) throws -> BrowserProfileResult<BrowserProfileCookie> {
         let root = try firefoxRoot(file)
         let windows = root["windows"] as? [[String: Any]] ?? []
-        let records = (root["cookies"] as? [[String: Any]] ?? [])
+        let records =
+            (root["cookies"] as? [[String: Any]] ?? [])
             + windows.flatMap { $0["cookies"] as? [[String: Any]] ?? [] }
         var result = BrowserProfileResult<BrowserProfileCookie>()
         for record in records {
@@ -81,14 +87,17 @@ nonisolated enum BrowserProfileSessionReader {
             // Older session stores omit SameSite, which must not become explicit None.
             let sameSite = record["sameSite"] as? Int ?? 256
             guard (record["originAttributes"] == nil || record["originAttributes"] is [String: Any]),
-                  !scoped, record["isPartitioned"] as? Bool != true,
-                  sameSite != 0 || secure,
-                  let domain = record["host"] as? String, let name = record["name"] as? String,
-                  let value = record["value"] as? String else { result.skipped += 1; continue }
-            result.values.append(BrowserProfileCookie(name: name, value: value, domain: domain,
-                path: record["path"] as? String ?? "/", expires: -1, secure: secure,
-                httpOnly: record["httponly"] as? Bool ?? false,
-                sameSite: sameSite == 2 ? "Strict" : sameSite == 0 ? "None" : "Lax"))
+                !scoped, record["isPartitioned"] as? Bool != true,
+                sameSite != 0 || secure,
+                let domain = record["host"] as? String, let name = record["name"] as? String,
+                let value = record["value"] as? String
+            else { result.skipped += 1; continue }
+            result.values.append(
+                BrowserProfileCookie(
+                    name: name, value: value, domain: domain,
+                    path: record["path"] as? String ?? "/", expires: -1, secure: secure,
+                    httpOnly: record["httponly"] as? Bool ?? false,
+                    sameSite: sameSite == 2 ? "Strict" : sameSite == 0 ? "None" : "Lax"))
         }
         return result
     }
@@ -114,7 +123,7 @@ nonisolated enum BrowserProfileSessionReader {
             let length = Int(data[offset]) | (Int(data[offset + 1]) << 8)
             guard length > 0, offset + 2 + length <= data.count else { throw ReadError.invalidFile }
             let type = data[offset + 2]
-            let payload = Data(data[(offset + 3)..<(offset + 2 + length)])
+            let payload = Data(data[(offset + 3) ..< (offset + 2 + length)])
             offset += 2 + length
             switch type {
             case 0:
@@ -132,8 +141,11 @@ nonisolated enum BrowserProfileSessionReader {
                 let count = type == 11 ? value : signedInteger(payload, 8) ?? 0
                 guard count > 0, index <= Int(Int32.max) - count else { throw ReadError.invalidFile }
                 var tab = tabs[id, default: Tab()]
-                if tab.selected >= index && tab.selected < index + count { tab.selected = index - 1 }
-                else if tab.selected >= index + count { tab.selected -= count }
+                if tab.selected >= index && tab.selected < index + count {
+                    tab.selected = index - 1
+                } else if tab.selected >= index + count {
+                    tab.selected -= count
+                }
                 var retained: [Int: BrowserImportedPage] = [:]
                 for (position, page) in tab.entries where position < index || position >= index + count {
                     retained[position >= index + count ? position - count : position] = page
@@ -142,8 +154,9 @@ nonisolated enum BrowserProfileSessionReader {
                 tabs[id] = tab
             case 6:
                 guard let id = integer(payload, 4), let index = integer(payload, 8),
-                      let (url, next) = string(payload, 12, utf16: false),
-                      let (title, _) = string(payload, next, utf16: true) else { throw ReadError.invalidFile }
+                    let (url, next) = string(payload, 12, utf16: false),
+                    let (title, _) = string(payload, next, utf16: true)
+                else { throw ReadError.invalidFile }
                 tabs[id, default: Tab()].entries[index] = BrowserImportedPage(url: url, title: title, visitedAt: 0)
             case 7:
                 guard let id = integer(payload, 0), let index = signedInteger(payload, 4) else { throw ReadError.invalidFile }
@@ -191,8 +204,10 @@ nonisolated enum BrowserProfileSessionReader {
         let bytes = count * (utf16 ? 2 : 1)
         let padded = (bytes + 3) & ~3
         guard offset + 4 + padded <= data.count,
-              let value = String(data: data[(offset + 4)..<(offset + 4 + bytes)],
-                                 encoding: utf16 ? .utf16LittleEndian : .utf8) else { return nil }
+            let value = String(
+                data: data[(offset + 4) ..< (offset + 4 + bytes)],
+                encoding: utf16 ? .utf16LittleEndian : .utf8)
+        else { return nil }
         return (value, offset + 4 + padded)
     }
 }

@@ -93,9 +93,9 @@ enum ApplicationIcon: String, CaseIterable, Identifiable {
 
     private static var compiledIconSize: NSSize? {
         #if DEBUG
-        image(named: "AppIconDebug")?.size
+            image(named: "AppIconDebug")?.size
         #else
-        image(named: "AppIcon")?.size
+            image(named: "AppIcon")?.size
         #endif
     }
 
@@ -126,24 +126,24 @@ final class AppSettings: nonisolated ObservableObject {
     /// `UserDefaults` (session snapshot, sidebar widths, Sparkle) apart.
     static let configURL: URL = {
         #if DEBUG
-        let directory = "zshell-dev"
+            let directory = "zshell-dev"
         #else
-        let directory = "zshell"
+            let directory = "zshell"
         #endif
         return FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".config/\(directory)/config.toml")
     }()
 
     static let defaultFontSize: Double = 13
-    static let fontSizeRange: ClosedRange<Double> = 8...32
+    static let fontSizeRange: ClosedRange<Double> = 8 ... 32
     static let defaultFontThickenStrength = 255
-    static let fontThickenStrengthRange: ClosedRange<Double> = 0...255
+    static let fontThickenStrengthRange: ClosedRange<Double> = 0 ... 255
     static let defaultTerminalLineHeight: Double = 1
-    static let terminalLineHeightRange: ClosedRange<Double> = 0.75...2
+    static let terminalLineHeightRange: ClosedRange<Double> = 0.75 ... 2
     static let defaultTerminalScrollMultiplier = TerminalScrollSettings.defaultMultiplier
     static let terminalScrollMultiplierRange = TerminalScrollSettings.multiplierRange
     static let defaultTerminalCellWidth: Double = 1
-    static let terminalCellWidthRange: ClosedRange<Double> = 0.75...2
+    static let terminalCellWidthRange: ClosedRange<Double> = 0.75 ... 2
 
     private static func validTerminalCellWidth(_ value: Double) -> Double {
         guard value.isFinite, terminalCellWidthRange.contains(value) else {
@@ -153,21 +153,21 @@ final class AppSettings: nonisolated ObservableObject {
         return (value * 100).rounded() / 100
     }
     static let defaultSidebarFontSize: Double = 14
-    static let sidebarFontSizeRange: ClosedRange<Double> = 9...24
+    static let sidebarFontSizeRange: ClosedRange<Double> = 9 ... 24
     static let defaultInterfaceScale: Double = 1
-    static let interfaceScaleRange: ClosedRange<Double> = 0.9...1.5
+    static let interfaceScaleRange: ClosedRange<Double> = 0.9 ... 1.5
     static let defaultToolbarVisibility: ToolbarVisibility = .hide
     static let defaultTerminalBackgroundOpacity: Double = 1
-    static let terminalBackgroundOpacityRange: ClosedRange<Double> = 0.2...1
+    static let terminalBackgroundOpacityRange: ClosedRange<Double> = 0.2 ... 1
     static let defaultTerminalBackgroundBlur = false
     static let defaultTerminalPaddingColor: TerminalPaddingColor = .extend
     static let defaultQuickTerminalSize: Double = 0.75
-    static let quickTerminalSizeRange: ClosedRange<Double> = 0.35...0.95
+    static let quickTerminalSizeRange: ClosedRange<Double> = 0.35 ... 0.95
     static let defaultQuickTerminalOpacity: Double = 0.5
-    static let quickTerminalOpacityRange: ClosedRange<Double> = 0.05...1
+    static let quickTerminalOpacityRange: ClosedRange<Double> = 0.05 ... 1
     static let defaultQuickTerminalShortcut = QuickTerminalShortcut.defaultValue
     static let defaultPaneFocusRingOpacity: Double = 0.85
-    static let paneFocusRingOpacityRange: ClosedRange<Double> = 0.05...1
+    static let paneFocusRingOpacityRange: ClosedRange<Double> = 0.05 ... 1
 
     private let configMonitor = SettingsConfigMonitor(url: AppSettings.configURL)
     private var isApplyingConfig = false
@@ -668,12 +668,14 @@ final class AppSettings: nonisolated ObservableObject {
 
         let existing = TOML.parse(at: Self.configURL)
         let toml = existing ?? Self.legacyDefaults()
-        applicationIcon = ApplicationIcon(
-            rawValue: toml["app-icon"]?.string ?? ""
-        ) ?? .defaultIcon
-        applicationPresence = ApplicationPresence(
-            rawValue: toml["app-presence"]?.string ?? ""
-        ) ?? .dockOnly
+        applicationIcon =
+            ApplicationIcon(
+                rawValue: toml["app-icon"]?.string ?? ""
+            ) ?? .defaultIcon
+        applicationPresence =
+            ApplicationPresence(
+                rawValue: toml["app-presence"]?.string ?? ""
+            ) ?? .dockOnly
         keepAwakeMode = KeepAwakeMode(persisted: toml["keep-awake"]?.string)
         theme = toml["theme"]?.string.flatMap(AppTheme.init(rawValue:)) ?? .system
         themeDark = Self.knownTheme(
@@ -697,31 +699,41 @@ final class AppSettings: nonisolated ObservableObject {
         fontFallbackFamily = toml["terminal.font-fallback-family"]?.string ?? ""
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
         fontSize = Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize
-        let sidebarSize = toml["sidebar.font-size"]?.double
+        let sidebarSize =
+            toml["sidebar.font-size"]?.double
             ?? Self.defaultSidebarFontSize
-        sidebarFontSize = Self.sidebarFontSizeRange.contains(sidebarSize)
+        sidebarFontSize =
+            Self.sidebarFontSizeRange.contains(sidebarSize)
             ? sidebarSize
             : Self.defaultSidebarFontSize
         sidebarDoubleClickNewSession = toml["sidebar.double-click-new-session"]?.bool ?? true
-        let interfaceScale = toml["interface.scale"]?.double
+        let interfaceScale =
+            toml["interface.scale"]?.double
             ?? Self.defaultInterfaceScale
-        self.interfaceScale = Self.interfaceScaleRange.contains(interfaceScale)
+        self.interfaceScale =
+            Self.interfaceScaleRange.contains(interfaceScale)
             ? interfaceScale
             : Self.defaultInterfaceScale
-        toolbarVisibility = ToolbarVisibility(
-            rawValue: toml["toolbar.visibility"]?.string ?? ""
-        ) ?? Self.defaultToolbarVisibility
-        fontThicken = toml["terminal.font-thicken"]?.bool
+        toolbarVisibility =
+            ToolbarVisibility(
+                rawValue: toml["toolbar.visibility"]?.string ?? ""
+            ) ?? Self.defaultToolbarVisibility
+        fontThicken =
+            toml["terminal.font-thicken"]?.bool
             ?? toml["font-thicken"]?.bool
             ?? false
-        let thickenStrength = toml["terminal.font-thicken-strength"]?.double
+        let thickenStrength =
+            toml["terminal.font-thicken-strength"]?.double
             ?? Double(Self.defaultFontThickenStrength)
-        fontThickenStrength = Self.fontThickenStrengthRange.contains(thickenStrength)
+        fontThickenStrength =
+            Self.fontThickenStrengthRange.contains(thickenStrength)
             ? Int(thickenStrength.rounded())
             : Self.defaultFontThickenStrength
-        let lineHeight = toml["terminal.line-height"]?.double
+        let lineHeight =
+            toml["terminal.line-height"]?.double
             ?? Self.defaultTerminalLineHeight
-        terminalLineHeight = Self.terminalLineHeightRange.contains(lineHeight)
+        terminalLineHeight =
+            Self.terminalLineHeightRange.contains(lineHeight)
             ? lineHeight
             : Self.defaultTerminalLineHeight
         mouseScrollMultiplier = TerminalScrollSettings.validMultiplier(toml["terminal.mouse-scroll-multiplier"]?.double)
@@ -729,9 +741,10 @@ final class AppSettings: nonisolated ObservableObject {
         terminalCellWidth = Self.validTerminalCellWidth(
             toml["terminal.cell-width"]?.double ?? Self.defaultTerminalCellWidth
         )
-        cursorShape = TerminalCursorShape(
-            rawValue: toml["terminal.cursor-shape"]?.string ?? ""
-        ) ?? .bar
+        cursorShape =
+            TerminalCursorShape(
+                rawValue: toml["terminal.cursor-shape"]?.string ?? ""
+            ) ?? .bar
         cursorBlinking = toml["terminal.cursor-blinking"]?.bool ?? true
         macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
         // Older configs omitted these preferences when disabled, so only a
@@ -760,42 +773,54 @@ final class AppSettings: nonisolated ObservableObject {
         remoteDropUpload = toml["terminal.remote-drop-upload"]?.bool ?? true
         terminalRightClickAction = TerminalRightClickAction(rawValue: toml["terminal.right-click-action"]?.string ?? "") ?? .contextMenu
         focusFollowsMouse = toml["terminal.focus-follows-mouse"]?.bool ?? false
-        let terminalBackgroundOpacity = toml["terminal.background-opacity"]?.double
+        let terminalBackgroundOpacity =
+            toml["terminal.background-opacity"]?.double
             ?? Self.defaultTerminalBackgroundOpacity
-        self.terminalBackgroundOpacity = Self.terminalBackgroundOpacityRange.contains(
-            terminalBackgroundOpacity
-        ) ? terminalBackgroundOpacity : Self.defaultTerminalBackgroundOpacity
-        terminalBackgroundBlur = toml["terminal.background-blur"]?.bool
+        self.terminalBackgroundOpacity =
+            Self.terminalBackgroundOpacityRange.contains(
+                terminalBackgroundOpacity
+            ) ? terminalBackgroundOpacity : Self.defaultTerminalBackgroundOpacity
+        terminalBackgroundBlur =
+            toml["terminal.background-blur"]?.bool
             ?? Self.defaultTerminalBackgroundBlur
-        terminalPaddingColor = toml["terminal.padding-color"]?.string
+        terminalPaddingColor =
+            toml["terminal.padding-color"]?.string
             .flatMap(TerminalPaddingColor.init(rawValue:)) ?? Self.defaultTerminalPaddingColor
         let notifySeconds = toml["terminal.notify-finish-seconds"]?.double ?? 0
         let notifyChoice = Self.notifyFinishChoice(notifySeconds)
-        notifyFinishSeconds = Self.notifyFinishSecondChoices.contains(notifyChoice)
+        notifyFinishSeconds =
+            Self.notifyFinishSecondChoices.contains(notifyChoice)
             ? notifyChoice : 0
         notifyOnError = toml["terminal.notify-on-error"]?.bool ?? (existing == nil)
         quickTerminalEnabled = toml["quick-terminal.enabled"]?.bool ?? true
-        let quickTerminalSize = toml["quick-terminal.size"]?.double
+        let quickTerminalSize =
+            toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
-        self.quickTerminalSize = Self.quickTerminalSizeRange.contains(quickTerminalSize)
+        self.quickTerminalSize =
+            Self.quickTerminalSizeRange.contains(quickTerminalSize)
             ? quickTerminalSize
             : Self.defaultQuickTerminalSize
-        let quickTerminalOpacity = toml["quick-terminal.opacity"]?.double
+        let quickTerminalOpacity =
+            toml["quick-terminal.opacity"]?.double
             ?? Self.defaultQuickTerminalOpacity
-        self.quickTerminalOpacity = Self.quickTerminalOpacityRange.contains(quickTerminalOpacity)
+        self.quickTerminalOpacity =
+            Self.quickTerminalOpacityRange.contains(quickTerminalOpacity)
             ? quickTerminalOpacity
             : Self.defaultQuickTerminalOpacity
-        quickTerminalShortcut = QuickTerminalShortcut(
-            persistedValue: toml["quick-terminal.shortcut"]?.string
-        ) ?? Self.defaultQuickTerminalShortcut
+        quickTerminalShortcut =
+            QuickTerminalShortcut(
+                persistedValue: toml["quick-terminal.shortcut"]?.string
+            ) ?? Self.defaultQuickTerminalShortcut
         quickTerminalMode = QuickTerminalMode(rawValue: toml["quick-terminal.mode"]?.string ?? "") ?? .reuse
         commandShortcuts = Self.parseCommandShortcuts(toml)
         showPaneFocusRing = toml["panes.show-focus-ring"]?.bool ?? true
-        let paneFocusRingOpacity = toml["panes.focus-ring-opacity"]?.double
+        let paneFocusRingOpacity =
+            toml["panes.focus-ring-opacity"]?.double
             ?? Self.defaultPaneFocusRingOpacity
-        self.paneFocusRingOpacity = Self.paneFocusRingOpacityRange.contains(
-            paneFocusRingOpacity
-        ) ? paneFocusRingOpacity : Self.defaultPaneFocusRingOpacity
+        self.paneFocusRingOpacity =
+            Self.paneFocusRingOpacityRange.contains(
+                paneFocusRingOpacity
+            ) ? paneFocusRingOpacity : Self.defaultPaneFocusRingOpacity
         aiEnabled = toml["ai.enabled"]?.bool ?? true
         resumeAgentConversations = toml["ai.resume-conversations"]?.bool ?? true
         customAgentRecognitionRules = toml["ai.custom-recognition-rules"]?.bool ?? true
@@ -804,9 +829,11 @@ final class AppSettings: nonisolated ObservableObject {
         notifyOnAgentCompletion = toml["ai.notify-on-completion"]?.bool ?? true
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
         let term = toml["terminal.term"]?.string
-        terminalTerm = term.flatMap { TerminalLaunchSettings.isValidTermName($0) ? $0 : nil }
+        terminalTerm =
+            term.flatMap { TerminalLaunchSettings.isValidTermName($0) ? $0 : nil }
             ?? TerminalLaunchSettings.defaultTerm
-        terminalTermIsInvalid = toml["terminal.term"] != nil
+        terminalTermIsInvalid =
+            toml["terminal.term"] != nil
             && !TerminalLaunchSettings.isValidTermName(term ?? "")
         terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
         terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
@@ -817,7 +844,7 @@ final class AppSettings: nonisolated ObservableObject {
         browserAccessEnabled = toml["browser-access.enabled"]?.bool ?? false
         browserAccessInterface = toml["browser-access.interface"]?.string ?? "loopback"
         let accessPort = toml["browser-access.port"]?.double ?? 7443
-        browserAccessPort = (1024...65_535).contains(accessPort) && accessPort.rounded() == accessPort ? Int(accessPort) : 7443
+        browserAccessPort = (1024 ... 65_535).contains(accessPort) && accessPort.rounded() == accessPort ? Int(accessPort) : 7443
         gitProxyEnabled = toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled
         gitProxyAddress = toml["git.proxy"]?.string ?? GitProxy.defaultAddress
         showPullRequestStatus = toml["git.pull-request-status"]?.bool ?? true
@@ -1109,8 +1136,9 @@ final class AppSettings: nonisolated ObservableObject {
         // Reserve the global chord even while Quick Terminal is disabled so
         // re-enabling it cannot swallow a core command's shortcut.
         if let keyCode = shortcut.ansiKeyCode,
-           keyCode == quickTerminalShortcut.keyCode,
-           shortcut.carbonModifiers == quickTerminalShortcut.modifiers {
+            keyCode == quickTerminalShortcut.keyCode,
+            shortcut.carbonModifiers == quickTerminalShortcut.modifiers
+        {
             return .quickTerminal
         }
         if let other = AppCommand.allCases.first(where: {
@@ -1141,7 +1169,7 @@ final class AppSettings: nonisolated ObservableObject {
         for (key, value) in toml {
             guard key.hasPrefix("shortcuts.") else { continue }
             guard let command = AppCommand(rawValue: String(key.dropFirst("shortcuts.".count))),
-                  let shortcut = CommandShortcut(persistedValue: value.string)
+                let shortcut = CommandShortcut(persistedValue: value.string)
             else { continue }
             result[command] = shortcut
         }
@@ -1186,28 +1214,38 @@ final class AppSettings: nonisolated ObservableObject {
         isApplyingConfig = true
         defer { isApplyingConfig = false }
 
-        assign(\.applicationIcon, ApplicationIcon(
-            rawValue: toml["app-icon"]?.string ?? ""
-        ) ?? .defaultIcon)
-        assign(\.applicationPresence, ApplicationPresence(
-            rawValue: toml["app-presence"]?.string ?? ""
-        ) ?? .dockOnly)
+        assign(
+            \.applicationIcon,
+            ApplicationIcon(
+                rawValue: toml["app-icon"]?.string ?? ""
+            ) ?? .defaultIcon)
+        assign(
+            \.applicationPresence,
+            ApplicationPresence(
+                rawValue: toml["app-presence"]?.string ?? ""
+            ) ?? .dockOnly)
         assign(\.keepAwakeMode, KeepAwakeMode(persisted: toml["keep-awake"]?.string))
         assign(\.theme, toml["theme"]?.string.flatMap(AppTheme.init(rawValue:)) ?? .system)
-        assign(\.themeDark, Self.knownTheme(
-            toml["theme-dark"]?.string,
-            dark: true,
-            fallback: Theme.defaultDarkThemeName
-        ))
-        assign(\.themeLight, Self.knownTheme(
-            toml["theme-light"]?.string,
-            dark: false,
-            fallback: Theme.defaultLightThemeName
-        ))
+        assign(
+            \.themeDark,
+            Self.knownTheme(
+                toml["theme-dark"]?.string,
+                dark: true,
+                fallback: Theme.defaultDarkThemeName
+            ))
+        assign(
+            \.themeLight,
+            Self.knownTheme(
+                toml["theme-light"]?.string,
+                dark: false,
+                fallback: Theme.defaultLightThemeName
+            ))
         assign(\.terminalThemeOnly, toml["terminal.theme-only"]?.bool ?? false)
-        assign(\.terminalMinimumContrast, TerminalContrast.validatedMinimumRatio(
-            toml["terminal.minimum-contrast"]?.double ?? TerminalContrast.defaultMinimumRatio
-        ))
+        assign(
+            \.terminalMinimumContrast,
+            TerminalContrast.validatedMinimumRatio(
+                toml["terminal.minimum-contrast"]?.double ?? TerminalContrast.defaultMinimumRatio
+            ))
         assign(\.fontFamily, toml["font-family"]?.string ?? "")
         let features = toml["terminal.font-features"]?.string ?? ""
         assign(\.fontFeatures, TerminalFontFeatures.parse(features) != nil ? features : "")
@@ -1215,36 +1253,53 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.fontFallbackFamily, toml["terminal.font-fallback-family"]?.string ?? "")
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
         assign(\.fontSize, Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize)
-        let sidebarSize = toml["sidebar.font-size"]?.double
+        let sidebarSize =
+            toml["sidebar.font-size"]?.double
             ?? Self.defaultSidebarFontSize
-        assign(\.sidebarFontSize, Self.sidebarFontSizeRange.contains(sidebarSize)
-            ? sidebarSize
-            : Self.defaultSidebarFontSize)
+        assign(
+            \.sidebarFontSize,
+            Self.sidebarFontSizeRange.contains(sidebarSize)
+                ? sidebarSize
+                : Self.defaultSidebarFontSize)
         assign(\.sidebarDoubleClickNewSession, toml["sidebar.double-click-new-session"]?.bool ?? true)
         let scale = toml["interface.scale"]?.double ?? Self.defaultInterfaceScale
-        assign(\.interfaceScale, Self.interfaceScaleRange.contains(scale)
-            ? scale : Self.defaultInterfaceScale)
-        assign(\.toolbarVisibility, ToolbarVisibility(
-            rawValue: toml["toolbar.visibility"]?.string ?? ""
-        ) ?? Self.defaultToolbarVisibility)
-        assign(\.fontThicken, toml["terminal.font-thicken"]?.bool
-            ?? toml["font-thicken"]?.bool
-            ?? false)
-        let thickenStrength = toml["terminal.font-thicken-strength"]?.double
+        assign(
+            \.interfaceScale,
+            Self.interfaceScaleRange.contains(scale)
+                ? scale : Self.defaultInterfaceScale)
+        assign(
+            \.toolbarVisibility,
+            ToolbarVisibility(
+                rawValue: toml["toolbar.visibility"]?.string ?? ""
+            ) ?? Self.defaultToolbarVisibility)
+        assign(
+            \.fontThicken,
+            toml["terminal.font-thicken"]?.bool
+                ?? toml["font-thicken"]?.bool
+                ?? false)
+        let thickenStrength =
+            toml["terminal.font-thicken-strength"]?.double
             ?? Double(Self.defaultFontThickenStrength)
-        assign(\.fontThickenStrength, Self.fontThickenStrengthRange.contains(thickenStrength)
-            ? Int(thickenStrength.rounded()) : Self.defaultFontThickenStrength)
+        assign(
+            \.fontThickenStrength,
+            Self.fontThickenStrengthRange.contains(thickenStrength)
+                ? Int(thickenStrength.rounded()) : Self.defaultFontThickenStrength)
         let lineHeight = toml["terminal.line-height"]?.double ?? Self.defaultTerminalLineHeight
-        assign(\.terminalLineHeight, Self.terminalLineHeightRange.contains(lineHeight)
-            ? lineHeight : Self.defaultTerminalLineHeight)
+        assign(
+            \.terminalLineHeight,
+            Self.terminalLineHeightRange.contains(lineHeight)
+                ? lineHeight : Self.defaultTerminalLineHeight)
         assign(\.mouseScrollMultiplier, TerminalScrollSettings.validMultiplier(toml["terminal.mouse-scroll-multiplier"]?.double))
         assign(\.trackpadScrollMultiplier, TerminalScrollSettings.validMultiplier(toml["terminal.trackpad-scroll-multiplier"]?.double))
-        assign(\.terminalCellWidth, Self.validTerminalCellWidth(
-            toml["terminal.cell-width"]?.double ?? Self.defaultTerminalCellWidth
-        ))
-        let cursorShape = TerminalCursorShape(
-            rawValue: toml["terminal.cursor-shape"]?.string ?? ""
-        ) ?? .bar
+        assign(
+            \.terminalCellWidth,
+            Self.validTerminalCellWidth(
+                toml["terminal.cell-width"]?.double ?? Self.defaultTerminalCellWidth
+            ))
+        let cursorShape =
+            TerminalCursorShape(
+                rawValue: toml["terminal.cursor-shape"]?.string ?? ""
+            ) ?? .bar
         assign(\.cursorShape, cursorShape)
         assign(\.cursorBlinking, toml["terminal.cursor-blinking"]?.bool ?? true)
         assign(\.macosOptionAsAlt, toml["terminal.macos-option-as-alt"]?.bool ?? false)
@@ -1268,42 +1323,64 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.copyOnSelect, toml["terminal.copy-on-select"]?.bool ?? true)
         assign(\.remotePasteUpload, toml["terminal.remote-paste-upload"]?.bool ?? true)
         assign(\.remoteDropUpload, toml["terminal.remote-drop-upload"]?.bool ?? true)
-        assign(\.terminalRightClickAction, TerminalRightClickAction(rawValue: toml["terminal.right-click-action"]?.string ?? "") ?? .contextMenu)
+        assign(
+            \.terminalRightClickAction,
+            TerminalRightClickAction(rawValue: toml["terminal.right-click-action"]?.string ?? "") ?? .contextMenu)
         assign(\.focusFollowsMouse, toml["terminal.focus-follows-mouse"]?.bool ?? false)
-        let opacity = toml["terminal.background-opacity"]?.double
+        let opacity =
+            toml["terminal.background-opacity"]?.double
             ?? Self.defaultTerminalBackgroundOpacity
-        assign(\.terminalBackgroundOpacity, Self.terminalBackgroundOpacityRange.contains(opacity)
-            ? opacity : Self.defaultTerminalBackgroundOpacity)
-        assign(\.terminalBackgroundBlur, toml["terminal.background-blur"]?.bool
-            ?? Self.defaultTerminalBackgroundBlur)
-        assign(\.terminalPaddingColor, toml["terminal.padding-color"]?.string
-            .flatMap(TerminalPaddingColor.init(rawValue:)) ?? Self.defaultTerminalPaddingColor)
+        assign(
+            \.terminalBackgroundOpacity,
+            Self.terminalBackgroundOpacityRange.contains(opacity)
+                ? opacity : Self.defaultTerminalBackgroundOpacity)
+        assign(
+            \.terminalBackgroundBlur,
+            toml["terminal.background-blur"]?.bool
+                ?? Self.defaultTerminalBackgroundBlur)
+        assign(
+            \.terminalPaddingColor,
+            toml["terminal.padding-color"]?.string
+                .flatMap(TerminalPaddingColor.init(rawValue:)) ?? Self.defaultTerminalPaddingColor)
         let notifySeconds = toml["terminal.notify-finish-seconds"]?.double ?? 0
         assign(\.notifyFinishSeconds, Self.notifyFinishChoice(notifySeconds))
         assign(\.notifyOnError, toml["terminal.notify-on-error"]?.bool ?? false)
         assign(\.quickTerminalEnabled, toml["quick-terminal.enabled"]?.bool ?? true)
-        let quickTerminalSize = toml["quick-terminal.size"]?.double
+        let quickTerminalSize =
+            toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
-        assign(\.quickTerminalSize, Self.quickTerminalSizeRange.contains(quickTerminalSize)
-            ? quickTerminalSize
-            : Self.defaultQuickTerminalSize)
-        let quickTerminalOpacity = toml["quick-terminal.opacity"]?.double
+        assign(
+            \.quickTerminalSize,
+            Self.quickTerminalSizeRange.contains(quickTerminalSize)
+                ? quickTerminalSize
+                : Self.defaultQuickTerminalSize)
+        let quickTerminalOpacity =
+            toml["quick-terminal.opacity"]?.double
             ?? Self.defaultQuickTerminalOpacity
-        assign(\.quickTerminalOpacity, Self.quickTerminalOpacityRange.contains(quickTerminalOpacity)
-            ? quickTerminalOpacity
-            : Self.defaultQuickTerminalOpacity)
-        assign(\.quickTerminalShortcut, QuickTerminalShortcut(
-            persistedValue: toml["quick-terminal.shortcut"]?.string
-        ) ?? Self.defaultQuickTerminalShortcut)
-        assign(\.quickTerminalMode, QuickTerminalMode(
-            rawValue: toml["quick-terminal.mode"]?.string ?? ""
-        ) ?? .reuse)
+        assign(
+            \.quickTerminalOpacity,
+            Self.quickTerminalOpacityRange.contains(quickTerminalOpacity)
+                ? quickTerminalOpacity
+                : Self.defaultQuickTerminalOpacity)
+        assign(
+            \.quickTerminalShortcut,
+            QuickTerminalShortcut(
+                persistedValue: toml["quick-terminal.shortcut"]?.string
+            ) ?? Self.defaultQuickTerminalShortcut)
+        assign(
+            \.quickTerminalMode,
+            QuickTerminalMode(
+                rawValue: toml["quick-terminal.mode"]?.string ?? ""
+            ) ?? .reuse)
         assign(\.commandShortcuts, Self.parseCommandShortcuts(toml))
         assign(\.showPaneFocusRing, toml["panes.show-focus-ring"]?.bool ?? true)
-        let focusOpacity = toml["panes.focus-ring-opacity"]?.double
+        let focusOpacity =
+            toml["panes.focus-ring-opacity"]?.double
             ?? Self.defaultPaneFocusRingOpacity
-        assign(\.paneFocusRingOpacity, Self.paneFocusRingOpacityRange.contains(focusOpacity)
-            ? focusOpacity : Self.defaultPaneFocusRingOpacity)
+        assign(
+            \.paneFocusRingOpacity,
+            Self.paneFocusRingOpacityRange.contains(focusOpacity)
+                ? focusOpacity : Self.defaultPaneFocusRingOpacity)
         let enabled = toml["ai.enabled"]?.bool ?? defaultAIEnabled
         if enabled != aiEnabled {
             do {
@@ -1320,8 +1397,9 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.notifyOnAgentAttention, toml["ai.notify-on-attention"]?.bool ?? true)
         assign(\.notifyOnAgentCompletion, toml["ai.notify-on-completion"]?.bool ?? true)
         assign(\.terminalBackend, TerminalBackend(persisted: toml["terminal.backend"]?.string))
-        setTerminalTerm(toml["terminal.term"] == nil
-            ? TerminalLaunchSettings.defaultTerm : toml["terminal.term"]?.string ?? "")
+        setTerminalTerm(
+            toml["terminal.term"] == nil
+                ? TerminalLaunchSettings.defaultTerm : toml["terminal.term"]?.string ?? "")
         assign(\.terminalStartupProgram, toml["terminal.startup-program"]?.string ?? "")
         assign(\.terminalStartupArguments, toml["terminal.startup-arguments"]?.string ?? "")
         assign(\.newSessionDirectoryPolicy, NewSessionDirectoryPolicy(persisted: toml["terminal.new-session-directory"]?.string))
@@ -1331,7 +1409,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.browserAccessEnabled, toml["browser-access.enabled"]?.bool ?? false)
         assign(\.browserAccessInterface, toml["browser-access.interface"]?.string ?? "loopback")
         let accessPort = toml["browser-access.port"]?.double ?? 7443
-        assign(\.browserAccessPort, (1024...65_535).contains(accessPort) && accessPort.rounded() == accessPort ? Int(accessPort) : 7443)
+        assign(\.browserAccessPort, (1024 ... 65_535).contains(accessPort) && accessPort.rounded() == accessPort ? Int(accessPort) : 7443)
         assign(\.gitProxyEnabled, toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled)
         assign(\.gitProxyAddress, toml["git.proxy"]?.string ?? GitProxy.defaultAddress)
         assign(\.showPullRequestStatus, toml["git.pull-request-status"]?.bool ?? true)
@@ -1341,7 +1419,8 @@ final class AppSettings: nonisolated ObservableObject {
         if applicationIcon != oldIcon { applyApplicationIcon() }
         if theme != oldTheme { applyAppearance() }
         if themeDark != oldThemeDark || themeLight != oldThemeLight
-            || terminalThemeOnly != oldTerminalThemeOnly {
+            || terminalThemeOnly != oldTerminalThemeOnly
+        {
             reloadThemeSelection()
         }
         if quickTerminalShortcut != oldShortcut || quickTerminalEnabled != oldQuickTerminalEnabled {
@@ -1779,7 +1858,7 @@ nonisolated enum TOML {
         let bare = raw.split(
             separator: "#", maxSplits: 1, omittingEmptySubsequences: false
         )[0]
-            .trimmingCharacters(in: .whitespaces)
+        .trimmingCharacters(in: .whitespaces)
         switch bare {
         case "true": return .bool(true)
         case "false": return .bool(false)

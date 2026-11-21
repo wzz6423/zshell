@@ -60,9 +60,11 @@ enum ExternalEditor: String, CaseIterable {
             NSWorkspace.shared.open(url)
             return
         }
-        guard let applicationURL = NSWorkspace.shared.urlForApplication(
-            withBundleIdentifier: bundleIdentifier
-        ) else {
+        guard
+            let applicationURL = NSWorkspace.shared.urlForApplication(
+                withBundleIdentifier: bundleIdentifier
+            )
+        else {
             return
         }
         NSWorkspace.shared.open(

@@ -56,7 +56,8 @@ final class TerminalCommandHistoryController: NSObject, NSWindowDelegate, NSMenu
         guard let terminalMenu = AppMenuController.submenu(.terminal, in: mainMenu) else { return }
         let id = NSUserInterfaceItemIdentifier("terminal-command-history")
         let title = String(localized: "Command History…")
-        let item = terminalMenu.items.first { $0.identifier == id }
+        let item =
+            terminalMenu.items.first { $0.identifier == id }
             ?? NSMenuItem(title: title, action: #selector(showFromMenu(_:)), keyEquivalent: "")
         item.identifier = id
         if item.title != title { item.title = title }
@@ -98,8 +99,9 @@ final class TerminalCommandHistoryController: NSObject, NSWindowDelegate, NSMenu
         if let sheet = panel?.attachedSheet { panel?.endSheet(sheet, returnCode: .abort) }
         if let panel { AppWindowPresentation.hideChild(panel) }
         if restoresFocusOnClose, let previousWindow, let previousResponder,
-           let view = previousResponder as? NSView, view.window === previousWindow,
-           !view.isHiddenOrHasHiddenAncestor {
+            let view = previousResponder as? NSView, view.window === previousWindow,
+            !view.isHiddenOrHasHiddenAncestor
+        {
             previousWindow.makeFirstResponder(previousResponder)
         }
         previousWindow = nil
@@ -122,8 +124,9 @@ final class TerminalCommandHistoryController: NSObject, NSWindowDelegate, NSMenu
     }
 
     private func configure() {
-        let panel = TerminalCommandHistoryPanel(contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
-                            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        let panel = TerminalCommandHistoryPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
         panel.contentMinSize = NSSize(width: 620, height: 380)
         panel.identifier = NSUserInterfaceItemIdentifier("terminal-command-history")
@@ -256,11 +259,16 @@ final class TerminalCommandHistoryController: NSObject, NSWindowDelegate, NSMenu
         if !entries.isEmpty {
             let row = id.flatMap { id in entries.firstIndex { $0.id == id } } ?? 0
             table.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
-        } else { table.deselectAll(nil) }
+        } else {
+            table.deselectAll(nil)
+        }
         emptyLabel.isHidden = !entries.isEmpty
-        emptyLabel.stringValue = store.isLoading ? String(localized: "Loading command history…")
-            : searchField.stringValue.isEmpty ? String(localized: "Executed commands appear here.")
-            : String(localized: "No matching commands.")
+        emptyLabel.stringValue =
+            store.isLoading
+            ? String(localized: "Loading command history…")
+            : searchField.stringValue.isEmpty
+                ? String(localized: "Executed commands appear here.")
+                : String(localized: "No matching commands.")
         countLabel.stringValue = String(localized: "Commands: \(entries.count)")
         updateSelection()
     }
@@ -268,10 +276,11 @@ final class TerminalCommandHistoryController: NSObject, NSWindowDelegate, NSMenu
     private func updateSelection() {
         let visible = table.rows(in: table.visibleRect)
         if visible.location != NSNotFound {
-            for row in visible.location..<min(NSMaxRange(visible), entries.count) {
+            for row in visible.location ..< min(NSMaxRange(visible), entries.count) {
                 let entry = entries[row]
                 guard entry.finishedAt == nil,
-                      let cell = table.view(atColumn: 0, row: row, makeIfNecessary: false) as? TerminalCommandHistoryCell else { continue }
+                    let cell = table.view(atColumn: 0, row: row, makeIfNecessary: false) as? TerminalCommandHistoryCell
+                else { continue }
                 let running = TerminalCommandHistoryActions.isRunning(entry)
                 if runningStates[entry.id] != running {
                     runningStates[entry.id] = running
@@ -296,7 +305,8 @@ final class TerminalCommandHistoryController: NSObject, NSWindowDelegate, NSMenu
         if store.persistenceError != nil {
             statusLabel.stringValue = String(localized: "Command history could not be loaded or saved.")
         } else if let entry, let session, !session.hasExited {
-            statusLabel.stringValue = canReveal(entry)
+            statusLabel.stringValue =
+                canReveal(entry)
                 ? String(localized: "Select a command to show its original output.")
                 : String(localized: "The original output is no longer available.")
             if !canInsert(entry) {
@@ -304,7 +314,9 @@ final class TerminalCommandHistoryController: NSObject, NSWindowDelegate, NSMenu
             }
         } else if entry != nil {
             statusLabel.stringValue = String(localized: "The original pane is closed. You can still copy the command.")
-        } else { statusLabel.stringValue = "" }
+        } else {
+            statusLabel.stringValue = ""
+        }
         if store.persistenceError == nil {
             statusLabel.toolTip = statusLabel.stringValue.isEmpty ? nil : statusLabel.stringValue
         }
@@ -313,8 +325,7 @@ final class TerminalCommandHistoryController: NSObject, NSWindowDelegate, NSMenu
     @objc private func showSelection(_ sender: Any?) {
         if let clickedTable = sender as? NSTableView, clickedTable.clickedRow < 0 { return }
         guard let entry = selected else { return }
-        if reveal(entry) { close(restoreFocus: false) }
-        else { updateSelection() }
+        if reveal(entry) { close(restoreFocus: false) } else { updateSelection() }
     }
 
     @objc private func copySelection(_ sender: Any?) {
@@ -325,8 +336,7 @@ final class TerminalCommandHistoryController: NSObject, NSWindowDelegate, NSMenu
 
     @objc private func insertSelection(_ sender: Any?) {
         guard let entry = selected else { return }
-        if insert(entry) { close(restoreFocus: false) }
-        else { updateSelection() }
+        if insert(entry) { close(restoreFocus: false) } else { updateSelection() }
     }
 
     @objc private func deleteSelection(_ sender: Any?) {
@@ -338,7 +348,8 @@ final class TerminalCommandHistoryController: NSObject, NSWindowDelegate, NSMenu
         guard let panel else { return }
         let alert = NSAlert()
         alert.messageText = String(localized: "Clear Command History?")
-        alert.informativeText = String(localized: "This removes Zshell’s saved command history. Terminal output and your shell’s history are kept.")
+        alert.informativeText = String(
+            localized: "This removes Zshell’s saved command history. Terminal output and your shell’s history are kept.")
         alert.addButton(withTitle: String(localized: "Clear History"))
         alert.addButton(withTitle: String(localized: "Cancel"))
         alert.beginSheetModal(for: panel) { [weak self] response in
@@ -359,7 +370,8 @@ extension TerminalCommandHistoryController: NSTableViewDataSource, NSTableViewDe
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard entries.indices.contains(row) else { return nil }
         let id = NSUserInterfaceItemIdentifier("command-history-cell")
-        let cell = tableView.makeView(withIdentifier: id, owner: self) as? TerminalCommandHistoryCell
+        let cell =
+            tableView.makeView(withIdentifier: id, owner: self) as? TerminalCommandHistoryCell
             ?? TerminalCommandHistoryCell()
         cell.identifier = id
         let entry = entries[row]
@@ -438,10 +450,19 @@ private final class TerminalCommandHistoryCell: NSTableCellView {
         var parts = [Self.dateFormatter.string(from: entry.startedAt)]
         if let duration = entry.durationNanos {
             let seconds = Double(duration) / 1_000_000_000
-            parts.append(String(localized: "Duration: \(seconds.formatted(.number.precision(.fractionLength(0...3)).locale(AppLocalization.current.locale))) s"))
-        } else { parts.append(String(localized: "Duration unavailable")) }
-        if let code = entry.exitCode { parts.append(String(localized: "Exit: \(code)")) }
-        else { parts.append(isRunning ? String(localized: "Running") : String(localized: "Exit status unavailable")) }
+            parts.append(
+                String(
+                    localized:
+                        "Duration: \(seconds.formatted(.number.precision(.fractionLength(0...3)).locale(AppLocalization.current.locale))) s"
+                ))
+        } else {
+            parts.append(String(localized: "Duration unavailable"))
+        }
+        if let code = entry.exitCode {
+            parts.append(String(localized: "Exit: \(code)"))
+        } else {
+            parts.append(isRunning ? String(localized: "Running") : String(localized: "Exit status unavailable"))
+        }
         metadata.stringValue = parts.joined(separator: " · ")
         toolTip = [entry.command, entry.workingDirectory, metadata.stringValue].joined(separator: "\n")
         setAccessibilityElement(true)

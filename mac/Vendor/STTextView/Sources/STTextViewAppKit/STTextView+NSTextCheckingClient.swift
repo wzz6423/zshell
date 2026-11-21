@@ -43,7 +43,6 @@ extension STTextView: NSTextCheckingClient {
         return adjRange
     }
 
-
     // Returns annotated string specified by range.
     //
     // The range should be adjusted according to the standard range adjustment policy, and in addition for this method alone it should be adjusted to begin and end on paragraph boundaries
@@ -66,14 +65,16 @@ extension STTextView: NSTextCheckingClient {
             return NSAttributedString("")
         }
 
-        let attributedString = self.attributedSubstring(forProposedRange: range, actualRange: actualRange)?.mutableCopy() as! NSMutableAttributedString
+        let attributedString =
+            self.attributedSubstring(forProposedRange: range, actualRange: actualRange)?.mutableCopy() as! NSMutableAttributedString
         let actualRange = actualRange?.pointee ?? range
         guard let actualTextRange = NSTextRange(actualRange, in: textContentManager) else {
             return nil
         }
 
         // strip out attributes except what's valid (textCheckingController.validAnnotations())
-        let invalidAttributes = attributedString.attributes(in: attributedString.range, options: .longestEffectiveRangeNotRequired).subtracting(textCheckingController.validAnnotations())
+        let invalidAttributes = attributedString.attributes(in: attributedString.range, options: .longestEffectiveRangeNotRequired)
+            .subtracting(textCheckingController.validAnnotations())
         for attr in invalidAttributes {
             attributedString.removeAttribute(attr, range: attributedString.range)
         }
@@ -83,13 +84,14 @@ extension STTextView: NSTextCheckingClient {
         textLayoutManager.enumerateRenderingAttributes(in: actualTextRange, reverse: false) { _, attrs, attrTextRange in
             for spellcheckAttributeKey in attrs.keys.filter({ textCheckingController.validAnnotations().contains($0) }) {
                 guard let value = attrs[spellcheckAttributeKey],
-                      let loc = textContentManager.location(attrTextRange.location, offsetBy: -offset),
-                      let endLoc = textContentManager.location(attrTextRange.endLocation, offsetBy: -offset),
-                      let adjustedAttrTextRange = NSTextRange(location: loc, end: endLoc)
+                    let loc = textContentManager.location(attrTextRange.location, offsetBy: -offset),
+                    let endLoc = textContentManager.location(attrTextRange.endLocation, offsetBy: -offset),
+                    let adjustedAttrTextRange = NSTextRange(location: loc, end: endLoc)
                 else {
                     continue
                 }
-                attributedString.addAttribute(spellcheckAttributeKey, value: value, range: NSRange(adjustedAttrTextRange, in: textContentManager))
+                attributedString.addAttribute(
+                    spellcheckAttributeKey, value: value, range: NSRange(adjustedAttrTextRange, in: textContentManager))
             }
             return true
         }
@@ -155,7 +157,7 @@ extension STTextView: NSTextCheckingClient {
         return self
     }
 
-    @_implements(NSTextCheckingClient, candidateListTouchBarItem())
+    @_implements(NSTextCheckingClient,candidateListTouchBarItem())
     public func candidateListTouchBarItem_NSTextCheckingClient() -> NSCandidateListTouchBarItem<AnyObject>? {
         super.candidateListTouchBarItem
     }
@@ -235,14 +237,16 @@ extension STTextView {
         // So do manually
         // uncheck. remove spelling attributes in the word on both sides
         if let textRange = NSTextRange(range, in: textContentManager) {
-            textLayoutManager.enumerateRenderingAttributes(from: textRange.location, reverse: true) { textLayoutManager, attributes, attributesTextRange in
+            textLayoutManager.enumerateRenderingAttributes(from: textRange.location, reverse: true) {
+                textLayoutManager, attributes, attributesTextRange in
                 for attribute in attributes where textCheckingController.validAnnotations().contains(where: { $0 == attribute.key }) {
                     textLayoutManager.removeRenderingAttribute(attribute.key, for: attributesTextRange)
                 }
                 return false
             }
 
-            textLayoutManager.enumerateRenderingAttributes(from: textRange.location, reverse: false) { textLayoutManager, attributes, attributesTextRange in
+            textLayoutManager.enumerateRenderingAttributes(from: textRange.location, reverse: false) {
+                textLayoutManager, attributes, attributesTextRange in
                 for attribute in attributes where textCheckingController.validAnnotations().contains(where: { $0 == attribute.key }) {
                     textLayoutManager.removeRenderingAttribute(attribute.key, for: attributesTextRange)
                 }

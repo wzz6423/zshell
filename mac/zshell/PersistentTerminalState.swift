@@ -33,7 +33,8 @@ final class PersistentTerminalState {
     func snapshot() throws -> Data {
         var count = 0
         guard let bytes = zshell_persistent_terminal_snapshot(handle, &count),
-              count <= PTYMuxConstants.maximumSnapshotBytes else {
+            count <= PTYMuxConstants.maximumSnapshotBytes
+        else {
             throw PTYMuxError.message("Persistent terminal snapshot exceeds its memory limit.")
         }
         return Data(bytes: bytes, count: count)

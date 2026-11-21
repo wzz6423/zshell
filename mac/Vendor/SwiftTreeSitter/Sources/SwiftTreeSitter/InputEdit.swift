@@ -51,11 +51,12 @@ public struct InputEdit: Hashable, Sendable {
     }
 
     var internalInputEdit: TSInputEdit {
-        return TSInputEdit(start_byte: startByte,
-                           old_end_byte: oldEndByte,
-                           new_end_byte: newEndByte,
-                           start_point: startPoint.internalPoint,
-                           old_end_point: oldEndPoint.internalPoint,
-                           new_end_point: newEndPoint.internalPoint)
+        return TSInputEdit(
+            start_byte: startByte,
+            old_end_byte: oldEndByte,
+            new_end_byte: newEndByte,
+            start_point: startPoint.internalPoint,
+            old_end_point: oldEndPoint.internalPoint,
+            new_end_point: newEndPoint.internalPoint)
     }
 }

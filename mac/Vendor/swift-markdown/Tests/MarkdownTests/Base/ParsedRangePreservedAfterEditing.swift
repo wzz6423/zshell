@@ -22,26 +22,29 @@ class ParsedRangePreservedAfterEditingTests: XCTestCase {
 
     func testParsed() {
         let source = """
-        First element is a paragraph.
+            First element is a paragraph.
 
-        - A
-        - B
+            - A
+            - B
 
-        Third element is a paragraph.
-        """
+            Third element is a paragraph.
+            """
         var document = Document(parsing: source)
-        document.setBlockChildren(document.children.map { child -> BlockMarkup in
-            guard let existingParagraph = child as? Paragraph else {
-                return Paragraph(Text("Replaced paragraph."))
-            }
-            return existingParagraph
-        })
+        document.setBlockChildren(
+            document.children.map { child -> BlockMarkup in
+                guard let existingParagraph = child as? Paragraph else {
+                    return Paragraph(Text("Replaced paragraph."))
+                }
+                return existingParagraph
+            })
         XCTAssertEqual(3, document.childCount)
-        XCTAssertEqual(SourceLocation(line: 1, column: 1, source: nil)..<SourceLocation(line: 1, column: 30, source: nil),
-                       document.child(at: 0)?.range)
+        XCTAssertEqual(
+            SourceLocation(line: 1, column: 1, source: nil) ..< SourceLocation(line: 1, column: 30, source: nil),
+            document.child(at: 0)?.range)
         XCTAssertNil(document.child(at: 1)?.range)
-        XCTAssertEqual(SourceLocation(line: 6, column: 1, source: nil)..<SourceLocation(line: 6, column: 30, source: nil),
-                       document.child(at: 2)?.range)
+        XCTAssertEqual(
+            SourceLocation(line: 6, column: 1, source: nil) ..< SourceLocation(line: 6, column: 30, source: nil),
+            document.child(at: 2)?.range)
     }
 
     func testComplexEdit() {
@@ -50,14 +53,14 @@ class ParsedRangePreservedAfterEditingTests: XCTestCase {
         // All `Emphasis` elements should have `nil` parsed range.
         // Everything else should still have their parsed range.
         let source = """
-        - 1
-          - 2
-            - 3
-              - 4
-                - 5
+            - 1
+              - 2
+                - 3
+                  - 4
+                    - 5
 
-        ## **sdfsdf**
-        """
+            ## **sdfsdf**
+            """
         let document = Document(parsing: source)
 
         /// Verifies that all elements have a non-nil range.

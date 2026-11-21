@@ -40,18 +40,20 @@ enum ZshellAutomationRouter {
         case let method where method.hasPrefix("session."):
             return await ZshellSessionAutomationRouter.route(request, manager: caller.manager, project: caller.project, caller: caller)
         case "protocol.info":
-            return success(request, .object([
-                "version": .number(1),
-                "scope": .string("project"),
-                "current_terminal_id": .string(callerTerminalID.uuidString),
-                "reads_mark_seen": .bool(false),
-                "split_focus_default": .bool(false),
-                "agent_report_lifetime_seconds": .number(ZshellAgentReport.lifetime),
-                "agent_report_max_tasks": .number(Double(ZshellAgentReport.maximumTasks)),
-                "event_stream": .bool(true),
-                "browser_automation": .bool(true),
-                "browser_max_timeout_ms": .number(Double(BrowserAutomation.maximumTimeoutMS)),
-            ]))
+            return success(
+                request,
+                .object([
+                    "version": .number(1),
+                    "scope": .string("project"),
+                    "current_terminal_id": .string(callerTerminalID.uuidString),
+                    "reads_mark_seen": .bool(false),
+                    "split_focus_default": .bool(false),
+                    "agent_report_lifetime_seconds": .number(ZshellAgentReport.lifetime),
+                    "agent_report_max_tasks": .number(Double(ZshellAgentReport.maximumTasks)),
+                    "event_stream": .bool(true),
+                    "browser_automation": .bool(true),
+                    "browser_max_timeout_ms": .number(Double(BrowserAutomation.maximumTimeoutMS)),
+                ]))
 
         case "pane.current":
             return success(request, paneSnapshot(caller, caller: caller))
@@ -59,9 +61,10 @@ enum ZshellAutomationRouter {
         case "pane.list":
             return success(
                 request,
-                .array(projectContexts(caller.project, manager: caller.manager).map {
-                    paneSnapshot($0, caller: caller)
-                })
+                .array(
+                    projectContexts(caller.project, manager: caller.manager).map {
+                        paneSnapshot($0, caller: caller)
+                    })
             )
 
         case "pane.get":
@@ -119,8 +122,9 @@ enum ZshellAutomationRouter {
 
         case "agent.clear":
             guard request.params.isEmpty, let session = caller.session,
-                  let peer = request.peerProcessID,
-                  session.clearAutomationProgram(peerProcessID: peer) else {
+                let peer = request.peerProcessID,
+                session.clearAutomationProgram(peerProcessID: peer)
+            else {
                 return failure(request, "invalid_report_owner", "Only a reporting program can clear its own terminal report.")
             }
             return success(request, paneSnapshot(caller, caller: caller))
@@ -130,32 +134,41 @@ enum ZshellAutomationRouter {
                 return failure(request, "terminal_required", "The caller is not a terminal pane.")
             }
             guard let value = request.params["identity"],
-                  let data = try? JSONEncoder().encode(value),
-                  let identity = try? JSONDecoder().decode(AgentConversationIdentity.self, from: data),
-                  let pid = request.params["reporter_pid"]?.intValue,
-                  let reporterPID = Int32(exactly: pid), reporterPID > 1 else {
+                let data = try? JSONEncoder().encode(value),
+                let identity = try? JSONDecoder().decode(AgentConversationIdentity.self, from: data),
+                let pid = request.params["reporter_pid"]?.intValue,
+                let reporterPID = Int32(exactly: pid), reporterPID > 1
+            else {
                 return failure(request, "invalid_agent_session", "A valid provider session identity and reporting process are required.")
             }
-            guard session.acceptAgentConversation(.init(
-                identity: identity, reporterPID: reporterPID,
-                source: request.params["source"]?.stringValue
-            ), peerProcessID: request.peerProcessID) else {
-                return failure(request, "agent_session_not_attached", "The reporting agent process does not own this terminal's foreground job.")
+            guard
+                session.acceptAgentConversation(
+                    .init(
+                        identity: identity, reporterPID: reporterPID,
+                        source: request.params["source"]?.stringValue
+                    ), peerProcessID: request.peerProcessID)
+            else {
+                return failure(
+                    request, "agent_session_not_attached", "The reporting agent process does not own this terminal's foreground job.")
             }
             return success(request, .object(["accepted": .bool(true)]))
 
         case "agent.session.clear":
             guard let session = caller.session,
-                  let name = request.params["provider"]?.stringValue,
-                  let provider = AgentConversationIdentity.Provider(rawValue: name),
-                  let pid = request.params["reporter_pid"]?.intValue,
-                  let reporterPID = Int32(exactly: pid), reporterPID > 1 else {
+                let name = request.params["provider"]?.stringValue,
+                let provider = AgentConversationIdentity.Provider(rawValue: name),
+                let pid = request.params["reporter_pid"]?.intValue,
+                let reporterPID = Int32(exactly: pid), reporterPID > 1
+            else {
                 return failure(request, "invalid_agent_session", "A valid provider and reporting process are required.")
             }
-            guard session.clearAgentConversation(
-                provider: provider, reporterPID: reporterPID, peerProcessID: request.peerProcessID
-            ) else {
-                return failure(request, "agent_session_not_attached", "The reporting agent process does not own this terminal's foreground job.")
+            guard
+                session.clearAgentConversation(
+                    provider: provider, reporterPID: reporterPID, peerProcessID: request.peerProcessID
+                )
+            else {
+                return failure(
+                    request, "agent_session_not_attached", "The reporting agent process does not own this terminal's foreground job.")
             }
             return success(request, .object(["accepted": .bool(true)]))
 
@@ -171,30 +184,35 @@ enum ZshellAutomationRouter {
     /// grants no general reads or input to a process carrying another pane's env.
     static func routeCodexNativeHook(_ request: ZshellAutomationRequest) async -> ZshellAutomationResponse? {
         guard ["agent.session.start", "agent.lifecycle"].contains(request.method),
-              let peer = request.peerProcessID,
-              CodexDaemonBinding.service(peerPID: peer, reporterPID: peer) != nil else { return nil }
+            let peer = request.peerProcessID,
+            CodexDaemonBinding.service(peerPID: peer, reporterPID: peer) != nil
+        else { return nil }
         if request.method == "agent.session.start" {
             guard let value = request.params["identity"],
-                  let data = try? JSONEncoder().encode(value),
-                  let identity = try? JSONDecoder().decode(AgentConversationIdentity.self, from: data),
-                  identity.provider == .codex,
-                  let number = request.params["reporter_pid"]?.intValue,
-                  let reporter = pid_t(exactly: number), reporter > 1,
-                  CodexDaemonBinding.accept(.init(
-                    identity: identity, reporterPID: reporter,
-                    source: request.params["source"]?.stringValue
-                  ), peerPID: peer) else {
-                return failure(request, "invalid_agent_session", "A valid Codex daemon session identity and reporting process are required.")
+                let data = try? JSONEncoder().encode(value),
+                let identity = try? JSONDecoder().decode(AgentConversationIdentity.self, from: data),
+                identity.provider == .codex,
+                let number = request.params["reporter_pid"]?.intValue,
+                let reporter = pid_t(exactly: number), reporter > 1,
+                CodexDaemonBinding.accept(
+                    .init(
+                        identity: identity, reporterPID: reporter,
+                        source: request.params["source"]?.stringValue
+                    ), peerPID: peer)
+            else {
+                return failure(
+                    request, "invalid_agent_session", "A valid Codex daemon session identity and reporting process are required.")
             }
             return success(request, .object(["accepted": .bool(true)]))
         }
         guard request.params["provider"]?.stringValue == "codex",
-              let payload = request.params["event"]?.objectValue,
-              (payload["parent_session_id"]?.stringValue ?? "").isEmpty,
-              let sessionID = payload["session_id"]?.stringValue,
-              let target = CodexDaemonBinding.lifecycleTarget(
+            let payload = request.params["event"]?.objectValue,
+            (payload["parent_session_id"]?.stringValue ?? "").isEmpty,
+            let sessionID = payload["session_id"]?.stringValue,
+            let target = CodexDaemonBinding.lifecycleTarget(
                 sessionID: sessionID, peerPID: peer, reporterPID: peer
-              ) else {
+            )
+        else {
             return failure(request, "agent_session_not_attached", "The Codex daemon event does not match one live foreground conversation.")
         }
         return await reportAgentLifecycle(request, caller: target, daemonSessionID: sessionID)
@@ -211,7 +229,7 @@ enum ZshellAutomationRouter {
             return failure(request, "pane_not_splittable", "Diff panes cannot be split.")
         }
         guard let edgeName = request.params["edge"]?.stringValue,
-              let edge = paneEdge(edgeName)
+            let edge = paneEdge(edgeName)
         else {
             return failure(
                 request, "invalid_params",
@@ -222,9 +240,11 @@ enum ZshellAutomationRouter {
         let directory = request.params["cwd"]?.stringValue
         if let directory {
             var isDirectory: ObjCBool = false
-            guard FileManager.default.fileExists(
-                atPath: directory, isDirectory: &isDirectory
-            ), isDirectory.boolValue else {
+            guard
+                FileManager.default.fileExists(
+                    atPath: directory, isDirectory: &isDirectory
+                ), isDirectory.boolValue
+            else {
                 return failure(
                     request, "invalid_directory",
                     "The requested working directory does not exist."
@@ -234,8 +254,10 @@ enum ZshellAutomationRouter {
         let argv: [String]?
         if let value = request.params["argv"] {
             guard let arguments = validatedCommandArguments(value) else {
-                return failure(request, "invalid_params",
-                               "argv must contain 1 to 256 control-free arguments. Direct exit, logout, or exec cannot return command results; use /bin/sh -c for a finite subprocess.")
+                return failure(
+                    request, "invalid_params",
+                    "argv must contain 1 to 256 control-free arguments. Direct exit, logout, or exec cannot return command results; use /bin/sh -c for a finite subprocess."
+                )
             }
             argv = arguments
         } else {
@@ -250,15 +272,17 @@ enum ZshellAutomationRouter {
             }
         }
 
-        guard let created = caller.project.automationSplitTerminal(
-            beside: target.pane.id,
-            toward: edge,
-            directory: directory,
-            focus: focus,
-            // A requested argv needs the integrated shell; a matching
-            // profile's startup program would leave the task unsupported.
-            usesConfiguredStartupCommand: argv == nil
-        ) else {
+        guard
+            let created = caller.project.automationSplitTerminal(
+                beside: target.pane.id,
+                toward: edge,
+                directory: directory,
+                focus: focus,
+                // A requested argv needs the integrated shell; a matching
+                // profile's startup program would leave the task unsupported.
+                usesConfiguredStartupCommand: argv == nil
+            )
+        else {
             return failure(request, "pane_not_splittable", "The target pane could not be split.")
         }
         if focus { TerminalManager.revealSession(id: created.session.id) }
@@ -281,20 +305,23 @@ enum ZshellAutomationRouter {
         caller: PaneContext
     ) -> ZshellAutomationResponse {
         guard let target = targetPane(request, caller: caller),
-              let session = target.session else {
+            let session = target.session
+        else {
             return failure(request, "terminal_required", "The target pane is not a terminal.")
         }
         guard !session.isReadOnly else { return readOnlyFailure(request) }
         if request.params["require_command_result"]?.boolValue == true,
-           session.id == caller.session?.id {
+            session.id == caller.session?.id
+        {
             return failure(request, "wait_deadlock", commandWaitDeadlockMessage)
         }
         guard session.isShellAvailableForAutomation else {
             if request.params["require_command_result"]?.boolValue == true,
-               session.surface.foregroundPid != session.shellPid,
-               let foregroundPID = session.surface.foregroundPid,
-               let executable = processExecutablePath(pid: foregroundPID),
-               ["zsh", "bash", "fish", "sh"].contains((executable as NSString).lastPathComponent) {
+                session.surface.foregroundPid != session.shellPid,
+                let foregroundPID = session.surface.foregroundPid,
+                let executable = processExecutablePath(pid: foregroundPID),
+                ["zsh", "bash", "fish", "sh"].contains((executable as NSString).lastPathComponent)
+            {
                 return failure(request, "command_wait_unsupported", unsupportedCommandWaitMessage)
             }
             return failure(
@@ -325,7 +352,8 @@ enum ZshellAutomationRouter {
             return failure(request, "command_wait_unsupported", unsupportedCommandWaitMessage)
         }
         if session.supportsCommandTaskShellIntegration,
-           session.surface.foregroundPid == session.shellPid {
+            session.surface.foregroundPid == session.shellPid
+        {
             return failure(request, "shell_not_ready", unsupportedCommandWaitMessage)
         }
         let task = TerminalCommandTaskStore.shared.recordUnsupported(
@@ -354,10 +382,10 @@ enum ZshellAutomationRouter {
 
     private static func validatedCommandArguments(_ value: ZshellJSONValue?) -> [String]? {
         guard let argv = stringArray(value), !argv.isEmpty, argv.count <= 256,
-              !argv[0].isEmpty,
-              !TerminalCommandTaskShellIntegration.replacesOriginalShell(argv),
-              argv.allSatisfy({ $0.utf8.count <= 16_384 && isSafeShellArgument($0) }),
-              argv.map(TerminalSession.shellQuote).joined(separator: " ").utf8.count <= 65_536
+            !argv[0].isEmpty,
+            !TerminalCommandTaskShellIntegration.replacesOriginalShell(argv),
+            argv.allSatisfy({ $0.utf8.count <= 16_384 && isSafeShellArgument($0) }),
+            argv.map(TerminalSession.shellQuote).joined(separator: " ").utf8.count <= 65_536
         else { return nil }
         return argv
     }
@@ -375,25 +403,37 @@ enum ZshellAutomationRouter {
         _ request: ZshellAutomationRequest, caller: PaneContext
     ) -> ZshellAutomationResponse {
         guard let value = request.params["task_id"]?.stringValue,
-              let id = UUID(uuidString: value) else {
+            let id = UUID(uuidString: value)
+        else {
             return failure(request, "invalid_params", "task_id must be a command task UUID.")
         }
         guard let task = TerminalCommandTaskStore.shared.task(id: id, projectID: caller.project.id) else {
-            return failure(request, "task_not_found",
-                           String(localized: "No matching command task is retained in this project. The task may belong to another project, have expired, or predate this app session."))
+            return failure(
+                request, "task_not_found",
+                String(
+                    localized:
+                        "No matching command task is retained in this project. The task may belong to another project, have expired, or predate this app session."
+                ))
         }
         if let target = context(forSession: task.terminalID), target.project.id != caller.project.id {
-            return failure(request, "task_not_found",
-                           String(localized: "No matching command task is retained in this project. The task may belong to another project, have expired, or predate this app session."))
+            return failure(
+                request, "task_not_found",
+                String(
+                    localized:
+                        "No matching command task is retained in this project. The task may belong to another project, have expired, or predate this app session."
+                ))
         }
         if request.params["wait"]?.boolValue == true, !task.state.isTerminal,
-           task.terminalID == caller.session?.id {
+            task.terminalID == caller.session?.id
+        {
             return failure(request, "wait_deadlock", commandWaitDeadlockMessage)
         }
-        return success(request, .object([
-            "task_id": .string(id.uuidString),
-            "task": task.json,
-        ]))
+        return success(
+            request,
+            .object([
+                "task_id": .string(id.uuidString),
+                "task": task.json,
+            ]))
     }
 
     static func commandTaskIsInOriginalProject(_ task: TerminalCommandTask) -> Bool {
@@ -405,12 +445,14 @@ enum ZshellAutomationRouter {
         caller: PaneContext
     ) -> ZshellAutomationResponse {
         guard let target = targetPane(request, caller: caller),
-              let session = target.session else {
+            let session = target.session
+        else {
             return failure(request, "terminal_required", "The target pane is not a terminal.")
         }
         guard !session.isReadOnly else { return readOnlyFailure(request) }
         guard let text = request.params["text"]?.stringValue,
-              text.utf8.count <= 262_144 else {
+            text.utf8.count <= 262_144
+        else {
             return failure(
                 request, "invalid_params",
                 "text is required and is limited to 256 KiB."
@@ -434,7 +476,8 @@ enum ZshellAutomationRouter {
             )
         }
         guard let target = targetPane(request, caller: caller),
-              let session = target.session else {
+            let session = target.session
+        else {
             return failure(request, "terminal_required", "The target pane is not a terminal.")
         }
         let targetPaneID = target.pane.id
@@ -455,19 +498,22 @@ enum ZshellAutomationRouter {
                 )
             }
             guard let currentTarget = targetPane(request, caller: currentCaller),
-                  currentTarget.pane.id == targetPaneID,
-                  currentTarget.session?.id == targetSessionID else {
+                currentTarget.pane.id == targetPaneID,
+                currentTarget.session?.id == targetSessionID
+            else {
                 return failure(
                     request, "pane_not_found",
                     "No matching pane exists in this project."
                 )
             }
-            return success(request, .object([
-                "pane": paneSnapshot(currentTarget, caller: currentCaller),
-                "text": .string(text),
-                "lines": .number(Double(lines)),
-                "columns": .number(Double(columns)),
-            ]))
+            return success(
+                request,
+                .object([
+                    "pane": paneSnapshot(currentTarget, caller: currentCaller),
+                    "text": .string(text),
+                    "lines": .number(Double(lines)),
+                    "columns": .number(Double(columns)),
+                ]))
         } catch ZshellAutomationReadError.agentNotIdle {
             return failure(
                 request,
@@ -488,7 +534,8 @@ enum ZshellAutomationRouter {
         caller: PaneContext
     ) -> ZshellAutomationResponse {
         guard let target = targetPane(request, caller: caller),
-              let session = target.session else {
+            let session = target.session
+        else {
             return failure(request, "terminal_required", "The target pane is not a terminal.")
         }
         guard !session.isReadOnly else { return readOnlyFailure(request) }
@@ -508,14 +555,16 @@ enum ZshellAutomationRouter {
             )
         }
         guard let alias = request.params["alias"]?.stringValue,
-              isValidAlias(alias) else {
+            isValidAlias(alias)
+        else {
             return failure(
                 request, "invalid_alias",
                 "alias must be 1 to 64 ASCII letters, numbers, dots, underscores, or hyphens."
             )
         }
         guard let kindName = request.params["kind"]?.stringValue,
-              let kind = ZshellAgentKind(rawValue: kindName), kind != .program else {
+            let kind = ZshellAgentKind(rawValue: kindName), kind != .program
+        else {
             return failure(
                 request, "invalid_agent_kind",
                 "Supported kinds: \(ZshellAgentKind.allCases.filter { $0 != .program }.map(\.rawValue).joined(separator: ", "))."
@@ -532,9 +581,10 @@ enum ZshellAutomationRouter {
         }
         let extra = stringArray(request.params["argv"]) ?? []
         guard extra.count <= 128,
-              extra.allSatisfy({
-                  $0.utf8.count <= 16_384 && isSafeShellArgument($0)
-              }) else {
+            extra.allSatisfy({
+                $0.utf8.count <= 16_384 && isSafeShellArgument($0)
+            })
+        else {
             return failure(
                 request, "invalid_params",
                 "Agent arguments exceed the protocol limits or contain terminal control characters."
@@ -555,16 +605,19 @@ enum ZshellAutomationRouter {
         caller: PaneContext
     ) async -> ZshellAutomationResponse {
         guard let target = targetAgent(request, caller: caller),
-              let session = target.session,
-              let status = session.agentStatus else {
+            let session = target.session,
+            let status = session.agentStatus
+        else {
             return failure(request, "agent_not_found", "No matching agent exists in this project.")
         }
         guard !session.isReadOnly else { return readOnlyFailure(request) }
         let inputGeneration = session.surface.inputGeneration
-        guard status.phase == .created
+        guard
+            status.phase == .created
                 || status.phase == .working
                 || status.phase == .idle
-                || status.phase == .done else {
+                || status.phase == .done
+        else {
             return failure(
                 request, "agent_not_ready",
                 "\(status.alias) is \(status.phase.rawValue); guarded prompts require created, working, idle, or done. Use +pane send for explicit raw input."
@@ -577,8 +630,9 @@ enum ZshellAutomationRouter {
             )
         }
         guard let prompt = request.params["text"]?.stringValue,
-              !prompt.isEmpty, prompt.utf8.count <= 262_144,
-              isSafePromptText(prompt) else {
+            !prompt.isEmpty, prompt.utf8.count <= 262_144,
+            isSafePromptText(prompt)
+        else {
             return failure(
                 request, "invalid_prompt",
                 "Prompt text must be non-empty, contain no terminal control characters, and fit within 256 KiB."
@@ -599,7 +653,8 @@ enum ZshellAutomationRouter {
             AgentTurnReviewStore.shared.abort(sessionID: session.id)
             return failure(request, "agent_not_running", "The agent exited before the prompt was submitted.")
         }
-        let normalized = prompt
+        let normalized =
+            prompt
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
         let input = normalized.contains("\n") ? "\u{1b}[200~" + normalized + "\u{1b}[201~" : normalized
@@ -619,21 +674,26 @@ enum ZshellAutomationRouter {
             return failure(request, "terminal_required", "The caller is not a terminal pane.")
         }
         if let last = session.agentObservation.lastProgramReportAt,
-           Date().timeIntervalSince(last) < 0.1 {
+            Date().timeIntervalSince(last) < 0.1
+        {
             return failure(request, "report_rate_limited", "Program reports are limited to 10 updates per second.")
         }
         let report: ZshellAgentReport
-        do { report = try ZshellAgentReport(params: request.params) }
-        catch { return failure(request, "invalid_params", String(describing: error)) }
-        guard !caller.project.sessions.contains(where: {
-            $0.id != session.id && $0.agentStatus?.alias == report.name
-        }) else {
+        do { report = try ZshellAgentReport(params: request.params) } catch {
+            return failure(request, "invalid_params", String(describing: error))
+        }
+        guard
+            !caller.project.sessions.contains(where: {
+                $0.id != session.id && $0.agentStatus?.alias == report.name
+            })
+        else {
             return failure(request, "alias_in_use", "Another agent or program in this project already uses that name.")
         }
         guard let peer = request.peerProcessID,
-              let ownerNumber = request.params["process_id"]?.intValue,
-              let owner = pid_t(exactly: ownerNumber),
-              session.reportAutomationProgram(report, ownerPID: owner, peerProcessID: peer) else {
+            let ownerNumber = request.params["process_id"]?.intValue,
+            let owner = pid_t(exactly: ownerNumber),
+            session.reportAutomationProgram(report, ownerPID: owner, peerProcessID: peer)
+        else {
             return failure(
                 request, "invalid_report_owner",
                 "process_id must be a live ancestor of the reporting client inside this terminal."
@@ -647,7 +707,8 @@ enum ZshellAutomationRouter {
     }
 
     private static func inputFailure(_ request: ZshellAutomationRequest, session: TerminalSession) -> ZshellAutomationResponse {
-        session.isReadOnly ? readOnlyFailure(request)
+        session.isReadOnly
+            ? readOnlyFailure(request)
             : failure(request, "terminal_unavailable", "The target terminal is not accepting input.")
     }
 
@@ -657,9 +718,10 @@ enum ZshellAutomationRouter {
         daemonSessionID: String? = nil
     ) async -> ZshellAutomationResponse {
         guard let session = caller.session,
-              let peer = request.peerProcessID,
-              let name = request.params["provider"]?.stringValue,
-              let provider = ZshellAgentKind(rawValue: name), provider != .program else {
+            let peer = request.peerProcessID,
+            let name = request.params["provider"]?.stringValue,
+            let provider = ZshellAgentKind(rawValue: name), provider != .program
+        else {
             return failure(request, "invalid_lifecycle", "A lifecycle report requires its provider and a terminal process.")
         }
         let phase: ZshellAgentPhase
@@ -670,8 +732,9 @@ enum ZshellAutomationRouter {
         var interrupted = false
         if provider == .codex || provider == .claude {
             guard let payload = request.params["event"]?.objectValue,
-                  let event = ZshellAgentLifecycleEvent.parse(provider: provider, payload: payload),
-                  event.belongs(to: session.agentResume, provider: provider) else {
+                let event = ZshellAgentLifecycleEvent.parse(provider: provider, payload: payload),
+                event.belongs(to: session.agentResume, provider: provider)
+            else {
                 return failure(request, "invalid_lifecycle", "Unsupported provider lifecycle event.")
             }
             phase = event.phase
@@ -682,9 +745,10 @@ enum ZshellAutomationRouter {
             interrupted = event.interrupted
         } else {
             guard [.pi, .opencode, .grok].contains(provider),
-                  let name = request.params["state"]?.stringValue,
-                  let value = ZshellAgentPhase(rawValue: name),
-                  [.working, .blocked, .idle].contains(value) else {
+                let name = request.params["state"]?.stringValue,
+                let value = ZshellAgentPhase(rawValue: name),
+                [.working, .blocked, .idle].contains(value)
+            else {
                 return failure(request, "invalid_lifecycle", "Unsupported provider lifecycle state.")
             }
             phase = value
@@ -696,11 +760,13 @@ enum ZshellAutomationRouter {
                 attention = parsed
             }
         }
-        guard session.reportAutomationAgent(
-            phase: phase, reason: reason, provider: provider, peerProcessID: peer,
-            attention: attention, task: task, endsSession: endsSession,
-            daemonSessionID: daemonSessionID, interrupted: interrupted
-        ) else {
+        guard
+            session.reportAutomationAgent(
+                phase: phase, reason: reason, provider: provider, peerProcessID: peer,
+                attention: attention, task: task, endsSession: endsSession,
+                daemonSessionID: daemonSessionID, interrupted: interrupted
+            )
+        else {
             return failure(
                 request, "agent_not_recognized",
                 "Native lifecycle reports require a live matching provider ancestor in this terminal."
@@ -742,7 +808,8 @@ enum ZshellAutomationRouter {
     ) -> PaneContext? {
         if request.params["pane_id"] != nil {
             guard let pane = targetPane(request, caller: caller),
-                  pane.session?.agentStatus != nil else { return nil }
+                pane.session?.agentStatus != nil
+            else { return nil }
             return pane
         }
         if let alias = request.params["alias"]?.stringValue {
@@ -759,7 +826,8 @@ enum ZshellAutomationRouter {
                 for tab in project.tabs {
                     for pane in tab.allPanes {
                         guard case .session(let session) = pane.content,
-                              session.id == id else { continue }
+                            session.id == id
+                        else { continue }
                         return PaneContext(
                             manager: manager, project: project, tab: tab, pane: pane
                         )
@@ -785,12 +853,13 @@ enum ZshellAutomationRouter {
         _ context: PaneContext,
         caller: PaneContext?
     ) -> ZshellJSONValue {
-        let contentKind: String = switch context.pane.content {
-        case .session: "terminal"
-        case .file: "file"
-        case .browser: "browser"
-        case .diff: "diff"
-        }
+        let contentKind: String =
+            switch context.pane.content {
+            case .session: "terminal"
+            case .file: "file"
+            case .browser: "browser"
+            case .diff: "diff"
+            }
         var object: [String: ZshellJSONValue] = [
             "project_id": .string(context.project.id.uuidString),
             "project_name": .string(context.project.name),
@@ -856,16 +925,16 @@ enum ZshellAutomationRouter {
     }
 
     private static func isValidAlias(_ value: String) -> Bool {
-        guard (1...64).contains(value.utf8.count) else { return false }
+        guard (1 ... 64).contains(value.utf8.count) else { return false }
         return value.utf8.allSatisfy {
-            (48...57).contains($0) || (65...90).contains($0)
-                || (97...122).contains($0) || $0 == 45 || $0 == 46 || $0 == 95
+            (48 ... 57).contains($0) || (65 ... 90).contains($0)
+                || (97 ... 122).contains($0) || $0 == 45 || $0 == 46 || $0 == 95
         }
     }
 
     private static func isSafePromptText(_ value: String) -> Bool {
         value.unicodeScalars.allSatisfy { scalar in
-            (scalar.value >= 0x20 && !(0x7F...0x9F).contains(scalar.value))
+            (scalar.value >= 0x20 && !(0x7F ... 0x9F).contains(scalar.value))
                 || scalar.value == 0x0A
                 || scalar.value == 0x0D
                 || scalar.value == 0x09
@@ -874,7 +943,7 @@ enum ZshellAutomationRouter {
 
     private static func isSafeShellArgument(_ value: String) -> Bool {
         value.unicodeScalars.allSatisfy {
-            $0.value >= 0x20 && !(0x7F...0x9F).contains($0.value)
+            $0.value >= 0x20 && !(0x7F ... 0x9F).contains($0.value)
         }
     }
 

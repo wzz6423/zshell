@@ -26,7 +26,9 @@ public struct NeonPlugin: STPlugin {
             guard let replacementString else { return }
 
             let range = NSRange(affectedRange, in: context.textView.textContentManager)
-            context.coordinator.didChangeContent(context.textView.textContentManager, in: range, delta: replacementString.utf16.count - range.length, limit: context.textView.textContentManager.length)
+            context.coordinator.didChangeContent(
+                context.textView.textContentManager, in: range, delta: replacementString.utf16.count - range.length,
+                limit: context.textView.textContentManager.length)
         }
 
         context.events.onDidLayoutViewport { viewportRange in
@@ -39,4 +41,3 @@ public struct NeonPlugin: STPlugin {
     }
 
 }
-

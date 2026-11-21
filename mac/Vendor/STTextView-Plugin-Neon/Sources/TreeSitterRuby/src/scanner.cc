@@ -1008,8 +1008,8 @@ struct Scanner {
     }
 
     // Open delimiters for literals
-    if ((valid_symbols[HASH_KEY_SYMBOL] || valid_symbols[IDENTIFIER_SUFFIX]) && (iswalpha(lexer->lookahead) || lexer->lookahead == '_') ||
-        valid_symbols[CONSTANT_SUFFIX] && iswupper(lexer->lookahead)) {
+    if (((valid_symbols[HASH_KEY_SYMBOL] || valid_symbols[IDENTIFIER_SUFFIX]) && (iswalpha(lexer->lookahead) || lexer->lookahead == '_')) ||
+        (valid_symbols[CONSTANT_SUFFIX] && iswupper(lexer->lookahead))) {
       TokenType validIdentifierSymbol = iswupper(lexer->lookahead) ? CONSTANT_SUFFIX : IDENTIFIER_SUFFIX;
       char word[8];
       int index = 0;

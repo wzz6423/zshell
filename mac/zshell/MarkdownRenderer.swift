@@ -326,10 +326,12 @@ struct MarkdownRenderer: @MainActor MarkupVisitor {
             // in the item — a nested list, a fence, a quote — was rendered with
             // its own absolute indent already, and reindenting it here is what
             // would flatten every nesting level onto the first.
-            let ownStyle = content.length > 0
+            let ownStyle =
+                content.length > 0
                 ? content.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
                 : nil
-            let hanging = (ownStyle?.mutableCopy() as? NSMutableParagraphStyle)
+            let hanging =
+                (ownStyle?.mutableCopy() as? NSMutableParagraphStyle)
                 ?? NSMutableParagraphStyle()
             hanging.headIndent = textIndent
             hanging.firstLineHeadIndent = outerIndent

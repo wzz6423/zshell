@@ -16,7 +16,7 @@ final class LineBreakTests: XCTestCase {
     func testLineBreak() {
         _ = LineBreak()
     }
-    
+
     /// Test that line breaks are parsed correctly.
     /// (Lots of folks have trailing whitespace trimming on).
     func testParseLineBreak() {
@@ -29,9 +29,9 @@ final class LineBreakTests: XCTestCase {
     /// Test that hard line breaks work with spaces (two or more).
     func testSpaceHardLineBreak() {
         let source = """
-                     Paragraph.\("  ")
-                     Still the same paragraph.
-                     """
+            Paragraph.\("  ")
+            Still the same paragraph.
+            """
         let document = Document(parsing: source)
         let paragraph = document.child(at: 0) as! Paragraph
         XCTAssertTrue(Array(paragraph.children)[1] is LineBreak)
@@ -40,9 +40,9 @@ final class LineBreakTests: XCTestCase {
     /// Test that hard line breaks work with a slash.
     func testSlashHardLineBreak() {
         let source = #"""
-                     Paragraph.\
-                     Still the same paragraph.
-                     """#
+            Paragraph.\
+            Still the same paragraph.
+            """#
         let document = Document(parsing: source)
         let paragraph = document.child(at: 0) as! Paragraph
         XCTAssertTrue(Array(paragraph.children)[1] is LineBreak)
@@ -51,11 +51,11 @@ final class LineBreakTests: XCTestCase {
     /// Sanity test that a multiline text without hard breaks doesn't return line breaks.
     func testLineBreakWithout() {
         let source = """
-                     Paragraph.
-                     Same line text.
-                     """
+            Paragraph.
+            Same line text.
+            """
         let document = Document(parsing: source)
-        
+
         let paragraph = document.child(at: 0) as! Paragraph
         XCTAssertFalse(Array(paragraph.children)[1] is LineBreak)
         XCTAssertEqual(Array(paragraph.children)[1].withoutSoftBreaks?.childCount, nil)

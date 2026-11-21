@@ -122,7 +122,7 @@ struct CombiningMarkTests {
     func swPlainMatchesCombiningCandidate() {
         let matcher = FuzzyMatcher(config: .smithWaterman)
         // Candidate has combining marks that get stripped to match plain query
-        let candidate = "caf\u{0065}\u{0301}"  // → stripped to "cafe"
+        let candidate = "caf\u{0065}\u{0301}" // → stripped to "cafe"
 
         let query = matcher.prepare("cafe")
         var buffer = matcher.makeBuffer()

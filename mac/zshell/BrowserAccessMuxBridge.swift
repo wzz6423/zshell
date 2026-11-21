@@ -62,9 +62,11 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
         self.inputGate = inputGate
     }
 
-    func start(queue: DispatchQueue,
-               frame: @escaping @Sendable (PTYMuxObserverFrame.Kind, Data) -> Void,
-               ended: @escaping @Sendable (Bool) -> Void) {
+    func start(
+        queue: DispatchQueue,
+        frame: @escaping @Sendable (PTYMuxObserverFrame.Kind, Data) -> Void,
+        ended: @escaping @Sendable (Bool) -> Void
+    ) {
         io.async { [self] in
             var socket: Int32 = -1
             var stalled = false
@@ -94,7 +96,8 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
                 if active { descriptor = socket }
                 lock.unlock()
                 guard active else { return }
-                let request = PTYMuxRequest(version: PTYMuxConstants.protocolVersion,
+                let request = PTYMuxRequest(
+                    version: PTYMuxConstants.protocolVersion,
                     id: UUID().uuidString, method: "observe", params: ["id": .string(sessionID.uuidString)])
                 try PTYMuxWire.writeFrame(request, to: socket)
                 guard try PTYMuxWire.readFrame(PTYMuxResponse.self, from: socket).ok else { return }
@@ -121,8 +124,11 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
                         if count > 0 {
                             guard buffer.count + count <= 512 * 1024 else { return }
                             buffer.append(contentsOf: bytes.prefix(count))
-                        } else if count < 0, errno == EINTR { continue }
-                        else { return }
+                        } else if count < 0, errno == EINTR {
+                            continue
+                        } else {
+                            return
+                        }
                     }
                 }
             } catch { return }
@@ -158,8 +164,9 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
         guard let generation = inputGate.reserve() else { completed(.readOnly); return true }
         lock.lock()
         guard !stopped, descriptor >= 0, data.count <= BrowserAccessLimits.frameBytes,
-              pendingInputBytes + data.count <= BrowserAccessLimits.sendQueueBytes,
-              pendingInputFrames < BrowserAccessLimits.sendQueueBytes / BrowserAccessLimits.frameBytes else {
+            pendingInputBytes + data.count <= BrowserAccessLimits.sendQueueBytes,
+            pendingInputFrames < BrowserAccessLimits.sendQueueBytes / BrowserAccessLimits.frameBytes
+        else {
             lock.unlock()
             return false
         }
@@ -222,9 +229,13 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
 
                 // Poll stays outside the gate; only the 1 ms bounded send is
                 // serialized with locking. Unlock never revives an older frame.
-                guard let sent = inputGate.perform(generation: generation, {
-                    Darwin.send(fd, base.advanced(by: offset), raw.count - offset, MSG_DONTWAIT)
-                }) else { return nil }
+                guard
+                    let sent = inputGate.perform(
+                        generation: generation,
+                        {
+                            Darwin.send(fd, base.advanced(by: offset), raw.count - offset, MSG_DONTWAIT)
+                        })
+                else { return nil }
                 if sent > 0 {
                     offset += sent
                 } else if sent < 0, errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK {

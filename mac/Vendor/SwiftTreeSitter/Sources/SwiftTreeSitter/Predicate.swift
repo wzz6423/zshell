@@ -21,167 +21,168 @@ extension QueryPredicateStep: CustomStringConvertible {
 }
 
 public enum Predicate: Hashable, Sendable {
-	case eq([String], captureNames: [String])
-	case notEq([String], captureNames: [String])
-	case match(NSRegularExpression, captureNames: [String])
-	case notMatch(NSRegularExpression, captureNames: [String])
-	case isNot(String)
-	case anyOf(Set<String>, captureName: String)
-	case notAnyOf(Set<String>, captureName: String)
-	case set(captureName: String? = nil, key: String, value: String)
-	case generic(String, strings: [String], captureNames: [String])
+    case eq([String], captureNames: [String])
+    case notEq([String], captureNames: [String])
+    case match(NSRegularExpression, captureNames: [String])
+    case notMatch(NSRegularExpression, captureNames: [String])
+    case isNot(String)
+    case anyOf(Set<String>, captureName: String)
+    case notAnyOf(Set<String>, captureName: String)
+    case set(captureName: String? = nil, key: String, value: String)
+    case generic(String, strings: [String], captureNames: [String])
 
-	/// Returns an array of capture names that the predicate references.
-	///
-	/// This value can be empty.
-	public var captureNames: [String] {
-		switch self {
-		case .eq(_, let names):
-			return names
-		case .notEq(_, let names):
-			return names
-		case .match(_, let names):
-			return names
-		case .notMatch(_, let names):
-			return names
-		case .isNot:
-			return []
-		case .anyOf(_, let names):
-			return [names]
-		case .notAnyOf(_, let names):
-			return [names]
-		case .set(let name, _, _):
-			if let name = name {
-				return [name]
-			}
+    /// Returns an array of capture names that the predicate references.
+    ///
+    /// This value can be empty.
+    public var captureNames: [String] {
+        switch self {
+        case .eq(_, let names):
+            return names
+        case .notEq(_, let names):
+            return names
+        case .match(_, let names):
+            return names
+        case .notMatch(_, let names):
+            return names
+        case .isNot:
+            return []
+        case .anyOf(_, let names):
+            return [names]
+        case .notAnyOf(_, let names):
+            return [names]
+        case .set(let name, _, _):
+            if let name = name {
+                return [name]
+            }
 
-			return []
-		case .generic(_, _, let names):
-			return names
-		}
-	}
+            return []
+        case .generic(_, _, let names):
+            return names
+        }
+    }
 
-	/// Returns all of the `QueryCapture` instances that correspond to this predicate.
-	public func captures(in match: QueryMatch) -> [QueryCapture] {
-		let names = captureNames
+    /// Returns all of the `QueryCapture` instances that correspond to this predicate.
+    public func captures(in match: QueryMatch) -> [QueryCapture] {
+        let names = captureNames
 
-		if names.isEmpty {
-			return match.captures
-		}
+        if names.isEmpty {
+            return match.captures
+        }
 
-		return match.captures.filter({ capture in
-			guard let name = capture.name else { return false }
+        return match.captures.filter({ capture in
+            guard let name = capture.name else { return false }
 
-			return names.contains(name)
-		})
-	}
+            return names.contains(name)
+        })
+    }
 }
 
 extension Predicate {
-	public typealias TextProvider = (NSRange, Range<Point>) -> String?
-	public typealias TextSnapshotProvider = @Sendable (NSRange, Range<Point>) -> String?
-	public typealias GroupMembershipProvider = (String, NSRange, Range<Point>) -> Bool
+    public typealias TextProvider = (NSRange, Range<Point>) -> String?
+    public typealias TextSnapshotProvider = @Sendable (NSRange, Range<Point>) -> String?
+    public typealias GroupMembershipProvider = (String, NSRange, Range<Point>) -> Bool
 
-	public struct Context {
-		public let textProvider: TextProvider
-		public let groupMembershipProvider: GroupMembershipProvider
+    public struct Context {
+        public let textProvider: TextProvider
+        public let groupMembershipProvider: GroupMembershipProvider
 
-		@MainActor
-		public static let none = Context(textProvider: { _, _ in return nil })
+        @MainActor
+        public static let none = Context(textProvider: { _, _ in return nil })
 
-		public init(
-			textProvider: @escaping TextProvider,
-			groupMembershipProvider: @escaping GroupMembershipProvider = { _, _, _ in return false }
-		) {
-			self.textProvider = textProvider
-			self.groupMembershipProvider = groupMembershipProvider
-		}
+        public init(
+            textProvider: @escaping TextProvider,
+            groupMembershipProvider: @escaping GroupMembershipProvider = { _, _, _ in return false }
+        ) {
+            self.textProvider = textProvider
+            self.groupMembershipProvider = groupMembershipProvider
+        }
 
-		/// Initialize with a constant string.
-		public init(string: String) {
-			self.init(
-				textProvider: string.predicateTextProvider
-			)
-		}
+        /// Initialize with a constant string.
+        public init(string: String) {
+            self.init(
+                textProvider: string.predicateTextProvider
+            )
+        }
 
-		var cachingContext: Context {
-			var cachedText = [NSRange : String]()
+        var cachingContext: Context {
+            var cachedText = [NSRange: String]()
 
-			// create a caching provider
-			let cachingTextProvider: TextProvider = { (range, pointRange) in
-				if let value = cachedText[range] {
-					return value
-				}
+            // create a caching provider
+            let cachingTextProvider: TextProvider = { (range, pointRange) in
+                if let value = cachedText[range] {
+                    return value
+                }
 
-				let value = textProvider(range, pointRange)
+                let value = textProvider(range, pointRange)
 
-				cachedText[range] = value
+                cachedText[range] = value
 
-				return value
-			}
+                return value
+            }
 
-			return Context(textProvider: cachingTextProvider, groupMembershipProvider: groupMembershipProvider)
-		}
-	}
+            return Context(textProvider: cachingTextProvider, groupMembershipProvider: groupMembershipProvider)
+        }
+    }
 
-	func allowsMatch(_ match: QueryMatch, context: Context) -> Bool {
-		switch self {
-		case .set, .generic:
-			return true
-		case .eq, .notEq, .anyOf, .notAnyOf, .match, .notMatch, .isNot:
-			return captures(in: match).allSatisfy { capture in
-				allowsMatch(for: capture, context: context)
-			}
-		}
-	}
+    func allowsMatch(_ match: QueryMatch, context: Context) -> Bool {
+        switch self {
+        case .set, .generic:
+            return true
+        case .eq, .notEq, .anyOf, .notAnyOf, .match, .notMatch, .isNot:
+            return captures(in: match).allSatisfy { capture in
+                allowsMatch(for: capture, context: context)
+            }
+        }
+    }
 
-	func allowsMatch(for capture: QueryCapture, context: Context) -> Bool {
-		allowsMatch(range: capture.node.range,
-					pointRange: capture.node.pointRange,
-					context: context)
-	}
+    func allowsMatch(for capture: QueryCapture, context: Context) -> Bool {
+        allowsMatch(
+            range: capture.node.range,
+            pointRange: capture.node.pointRange,
+            context: context)
+    }
 
-	func allowsMatch(range: NSRange, pointRange: Range<Point>, context: Context) -> Bool {
-		switch self {
-		case .set, .generic:
-			return true
-		case .isNot(let groupName):
-			return context.groupMembershipProvider(groupName, range, pointRange) == false
-		case .eq, .notEq, .anyOf, .notAnyOf, .match, .notMatch:
-			guard let text = context.textProvider(range, pointRange) else {
-				return false
-			}
+    func allowsMatch(range: NSRange, pointRange: Range<Point>, context: Context) -> Bool {
+        switch self {
+        case .set, .generic:
+            return true
+        case .isNot(let groupName):
+            return context.groupMembershipProvider(groupName, range, pointRange) == false
+        case .eq, .notEq, .anyOf, .notAnyOf, .match, .notMatch:
+            guard let text = context.textProvider(range, pointRange) else {
+                return false
+            }
 
-			return evalulate(with: text)
-		}
-	}
+            return evalulate(with: text)
+        }
+    }
 
-	public func evalulate(with text: String) -> Bool {
-		switch self {
-		case .eq(let strings, _):
-			return strings.allSatisfy({ $0 == text })
-		case .notEq(let strings, _):
-			return strings.allSatisfy({ $0 != text })
-		case .match(let exp, _):
-			let range = NSRange(0..<text.utf16.count)
+    public func evalulate(with text: String) -> Bool {
+        switch self {
+        case .eq(let strings, _):
+            return strings.allSatisfy({ $0 == text })
+        case .notEq(let strings, _):
+            return strings.allSatisfy({ $0 != text })
+        case .match(let exp, _):
+            let range = NSRange(0 ..< text.utf16.count)
 
-			return exp.firstMatch(in: text, range: range) != nil
-		case .notMatch(let exp, _):
-			let range = NSRange(0..<text.utf16.count)
+            return exp.firstMatch(in: text, range: range) != nil
+        case .notMatch(let exp, _):
+            let range = NSRange(0 ..< text.utf16.count)
 
-			return exp.firstMatch(in: text, range: range) == nil
-		case .anyOf(let set, _):
-			return set.contains(text)
-		case .notAnyOf(let set, _):
-			return set.contains(text) == false
-		case .isNot:
-			return false
-		case .set:
-			return true
-		case .generic:
-			return false
-		}
-	}
+            return exp.firstMatch(in: text, range: range) == nil
+        case .anyOf(let set, _):
+            return set.contains(text)
+        case .notAnyOf(let set, _):
+            return set.contains(text) == false
+        case .isNot:
+            return false
+        case .set:
+            return true
+        case .generic:
+            return false
+        }
+    }
 }
 
 enum PredicateParserError: Error, Hashable {
@@ -216,7 +217,7 @@ struct PredicateParser {
             throw PredicateParserError.doneExpected
         }
 
-        let args = Array(steps[1..<doneIndex])
+        let args = Array(steps[1 ..< doneIndex])
         let predicate = try buildPredicate(with: name, argSteps: args)
 
         // we want to remoe the done itself too
@@ -273,17 +274,17 @@ struct PredicateParser {
 
             return .notAnyOf(Set(strings), captureName: capture)
         case "is-not?":
-			guard let name = strings.first, strings.count == 1 else {
-				return .generic(name, strings: strings, captureNames: captures)
-			}
+            guard let name = strings.first, strings.count == 1 else {
+                return .generic(name, strings: strings, captureNames: captures)
+            }
 
             return .isNot(name)
-		case "set!":
-			if strings.count != 2 || captures.count > 1 {
-				return .generic(name, strings: strings, captureNames: captures)
-			}
+        case "set!":
+            if strings.count != 2 || captures.count > 1 {
+                return .generic(name, strings: strings, captureNames: captures)
+            }
 
-			return .set(captureName: captures.first, key: strings[0], value: strings[1])
+            return .set(captureName: captures.first, key: strings[0], value: strings[1])
         default:
             return .generic(name, strings: strings, captureNames: captures)
         }
@@ -296,7 +297,7 @@ extension PredicateParser {
 
         var predicates = [[Predicate]](repeating: [], count: patternCount)
 
-        for i in 0..<patternCount {
+        for i in 0 ..< patternCount {
             let steps = try predicateSteps(for: i, in: query)
             let subpredicates = try parse(steps)
 
@@ -313,8 +314,9 @@ extension PredicateParser {
 
         let steps = ts_query_predicates_for_pattern(query, UInt32(index), &length)
 
-        let buffer = UnsafeBufferPointer<TSQueryPredicateStep>(start: steps,
-                                                                count: Int(length))
+        let buffer = UnsafeBufferPointer<TSQueryPredicateStep>(
+            start: steps,
+            count: Int(length))
 
         return try buffer.map { step -> QueryPredicateStep in
             let valueId = step.value_id

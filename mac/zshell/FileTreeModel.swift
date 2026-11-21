@@ -90,7 +90,9 @@ final class FileTreeModel: nonisolated ObservableObject {
     init(
         remoteListing: (@Sendable (SSHEndpoint, String) throws -> [SSHEndpoint.DirectoryEntry])? = nil,
         remoteNow: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
-        remoteCapabilitiesProbe: @escaping @Sendable (RemoteFileSource) throws -> RemoteFileCapabilities = { try RemoteFileService().capabilities(source: $0) }
+        remoteCapabilitiesProbe: @escaping @Sendable (RemoteFileSource) throws -> RemoteFileCapabilities = {
+            try RemoteFileService().capabilities(source: $0)
+        }
     ) {
         self.remoteListing = remoteListing
         self.remoteNow = remoteNow
@@ -127,8 +129,11 @@ final class FileTreeModel: nonisolated ObservableObject {
     }
 
     private var remoteSource: RemoteFileSource? {
-        remoteEndpoint.map { RemoteFileSource(endpoint: $0, root: rootPath,
-            authentication: remoteAuthentication, credentialID: remoteCredentialID) }
+        remoteEndpoint.map {
+            RemoteFileSource(
+                endpoint: $0, root: rootPath,
+                authentication: remoteAuthentication, credentialID: remoteCredentialID)
+        }
     }
 
     func refreshRemoteWriteCapabilities(enabled: Bool) {
@@ -142,7 +147,8 @@ final class FileTreeModel: nonisolated ObservableObject {
             if !enabled { cancelDraft(); cancelRename() }
         }
         guard enabled, let source = remoteSource, !source.root.isEmpty,
-              remoteCapabilities == nil, capabilityTask == nil else { return }
+            remoteCapabilities == nil, capabilityTask == nil
+        else { return }
         if let last = capabilityLastAttempt, remoteNow() - last < Self.remoteRefreshInterval { return }
         capabilityLastAttempt = remoteNow()
         let generation = remoteGeneration
@@ -206,7 +212,9 @@ final class FileTreeModel: nonisolated ObservableObject {
         rebuild()
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return nil }
-        let path = await remoteChange { try RemoteFileService().create(source: $0, directory: draft.parentDir, name: name, isDirectory: draft.isDirectory) }
+        let path = await remoteChange {
+            try RemoteFileService().create(source: $0, directory: draft.parentDir, name: name, isDirectory: draft.isDirectory)
+        }
         return draft.isDirectory ? nil : path
     }
 
@@ -292,7 +300,8 @@ final class FileTreeModel: nonisolated ObservableObject {
                 Task.detached(priority: .userInitiated) { [weak self] in
                     let listing = Result {
                         if let remoteListing { return try remoteListing(endpoint, directory) }
-                        return try OpenSSHTransport().listDirectory(endpoint: endpoint, directory: directory,
+                        return try OpenSSHTransport().listDirectory(
+                            endpoint: endpoint, directory: directory,
                             authentication: authentication, credentialID: credentialID)
                     }
                     await MainActor.run { [weak self] in
@@ -301,9 +310,11 @@ final class FileTreeModel: nonisolated ObservableObject {
                 }
             }
         }
-        let loading = !remotePending.isEmpty || remoteInFlight.contains {
-            $0.value == remoteGeneration && visible.contains($0.key)
-        }
+        let loading =
+            !remotePending.isEmpty
+            || remoteInFlight.contains {
+                $0.value == remoteGeneration && visible.contains($0.key)
+            }
         if isRemoteLoading != loading { isRemoteLoading = loading }
         let error = remoteErrors[rootPath] ?? remoteErrors.keys.sorted().first.flatMap { remoteErrors[$0] }
         if remoteError != error { remoteError = error }
@@ -317,7 +328,8 @@ final class FileTreeModel: nonisolated ObservableObject {
         guard remoteInFlight[directory] == generation else { return }
         remoteInFlight.removeValue(forKey: directory)
         guard generation == remoteGeneration, remoteLastAttempt[directory] != nil,
-              visibleRemoteDirectories.contains(directory) else {
+            visibleRemoteDirectories.contains(directory)
+        else {
             startRemoteListings()
             return
         }
@@ -343,7 +355,8 @@ final class FileTreeModel: nonisolated ObservableObject {
         let prefix = directory.hasSuffix("/") ? directory : directory + "/"
         func keep(_ path: String) -> Bool {
             guard path.hasPrefix(prefix),
-                  let child = path.dropFirst(prefix.count).split(separator: "/").first else { return true }
+                let child = path.dropFirst(prefix.count).split(separator: "/").first
+            else { return true }
             return !removed.contains(String(child))
         }
         remoteListings = remoteListings.filter { keep($0.key) }
@@ -490,13 +503,14 @@ final class FileTreeModel: nonisolated ObservableObject {
     private func remapExpanded(from oldPath: String, to newPath: String) {
         guard expanded.contains(where: { $0 == oldPath || $0.hasPrefix(oldPath + "/") })
         else { return }
-        expanded = Set(expanded.map { path in
-            if path == oldPath { return newPath }
-            if path.hasPrefix(oldPath + "/") {
-                return newPath + String(path.dropFirst(oldPath.count))
-            }
-            return path
-        })
+        expanded = Set(
+            expanded.map { path in
+                if path == oldPath { return newPath }
+                if path.hasPrefix(oldPath + "/") {
+                    return newPath + String(path.dropFirst(oldPath.count))
+                }
+                return path
+            })
     }
 
     // MARK: - Create (inline draft)
@@ -513,7 +527,8 @@ final class FileTreeModel: nonisolated ObservableObject {
 
     private func startDraft(in directory: String, isDirectory: Bool) {
         guard (!isRemote || canCreateRemote), !rootPath.isEmpty,
-              directory == rootPath || items.contains(where: { $0.path == directory && $0.isDirectory }) else { return }
+            directory == rootPath || items.contains(where: { $0.path == directory && $0.isDirectory })
+        else { return }
         renamingPath = nil
         draft = Draft(parentDir: directory, isDirectory: isDirectory)
         // Reveal the folder's contents so the input row is visible.
@@ -646,8 +661,10 @@ final class FileTreeModel: nonisolated ObservableObject {
         } else {
             return
         }
-        items.insert(Item(name: "", path: draft.parentDir + "/\u{1}draft",
-                          isDirectory: draft.isDirectory, depth: depth, isDraft: true), at: index)
+        items.insert(
+            Item(
+                name: "", path: draft.parentDir + "/\u{1}draft",
+                isDirectory: draft.isDirectory, depth: depth, isDraft: true), at: index)
     }
 
     private func removeDraftRow() {
@@ -680,9 +697,10 @@ final class FileTreeModel: nonisolated ObservableObject {
         let invalidated = localInvalidatedDirectories
         let previousItems = items
         localRefreshTask = Task.detached(priority: .utility) { [weak self] in
-            let result = Self.buildLocalTree(root: root, expanded: expanded, draft: draft,
-                                            listings: listings, invalidated: invalidated,
-                                            previousItems: previousItems)
+            let result = Self.buildLocalTree(
+                root: root, expanded: expanded, draft: draft,
+                listings: listings, invalidated: invalidated,
+                previousItems: previousItems)
             await MainActor.run { [weak self] in
                 self?.finishLocalRefresh(result, root: root, generation: generation, revision: revision)
             }
@@ -748,12 +766,15 @@ final class FileTreeModel: nonisolated ObservableObject {
     ) -> LocalTreeResult {
         var nextListings: [String: LocalListing] = [:]
         var rows: [Item] = []
-        let complete = appendLocalChildren(of: root, depth: 0, expanded: expanded, draft: draft,
-                                           listings: listings, invalidated: invalidated,
-                                           nextListings: &nextListings, into: &rows)
+        let complete =
+            appendLocalChildren(
+                of: root, depth: 0, expanded: expanded, draft: draft,
+                listings: listings, invalidated: invalidated,
+                nextListings: &nextListings, into: &rows)
             && !Task.isCancelled
-        return LocalTreeResult(listings: nextListings,
-                               items: complete && rows != previousItems ? rows : nil, isComplete: complete)
+        return LocalTreeResult(
+            listings: nextListings,
+            items: complete && rows != previousItems ? rows : nil, isComplete: complete)
     }
 
     private nonisolated static func appendLocalChildren(
@@ -781,9 +802,12 @@ final class FileTreeModel: nonisolated ObservableObject {
             let child = Item(name: entry.name, path: entry.path, isDirectory: entry.isDirectory, depth: depth)
             out.append(child)
             if child.isDirectory, expanded.contains(child.path) {
-                guard appendLocalChildren(of: child.path, depth: depth + 1, expanded: expanded, draft: draft,
-                                          listings: listings, invalidated: invalidated,
-                                          nextListings: &nextListings, into: &out) else { return false }
+                guard
+                    appendLocalChildren(
+                        of: child.path, depth: depth + 1, expanded: expanded, draft: draft,
+                        listings: listings, invalidated: invalidated,
+                        nextListings: &nextListings, into: &out)
+                else { return false }
             }
         }
         return true
@@ -825,7 +849,8 @@ final class FileTreeModel: nonisolated ObservableObject {
                 }
             }
             guard name != ".", name != "..", name != ".git",
-                  !(name.hasPrefix(".zshell-import-") && UUID(uuidString: String(name.dropFirst(15))) != nil) else { continue }
+                !(name.hasPrefix(".zshell-import-") && UUID(uuidString: String(name.dropFirst(15))) != nil)
+            else { continue }
             let path = (dir as NSString).appendingPathComponent(name)
             let type = Int32(entry.pointee.d_type)
             var isDirectory = type == DT_DIR
@@ -834,8 +859,10 @@ final class FileTreeModel: nonisolated ObservableObject {
                 fm.fileExists(atPath: path, isDirectory: &isDir)
                 isDirectory = isDir.boolValue
             }
-            children.append(LocalEntry(name: name, path: path, isDirectory: isDirectory,
-                                       needsTypeCheck: type == DT_LNK || type == DT_UNKNOWN))
+            children.append(
+                LocalEntry(
+                    name: name, path: path, isDirectory: isDirectory,
+                    needsTypeCheck: type == DT_LNK || type == DT_UNKNOWN))
         }
         guard !Task.isCancelled else { return nil }
         sortLocalEntries(&children)

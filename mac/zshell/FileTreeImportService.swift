@@ -67,7 +67,9 @@ nonisolated enum FileTreeImportService {
             case .changed:
                 String(localized: "The source or destination changed during import. Try again.")
             case .recovery(let path):
-                String(localized: "The import could not be fully undone because some items changed. Recovery files may be available in “\(path)”.")
+                String(
+                    localized:
+                        "The import could not be fully undone because some items changed. Recovery files may be available in “\(path)”.")
             }
         }
     }
@@ -122,8 +124,10 @@ nonisolated enum FileTreeImportService {
         let rootSnapshot: Snapshot
         let directorySnapshot: Snapshot
         let directoryDescriptor: Int32
-        init(root: URL, directory: URL, originalRoot: URL, originalDirectory: URL,
-             rootSnapshot: Snapshot, directorySnapshot: Snapshot, directoryDescriptor: Int32) {
+        init(
+            root: URL, directory: URL, originalRoot: URL, originalDirectory: URL,
+            rootSnapshot: Snapshot, directorySnapshot: Snapshot, directoryDescriptor: Int32
+        ) {
             self.root = root
             self.directory = directory
             self.originalRoot = originalRoot
@@ -138,10 +142,11 @@ nonisolated enum FileTreeImportService {
         func validate() throws {
             // F_GETPATH can normalize case; live paths must identify the open node.
             guard try SettingsConfigFile.resolve(originalRoot) == root,
-                  try SettingsConfigFile.resolve(originalDirectory) == directory,
-                  let liveRoot = try snapshot(root.path), rootSnapshot.sameNode(as: liveRoot),
-                  let liveDirectory = try snapshot(directory.path), directorySnapshot.sameNode(as: liveDirectory),
-                  directorySnapshot.sameNode(as: try snapshot(descriptor: directoryDescriptor)) else { throw Failure.changed }
+                try SettingsConfigFile.resolve(originalDirectory) == directory,
+                let liveRoot = try snapshot(root.path), rootSnapshot.sameNode(as: liveRoot),
+                let liveDirectory = try snapshot(directory.path), directorySnapshot.sameNode(as: liveDirectory),
+                directorySnapshot.sameNode(as: try snapshot(descriptor: directoryDescriptor))
+            else { throw Failure.changed }
         }
     }
 
@@ -167,32 +172,38 @@ nonisolated enum FileTreeImportService {
         let canonicalRoot = try SettingsConfigFile.resolve(originalRoot)
         let canonicalDirectory = try SettingsConfigFile.resolve(originalDirectory)
         guard let rootSnapshot = try snapshot(canonicalRoot.path), rootSnapshot.isDirectory,
-              let directorySnapshot = try snapshot(canonicalDirectory.path), directorySnapshot.isDirectory,
-              try isAncestor(rootSnapshot, of: canonicalDirectory) else {
+            let directorySnapshot = try snapshot(canonicalDirectory.path), directorySnapshot.isDirectory,
+            try isAncestor(rootSnapshot, of: canonicalDirectory)
+        else {
             throw Failure.invalidDestination
         }
         let descriptor = open(canonicalDirectory.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         guard descriptor >= 0 else { throw posixError() }
-        let destination = Destination(root: canonicalRoot, directory: canonicalDirectory, originalRoot: originalRoot,
-                                      originalDirectory: originalDirectory, rootSnapshot: rootSnapshot,
-                                      directorySnapshot: directorySnapshot, directoryDescriptor: descriptor)
+        let destination = Destination(
+            root: canonicalRoot, directory: canonicalDirectory, originalRoot: originalRoot,
+            originalDirectory: originalDirectory, rootSnapshot: rootSnapshot,
+            directorySnapshot: directorySnapshot, directoryDescriptor: descriptor)
         try destination.validate()
         return destination
     }
 
-    static func prepare(sources: [URL], root: String, directory: String,
-                        operation: FileTreeImportOperation, destination: Destination? = nil) throws -> Plan {
+    static func prepare(
+        sources: [URL], root: String, directory: String,
+        operation: FileTreeImportOperation, destination: Destination? = nil
+    ) throws -> Plan {
         try operation.checkCancellation()
         guard !sources.isEmpty, sources.count <= maximumEntries else { throw Failure.invalidDestination }
         let destination = try destination ?? Self.destination(root: root, directory: directory)
         guard destination.originalRoot.path == URL(fileURLWithPath: root, isDirectory: true).path,
-              destination.originalDirectory.path == URL(fileURLWithPath: directory, isDirectory: true).path else {
+            destination.originalDirectory.path == URL(fileURLWithPath: directory, isDirectory: true).path
+        else {
             throw Failure.invalidDestination
         }
         try destination.validate()
         let canonicalDirectory = destination.directory
         let descriptor = destination.directoryDescriptor
-        let caseSensitive = (try? canonicalDirectory.resourceValues(forKeys: [.volumeSupportsCaseSensitiveNamesKey]))?
+        let caseSensitive =
+            (try? canonicalDirectory.resourceValues(forKeys: [.volumeSupportsCaseSensitiveNamesKey]))?
             .volumeSupportsCaseSensitiveNames ?? false
         var seenPaths: Set<String> = []
         var names: Set<String> = []
@@ -200,7 +211,8 @@ nonisolated enum FileTreeImportService {
         for source in sources {
             try operation.checkCancellation()
             guard source.isFileURL, source.path.hasPrefix("/"),
-                  !source.lastPathComponent.isEmpty, source.lastPathComponent != "/" else {
+                !source.lastPathComponent.isEmpty, source.lastPathComponent != "/"
+            else {
                 throw Failure.unsupportedFile(source.lastPathComponent)
             }
             // Resolve the parent only: Finder aliases and symbolic links are
@@ -223,10 +235,12 @@ nonisolated enum FileTreeImportService {
             if sourceSnapshot.isDirectory, try isAncestor(sourceSnapshot, of: canonicalDirectory) {
                 throw Failure.recursiveCopy(name)
             }
-            entries.append(Entry(source: canonicalSource, name: name, sourceSnapshot: sourceSnapshot,
-                                 destinationSnapshot: destinationSnapshot,
-                                 destinationContents: destinationSnapshot?.isDirectory == true
-                                    ? try directoryContents(canonicalDirectory.appendingPathComponent(name), operation: operation) : nil))
+            entries.append(
+                Entry(
+                    source: canonicalSource, name: name, sourceSnapshot: sourceSnapshot,
+                    destinationSnapshot: destinationSnapshot,
+                    destinationContents: destinationSnapshot?.isDirectory == true
+                        ? try directoryContents(canonicalDirectory.appendingPathComponent(name), operation: operation) : nil))
         }
         let plan = Plan(destination: destination, entries: entries)
         try plan.validateDestination()
@@ -293,7 +307,8 @@ nonisolated enum FileTreeImportService {
                         .visit(what: what, stage: stage, state: state, path: String(cString: source))
                 }
                 guard copyfile_state_set(state, UInt32(COPYFILE_STATE_STATUS_CB), unsafeBitCast(callback, to: UnsafeRawPointer.self)) == 0,
-                      copyfile_state_set(state, UInt32(COPYFILE_STATE_STATUS_CTX), Unmanaged.passUnretained(context).toOpaque()) == 0 else {
+                    copyfile_state_set(state, UInt32(COPYFILE_STATE_STATUS_CTX), Unmanaged.passUnretained(context).toOpaque()) == 0
+                else {
                     throw posixError()
                 }
                 let destination = URL(fileURLWithPath: try descriptorPath(incoming)).appendingPathComponent(entry.name)
@@ -312,27 +327,37 @@ nonisolated enum FileTreeImportService {
                 try plan.validateDestination()
                 guard try snapshot(parent: parent, name: entry.name) == entry.destinationSnapshot else { throw Failure.changed }
                 if let expected = entry.destinationContents,
-                   try directoryContents(plan.directory.appendingPathComponent(entry.name), operation: operation) != expected {
+                    try directoryContents(plan.directory.appendingPathComponent(entry.name), operation: operation) != expected
+                {
                     throw Failure.changed
                 }
                 guard let staged = try snapshot(parent: incoming, name: entry.name) else { throw Failure.changed }
-                let stagedContents = staged.isDirectory
-                    ? try directoryContents(URL(fileURLWithPath: try descriptorPath(incoming)).appendingPathComponent(entry.name),
-                                            operation: operation) : nil
+                let stagedContents =
+                    staged.isDirectory
+                    ? try directoryContents(
+                        URL(fileURLWithPath: try descriptorPath(incoming)).appendingPathComponent(entry.name),
+                        operation: operation) : nil
                 let flags = entry.destinationSnapshot == nil ? UInt32(RENAME_EXCL) : UInt32(RENAME_SWAP)
                 guard renameatx_np(incoming, entry.name, parent, entry.name, flags) == 0 else { throw Failure.changed }
-                installed.append(InstalledEntry(entry: entry, installed: staged, installedContents: stagedContents,
-                                                backupDescriptor: entry.destinationSnapshot == nil ? nil : incoming))
+                installed.append(
+                    InstalledEntry(
+                        entry: entry, installed: staged, installedContents: stagedContents,
+                        backupDescriptor: entry.destinationSnapshot == nil ? nil : incoming))
                 guard let current = try snapshot(parent: parent, name: entry.name), current.sameContents(as: staged) else {
                     throw Failure.changed
                 }
                 installed[installed.count - 1].installed = current
                 if let expected = entry.destinationSnapshot {
                     guard let displaced = try snapshot(parent: incoming, name: entry.name),
-                          displaced.sameContents(as: expected) else { throw Failure.changed }
+                        displaced.sameContents(as: expected)
+                    else { throw Failure.changed }
                     if let expectedContents = entry.destinationContents,
-                       try directoryContents(URL(fileURLWithPath: try descriptorPath(incoming)).appendingPathComponent(entry.name),
-                                             operation: operation) != expectedContents { throw Failure.changed }
+                        try directoryContents(
+                            URL(fileURLWithPath: try descriptorPath(incoming)).appendingPathComponent(entry.name),
+                            operation: operation) != expectedContents
+                    {
+                        throw Failure.changed
+                    }
                     guard renameatx_np(incoming, entry.name, originals, entry.name, UInt32(RENAME_EXCL)) == 0 else {
                         throw posixError()
                     }
@@ -353,12 +378,15 @@ nonisolated enum FileTreeImportService {
 
     private static func restore(_ record: InstalledEntry, parent: Int32, incoming: Int32) -> Bool {
         guard let current = try? snapshot(parent: parent, name: record.entry.name),
-              current == record.installed else { return false }
+            current == record.installed
+        else { return false }
         let operation = FileTreeImportOperation()
         if let expected = record.installedContents {
             guard let parentPath = try? descriptorPath(parent),
-                  let contents = try? directoryContents(URL(fileURLWithPath: parentPath).appendingPathComponent(record.entry.name),
-                                                       operation: operation), contents == expected else { return false }
+                let contents = try? directoryContents(
+                    URL(fileURLWithPath: parentPath).appendingPathComponent(record.entry.name),
+                    operation: operation), contents == expected
+            else { return false }
         }
         let backup = record.backupDescriptor ?? incoming
         let flags = record.backupDescriptor == nil ? UInt32(RENAME_EXCL) : UInt32(RENAME_SWAP)
@@ -370,7 +398,8 @@ nonisolated enum FileTreeImportService {
             }
         }
         guard displaced?.sameContents(as: record.installed) == true,
-              displacedContents == record.installedContents else {
+            displacedContents == record.installedContents
+        else {
             // A concurrent save after the last check must survive rollback.
             let undoFlags = record.backupDescriptor == nil ? UInt32(RENAME_EXCL) : UInt32(RENAME_SWAP)
             _ = renameatx_np(backup, record.entry.name, parent, record.entry.name, undoFlags)
@@ -407,7 +436,8 @@ nonisolated enum FileTreeImportService {
                     snapshots[path] = initial
                 }
                 if stage == COPYFILE_FINISH, what == COPYFILE_RECURSE_FILE || what == COPYFILE_RECURSE_DIR_CLEANUP,
-                   let initial = snapshots.removeValue(forKey: path), try snapshot(path) != initial {
+                    let initial = snapshots.removeValue(forKey: path), try snapshot(path) != initial
+                {
                     throw Failure.changed
                 }
                 operation.report((path as NSString).lastPathComponent)
@@ -421,14 +451,20 @@ nonisolated enum FileTreeImportService {
 
     private static func directoryContents(_ directory: URL, operation: FileTreeImportOperation) throws -> [String: Snapshot] {
         var failure: Error?
-        guard let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil,
-            errorHandler: { _, error in failure = error; return false }) else { throw Failure.changed }
+        guard
+            let enumerator = FileManager.default.enumerator(
+                at: directory, includingPropertiesForKeys: nil,
+                errorHandler: { _, error in
+                    failure = error; return false
+                })
+        else { throw Failure.changed }
         var result: [String: Snapshot] = [:]
         let prefix = directory.path + "/"
         while let url = enumerator.nextObject() as? URL {
             try operation.checkCancellation()
             guard result.count < maximumEntries, enumerator.level <= maximumDepth,
-                  url.path.hasPrefix(prefix), let metadata = try snapshot(url.path) else { throw Failure.limit }
+                url.path.hasPrefix(prefix), let metadata = try snapshot(url.path)
+            else { throw Failure.limit }
             result[String(url.path.dropFirst(prefix.count))] = metadata
         }
         if let failure { throw failure }

@@ -39,20 +39,25 @@ final class BrowserWebExtensionStore: ObservableObject {
     private static let localIdentifier = UUID(uuidString: "AC74826B-343D-45F5-AC19-1655669AA643")!
 
     init(directory: URL? = nil) {
-        self.directory = directory ?? AgentUsagePaths.applicationSupportDirectory.appendingPathComponent("browser-extensions", isDirectory: true)
+        self.directory =
+            directory ?? AgentUsagePaths.applicationSupportDirectory.appendingPathComponent("browser-extensions", isDirectory: true)
         do {
             let file = self.directory.appendingPathComponent("extensions.json")
             if FileManager.default.fileExists(atPath: file.path) {
                 try PersistentCLIConnection.verifyPrivateDirectory(self.directory)
                 entries = try JSONDecoder().decode([Entry].self, from: PersistentCLIConnection.readPrivate(file, maximumBytes: 1 << 20))
                 guard entries.count <= 32, Set(entries.map(\.id)).count == entries.count,
-                      entries.allSatisfy({ ["resources", "resources.zip"].contains($0.resource)
-                          && $0.permissions.count <= 128 && $0.websites.count <= 256 }) else { throw StoreError.invalid }
+                    entries.allSatisfy({
+                        ["resources", "resources.zip"].contains($0.resource)
+                            && $0.permissions.count <= 128 && $0.websites.count <= 256
+                    })
+                else { throw StoreError.invalid }
             }
             let controllers = self.directory.appendingPathComponent("controllers.json")
             if FileManager.default.fileExists(atPath: controllers.path) {
                 try PersistentCLIConnection.verifyPrivateDirectory(self.directory)
-                let saved = try JSONDecoder().decode([UUID].self,
+                let saved = try JSONDecoder().decode(
+                    [UUID].self,
                     from: PersistentCLIConnection.readPrivate(controllers, maximumBytes: 1 << 20))
                 guard saved.count <= Self.maximumControllers else { throw StoreError.tooLarge }
                 controllerIdentifiers = Set(saved)
@@ -63,7 +68,8 @@ final class BrowserWebExtensionStore: ObservableObject {
     func runtime(for dataStore: WKWebsiteDataStore, routing: BrowserRemoteRouting?) -> BrowserWebExtensionRuntime {
         let key = dataStore.identifier?.uuidString ?? (dataStore.isPersistent ? "local" : String(describing: ObjectIdentifier(dataStore)))
         if let runtime = runtimes[key] { return runtime }
-        let configuration = dataStore.isPersistent
+        let configuration =
+            dataStore.isPersistent
             ? WKWebExtensionController.Configuration(identifier: dataStore.identifier ?? Self.localIdentifier)
             : .nonPersistent()
         configuration.defaultWebsiteDataStore = dataStore
@@ -101,10 +107,12 @@ final class BrowserWebExtensionStore: ObservableObject {
             }.value
             let webExtension = try await WKWebExtension(resourceBaseURL: copied)
             guard webExtension.errors.isEmpty, let name = webExtension.displayName, !name.isEmpty,
-                  webExtension.requestedPermissions.count <= 128, webExtension.allRequestedMatchPatterns.count <= 256 else {
+                webExtension.requestedPermissions.count <= 128, webExtension.allRequestedMatchPatterns.count <= 256
+            else {
                 throw webExtension.errors.first ?? StoreError.invalid
             }
-            let entry = Entry(id: id, name: name, version: webExtension.version ?? "", resource: resource,
+            let entry = Entry(
+                id: id, name: name, version: webExtension.version ?? "", resource: resource,
                 permissions: webExtension.requestedPermissions.map(\.rawValue).sorted(),
                 websites: webExtension.allRequestedMatchPatterns.map(\.string).sorted(), isEnabled: true)
             return (entry, webExtension)
@@ -128,7 +136,8 @@ final class BrowserWebExtensionStore: ObservableObject {
         guard controllerIdentifiers.count < Self.maximumControllers else { throw StoreError.tooLarge }
         let next = controllerIdentifiers.union([identifier])
         try AgentConversationHistoryPaths.prepare(directory)
-        try PersistentCLIConnection.writePrivate(try JSONEncoder().encode(next.sorted { $0.uuidString < $1.uuidString }),
+        try PersistentCLIConnection.writePrivate(
+            try JSONEncoder().encode(next.sorted { $0.uuidString < $1.uuidString }),
             to: directory.appendingPathComponent("controllers.json"), durable: true)
         controllerIdentifiers = next
     }
@@ -157,7 +166,8 @@ final class BrowserWebExtensionStore: ObservableObject {
 
     private func persist(_ next: [Entry]) throws {
         try AgentConversationHistoryPaths.prepare(directory)
-        try PersistentCLIConnection.writePrivate(try JSONEncoder().encode(next), to: directory.appendingPathComponent("extensions.json"), durable: true)
+        try PersistentCLIConnection.writePrivate(
+            try JSONEncoder().encode(next), to: directory.appendingPathComponent("extensions.json"), durable: true)
         entries = next
         error = nil
         for runtime in runtimes.values { runtime.refresh() }
@@ -168,14 +178,21 @@ final class BrowserWebExtensionStore: ObservableObject {
         guard source.isFileURL, values.isSymbolicLink != true else { throw StoreError.unsafeFiles }
         if values.isDirectory == true {
             var enumerationError: Error?
-            guard let enumerator = FileManager.default.enumerator(at: source,
-                includingPropertiesForKeys: [.isSymbolicLinkKey, .isRegularFileKey, .isDirectoryKey, .fileSizeKey],
-                errorHandler: { _, error in enumerationError = error; return false }) else { throw StoreError.invalid }
+            guard
+                let enumerator = FileManager.default.enumerator(
+                    at: source,
+                    includingPropertiesForKeys: [.isSymbolicLinkKey, .isRegularFileKey, .isDirectoryKey, .fileSizeKey],
+                    errorHandler: { _, error in
+                        enumerationError = error; return false
+                    })
+            else { throw StoreError.invalid }
             var bytes = 0, count = 0
             for case let file as URL in enumerator {
                 count += 1
                 let item = try file.resourceValues(forKeys: [.isSymbolicLinkKey, .isRegularFileKey, .isDirectoryKey, .fileSizeKey])
-                guard item.isSymbolicLink != true, item.isDirectory == true || item.isRegularFile == true else { throw StoreError.unsafeFiles }
+                guard item.isSymbolicLink != true, item.isDirectory == true || item.isRegularFile == true else {
+                    throw StoreError.unsafeFiles
+                }
                 bytes += item.fileSize ?? 0
                 guard count <= maximumEntries, bytes <= maximumBytes else { throw StoreError.tooLarge }
             }
@@ -193,32 +210,35 @@ final class BrowserWebExtensionStore: ObservableObject {
         guard data.count <= maximumBytes else { throw StoreError.tooLarge }
         func number(_ offset: Int, _ size: Int) -> Int? {
             guard offset >= 0, offset + size <= data.count else { return nil }
-            return (0..<size).reduce(0) { $0 | Int(data[offset + $1]) << ($1 * 8) }
+            return (0 ..< size).reduce(0) { $0 | Int(data[offset + $1]) << ($1 * 8) }
         }
-        guard data.count >= 22, let end = stride(from: data.count - 22, through: max(0, data.count - 65_557), by: -1)
-            .first(where: { number($0, 4) == 0x06054b50 && $0 + 22 + (number($0 + 20, 2) ?? -1) == data.count }),
-              number(end + 4, 2) == 0, number(end + 6, 2) == 0,
-              let count = number(end + 10, 2), count == number(end + 8, 2), count > 0, count <= maximumEntries,
-              let start = number(end + 16, 4), let size = number(end + 12, 4), start + size == end else { throw StoreError.invalid }
+        guard data.count >= 22,
+            let end = stride(from: data.count - 22, through: max(0, data.count - 65_557), by: -1)
+                .first(where: { number($0, 4) == 0x06054b50 && $0 + 22 + (number($0 + 20, 2) ?? -1) == data.count }),
+            number(end + 4, 2) == 0, number(end + 6, 2) == 0,
+            let count = number(end + 10, 2), count == number(end + 8, 2), count > 0, count <= maximumEntries,
+            let start = number(end + 16, 4), let size = number(end + 12, 4), start + size == end
+        else { throw StoreError.invalid }
         var offset = start, total = 0, manifest = false
         var names = Set<String>()
-        for _ in 0..<count {
+        for _ in 0 ..< count {
             guard number(offset, 4) == 0x02014b50, let length = number(offset + 28, 2),
-                  let extra = number(offset + 30, 2), let comment = number(offset + 32, 2),
-                  let bytes = number(offset + 24, 4), let compressed = number(offset + 20, 4),
-                  let attributes = number(offset + 38, 4), let local = number(offset + 42, 4),
-                  offset + 46 + length + extra + comment <= end,
-                  let name = String(data: data[(offset + 46)..<(offset + 46 + length)], encoding: .utf8),
-                  !name.hasPrefix("/"), !name.contains("\\"), !name.contains("\0"),
-                  !name.split(separator: "/").contains(".."), names.insert(name).inserted,
-                  [0, 0o040000, 0o100000].contains((attributes >> 16) & 0o170000),
-                  number(local, 4) == 0x04034b50, let flags = number(local + 6, 2),
-                  flags == number(offset + 8, 2), flags & 1 == 0,
-                  number(local + 8, 2) == number(offset + 10, 2),
-                  let localLength = number(local + 26, 2), let localExtra = number(local + 28, 2),
-                  localLength == length, local + 30 + localLength + localExtra + compressed <= start,
-                  data[(local + 30)..<(local + 30 + localLength)] == data[(offset + 46)..<(offset + 46 + length)],
-                  flags & 8 != 0 || (number(local + 18, 4) == compressed && number(local + 22, 4) == bytes) else { throw StoreError.unsafeFiles }
+                let extra = number(offset + 30, 2), let comment = number(offset + 32, 2),
+                let bytes = number(offset + 24, 4), let compressed = number(offset + 20, 4),
+                let attributes = number(offset + 38, 4), let local = number(offset + 42, 4),
+                offset + 46 + length + extra + comment <= end,
+                let name = String(data: data[(offset + 46) ..< (offset + 46 + length)], encoding: .utf8),
+                !name.hasPrefix("/"), !name.contains("\\"), !name.contains("\0"),
+                !name.split(separator: "/").contains(".."), names.insert(name).inserted,
+                [0, 0o040000, 0o100000].contains((attributes >> 16) & 0o170000),
+                number(local, 4) == 0x04034b50, let flags = number(local + 6, 2),
+                flags == number(offset + 8, 2), flags & 1 == 0,
+                number(local + 8, 2) == number(offset + 10, 2),
+                let localLength = number(local + 26, 2), let localExtra = number(local + 28, 2),
+                localLength == length, local + 30 + localLength + localExtra + compressed <= start,
+                data[(local + 30) ..< (local + 30 + localLength)] == data[(offset + 46) ..< (offset + 46 + length)],
+                flags & 8 != 0 || (number(local + 18, 4) == compressed && number(local + 22, 4) == bytes)
+            else { throw StoreError.unsafeFiles }
             total += bytes
             guard total <= maximumBytes else { throw StoreError.tooLarge }
             manifest = manifest || name == "manifest.json"
@@ -232,8 +252,13 @@ final class BrowserWebExtensionStore: ObservableObject {
         let isDirectory = try source.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
         try FileManager.default.setAttributes([.posixPermissions: isDirectory ? 0o700 : 0o600], ofItemAtPath: source.path)
         var enumerationError: Error?
-        if isDirectory, let enumerator = FileManager.default.enumerator(at: source, includingPropertiesForKeys: [.isDirectoryKey],
-            errorHandler: { _, error in enumerationError = error; return false }) {
+        if isDirectory,
+            let enumerator = FileManager.default.enumerator(
+                at: source, includingPropertiesForKeys: [.isDirectoryKey],
+                errorHandler: { _, error in
+                    enumerationError = error; return false
+                })
+        {
             for case let file as URL in enumerator {
                 let directory = try file.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
                 try FileManager.default.setAttributes([.posixPermissions: directory ? 0o700 : 0o600], ofItemAtPath: file.path)
@@ -262,7 +287,9 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
     private var popup: WKWebExtension.Action?
     private let backgroundContent: WKUserContentController
 
-    init(store: BrowserWebExtensionStore, key: String, configuration: WKWebExtensionController.Configuration, routing: BrowserRemoteRouting?) {
+    init(
+        store: BrowserWebExtensionStore, key: String, configuration: WKWebExtensionController.Configuration, routing: BrowserRemoteRouting?
+    ) {
         self.store = store
         self.key = key
         self.routing = routing
@@ -272,8 +299,9 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
         background.websiteDataStore = configuration.defaultWebsiteDataStore ?? .default()
         backgroundContent = background.userContentController
         if let routing {
-            backgroundContent.addUserScript(WKUserScript(
-                source: BrowserRemoteRouting.bridgeScript, injectionTime: .atDocumentStart, forMainFrameOnly: false))
+            backgroundContent.addUserScript(
+                WKUserScript(
+                    source: BrowserRemoteRouting.bridgeScript, injectionTime: .atDocumentStart, forMainFrameOnly: false))
             backgroundContent.addScriptMessageHandler(
                 routing.loopbackMessageHandler(), contentWorld: .page, name: BrowserRemoteRouting.loopbackMessageName)
         }
@@ -283,9 +311,10 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
         controller.delegate = self
         observation = BrowserContentBlocker.shared.$ruleLists.sink { [weak self] _ in self?.updateRules() }
         for name in [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification] {
-            focusObservers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                assumeMainActor { self?.notifyFocus() }
-            })
+            focusObservers.append(
+                NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                    assumeMainActor { [weak self] in self?.notifyFocus() }
+                })
         }
     }
 
@@ -366,16 +395,16 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
         loading = Task { [weak self] in
             guard let self else { return }
             if let routing = self.routing {
-                do { try await routing.ensureLoopbackRules() }
-                catch {
+                do { try await routing.ensureLoopbackRules() } catch {
                     if self.revision == current { store.report(error); self.loading = nil }
                     return
                 }
             }
             guard self.revision == current, !Task.isCancelled else { return }
             self.updateRules()
-            do { try store.recordController(self.controller.configuration.identifier) }
-            catch { store.report(error); self.loading = nil; return }
+            do { try store.recordController(self.controller.configuration.identifier) } catch {
+                store.report(error); self.loading = nil; return
+            }
             for entry in enabled where self.contexts[entry.id] == nil {
                 do {
                     let url = store.resourceURL(for: entry)
@@ -386,9 +415,14 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
                     let context = WKWebExtensionContext(for: webExtension)
                     context.uniqueIdentifier = entry.id.uuidString.lowercased()
                     context.baseURL = URL(string: "webkit-extension://\(entry.id.uuidString.lowercased())/")!
-                    context.grantedPermissions = Dictionary(uniqueKeysWithValues: entry.permissions.map { (WKWebExtension.Permission(rawValue: $0), Date.distantFuture) })
-                    context.grantedPermissionMatchPatterns = Dictionary(uniqueKeysWithValues: try entry.websites.map { (try WKWebExtension.MatchPattern(string: $0), Date.distantFuture) })
-                    context.unsupportedAPIs = ["browser.runtime.connectNative", "browser.runtime.sendNativeMessage", "browser.windows.create", "browser.windows.remove", "browser.windows.update"]
+                    context.grantedPermissions = Dictionary(
+                        uniqueKeysWithValues: entry.permissions.map { (WKWebExtension.Permission(rawValue: $0), Date.distantFuture) })
+                    context.grantedPermissionMatchPatterns = Dictionary(
+                        uniqueKeysWithValues: try entry.websites.map { (try WKWebExtension.MatchPattern(string: $0), Date.distantFuture) })
+                    context.unsupportedAPIs = [
+                        "browser.runtime.connectNative", "browser.runtime.sendNativeMessage", "browser.windows.create",
+                        "browser.windows.remove", "browser.windows.update",
+                    ]
                     try self.controller.load(context)
                     self.contexts[entry.id] = context
                 } catch { if self.revision == current { store.report(error) } }
@@ -441,8 +475,9 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
                     tab.performAction(context)
                 }
                 menuCommands.append(command)
-                let run = NSMenuItem(title: action.label.isEmpty ? String(localized: "Open") : action.label,
-                                     action: #selector(BrowserWebExtensionMenuCommand.invoke), keyEquivalent: "")
+                let run = NSMenuItem(
+                    title: action.label.isEmpty ? String(localized: "Open") : action.label,
+                    action: #selector(BrowserWebExtensionMenuCommand.invoke), keyEquivalent: "")
                 run.target = command
                 run.isEnabled = action.isEnabled
                 run.image = action.icon(for: NSSize(width: 16, height: 16))
@@ -454,7 +489,8 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
                     BrowserWebExtensionManager.shared.showOptions(context, relativeTo: browser.webView.window, runtime: self)
                 }
                 menuCommands.append(command)
-                let options = NSMenuItem(title: String(localized: "Options"), action: #selector(BrowserWebExtensionMenuCommand.invoke), keyEquivalent: "")
+                let options = NSMenuItem(
+                    title: String(localized: "Options"), action: #selector(BrowserWebExtensionMenuCommand.invoke), keyEquivalent: "")
                 options.target = command
                 actions.addItem(options)
             }
@@ -468,7 +504,8 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
             BrowserWebExtensionManager.shared.show(store: store, relativeTo: browser?.webView.window)
         }
         menuCommands.append(command)
-        let manage = NSMenuItem(title: String(localized: "Manage Extensions…"), action: #selector(BrowserWebExtensionMenuCommand.invoke), keyEquivalent: "")
+        let manage = NSMenuItem(
+            title: String(localized: "Manage Extensions…"), action: #selector(BrowserWebExtensionMenuCommand.invoke), keyEquivalent: "")
         manage.target = command
         submenu.addItem(manage)
         let item = NSMenuItem(title: String(localized: "Extensions"), action: nil, keyEquivalent: "")
@@ -479,24 +516,34 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
         menu.addItem(item)
     }
 
-    func webExtensionController(_ controller: WKWebExtensionController, openWindowsFor context: WKWebExtensionContext) -> [any WKWebExtensionWindow] {
+    func webExtensionController(_ controller: WKWebExtensionController, openWindowsFor context: WKWebExtensionContext)
+        -> [any WKWebExtensionWindow]
+    {
         windows.values.sorted { ($0.nativeWindow?.isKeyWindow == true ? 0 : 1) < ($1.nativeWindow?.isKeyWindow == true ? 0 : 1) }
     }
 
-    func webExtensionController(_ controller: WKWebExtensionController, focusedWindowFor context: WKWebExtensionContext) -> (any WKWebExtensionWindow)? {
+    func webExtensionController(_ controller: WKWebExtensionController, focusedWindowFor context: WKWebExtensionContext) -> (
+        any WKWebExtensionWindow
+    )? {
         windows.values.first { $0.nativeWindow?.isKeyWindow == true }
     }
 
-    private func prompt(_ context: WKWebExtensionContext, details: [String], in tab: (any WKWebExtensionTab)?, completion: @escaping (Bool) -> Void) {
-        let popupHost = popup?.webExtensionContext === context
+    private func prompt(
+        _ context: WKWebExtensionContext, details: [String], in tab: (any WKWebExtensionTab)?, completion: @escaping (Bool) -> Void
+    ) {
+        let popupHost =
+            popup?.webExtensionContext === context
             ? (popup?.associatedTab as? BrowserWebExtensionTab)?.browser?.webView.window : nil
-        guard !prompting, let host = (tab as? BrowserWebExtensionTab)?.browser?.webView.window
-            ?? popupHost
-            ?? windows.values.compactMap(\.nativeWindow).first(where: \.isKeyWindow),
-              host.isVisible, host.attachedSheet == nil, details.count <= 256,
-              details.reduce(0, { $0 + $1.utf8.count }) <= 32_768 else { completion(false); return }
+        guard !prompting,
+            let host = (tab as? BrowserWebExtensionTab)?.browser?.webView.window
+                ?? popupHost
+                ?? windows.values.compactMap(\.nativeWindow).first(where: \.isKeyWindow),
+            host.isVisible, host.attachedSheet == nil, details.count <= 256,
+            details.reduce(0, { $0 + $1.utf8.count }) <= 32_768
+        else { completion(false); return }
         prompting = true
-        let alert = BrowserWebExtensionManager.permissionAlert(name: context.webExtension.displayName ?? "", details: details, installing: false)
+        let alert = BrowserWebExtensionManager.permissionAlert(
+            name: context.webExtension.displayName ?? "", details: details, installing: false)
         alert.beginSheetModal(for: host) { [weak self] response in
             guard let self else { completion(false); return }
             self.prompting = false
@@ -504,29 +551,45 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
         }
     }
 
-    func webExtensionController(_ controller: WKWebExtensionController, promptForPermissions permissions: Set<WKWebExtension.Permission>, in tab: (any WKWebExtensionTab)?, for context: WKWebExtensionContext, completionHandler: @escaping (Set<WKWebExtension.Permission>, Date?) -> Void) {
+    func webExtensionController(
+        _ controller: WKWebExtensionController, promptForPermissions permissions: Set<WKWebExtension.Permission>,
+        in tab: (any WKWebExtensionTab)?, for context: WKWebExtensionContext,
+        completionHandler: @escaping (Set<WKWebExtension.Permission>, Date?) -> Void
+    ) {
         prompt(context, details: permissions.map(\.rawValue).sorted(), in: tab) { completionHandler($0 ? permissions : [], nil) }
     }
 
-    func webExtensionController(_ controller: WKWebExtensionController, promptForPermissionMatchPatterns patterns: Set<WKWebExtension.MatchPattern>, in tab: (any WKWebExtensionTab)?, for context: WKWebExtensionContext, completionHandler: @escaping (Set<WKWebExtension.MatchPattern>, Date?) -> Void) {
+    func webExtensionController(
+        _ controller: WKWebExtensionController, promptForPermissionMatchPatterns patterns: Set<WKWebExtension.MatchPattern>,
+        in tab: (any WKWebExtensionTab)?, for context: WKWebExtensionContext,
+        completionHandler: @escaping (Set<WKWebExtension.MatchPattern>, Date?) -> Void
+    ) {
         prompt(context, details: patterns.map(\.string).sorted(), in: tab) { completionHandler($0 ? patterns : [], nil) }
     }
 
-    func webExtensionController(_ controller: WKWebExtensionController, promptForPermissionToAccess urls: Set<URL>, in tab: (any WKWebExtensionTab)?, for context: WKWebExtensionContext, completionHandler: @escaping (Set<URL>, Date?) -> Void) {
+    func webExtensionController(
+        _ controller: WKWebExtensionController, promptForPermissionToAccess urls: Set<URL>, in tab: (any WKWebExtensionTab)?,
+        for context: WKWebExtensionContext, completionHandler: @escaping (Set<URL>, Date?) -> Void
+    ) {
         prompt(context, details: urls.map(\.absoluteString).sorted(), in: tab) { completionHandler($0 ? urls : [], nil) }
     }
 
-    func webExtensionController(_ controller: WKWebExtensionController, presentActionPopup action: WKWebExtension.Action, for context: WKWebExtensionContext, completionHandler: @escaping (Error?) -> Void) {
+    func webExtensionController(
+        _ controller: WKWebExtensionController, presentActionPopup action: WKWebExtension.Action, for context: WKWebExtensionContext,
+        completionHandler: @escaping (Error?) -> Void
+    ) {
         guard let browser = (action.associatedTab as? BrowserWebExtensionTab)?.browser,
-              !browser.isClosed, browser.webView.window?.isVisible == true, let popover = action.popupPopover else {
+            !browser.isClosed, browser.webView.window?.isVisible == true, let popover = action.popupPopover
+        else {
             completionHandler(BrowserWebExtensionStore.StoreError.unavailable)
             return
         }
         if popup !== action { popup?.closePopup() }
         popup = action
         popover.behavior = .transient
-        popover.show(relativeTo: NSRect(x: browser.webView.bounds.midX, y: browser.webView.bounds.maxY - 12, width: 1, height: 1),
-                     of: browser.webView, preferredEdge: .minY)
+        popover.show(
+            relativeTo: NSRect(x: browser.webView.bounds.midX, y: browser.webView.bounds.maxY - 12, width: 1, height: 1),
+            of: browser.webView, preferredEdge: .minY)
         completionHandler(nil)
     }
 }
@@ -541,7 +604,9 @@ final class BrowserWebExtensionWindow: NSObject, WKWebExtensionWindow {
     var active: (any WKWebExtensionTab)? { ownedTabs.first(where: \.isActive) ?? ownedTabs.first }
     func activeTab(for context: WKWebExtensionContext) -> (any WKWebExtensionTab)? { active }
     func windowType(for context: WKWebExtensionContext) -> WKWebExtension.WindowType { .normal }
-    func windowState(for context: WKWebExtensionContext) -> WKWebExtension.WindowState { nativeWindow?.isMiniaturized == true ? .minimized : .normal }
+    func windowState(for context: WKWebExtensionContext) -> WKWebExtension.WindowState {
+        nativeWindow?.isMiniaturized == true ? .minimized : .normal
+    }
 }
 
 @MainActor

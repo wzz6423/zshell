@@ -45,11 +45,12 @@ final class WorkspaceChromeButton: NSButton {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
         // Unclipped views can report a visibleRect larger than their bounds.
-        addTrackingArea(NSTrackingArea(
-            rect: NSIntersectionRect(bounds, visibleRect),
-            options: [.activeAlways, .mouseEnteredAndExited],
-            owner: self
-        ))
+        addTrackingArea(
+            NSTrackingArea(
+                rect: NSIntersectionRect(bounds, visibleRect),
+                options: [.activeAlways, .mouseEnteredAndExited],
+                owner: self
+            ))
         synchronizeHoverWithMouse()
     }
 
@@ -216,8 +217,10 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         renameField.isBordered = false
         renameField.drawsBackground = false
         renameField.focusRingType = .none
-        for view in [disclosureView, iconView, pinView, titleLabel, subtitleLabel,
-                     countLabel, shortcutLabel, badge, actionButton, renameField] {
+        for view in [
+            disclosureView, iconView, pinView, titleLabel, subtitleLabel,
+            countLabel, shortcutLabel, badge, actionButton, renameField,
+        ] {
             addSubview(view)
         }
         setAccessibilityElement(true)
@@ -260,7 +263,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         titleLabel.lineBreakMode = sidebar ? .byTruncatingTail : .byTruncatingMiddle
         titleLabel.alignment = fillsGroupRow ? .left : .natural
         titleLabel.stringValue = title
-        titleLabel.textColor = (isCompactGroup || fillsGroupRow)
+        titleLabel.textColor =
+            (isCompactGroup || fillsGroupRow)
             ? groupControlColor
             : (selected ? .labelColor : .secondaryLabelColor)
         titleWidth = ceil(titleLabel.attributedStringValue.size().width)
@@ -273,7 +277,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         iconView.contentTintColor = icon?.isTemplate == true ? (selected ? Theme.accent : .secondaryLabelColor) : nil
         disclosureView.isHidden = !group
         disclosureView.image = NSImage(systemSymbolName: collapsed ? "chevron.right" : "chevron.down", accessibilityDescription: nil)
-        disclosureView.contentTintColor = (isCompactGroup || fillsGroupRow)
+        disclosureView.contentTintColor =
+            (isCompactGroup || fillsGroupRow)
             ? groupControlColor
             : (groupControlColor == nil ? .secondaryLabelColor : .white)
         pinView.isHidden = !pinned
@@ -284,7 +289,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         countLabel.textColor = .secondaryLabelColor
         countLabel.stringValue = (isCompactGroup || fillsGroupRow) ? "" : (count.map(String.init) ?? "")
         countLabel.isHidden = isCompactGroup || fillsGroupRow || count == nil
-        countWidth = isCompactGroup || fillsGroupRow || count == nil
+        countWidth =
+            isCompactGroup || fillsGroupRow || count == nil
             ? 0
             : ceil(countLabel.attributedStringValue.size().width) + 6 * scale
         shortcutLabel.font = .systemFont(ofSize: 10 * scale)
@@ -303,7 +309,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         renameField.font = titleLabel.font
         renameField.textColor = .labelColor
         setAccessibilityLabel(subtitle.map { "\(title), \($0)" } ?? title)
-        let state = group
+        let state =
+            group
             ? String(localized: collapsed ? "Collapsed" : "Expanded")
             : (selected ? String(localized: "Selected") : "")
         let markerDescription = marker.map { String(localized: "Color marker \($0.displayValue)") }
@@ -317,7 +324,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         if isCompactGroup {
             return groupControlSize.width
         }
-        let leading = 9 * scale + indent + (isGroup ? 13 * scale : 0)
+        let leading =
+            9 * scale + indent + (isGroup ? 13 * scale : 0)
             + (iconView.image == nil ? 0 : 17 * scale)
             + (pinView.isHidden ? 0 : 13 * scale)
         let trailing = 6 * scale + actionSlotWidth + countWidth + badgeWidth
@@ -337,7 +345,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         if isCompactGroup {
             let controlScale = compactGroupControlScale
             let titlePointSize = titleLabel.font?.pointSize ?? 10.5
-            let height = showsCompactGroupTitle
+            let height =
+                showsCompactGroupTitle
                 ? min(28, max(24, ceil(titlePointSize + 8)))
                 : min(26, max(22, 24 * controlScale))
             guard showsCompactGroupTitle else {
@@ -359,7 +368,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         let verticalInset: CGFloat = isCompactGroup ? 2 : 2 * groupControlScale
         let height = min(groupControlSize.height, max(0, bounds.height - verticalInset * 2))
         let width = min(groupControlSize.width, bounds.width)
-        let x = isCompactGroup
+        let x =
+            isCompactGroup
             ? (bounds.width - width) / 2
             : 4 * scale + indent
         return NSRect(x: x, y: (bounds.height - height) / 2, width: width, height: height)
@@ -379,7 +389,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
             if fillsGroupRow {
                 indicatorX = control.minX + horizontalInset
             } else {
-                let centeredTitleWidth = showsTitle
+                let centeredTitleWidth =
+                    showsTitle
                     ? min(titleWidth + 8 * controlScale, availableTitleWidth)
                     : 0
                 let contentWidth = showsTitle ? indicator + gap + centeredTitleWidth : indicator
@@ -429,16 +440,20 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
             x = max(x, groupControlFrame.maxX + 4 * scale)
         }
         let right = max(x, bounds.width - 5 * scale - actionSlotWidth)
-        actionButton.frame = NSRect(x: right, y: (bounds.height - 24 * max(1, scale)) / 2,
-                                    width: actionSlotWidth, height: 24 * max(1, scale))
-        shortcutLabel.frame = NSRect(x: right, y: (bounds.height - 16 * scale) / 2,
-                                     width: actionSlotWidth, height: 16 * scale)
+        actionButton.frame = NSRect(
+            x: right, y: (bounds.height - 24 * max(1, scale)) / 2,
+            width: actionSlotWidth, height: 24 * max(1, scale))
+        shortcutLabel.frame = NSRect(
+            x: right, y: (bounds.height - 16 * scale) / 2,
+            width: actionSlotWidth, height: 16 * scale)
         let visibleBadgeWidth = bounds.width - x - actionSlotWidth > 80 * scale ? badgeWidth : 0
         badge.isHidden = visibleBadgeWidth == 0
-        badge.frame = NSRect(x: right - visibleBadgeWidth, y: (bounds.height - 15) / 2,
-                             width: max(0, visibleBadgeWidth - 4 * scale), height: 15)
-        countLabel.frame = NSRect(x: right - visibleBadgeWidth - countWidth,
-                                  y: (bounds.height - 14 * scale) / 2, width: countWidth, height: 14 * scale)
+        badge.frame = NSRect(
+            x: right - visibleBadgeWidth, y: (bounds.height - 15) / 2,
+            width: max(0, visibleBadgeWidth - 4 * scale), height: 15)
+        countLabel.frame = NSRect(
+            x: right - visibleBadgeWidth - countWidth,
+            y: (bounds.height - 14 * scale) / 2, width: countWidth, height: 14 * scale)
         let titleSpace = max(0, right - visibleBadgeWidth - countWidth - x - 3 * scale)
         let titleHeight = ceil((titleLabel.font?.ascender ?? 12) - (titleLabel.font?.descender ?? -3)) + 2
         let subtitleHeight = subtitleLabel.isHidden ? 0 : 13 * scale
@@ -460,11 +475,13 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         let isDarkAppearance = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         let groupControlBlendColor: NSColor = isDarkAppearance ? .black : .white
         let drawsItemBackground = isDropTarget || isSelected || isHovered || isGroup
-        let shapeBounds = usesGroupControlBackground
+        let shapeBounds =
+            usesGroupControlBackground
             ? groupControlFrame
             : bounds.insetBy(dx: 0.5, dy: usesTabStripHoverTracking ? 6 : 1)
         let cornerRadius = min(
-            (isCompactGroup ? 6 * compactGroupControlScale
+            (isCompactGroup
+                ? 6 * compactGroupControlScale
                 : (usesTabStripHoverTracking ? 7 : (isSidebar ? 6 : 12) * scale)),
             min(shapeBounds.width, shapeBounds.height) / 2
         )
@@ -474,11 +491,13 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
             shape.fill()
         }
         if usesGroupControlBackground && (isDropTarget || isSelected || isHovered) {
-            (isDropTarget ? Theme.accent.withAlphaComponent(0.15)
+            (isDropTarget
+                ? Theme.accent.withAlphaComponent(0.15)
                 : groupControlBlendColor.withAlphaComponent(isSelected ? 0.16 : 0.08)).setFill()
             shape.fill()
         } else if !usesGroupControlBackground && drawsItemBackground {
-            (isDropTarget ? Theme.accent.withAlphaComponent(0.15)
+            (isDropTarget
+                ? Theme.accent.withAlphaComponent(0.15)
                 : NSColor.labelColor.withAlphaComponent(isSelected ? 0.09 : (isHovered ? 0.05 : 0.025))).setFill()
             shape.fill()
         }
@@ -514,7 +533,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
             NSBezierPath(ovalIn: NSRect(x: actionButton.frame.midX - 2.5, y: bounds.midY - 2.5, width: 5, height: 5)).fill()
         }
         if isSelected, window?.isKeyWindow == true, window?.firstResponder === self,
-           !isRenaming, !usesTabStripHoverTracking {
+            !isRenaming, !usesTabStripHoverTracking
+        {
             NSColor.keyboardFocusIndicatorColor.setStroke()
             shape.lineWidth = 2
             shape.stroke()
@@ -530,8 +550,10 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
         let activeOption: NSTrackingArea.Options = usesTabStripHoverTracking ? .activeAlways : .activeInKeyWindow
-        addTrackingArea(NSTrackingArea(rect: NSIntersectionRect(bounds, visibleRect),
-            options: [activeOption, .mouseEnteredAndExited], owner: self))
+        addTrackingArea(
+            NSTrackingArea(
+                rect: NSIntersectionRect(bounds, visibleRect),
+                options: [activeOption, .mouseEnteredAndExited], owner: self))
         synchronizeHoverWithMouse()
     }
 
@@ -603,16 +625,18 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         guard mouseOrigin != nil else { return }
         mouseOrigin = nil
         removeDragMonitor()
-        if hasDragged { onDragEnded?(event) }
-        else if bounds.contains(convert(event.locationInWindow, from: nil)) {
+        if hasDragged {
+            onDragEnded?(event)
+        } else if bounds.contains(convert(event.locationInWindow, from: nil)) {
             if isGroup && onRename != nil && event.clickCount == 1 {
                 let selectionID = UUID()
                 pendingGroupSelectionID = selectionID
                 let selection = DispatchWorkItem { [weak self] in
                     guard let self,
-                          self.pendingGroupSelectionID == selectionID,
-                          self.window != nil,
-                          !self.isRenaming else { return }
+                        self.pendingGroupSelectionID == selectionID,
+                        self.window != nil,
+                        !self.isRenaming
+                    else { return }
                     self.pendingGroupSelection = nil
                     self.pendingGroupSelectionID = nil
                     self.onSelect?()
@@ -631,8 +655,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     override func otherMouseUp(with event: NSEvent) {
-        if event.buttonNumber == 2, !isGroup { actionButton.onAction?() }
-        else { super.otherMouseUp(with: event) }
+        if event.buttonNumber == 2, !isGroup { actionButton.onAction?() } else { super.otherMouseUp(with: event) }
     }
 
     override func rightMouseDown(with event: NSEvent) {
@@ -686,15 +709,16 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         if let window {
             let center = NotificationCenter.default
             for name in [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification] {
-                keyWindowObservers.append(center.addObserver(forName: name, object: window, queue: .main) { [weak self] notification in
-                    guard let self else { return }
-                    if notification.name == NSWindow.didResignKeyNotification {
-                        self.setHovered(false)
-                    } else {
-                        self.synchronizeHoverWithMouse()
-                    }
-                    self.needsDisplay = true
-                })
+                keyWindowObservers.append(
+                    center.addObserver(forName: name, object: window, queue: .main) { [weak self] notification in
+                        guard let self else { return }
+                        if notification.name == NSWindow.didResignKeyNotification {
+                            self.setHovered(false)
+                        } else {
+                            self.synchronizeHoverWithMouse()
+                        }
+                        self.needsDisplay = true
+                    })
             }
         }
         synchronizeHoverWithMouse()
@@ -730,9 +754,9 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         // the menu dismiss before it gives the field editor its first responder.
         DispatchQueue.main.async { [weak self] in
             guard let self,
-                  self.renameRequestID == requestID,
-                  self.window != nil,
-                  !self.isRenaming
+                self.renameRequestID == requestID,
+                self.window != nil,
+                !self.isRenaming
             else { return }
             self.renameRequestID = nil
             self.startRename(value: value, commit: commit)

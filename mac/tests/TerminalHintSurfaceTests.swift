@@ -49,8 +49,7 @@ private func pump(_ duration: TimeInterval = 0.02) {
 @main
 struct TerminalHintSurfaceTests {
     @MainActor static func main() {
-        do { try run() }
-        catch { fputs("FAIL \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("FAIL \(error)\n", stderr); exit(1) }
     }
 
     @MainActor private static func run() throws {
@@ -61,11 +60,13 @@ struct TerminalHintSurfaceTests {
         let fixture = CommandLine.arguments[2]
         let record = URL(fileURLWithPath: CommandLine.arguments[3])
         func quoted(_ text: String) -> String { "'" + text.replacingOccurrences(of: "'", with: "'\\''") + "'" }
-        let launch = TerminalLaunch(program: "/usr/bin/python3", arguments: [fixture, record.path],
-                                    commandLine: "/usr/bin/python3 \(quoted(fixture)) \(quoted(record.path))",
-                                    interactiveShell: nil, workingDirectory: record.deletingLastPathComponent().path,
-                                    environment: ["TERM": "xterm-256color", "LC_ALL": "en_US.UTF-8"])
-        let view: any TerminalBackendSurface = backend == "ghostty"
+        let launch = TerminalLaunch(
+            program: "/usr/bin/python3", arguments: [fixture, record.path],
+            commandLine: "/usr/bin/python3 \(quoted(fixture)) \(quoted(record.path))",
+            interactiveShell: nil, workingDirectory: record.deletingLastPathComponent().path,
+            environment: ["TERM": "xterm-256color", "LC_ALL": "en_US.UTF-8"])
+        let view: any TerminalBackendSurface =
+            backend == "ghostty"
             ? ZshellTerminalView(launch: launch) : AlacrittyTerminalView(launch: launch)
         let events = HintEvents()
         view.events = events
@@ -82,7 +83,9 @@ struct TerminalHintSurfaceTests {
         func control(_ text: String) {
             if let ghostty = view as? ZshellTerminalView {
                 ghostty.performBindingAction("text:" + text.utf8.map { String(format: "\\x%02x", $0) }.joined())
-            } else { view.sendText(text) }
+            } else {
+                view.sendText(text)
+            }
         }
         defer {
             mode.dismiss(restoringFocus: false)
@@ -111,11 +114,14 @@ struct TerminalHintSurfaceTests {
             return snapshot
         }
         func bytes() -> Data { (try? Data(contentsOf: record)) ?? Data() }
-        func event(_ text: String, code: UInt16 = 0, flags: NSEvent.ModifierFlags = [], type: NSEvent.EventType = .keyDown, repeated: Bool = false) -> NSEvent {
-            NSEvent.keyEvent(with: type, location: .zero, modifierFlags: flags,
-                             timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
-                             context: nil, characters: text, charactersIgnoringModifiers: text,
-                             isARepeat: repeated, keyCode: code)!
+        func event(
+            _ text: String, code: UInt16 = 0, flags: NSEvent.ModifierFlags = [], type: NSEvent.EventType = .keyDown, repeated: Bool = false
+        ) -> NSEvent {
+            NSEvent.keyEvent(
+                with: type, location: .zero, modifierFlags: flags,
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                context: nil, characters: text, charactersIgnoringModifiers: text,
+                isARepeat: repeated, keyCode: code)!
         }
         func key(_ text: String, code: UInt16 = 0, flags: NSEvent.ModifierFlags = []) {
             window.sendEvent(event(text, code: code, flags: flags))
@@ -153,23 +159,26 @@ struct TerminalHintSurfaceTests {
         defer { app.mainMenu = previousMenu }
         AppSettings.shared.terminalTextHints = false
         TerminalHintMenu.shared.install(in: mainMenu)
-        try check(TerminalHintMenu.shared.items(for: view).isEmpty
-                  && !terminalMenu.items.contains { $0.identifier?.rawValue == "zshell-copy-terminal-hint" },
-                  "disabled hints remove context and main menu entries")
+        try check(
+            TerminalHintMenu.shared.items(for: view).isEmpty
+                && !terminalMenu.items.contains { $0.identifier?.rawValue == "zshell-copy-terminal-hint" },
+            "disabled hints remove context and main menu entries")
         mode.present(action: .copy)
         try check(!mode.isPresented, "disabled hints reject direct presentation")
         AppSettings.shared.terminalTextHints = true
         TerminalHintMenu.shared.install(in: mainMenu)
-        try check(TerminalHintMenu.shared.items(for: view).count == 2,
-                  "enabling hints restores both menu actions")
+        try check(
+            TerminalHintMenu.shared.items(for: view).count == 2,
+            "enabling hints restores both menu actions")
         try wait("PTY fixture reaches visible grid") {
             view.readVisibleSnapshot()?.rows.contains(where: { $0.text.contains("READY_HINTS") }) == true
         }
         try present()
         AppSettings.shared.terminalTextHints = false
         mode.refreshSnapshot()
-        try check(!mode.isPresented && window.firstResponder === view,
-                  "disabling active hints restores the terminal responder")
+        try check(
+            !mode.isPresented && window.firstResponder === view,
+            "disabling active hints restores the terminal responder")
         AppSettings.shared.terminalTextHints = true
         let initial = try snapshot()
         let all = TerminalHintMatcher.matches(in: initial)
@@ -178,14 +187,18 @@ struct TerminalHintSurfaceTests {
         let cursorReport = record.deletingPathExtension().appendingPathExtension("cursor")
         try wait("terminal reports its Unicode cursor position") { FileManager.default.fileExists(atPath: cursorReport.path) }
         let expectedColumn = Int(try String(contentsOf: cursorReport, encoding: .utf8).split(separator: ";")[1])! - 1
-        try check(unicode?.fragments.first?.columns.lowerBound == expectedColumn,
-                  "CJK, repeated narrow Unicode, combining and ZWJ agree with the engine's cursor report at column \(expectedColumn)")
+        try check(
+            unicode?.fragments.first?.columns.lowerBound == expectedColumn,
+            "CJK, repeated narrow Unicode, combining and ZWJ agree with the engine's cursor report at column \(expectedColumn)")
         if let ghostty = view as? ZshellTerminalView, let reference = ghostty.readViewportTextSnapshot() {
-            try check(abs(initial.origin.x - reference.origin.x) < 0.5 && abs(initial.origin.y - reference.origin.y) < 1,
-                      "Ghostty grid origin agrees with its cursor-derived geometry")
+            try check(
+                abs(initial.origin.x - reference.origin.x) < 0.5 && abs(initial.origin.y - reference.origin.y) < 1,
+                "Ghostty grid origin agrees with its cursor-derived geometry")
         }
         let longURL = "https://example.com/" + String(repeating: "segment/", count: 16) + "end"
-        try check(all.first(where: { $0.value == longURL })?.fragments.count ?? 0 >= 2, "soft-wrapped URL stays one hint with multiple cell fragments")
+        try check(
+            all.first(where: { $0.value == longURL })?.fragments.count ?? 0 >= 2,
+            "soft-wrapped URL stays one hint with multiple cell fragments")
         try check(all.contains { $0.value == "./Sources/main.swift:42:7" }, "diagnostic retains line and column")
         try check(all.contains { $0.value == "2001:db8::1" } && all.contains { $0.value == "192.168.1.2" }, "IPv4 and IPv6 have labels")
         app.sendEvent(event("h", code: 4, flags: [.command, .option]))
@@ -212,7 +225,9 @@ struct TerminalHintSurfaceTests {
         try check(bytes() == baseline, "letter selection sends no PTY bytes")
         try present(.open)
         try choose("https://example.com/second")
-        try check(events.opened == ["https://example.com/second"] && !mode.isPresented, "open dispatches the selected value through existing backend events")
+        try check(
+            events.opened == ["https://example.com/second"] && !mode.isPresented,
+            "open dispatches the selected value through existing backend events")
         try present(.open)
         try choose("deadbee")
         try check(mode.isPresented && events.opened.count == 1, "unopenable hash remains available for copying")
@@ -232,19 +247,27 @@ struct TerminalHintSurfaceTests {
         try wait("wrapped URL survives resize") { mode.hints.contains { $0.value == longURL } }
         key("\u{1b}", code: 53)
         let resized = try snapshot()
-        try check(resized.origin.x + CGFloat(resized.columns) * resized.cellSize.width <= view.bounds.width + 1, "labels stay within resized grid")
+        try check(
+            resized.origin.x + CGFloat(resized.columns) * resized.cellSize.width <= view.bounds.width + 1, "labels stay within resized grid"
+        )
         try present()
         control("\u{15}")
         try wait("changed output replaces stale labels") { mode.hints.contains { $0.value == "https://changed.example/new" } }
         key("\u{1b}", code: 53)
         control("\u{13}")
-        try wait("scrollback fixture finishes writing") { view.readVisibleSnapshot()?.rows.contains { $0.text.contains("READY_HISTORY") } == true }
+        try wait("scrollback fixture finishes writing") {
+            view.readVisibleSnapshot()?.rows.contains { $0.text.contains("READY_HISTORY") } == true
+        }
         try wait("scrollback generated") { events.lastScroll?.isScrollable == true }
         view.scroll(toFraction: 0)
-        try wait("scrollback viewport reaches old URL") { view.readVisibleSnapshot()?.rows.contains { $0.text.contains("https://history.example/old") } == true }
+        try wait("scrollback viewport reaches old URL") {
+            view.readVisibleSnapshot()?.rows.contains { $0.text.contains("https://history.example/old") } == true
+        }
         try present()
         try choose("https://history.example/old")
-        try check(pasteboard.string(forType: .string) == "https://history.example/old", "only currently visible scrollback is labelled and copied")
+        try check(
+            pasteboard.string(forType: .string) == "https://history.example/old", "only currently visible scrollback is labelled and copied"
+        )
         view.scroll(toFraction: 1)
         control("\u{14}")
         try wait("alternate screen fixture ready") { view.readVisibleSnapshot()?.rows.contains { $0.text.contains("READY_HINTS") } == true }
@@ -257,7 +280,8 @@ struct TerminalHintSurfaceTests {
         client.insertText("x", replacementRange: NSRange(location: NSNotFound, length: 0))
         app.textInputEvent = nil
         app.textInputEvent = event("中文", code: 0)
-        client.setMarkedText("zhong", selectedRange: NSRange(location: 5, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
+        client.setMarkedText(
+            "zhong", selectedRange: NSRange(location: 5, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
         try check(client.hasMarkedText(), "IME composition remains usable after hints")
         client.insertText("中文", replacementRange: NSRange(location: NSNotFound, length: 0))
         app.textInputEvent = nil

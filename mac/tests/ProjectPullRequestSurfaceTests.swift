@@ -52,20 +52,23 @@ struct ProjectPullRequestSurfaceTests {
         guard let project = manager.selectedProject, let session = project.selectedSession else {
             fatalError("missing project or terminal surface")
         }
-        precondition(CommandLine.arguments[1] == "ghostty"
-            ? session.surface is ZshellTerminalView : session.surface is AlacrittyTerminalView,
+        precondition(
+            CommandLine.arguments[1] == "ghostty"
+                ? session.surface is ZshellTerminalView : session.surface is AlacrittyTerminalView,
             "the requested terminal backend was not created")
         let checkoutPath = CommandLine.arguments[2]
-        let window = NSWindow(contentRect: NSRect(x: -100_000, y: -100_000, width: 640, height: 400),
-                              styleMask: [.borderless], backing: .buffered, defer: false)
+        let window = NSWindow(
+            contentRect: NSRect(x: -100_000, y: -100_000, width: 640, height: 400),
+            styleMask: [.borderless], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         let root = NSView(frame: NSRect(x: 0, y: 0, width: 640, height: 400))
         window.contentView = root
         // The bar sits in a SwiftUI stack exactly as it does in the Git panel.
-        let panel = NSHostingView(rootView: VStack(spacing: 0) {
-            GitPullRequestBar(directory: checkoutPath, fontScale: 1).fixedSize(horizontal: false, vertical: true)
-            Spacer()
-        }.frame(width: 240, height: 400))
+        let panel = NSHostingView(
+            rootView: VStack(spacing: 0) {
+                GitPullRequestBar(directory: checkoutPath, fontScale: 1).fixedSize(horizontal: false, vertical: true)
+                Spacer()
+            }.frame(width: 240, height: 400))
         panel.frame = NSRect(x: 0, y: 0, width: 240, height: 400)
         session.surface.frame = NSRect(x: 240, y: 0, width: 400, height: 400)
         root.addSubview(panel)
@@ -93,8 +96,9 @@ struct ProjectPullRequestSurfaceTests {
         }
 
         // Proxy off (the default): the PR lookup and a new terminal's Git see nothing.
-        precondition(!AppSettings.shared.gitProxyEnabled && AppSettings.shared.gitProxyAddress == GitProxy.defaultAddress,
-                     "Git proxy must default to off with the default address prefilled")
+        precondition(
+            !AppSettings.shared.gitProxyEnabled && AppSettings.shared.gitProxyAddress == GitProxy.defaultAddress,
+            "Git proxy must default to off with the default address prefilled")
         wait("first PR was not displayed") { bar()?.button.title.contains("#1") == true }
         precondition(proxiesSeenByGH().allSatisfy { $0 == "none" }, "PR lookup used a proxy while it was off")
         func terminalGitProxy(_ name: String) -> String {
@@ -123,15 +127,19 @@ struct ProjectPullRequestSurfaceTests {
         let lock = URL(fileURLWithPath: checkoutPath).appendingPathComponent(".git/index.lock")
         var heightChanges = 0
         let previousHeightChanged = item.onHeightChanged
-        item.onHeightChanged = { heightChanges += 1; previousHeightChanged?() }
+        item.onHeightChanged = {
+            heightChanges += 1; previousHeightChanged?()
+        }
         func requireStablePRBar() {
             root.layoutSubtreeIfNeeded()
-            precondition(!item.isHidden && item.button.title == title && item.button.isEnabled,
-                         "Git metadata events hid the PR or showed Checking PR")
-            precondition(item.frame.height == height && item.intrinsicContentSize.height == intrinsicHeight,
-                         "Git metadata events changed the PR bar height")
+            precondition(
+                !item.isHidden && item.button.title == title && item.button.isEnabled,
+                "Git metadata events hid the PR or showed Checking PR")
+            precondition(
+                item.frame.height == height && item.intrinsicContentSize.height == intrinsicHeight,
+                "Git metadata events changed the PR bar height")
         }
-        for _ in 0..<25 {
+        for _ in 0 ..< 25 {
             try! Data().write(to: lock)
             pump(0.05)
             requireStablePRBar()
@@ -143,12 +151,14 @@ struct ProjectPullRequestSurfaceTests {
         while Date() < settle { pump(0.02); requireStablePRBar() }
         item.onHeightChanged = previousHeightChanged
         precondition(heightChanges == 0, "unrelated Git events invalidated PR bar layout")
-        precondition(((try? Data(contentsOf: queryFile).count) ?? 0) == noiseQueryCount,
-                     "unrelated Git events repeated the GitHub lookup")
+        precondition(
+            ((try? Data(contentsOf: queryFile).count) ?? 0) == noiseQueryCount,
+            "unrelated Git events repeated the GitHub lookup")
         let buttonPoint = NSPoint(x: item.button.frame.midX, y: item.button.frame.midY)
         precondition(item.hitTest(item.convert(buttonPoint, to: item.superview)) === item.button, "PR button is not hit-testable")
         if let path = environment["ZSHELL_PR_TEST_SCREENSHOT"],
-           let image = panel.bitmapImageRepForCachingDisplay(in: panel.bounds) {
+            let image = panel.bitmapImageRepForCachingDisplay(in: panel.bounds)
+        {
             panel.cacheDisplay(in: panel.bounds, to: image)
             try! image.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
         }
@@ -171,12 +181,15 @@ struct ProjectPullRequestSurfaceTests {
         wait("new branch PR was not displayed") { bar()?.button.title.contains("#2") == true }
         precondition(proxiesSeenByGH().last == GitProxy.defaultAddress, "PR lookup ignored the Git proxy")
         bar()?.button.performClick(nil)
-        wait("new branch PR click did not open expected URL") { OpenFixture.url?.absoluteString == "https://github.com/example/base/pull/2" }
+        wait("new branch PR click did not open expected URL") {
+            OpenFixture.url?.absoluteString == "https://github.com/example/base/pull/2"
+        }
         precondition(terminalGitProxy("on") == GitProxy.defaultAddress, "terminal Git did not use the Git proxy")
 
         let refreshTitle = String(localized: "Refresh Pull Request Status")
         guard let refresh = item.menu?.items.first(where: { $0.title == refreshTitle }), refresh.isEnabled,
-              item.button.menu === item.menu else { fatalError("refresh menu item missing") }
+            item.button.menu === item.menu
+        else { fatalError("refresh menu item missing") }
         let previousCount = (try? Data(contentsOf: queryFile).count) ?? 0
         _ = refresh.target?.perform(refresh.action)
         wait("refresh did not issue another query") { ((try? Data(contentsOf: queryFile).count) ?? 0) > previousCount }
@@ -187,6 +200,8 @@ struct ProjectPullRequestSurfaceTests {
         detached.update(directory: nil, fontScale: 1)
         pump(0.1)
         precondition(detached.intrinsicContentSize.height == 0 && detached.isHidden, "a folder without a PR context must take no space")
-        print("Git panel PR \(CommandLine.arguments[1]): stable metadata-event layout, real terminal, window, branch switch, click, refresh and Git proxy passed")
+        print(
+            "Git panel PR \(CommandLine.arguments[1]): stable metadata-event layout, real terminal, window, branch switch, click, refresh and Git proxy passed"
+        )
     }
 }

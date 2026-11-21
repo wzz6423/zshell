@@ -29,8 +29,9 @@ public class STTextAttachmentViewInteractionBridge: NSObject {
 
     @objc public func handleInteraction(_ sender: Any?) {
         guard let textView,
-              let attachment,
-              let location else {
+            let attachment,
+            let location
+        else {
             return
         }
 
@@ -79,7 +80,8 @@ public extension NSView {
             control.action = #selector(STTextAttachmentViewInteractionBridge.handleInteraction(_:))
         } else {
             // For non-control views, add a gesture recognizer
-            let tapGesture = NSClickGestureRecognizer(target: bridge, action: #selector(STTextAttachmentViewInteractionBridge.handleInteraction(_:)))
+            let tapGesture = NSClickGestureRecognizer(
+                target: bridge, action: #selector(STTextAttachmentViewInteractionBridge.handleInteraction(_:)))
             self.addGestureRecognizer(tapGesture)
 
             // Store gesture recognizer to prevent it from being deallocated

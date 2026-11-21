@@ -18,17 +18,17 @@ nonisolated struct ZshellSessionControlConnection: Sendable {
     static var defaultBundleIdentifier: String {
         if let identifier = Bundle.main.bundleIdentifier { return identifier }
         #if DEBUG
-        return "sh.zshell.dev"
+            return "sh.zshell.dev"
         #else
-        return "sh.zshell"
+            return "sh.zshell"
         #endif
     }
 
     static var directoryURL: URL {
         #if DEBUG
-        let configuration = "zshell-dev"
+            let configuration = "zshell-dev"
         #else
-        let configuration = "zshell"
+            let configuration = "zshell"
         #endif
         return FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".config/\(configuration)/session-control", isDirectory: true)
@@ -42,13 +42,15 @@ nonisolated struct ZshellSessionControlConnection: Sendable {
         try fm.createDirectory(at: configuration, withIntermediateDirectories: true)
         for url in [parent, directoryURL] {
             if !fm.fileExists(atPath: url.path) {
-                try fm.createDirectory(at: url, withIntermediateDirectories: false,
-                                       attributes: [.posixPermissions: 0o700])
+                try fm.createDirectory(
+                    at: url, withIntermediateDirectories: false,
+                    attributes: [.posixPermissions: 0o700])
             }
             try validate(url.path, type: S_IFDIR, permissions: 0o700)
         }
-        let manifest = Manifest(version: 1, processID: getpid(), bundleIdentifier: defaultBundleIdentifier,
-                                socketPath: socketPath, token: token)
+        let manifest = Manifest(
+            version: 1, processID: getpid(), bundleIdentifier: defaultBundleIdentifier,
+            socketPath: socketPath, token: token)
         let url = directoryURL.appendingPathComponent("connection-\(getpid())-\(UUID().uuidString).json")
         let descriptor = open(url.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
         guard descriptor >= 0 else { throw connectionError("Could not publish Zshell session control.") }
@@ -75,9 +77,10 @@ nonisolated struct ZshellSessionControlConnection: Sendable {
         let live = urls.compactMap { try? Self.load($0) }
             .filter { $0.bundleIdentifier == Self.defaultBundleIdentifier }
         guard live.count == 1, let manifest = live.first else {
-            throw Self.connectionError(live.isEmpty
-                ? "No running Zshell session controller was found. Open Zshell first."
-                : "More than one Zshell instance is running. Select its owner-only connection with --connection.")
+            throw Self.connectionError(
+                live.isEmpty
+                    ? "No running Zshell session controller was found. Open Zshell first."
+                    : "More than one Zshell instance is running. Select its owner-only connection with --connection.")
         }
         self.manifest = manifest
     }
@@ -85,15 +88,17 @@ nonisolated struct ZshellSessionControlConnection: Sendable {
     func request(method: String, params: [String: ZshellJSONValue], timeout: TimeInterval = 60) throws -> ZshellJSONValue {
         guard method.hasPrefix("session.") else { throw Self.connectionError("External control only supports session commands.") }
         try Self.validate(manifest.socketPath, type: S_IFSOCK, permissions: 0o600)
-        let request = ZshellAutomationRequest(version: 1, id: UUID().uuidString,
-                                            method: method, token: manifest.token,
-                                            terminalID: Self.callerID, params: params)
+        let request = ZshellAutomationRequest(
+            version: 1, id: UUID().uuidString,
+            method: method, token: manifest.token,
+            terminalID: Self.callerID, params: params)
         let response = try ZshellAutomationSocketServer.exchange(path: manifest.socketPath, request: request, timeout: timeout)
         guard response.id == request.id, response.version == 1 else {
             throw Self.connectionError("Zshell returned a mismatched session response.")
         }
         guard response.ok, let result = response.result else {
-            throw Self.connectionError("\(response.error?.code ?? "session_error"): \(response.error?.message ?? "Zshell rejected the session request.")")
+            throw Self.connectionError(
+                "\(response.error?.code ?? "session_error"): \(response.error?.message ?? "Zshell rejected the session request.")")
         }
         return result
     }
@@ -106,9 +111,10 @@ nonisolated struct ZshellSessionControlConnection: Sendable {
         let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         defer { try? file.close() }
         guard let data = try file.read(upToCount: 16_385), data.count <= 16_384,
-              let manifest = try? JSONDecoder().decode(Manifest.self, from: data),
-              manifest.version == 1, manifest.processID > 1,
-              kill(manifest.processID, 0) == 0, manifest.token.utf8.count >= 32 else {
+            let manifest = try? JSONDecoder().decode(Manifest.self, from: data),
+            manifest.version == 1, manifest.processID > 1,
+            kill(manifest.processID, 0) == 0, manifest.token.utf8.count >= 32
+        else {
             throw connectionError("The Zshell session connection is invalid or expired.")
         }
         try validate(manifest.socketPath, type: S_IFSOCK, permissions: 0o600)
@@ -118,7 +124,8 @@ nonisolated struct ZshellSessionControlConnection: Sendable {
     private static func validate(_ path: String, type: mode_t, permissions: mode_t) throws {
         var info = stat()
         guard lstat(path, &info) == 0, info.st_uid == getuid(), info.st_mode & S_IFMT == type,
-              info.st_mode & 0o777 == permissions else {
+            info.st_mode & 0o777 == permissions
+        else {
             throw connectionError("Zshell session control requires owner-only files and directories.")
         }
     }

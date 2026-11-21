@@ -77,7 +77,7 @@ internal func computeTrigrams(_ bytes: [UInt8]) -> Set<UInt32> {
     guard bytes.count >= 3 else { return [] }
 
     var trigrams = Set<UInt32>(minimumCapacity: bytes.count - 2)
-    for i in 0..<(bytes.count - 2) {
+    for i in 0 ..< (bytes.count - 2) {
         // Skip trigrams containing spaces — multi-word queries produce space trigrams
         // (e.g. "an ", "n s", " sa" from "goldman sachs") that won't match candidates
         // using different word separators (camelCase, snake_case). Filtering these out
@@ -117,7 +117,7 @@ internal func countSharedTrigrams(
     guard candidateBytes.count >= 3 else { return 0 }
 
     var sharedCount = 0
-    for i in 0..<(candidateBytes.count - 2) {
+    for i in 0 ..< (candidateBytes.count - 2) {
         let a = candidateBytes[i], b = candidateBytes[i + 1], c = candidateBytes[i + 2]
         // Skip space-containing trigrams (see computeTrigrams for rationale)
         if a == 0x20 || b == 0x20 || c == 0x20 { continue }

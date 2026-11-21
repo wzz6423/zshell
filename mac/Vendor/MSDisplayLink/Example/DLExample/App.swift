@@ -13,13 +13,13 @@ struct App: SwiftUI.App {
         WindowGroup {
             ContentView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            #if os(macOS)
-                .background(VisualEffectView().ignoresSafeArea())
-            #endif
+                #if os(macOS)
+                    .background(VisualEffectView().ignoresSafeArea())
+                #endif
         }
         #if os(macOS)
-        .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentMinSize)
+            .windowStyle(.hiddenTitleBar)
+            .windowResizability(.contentMinSize)
         #endif
     }
 }

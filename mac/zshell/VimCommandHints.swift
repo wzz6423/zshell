@@ -25,25 +25,31 @@ nonisolated enum VimMode: String, Equatable, CaseIterable {
         let quit = VimCommandHint(":q · :q!", String(localized: "Quit / discard changes and quit"))
         switch self {
         case .normal:
-            return [save, quit,
+            return [
+                save, quit,
                 .init("yy · p / P", String(localized: "Yank line / paste after or before")),
                 .init("dd · x", String(localized: "Delete line / character")), undo,
                 .init("i · a · o", String(localized: "Insert / append / open line")),
                 .init("v · V · Ctrl-V", String(localized: "Select characters / lines / block")),
                 .init("/text · n / N", String(localized: "Search / next or previous match")),
-                movement, .init("gg · G · 0 · $", String(localized: "First / last line; line start / end"))]
+                movement, .init("gg · G · 0 · $", String(localized: "First / last line; line start / end")),
+            ]
         case .insert:
-            return [escape,
+            return [
+                escape,
                 .init("Ctrl-W", String(localized: "Delete previous word")),
                 .init("Ctrl-U", String(localized: "Delete back to the start of insertion")),
                 .init("Ctrl-R {register}", String(localized: "Insert a register, e.g. Ctrl-R 0")),
                 .init("Ctrl-N / Ctrl-P", String(localized: "Complete next / previous word")),
-                .init("Ctrl-O {command}", String(localized: "Run one Normal command"))]
+                .init("Ctrl-O {command}", String(localized: "Run one Normal command")),
+            ]
         case .replace:
-            return [escape,
+            return [
+                escape,
                 .init("Type", String(localized: "Replace characters under the cursor")),
                 .init("Backspace", String(localized: "Restore the previous replaced character")),
-                .init("Ctrl-O {command}", String(localized: "Run one Normal command"))]
+                .init("Ctrl-O {command}", String(localized: "Run one Normal command")),
+            ]
         case .visual, .visualLine:
             return [
                 .init("y · d · c", String(localized: "Yank / delete / change selection")),
@@ -52,7 +58,8 @@ nonisolated enum VimMode: String, Equatable, CaseIterable {
                 .init("o", String(localized: "Move to the other end of selection")),
                 .init("U / u", String(localized: "Uppercase / lowercase selection")),
                 .init(":", String(localized: "Run an Ex command on selected lines")),
-                movement, escape]
+                movement, escape,
+            ]
         case .visualBlock:
             return [
                 .init("I / A → text → Esc", String(localized: "Insert / append text on each selected line")),
@@ -61,22 +68,27 @@ nonisolated enum VimMode: String, Equatable, CaseIterable {
                 .init("o / O", String(localized: "Move to opposite / adjacent corner")),
                 .init("> / <", String(localized: "Indent / unindent selected lines")),
                 .init("$", String(localized: "Extend block to the end of each line")),
-                movement, escape]
+                movement, escape,
+            ]
         case .select:
             return [
                 .init("Type", String(localized: "Replace the selected text")),
-                .init("Ctrl-G", String(localized: "Switch to Visual mode")), escape]
+                .init("Ctrl-G", String(localized: "Switch to Visual mode")), escape,
+            ]
         case .commandLine:
-            return [save, quit,
+            return [
+                save, quit,
                 .init(":%s/old/new/gc", String(localized: "Replace throughout file, with confirmation")),
                 .init("Tab · ↑ / ↓", String(localized: "Complete command / browse history")),
-                .init("Enter", String(localized: "Execute command")), escape]
+                .init("Enter", String(localized: "Execute command")), escape,
+            ]
         case .search:
             return [
                 .init("Enter · Esc", String(localized: "Confirm / cancel search")),
                 .init("n / N", String(localized: "After confirming: next / previous match")),
                 .init("\\c / \\C", String(localized: "Ignore / match case")),
-                .init(":noh", String(localized: "Clear search highlighting"))]
+                .init(":noh", String(localized: "Clear search highlighting")),
+            ]
         }
     }
 }
@@ -99,7 +111,8 @@ nonisolated struct VimCommandReference {
 
     func matches(_ query: String) -> Bool {
         let terms = query.split(whereSeparator: \.isWhitespace)
-        let searchable = [command.keys, command.explanation, modeDescription]
+        let searchable =
+            [command.keys, command.explanation, modeDescription]
             + modes.map(\.rawValue)
         return terms.allSatisfy { term in searchable.contains { $0.localizedStandardContains(term) } }
     }
@@ -160,7 +173,8 @@ nonisolated enum VimModeDetection {
         let hasFileMessage = status.contains { matches(#"^\".+\"\s+(?:\[|\d+L)"#, $0) }
         let hasEditorTitle = matches(#"(?i)(?:^(?:n?vim|vi|view)(?:\s|$)|\s[-–]\s(?:N?VIM|VI)$)"#, title)
         let welcome = text.contains("VIM - Vi IMproved") || text.contains("NVIM v")
-        let isEditor = editors.contains(executable) || visibleMode != nil || welcome
+        let isEditor =
+            editors.contains(executable) || visibleMode != nil || welcome
             || (hasFiller && (hasRuler || hasFileMessage || hasEditorTitle || previouslyDetected))
             || hasRuler
         guard isEditor else { return nil }

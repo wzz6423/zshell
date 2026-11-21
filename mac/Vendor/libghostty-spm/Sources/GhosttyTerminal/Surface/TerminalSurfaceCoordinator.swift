@@ -210,7 +210,7 @@ final class TerminalSurfaceCoordinator {
         }
 
         guard let surfaceSize = surface.size(),
-              surfaceSize.columns > 0, surfaceSize.rows > 0
+            surfaceSize.columns > 0, surfaceSize.rows > 0
         else {
             TerminalDebugLog.log(.metrics, "sync missing grid metrics after resize")
             onMetricsUpdate?()
@@ -262,7 +262,7 @@ final class TerminalSurfaceCoordinator {
         } else {
             synchronizeMetrics()
         }
-        for _ in 0..<max(1, frameCount) where surface != nil {
+        for _ in 0 ..< max(1, frameCount) where surface != nil {
             renderImmediately()
         }
     }

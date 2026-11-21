@@ -14,7 +14,6 @@ extension STTextView: NSTextInputClient {
         return .notFound
     }
 
-
     // Managing Marked Text
     //
     // As the input context interprets keyboard input, it can mark incomplete input in a special way.
@@ -60,7 +59,8 @@ extension STTextView: NSTextInputClient {
         }
 
         #if DEBUG
-            logger.debug("\(#function) \(attributedMarkedString.string), selectedRange: \(selectedRange), replacementRange: \(replacementRange)")
+            logger.debug(
+                "\(#function) \(attributedMarkedString.string), selectedRange: \(selectedRange), replacementRange: \(replacementRange)")
         #endif
 
         if replacementRange.location != NSNotFound {
@@ -74,7 +74,8 @@ extension STTextView: NSTextInputClient {
             } else if let markedText {
                 markedText.markedText = attributedMarkedString
                 markedText.markedRange = NSRange(location: replacementRange.location, length: attributedMarkedString.length)
-                markedText.selectedRange = NSRange(location: replacementRange.location + selectedRange.location, length: selectedRange.length)
+                markedText.selectedRange = NSRange(
+                    location: replacementRange.location + selectedRange.location, length: selectedRange.length)
             }
         } else if replacementRange.location == NSNotFound {
             // NSNotFound indicates that the marked text should be placed at the current insertion point
@@ -95,7 +96,8 @@ extension STTextView: NSTextInputClient {
                 // update
                 markedText.markedText = attributedMarkedString
                 markedText.markedRange = NSRange(location: markedText.markedRange.location, length: attributedMarkedString.length)
-                markedText.selectedRange = NSRange(location: markedText.markedRange.location + selectedRange.location, length: selectedRange.length)
+                markedText.selectedRange = NSRange(
+                    location: markedText.markedRange.location + selectedRange.location, length: selectedRange.length)
             }
         }
 
@@ -103,7 +105,8 @@ extension STTextView: NSTextInputClient {
         let insertionRangeLenght = replacementRange.location == NSNotFound ? 0 : replacementRange.length
         let insertionRange = NSRange(location: markedText!.markedRange.location, length: insertionRangeLenght)
         undoManager.withoutUndoRegistration {
-            replaceCharacters(in: NSTextRange(insertionRange, in: textContentManager)!, with: markedText!.markedText, allowsTypingCoalescing: false)
+            replaceCharacters(
+                in: NSTextRange(insertionRange, in: textContentManager)!, with: markedText!.markedText, allowsTypingCoalescing: false)
         }
     }
 
@@ -143,8 +146,12 @@ extension STTextView: NSTextInputClient {
 
     @objc public func attributedSubstring(forProposedRange range: NSRange, actualRange: NSRangePointer?) -> NSAttributedString? {
         // An implementation of this method should be prepared for range to be out of bounds.
-        let location = textLayoutManager.location(textLayoutManager.documentRange.location, offsetBy: range.location) ?? textLayoutManager.documentRange.location
-        let endLocation = textLayoutManager.location(textLayoutManager.documentRange.location, offsetBy: range.location + range.length) ?? textLayoutManager.documentRange.endLocation
+        let location =
+            textLayoutManager.location(textLayoutManager.documentRange.location, offsetBy: range.location)
+            ?? textLayoutManager.documentRange.location
+        let endLocation =
+            textLayoutManager.location(textLayoutManager.documentRange.location, offsetBy: range.location + range.length)
+            ?? textLayoutManager.documentRange.endLocation
 
         guard let textRange = NSTextRange(location: location, end: endLocation), !textRange.isEmpty else {
             return nil
@@ -167,7 +174,7 @@ extension STTextView: NSTextInputClient {
             .underlineStyle,
             .underlineColor,
             .markedClauseSegment,
-            NSAttributedString.Key("NSTextInputReplacementRangeAttributeName")
+            NSAttributedString.Key("NSTextInputReplacementRangeAttributeName"),
         ]
     }
 
@@ -187,7 +194,10 @@ extension STTextView: NSTextInputClient {
 
     @objc public func characterIndex(for point: CGPoint) -> Int {
         let eventPoint = contentView.convert(window!.convertPoint(fromScreen: point), from: nil)
-        guard let location = textLayoutManager.caretLocation(interactingAt: eventPoint, inContainerAt: textLayoutManager.documentRange.location) else {
+        guard
+            let location = textLayoutManager.caretLocation(
+                interactingAt: eventPoint, inContainerAt: textLayoutManager.documentRange.location)
+        else {
             return NSNotFound
         }
 
@@ -225,7 +235,6 @@ extension STTextView: NSTextInputClient {
         }
     }
 }
-
 
 private extension UndoManager? {
     func withoutUndoRegistration(_ action: () -> Void) {

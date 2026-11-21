@@ -29,9 +29,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if os(macOS) && !targetEnvironment(macCatalyst)
-import AppKit
+    import AppKit
 #elseif os(iOS) || os(visionOS)
-import UIKit
+    import UIKit
 #endif
 
 extension NSTextLayoutManager {
@@ -43,7 +43,7 @@ extension NSTextLayoutManager {
         var extraTextLayoutFragment: NSTextLayoutFragment?
         enumerateTextLayoutFragments(from: nil, options: .reverse) { textLayoutFragment in
             if textLayoutFragment.state.rawValue > NSTextLayoutFragment.State.estimatedUsageBounds.rawValue,
-               textLayoutFragment.isExtraLineFragment
+                textLayoutFragment.isExtraLineFragment
             {
                 extraTextLayoutFragment = textLayoutFragment
             }
@@ -59,7 +59,7 @@ extension NSTextLayoutManager {
         if let textLayoutFragment = extraLineTextLayoutFragment() {
             let textLineFragments = textLayoutFragment.textLineFragments
             if textLineFragments.count > 1, let lastTextLineFragment = textLineFragments.last,
-               lastTextLineFragment.isExtraLineFragment
+                lastTextLineFragment.isExtraLineFragment
             {
                 return lastTextLineFragment
             }
@@ -68,7 +68,6 @@ extension NSTextLayoutManager {
     }
 
 }
-
 
 extension NSTextLayoutManager {
 
@@ -105,7 +104,7 @@ extension NSTextLayoutManager {
         caretLocation(interactingAt: point, inContainerAt: containerLocation)
     }
 
-    public struct CaretLocationOptions : OptionSet, @unchecked Sendable {
+    public struct CaretLocationOptions: OptionSet, @unchecked Sendable {
         public var rawValue: UInt
         public init(rawValue: UInt) {
             self.rawValue = rawValue
@@ -120,14 +119,18 @@ extension NSTextLayoutManager {
     ///   - point: A CGPoint that represents the location of the tap or click.
     ///   - containerLocation: A NSTextLocation that describes the container location.
     /// - Returns: A location
-    public func caretLocation(interactingAt point: CGPoint, options: CaretLocationOptions = [], inContainerAt containerLocation: NSTextLocation) -> NSTextLocation? {
+    public func caretLocation(
+        interactingAt point: CGPoint, options: CaretLocationOptions = [], inContainerAt containerLocation: NSTextLocation
+    ) -> NSTextLocation? {
         guard let lineFragmentRange = lineFragmentRange(for: point, inContainerAt: containerLocation) else {
             return nil
         }
 
         if !options.contains(.allowOutside) {
             // Is point outside the frame?
-            if let layoutFragmentFrame = textLayoutFragment(for: lineFragmentRange.location)?.layoutFragmentFrame, !layoutFragmentFrame.contains(point) {
+            if let layoutFragmentFrame = textLayoutFragment(for: lineFragmentRange.location)?.layoutFragmentFrame,
+                !layoutFragmentFrame.contains(point)
+            {
                 return nil
             }
         }
@@ -137,10 +140,10 @@ extension NSTextLayoutManager {
         enumerateCaretOffsetsInLineFragment(at: lineFragmentRange.location) { caretOffset, location, leadingEdge, stop in
             let localDistance = abs(caretOffset - point.x)
             if leadingEdge {
-                if localDistance < distance{
+                if localDistance < distance {
                     distance = localDistance
                     caretLocation = location
-                } else if localDistance > distance{
+                } else if localDistance > distance {
                     stop.pointee = true
                 }
             }
@@ -151,7 +154,7 @@ extension NSTextLayoutManager {
 }
 
 extension NSTextLayoutManager {
-    
+
     /// Typographic bounds of the range.
     /// - Parameter textRange: The range.
     /// - Returns: Typographic bounds of the range.
@@ -162,14 +165,18 @@ extension NSTextLayoutManager {
     }
 
     ///  A text segment is both logically and visually contiguous portion of the text content inside a line fragment.
-    public func textSegmentFrame(at location: NSTextLocation, type: NSTextLayoutManager.SegmentType, options: SegmentOptions = [.upstreamAffinity]) -> CGRect? {
+    public func textSegmentFrame(
+        at location: NSTextLocation, type: NSTextLayoutManager.SegmentType, options: SegmentOptions = [.upstreamAffinity]
+    ) -> CGRect? {
         textSegmentFrame(in: NSTextRange(location: location), type: type, options: options)
     }
 
     /// A text segment is both logically and visually contiguous portion of the text content inside a line fragment.
     /// Text segment is a logically and visually contiguous portion of the text content inside a line fragment that you specify with a single text range.
     /// The framework enumerates the segments visually from left to right.
-    public func textSegmentFrame(in textRange: NSTextRange, type: NSTextLayoutManager.SegmentType, options: SegmentOptions = [.upstreamAffinity, .rangeNotRequired]) -> CGRect? {
+    public func textSegmentFrame(
+        in textRange: NSTextRange, type: NSTextLayoutManager.SegmentType, options: SegmentOptions = [.upstreamAffinity, .rangeNotRequired]
+    ) -> CGRect? {
         var result: CGRect? = nil
         // .upstreamAffinity: When specified, the segment is placed based on the upstream affinity for an empty range.
         //
@@ -178,7 +185,8 @@ extension NSTextLayoutManager {
         // the behavior of the text selection when the text is modified or manipulated.
 
         // FB15131180: Extra line fragment frame is not correct, that affects enumerateTextSegments as well.
-        enumerateTextSegments(in: textRange, type: type, options: options) { textSegmentRange, textSegmentFrame, baselinePosition, textContainer -> Bool in
+        enumerateTextSegments(in: textRange, type: type, options: options) {
+            textSegmentRange, textSegmentFrame, baselinePosition, textContainer -> Bool in
             result = result?.union(textSegmentFrame) ?? textSegmentFrame
             return true
         }
@@ -186,9 +194,12 @@ extension NSTextLayoutManager {
     }
 
     /// Enumerates text segments in the text range you provide.
-    public func textSegmentFrames(in textRange: NSTextRange, type: NSTextLayoutManager.SegmentType, options: SegmentOptions = [.upstreamAffinity, .rangeNotRequired]) -> [CGRect] {
+    public func textSegmentFrames(
+        in textRange: NSTextRange, type: NSTextLayoutManager.SegmentType, options: SegmentOptions = [.upstreamAffinity, .rangeNotRequired]
+    ) -> [CGRect] {
         var result: [CGRect] = []
-        enumerateTextSegments(in: textRange, type: type, options: options) { textSegmentRange, textSegmentFrame, baselinePosition, textContainer -> Bool in
+        enumerateTextSegments(in: textRange, type: type, options: options) {
+            textSegmentRange, textSegmentFrame, baselinePosition, textContainer -> Bool in
             result.append(textSegmentFrame)
             return true
         }
@@ -206,7 +217,9 @@ extension NSTextLayoutManager {
     ///   - options: One or more of the available NSTextLayoutFragmentEnumerationOptions
     ///   - block: A closure you provide that determines if the enumeration finishes early.
     /// - Returns: An NSTextLocation, or nil. If the method enumerates at least one fragment, it returns the edge of the enumerated range.
-    @discardableResult public func enumerateTextLayoutFragments(in range: NSTextRange, options: NSTextLayoutFragment.EnumerationOptions = [], using block: (NSTextLayoutFragment) -> Bool) -> NSTextLocation? {
+    @discardableResult public func enumerateTextLayoutFragments(
+        in range: NSTextRange, options: NSTextLayoutFragment.EnumerationOptions = [], using block: (NSTextLayoutFragment) -> Bool
+    ) -> NSTextLocation? {
         enumerateTextLayoutFragments(from: range.location, options: options) { layoutFragment in
             guard layoutFragment.rangeInElement.location <= range.endLocation else {
                 return false

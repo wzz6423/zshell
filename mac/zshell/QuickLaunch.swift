@@ -80,9 +80,11 @@ struct QuickLaunchEntry: Identifiable, Equatable {
         case .ssh(let user, let host, let port, let extraArguments):
             var action = "ssh"
             if let port, port != 22 { action += " -p \(port)" }
-            action += " " + TerminalSession.shellQuote(
-                user.map { "\($0)@\(host)" } ?? host
-            )
+            action +=
+                " "
+                + TerminalSession.shellQuote(
+                    user.map { "\($0)@\(host)" } ?? host
+                )
             let extra = extraArguments?.trimmingCharacters(in: .whitespaces) ?? ""
             if !extra.isEmpty { action += " " + extra }
             script = action + "\n" + Self.startupCommandTail(startupCommand)

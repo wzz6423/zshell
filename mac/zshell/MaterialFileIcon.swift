@@ -2543,16 +2543,19 @@ enum MaterialFileIcon {
         let iconName = iconName(forPath: path)
         let resolvedAppearance = appearance ?? NSApp.effectiveAppearance
         let isLight = resolvedAppearance.bestMatch(from: [.aqua, .darkAqua]) == .aqua
-        let variant = isLight && lightIconNames.contains(iconName)
+        let variant =
+            isLight && lightIconNames.contains(iconName)
             ? iconName + "_light"
             : iconName
         let cacheKey = variant as NSString
         if let cached = cache.object(forKey: cacheKey) { return cached }
 
-        guard let url = Bundle.main.url(
-            forResource: resourcePrefix + variant,
-            withExtension: "svg"
-        ), let image = NSImage(contentsOf: url) else {
+        guard
+            let url = Bundle.main.url(
+                forResource: resourcePrefix + variant,
+                withExtension: "svg"
+            ), let image = NSImage(contentsOf: url)
+        else {
             return NSImage(
                 systemSymbolName: "doc.text",
                 accessibilityDescription: nil
@@ -2564,14 +2567,15 @@ enum MaterialFileIcon {
     }
 
     static func iconName(forPath path: String) -> String {
-        let normalizedPath = path
+        let normalizedPath =
+            path
             .replacingOccurrences(of: "\\", with: "/")
             .lowercased()
         let fileName = (normalizedPath as NSString).lastPathComponent
 
         let pathParts = normalizedPath.split(separator: "/", omittingEmptySubsequences: true)
         if pathParts.count > 1 {
-            for index in 0..<(pathParts.count - 1) {
+            for index in 0 ..< (pathParts.count - 1) {
                 let suffix = pathParts[index...].joined(separator: "/")
                 if let exact = pathFileNames[suffix] { return exact }
             }
@@ -2580,7 +2584,7 @@ enum MaterialFileIcon {
 
         let parts = fileName.split(separator: ".", omittingEmptySubsequences: false)
         if parts.count > 1 {
-            for index in 1..<parts.count {
+            for index in 1 ..< parts.count {
                 let suffix = parts[index...].joined(separator: ".")
                 if let iconName = fileExtensions[suffix] { return iconName }
             }
@@ -2597,12 +2601,14 @@ struct MaterialFileIconView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        Image(nsImage: MaterialFileIcon.image(
-            forPath: path,
-            appearance: colorScheme == .dark
-                ? NSAppearance(named: .darkAqua)
-                : NSAppearance(named: .aqua)
-        ))
+        Image(
+            nsImage: MaterialFileIcon.image(
+                forPath: path,
+                appearance: colorScheme == .dark
+                    ? NSAppearance(named: .darkAqua)
+                    : NSAppearance(named: .aqua)
+            )
+        )
         .renderingMode(.original)
         .resizable()
         .interpolation(.high)

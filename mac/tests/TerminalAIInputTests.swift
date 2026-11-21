@@ -96,10 +96,11 @@ struct TerminalAIInputTests {
             precondition(snapshot?.firstRow == 27)
             precondition(snapshot?.rows == ["0123456789abcdefghij"])
             precondition(snapshot?.cursor == TerminalAIInputCaret(row: 0, offset: 20))
-            precondition(TerminalAIInputSnapshot(
-                processID: 1, columns: 100, lines: lines,
-                cursorRow: 29, cursorPrefix: "  "
-            ) == nil)
+            precondition(
+                TerminalAIInputSnapshot(
+                    processID: 1, columns: 100, lines: lines,
+                    cursorRow: 29, cursorPrefix: "  "
+                ) == nil)
             print("PASS: real Claude NBSP frame recognizes the input caret and rejects a footer caret")
         }
         do {
@@ -123,7 +124,7 @@ struct TerminalAIInputTests {
         do {
             let fixture = InputFixture()
             fixture.click(5)
-            fixture.select(2..<8)
+            fixture.select(2 ..< 8)
             fixture.insert("voice")
             fixture.settle()
             precondition(String(fixture.text) == "01voice89abcdefghij")
@@ -131,7 +132,7 @@ struct TerminalAIInputTests {
         }
         do {
             let fixture = InputFixture()
-            fixture.select(3..<7)
+            fixture.select(3 ..< 7)
             fixture.insert("X")
             fixture.click(10)
             fixture.settle()
@@ -158,7 +159,7 @@ struct TerminalAIInputTests {
         }
         do {
             let fixture = InputFixture()
-            fixture.selectBackward(2..<8)
+            fixture.selectBackward(2 ..< 8)
             fixture.insert("voice")
             fixture.settle()
             precondition(String(fixture.text) == "01voice89abcdefghij")
@@ -168,7 +169,7 @@ struct TerminalAIInputTests {
             let fixture = InputFixture()
             fixture.text = Array("零一二三四五六七八九")
             fixture.cursor = fixture.text.count
-            fixture.select(2..<8)
+            fixture.select(2 ..< 8)
             fixture.insert("语音")
             fixture.settle()
             precondition(String(fixture.text) == "零一语音八九")
@@ -176,7 +177,7 @@ struct TerminalAIInputTests {
         }
         do {
             let fixture = InputFixture()
-            fixture.select(3..<7)
+            fixture.select(3 ..< 7)
             fixture.text = Array("a completely different prompt")
             fixture.cursor = fixture.text.count
             fixture.insert("Z")

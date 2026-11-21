@@ -24,68 +24,92 @@ private func checkBranchTagCollisions(_ repo: String, worktree: String) {
     for branch in ["feature/one", "feature/two"] {
         require(GitCommandRunner.runData(["tag", branch], in: repo).status == 0, "same-named tag is created")
     }
-    require(snapshot(repo) == first && snapshot(worktree) == second,
-            "same-named tags must not change local or linked-worktree branch identity")
-    require(context(snapshot(repo)) == context(first) && context(snapshot(worktree)) == context(second),
-            "same-named tags must not change the PR query context")
+    require(
+        snapshot(repo) == first && snapshot(worktree) == second,
+        "same-named tags must not change local or linked-worktree branch identity")
+    require(
+        context(snapshot(repo)) == context(first) && context(snapshot(worktree)) == context(second),
+        "same-named tags must not change the PR query context")
     let branch = "heads/feature"
-    require(GitCommandRunner.runData(["switch", "-c", branch], in: repo).status == 0,
-            "a branch whose real name starts with heads/ is created")
+    require(
+        GitCommandRunner.runData(["switch", "-c", branch], in: repo).status == 0,
+        "a branch whose real name starts with heads/ is created")
     require(GitCommandRunner.runData(["tag", branch], in: repo).status == 0, "the prefixed branch also has a same-named tag")
     let prefixed = snapshot(repo)
-    require(prefixed.branch == branch && context(prefixed).localBranch == branch && context(prefixed).headBranch == branch,
-            "a real heads/ prefix must be retained in branch and PR identity")
-    require(GitCommandRunner.runData(["switch", "--detach", "HEAD"], in: repo).status == 0,
-            "the fixture enters detached HEAD")
+    require(
+        prefixed.branch == branch && context(prefixed).localBranch == branch && context(prefixed).headBranch == branch,
+        "a real heads/ prefix must be retained in branch and PR identity")
+    require(
+        GitCommandRunner.runData(["switch", "--detach", "HEAD"], in: repo).status == 0,
+        "the fixture enters detached HEAD")
     require(snapshot(repo).branch == nil, "detached HEAD must remain branchless")
     guard case .hidden = ProjectPullRequestContext.resolve(snapshot(repo)) else {
         fatalError("detached HEAD must not query a branch PR")
     }
-    require(GitCommandRunner.runData(["switch", "feature/one"], in: repo).status == 0,
-            "the original fixture branch is restored")
+    require(
+        GitCommandRunner.runData(["switch", "feature/one"], in: repo).status == 0,
+        "the original fixture branch is restored")
     let headReads = QueryLog()
-    let raced = GitStatusModel.branchSnapshot(in: repo, commandRunner: { arguments, directory in
-        if arguments.first == "symbolic-ref", arguments.last == "HEAD" {
-            headReads.append(arguments)
-            if headReads.calls().count == 2 {
-                require(GitCommandRunner.runData(["switch", branch], in: directory).status == 0,
+    let raced = GitStatusModel.branchSnapshot(
+        in: repo,
+        commandRunner: { arguments, directory in
+            if arguments.first == "symbolic-ref", arguments.last == "HEAD" {
+                headReads.append(arguments)
+                if headReads.calls().count == 2 {
+                    require(
+                        GitCommandRunner.runData(["switch", branch], in: directory).status == 0,
                         "the fixture switches branches during the probe")
+                }
             }
-        }
-        return GitCommandRunner.runData(arguments, in: directory, limit: 65_536, timeout: 3)
-    })
+            return GitCommandRunner.runData(arguments, in: directory, limit: 65_536, timeout: 3)
+        })
     guard case .unavailable = raced else { fatalError("a concurrent branch switch must invalidate the probe") }
-    require(GitCommandRunner.runData(["switch", "feature/one"], in: repo).status == 0,
-            "the original branch is restored after the race")
+    require(
+        GitCommandRunner.runData(["switch", "feature/one"], in: repo).status == 0,
+        "the original branch is restored after the race")
     let unborn = URL(fileURLWithPath: repo).deletingLastPathComponent().appendingPathComponent("unborn")
     try! FileManager.default.createDirectory(at: unborn, withIntermediateDirectories: false)
-    require(GitCommandRunner.runData(["init", "-q", "--initial-branch=heads/unborn"], in: unborn.path).status == 0,
-            "an unborn fixture branch is initialized")
+    require(
+        GitCommandRunner.runData(["init", "-q", "--initial-branch=heads/unborn"], in: unborn.path).status == 0,
+        "an unborn fixture branch is initialized")
     require(snapshot(unborn.path).branch == "heads/unborn", "unborn branches must retain their exact local name")
     print("Branch/tag collisions: local, worktree, PR context, heads/ prefix, detached and unborn passed")
 }
 
 private nonisolated func response(_ nodes: [[String: Any]], hasNext: Bool = false) -> String {
-    let payload: [String: Any] = ["data": ["repository": [
-        "parent": NSNull(),
-        "pullRequests": ["pageInfo": ["hasNextPage": hasNext], "nodes": nodes],
-    ]]]
+    let payload: [String: Any] = [
+        "data": [
+            "repository": [
+                "parent": NSNull(),
+                "pullRequests": ["pageInfo": ["hasNextPage": hasNext], "nodes": nodes],
+            ]
+        ]
+    ]
     return String(decoding: try! JSONSerialization.data(withJSONObject: payload), as: UTF8.self)
 }
 
-private func node(_ number: Int, branch: String = "feature/one", repo: String = "example/fork",
-                  state: String = "OPEN", draft: Bool = false, url: String? = nil) -> [String: Any] {
-    ["number": number, "url": url ?? "https://github.com/example/base/pull/\(number)",
-     "state": state, "isDraft": draft, "headRefName": branch,
-     "headRepository": ["nameWithOwner": repo], "updatedAt": "2026-01-01T00:00:00Z"]
+private func node(
+    _ number: Int, branch: String = "feature/one", repo: String = "example/fork",
+    state: String = "OPEN", draft: Bool = false, url: String? = nil
+) -> [String: Any] {
+    [
+        "number": number, "url": url ?? "https://github.com/example/base/pull/\(number)",
+        "state": state, "isDraft": draft, "headRefName": branch,
+        "headRepository": ["nameWithOwner": repo], "updatedAt": "2026-01-01T00:00:00Z",
+    ]
 }
 
-private func query(_ context: ProjectPullRequestContext, output: String, status: Int32 = 0,
-                   timedOut: Bool = false, truncated: Bool = false) -> ProjectPullRequestState {
-    GitHubPullRequestWorker.query(context, environment: ["PATH": "/usr/bin", "GH_REPO": "wrong/repo"],
-        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, _, _, environment in
+private func query(
+    _ context: ProjectPullRequestContext, output: String, status: Int32 = 0,
+    timedOut: Bool = false, truncated: Bool = false
+) -> ProjectPullRequestState {
+    GitHubPullRequestWorker.query(
+        context, environment: ["PATH": "/usr/bin", "GH_REPO": "wrong/repo"],
+        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") },
+        command: { _, _, _, environment in
             require(environment["GH_REPO"] == nil, "GH_REPO must not redirect the query")
-            return BoundedProcessResult(terminationStatus: status, timedOut: timedOut,
+            return BoundedProcessResult(
+                terminationStatus: status, timedOut: timedOut,
                 output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: truncated))
         })
 }
@@ -102,39 +126,51 @@ private nonisolated final class QueryLog: @unchecked Sendable {
 }
 
 private func checkFilteredLookup(_ context: ProjectPullRequestContext) {
-    let crowded = response((1...50).map { node($0, repo: "other/fork") }, hasNext: true)
-    let firstPage = filteredResponse((1...50).map { node($0, repo: "example/another-fork") })
+    let crowded = response((1 ... 50).map { node($0, repo: "other/fork") }, hasNext: true)
+    let firstPage = filteredResponse((1 ... 50).map { node($0, repo: "example/another-fork") })
     let secondPage = filteredResponse([node(87), node(88)])
     let log = QueryLog()
-    let paged = GitHubPullRequestWorker.query(context,
-        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, timeout, _ in
+    let paged = GitHubPullRequestWorker.query(
+        context,
+        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") },
+        command: { _, arguments, timeout, _ in
             log.append(arguments)
             require(timeout > 0 && timeout <= 12, "all query stages must share the total deadline")
             let output: String
             if arguments.contains("repos/example/base/pulls") {
-                require(arguments.contains("head=example:feature/one") && arguments.contains("GET"),
-                        "large connections must filter the head owner on the server")
+                require(
+                    arguments.contains("head=example:feature/one") && arguments.contains("GET"),
+                    "large connections must filter the head owner on the server")
                 require(arguments.contains("state=open"), "an open PR must take priority over a closed PR")
                 output = arguments.contains("page=1") ? firstPage : secondPage
-            } else { output = arguments.contains("name=base") ? crowded : response([]) }
-            return BoundedProcessResult(terminationStatus: 0, timedOut: false,
+            } else {
+                output = arguments.contains("name=base") ? crowded : response([])
+            }
+            return BoundedProcessResult(
+                terminationStatus: 0, timedOut: false,
                 output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: false))
         })
     guard case .pullRequest(let pr) = paged, pr.number == 88, pr.status == .open else {
         fatalError("owner-filtered paging must find the exact fork on later pages and break timestamp ties")
     }
-    require(log.calls().filter { $0.contains("repos/example/base/pulls") }.count == 2,
-            "lookup must stop once the best exact-fork match is known")
+    require(
+        log.calls().filter { $0.contains("repos/example/base/pulls") }.count == 2,
+        "lookup must stop once the best exact-fork match is known")
 
     for state in ["MERGED", "CLOSED"] {
         let closed = filteredResponse([node(90, state: state)])
-        let result = GitHubPullRequestWorker.query(context,
-            locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, _, _ in
+        let result = GitHubPullRequestWorker.query(
+            context,
+            locate: { _ in URL(fileURLWithPath: "/usr/bin/true") },
+            command: { _, arguments, _, _ in
                 let output: String
                 if arguments.contains("repos/example/base/pulls") {
                     output = arguments.contains("state=open") ? filteredResponse([]) : closed
-                } else { output = arguments.contains("name=base") ? crowded : response([]) }
-                return BoundedProcessResult(terminationStatus: 0, timedOut: false,
+                } else {
+                    output = arguments.contains("name=base") ? crowded : response([])
+                }
+                return BoundedProcessResult(
+                    terminationStatus: 0, timedOut: false,
                     output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: false))
             })
         guard case .pullRequest(let pr) = result, pr.number == 90, pr.status.rawValue == state else {
@@ -142,24 +178,36 @@ private func checkFilteredLookup(_ context: ProjectPullRequestContext) {
         }
     }
 
-    let empty = GitHubPullRequestWorker.query(context,
-        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, _, _ in
-            let output = arguments.contains("repos/example/base/pulls") ? filteredResponse([])
+    let empty = GitHubPullRequestWorker.query(
+        context,
+        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") },
+        command: { _, arguments, _, _ in
+            let output =
+                arguments.contains("repos/example/base/pulls")
+                ? filteredResponse([])
                 : arguments.contains("name=base") ? crowded : response([])
-            return BoundedProcessResult(terminationStatus: 0, timedOut: false,
+            return BoundedProcessResult(
+                terminationStatus: 0, timedOut: false,
                 output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: false))
         })
     require(empty == .none, "a crowded branch with no exact-fork PR must report no PR")
 
-    let withoutUpstream = ProjectPullRequestContext(root: context.root, gitDirectory: context.gitDirectory,
+    let withoutUpstream = ProjectPullRequestContext(
+        root: context.root, gitDirectory: context.gitDirectory,
         localBranch: context.localBranch, headBranch: context.headBranch,
         headRepository: context.headRepository, baseRepository: nil)
-    let forkResponse = "{\"data\":{\"repository\":{\"parent\":{\"nameWithOwner\":\"example/base\"},\"pullRequests\":{\"nodes\":[],\"pageInfo\":{\"hasNextPage\":false}}}}}"
-    let parent = GitHubPullRequestWorker.query(withoutUpstream,
-        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, _, _ in
-            let output = arguments.contains("repos/example/base/pulls") ? secondPage
+    let forkResponse =
+        "{\"data\":{\"repository\":{\"parent\":{\"nameWithOwner\":\"example/base\"},\"pullRequests\":{\"nodes\":[],\"pageInfo\":{\"hasNextPage\":false}}}}}"
+    let parent = GitHubPullRequestWorker.query(
+        withoutUpstream,
+        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") },
+        command: { _, arguments, _, _ in
+            let output =
+                arguments.contains("repos/example/base/pulls")
+                ? secondPage
                 : arguments.contains("name=base") ? crowded : forkResponse
-            return BoundedProcessResult(terminationStatus: 0, timedOut: false,
+            return BoundedProcessResult(
+                terminationStatus: 0, timedOut: false,
                 output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: false))
         })
     guard case .pullRequest(let parentPR) = parent, parentPR.number == 88 else {
@@ -167,23 +215,32 @@ private func checkFilteredLookup(_ context: ProjectPullRequestContext) {
     }
 
     let boundedLog = QueryLog()
-    let bounded = GitHubPullRequestWorker.query(context,
-        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, _, _ in
+    let bounded = GitHubPullRequestWorker.query(
+        context,
+        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") },
+        command: { _, arguments, _, _ in
             boundedLog.append(arguments)
             let output = arguments.contains("graphql") ? crowded : firstPage
-            return BoundedProcessResult(terminationStatus: 0, timedOut: false,
+            return BoundedProcessResult(
+                terminationStatus: 0, timedOut: false,
                 output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: false))
         })
-    require(bounded == .failed(.unavailable) && boundedLog.calls().count == 11,
-            "ambiguous owner-filtered pages must be bounded and cannot claim no PR")
+    require(
+        bounded == .failed(.unavailable) && boundedLog.calls().count == 11,
+        "ambiguous owner-filtered pages must be bounded and cannot claim no PR")
 
-    for (status, timedOut, truncated, expected) in [(Int32(4), false, false, ProjectPullRequestState.failed(.notSignedIn)),
-                                                    (0, true, false, .failed(.unavailable)),
-                                                    (0, false, true, .failed(.unavailable))] {
-        let failed = GitHubPullRequestWorker.query(context,
-            locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, _, _ in
+    for (status, timedOut, truncated, expected) in [
+        (Int32(4), false, false, ProjectPullRequestState.failed(.notSignedIn)),
+        (0, true, false, .failed(.unavailable)),
+        (0, false, true, .failed(.unavailable)),
+    ] {
+        let failed = GitHubPullRequestWorker.query(
+            context,
+            locate: { _ in URL(fileURLWithPath: "/usr/bin/true") },
+            command: { _, arguments, _, _ in
                 let filtering = !arguments.contains("graphql")
-                return BoundedProcessResult(terminationStatus: filtering ? status : 0,
+                return BoundedProcessResult(
+                    terminationStatus: filtering ? status : 0,
                     timedOut: filtering && timedOut,
                     output: BoundedProcessOutput(stdout: crowded, stderr: "", wasTruncated: filtering && truncated))
             })
@@ -219,7 +276,7 @@ private actor LookupGate {
 }
 
 private func waitForPR(_ number: Int, in model: ProjectPullRequestModel) async {
-    for _ in 0..<150 {
+    for _ in 0 ..< 150 {
         if case .pullRequest(let pr) = model.state, pr.number == number { return }
         try? await Task.sleep(nanoseconds: 20_000_000)
     }
@@ -230,17 +287,21 @@ private func checkWatchedGitNoise(_ repo: String) async {
     let expected = snapshot(repo)
     let queries = Counter()
     let probes = QueryLog()
-    let pr = ProjectPullRequest(number: 71, status: .open,
+    let pr = ProjectPullRequest(
+        number: 71, status: .open,
         url: URL(string: "https://github.com/example/base/pull/71")!)
-    let cache = ProjectPullRequestCache(lookup: { _ in await queries.increment(); return .pullRequest(pr) })
-    let model = ProjectPullRequestModel(cache: cache, probe: { directory in
-        let result = GitStatusModel.branchSnapshot(in: directory)
-        let unchanged: Bool
-        if case .repository(let current) = result { unchanged = current == expected }
-        else { unchanged = false }
-        probes.append([directory, "unchanged=\(unchanged)"])
-        return result
+    let cache = ProjectPullRequestCache(lookup: { _ in
+        await queries.increment(); return .pullRequest(pr)
     })
+    let model = ProjectPullRequestModel(
+        cache: cache,
+        probe: { directory in
+            let result = GitStatusModel.branchSnapshot(in: directory)
+            let unchanged: Bool
+            if case .repository(let current) = result { unchanged = current == expected } else { unchanged = false }
+            probes.append([directory, "unchanged=\(unchanged)"])
+            return result
+        })
     model.sync(directory: repo)
     await waitForPR(pr.number, in: model)
     try? await Task.sleep(nanoseconds: 100_000_000)
@@ -255,8 +316,9 @@ private func checkWatchedGitNoise(_ repo: String) async {
     require(unchanged, "index.lock activity must not change the branch snapshot")
     require(probes.calls().allSatisfy { $0.last == "unchanged=true" }, "all probes must see the same repository context")
     require(newProbes == 1, "one unrelated metadata event must trigger one branch probe")
-    require(states.allSatisfy { $0 == .pullRequest(pr) },
-            "index.lock events must not hide the PR row or show Checking PR again")
+    require(
+        states.allSatisfy { $0 == .pullRequest(pr) },
+        "index.lock events must not hide the PR row or show Checking PR again")
     let queryCount = await queries.calls
     require(queryCount == 1, "unrelated Git metadata must not request another PR lookup")
     states.removeAll()
@@ -264,10 +326,11 @@ private func checkWatchedGitNoise(_ repo: String) async {
     try! FileManager.default.removeItem(at: lock)
     let gitDirectory = URL(fileURLWithPath: expected.gitDirectory)
     let scratch = gitDirectory.appendingPathComponent("fixture-noise")
-    for iteration in 0..<60 {
+    for iteration in 0 ..< 60 {
         if iteration % 20 == 0 {
-            require(GitCommandRunner.runData(["read-tree", "HEAD"], in: repo).status == 0,
-                    "fixture index rewrite failed")
+            require(
+                GitCommandRunner.runData(["read-tree", "HEAD"], in: repo).status == 0,
+                "fixture index rewrite failed")
         }
         try! Data().write(to: lock)
         try! FileManager.default.removeItem(at: lock)
@@ -301,15 +364,20 @@ private func checkWatchedContextChanges(_ repo: String) async {
     let initial = snapshot(repo), probes = QueryLog(), queries = QueryLog()
     let cache = ProjectPullRequestCache(lookup: { item in
         queries.append([item.localBranch, item.headRepository.nameWithOwner])
-        let number = item.headRepository.nameWithOwner == "example/fork"
+        let number =
+            item.headRepository.nameWithOwner == "example/fork"
             ? (item.localBranch == "feature/one" ? 72 : 73) : (item.localBranch == "feature/one" ? 75 : 74)
-        return .pullRequest(ProjectPullRequest(number: number, status: .open,
-            url: URL(string: "https://github.com/example/base/pull/\(number)")!))
+        return .pullRequest(
+            ProjectPullRequest(
+                number: number, status: .open,
+                url: URL(string: "https://github.com/example/base/pull/\(number)")!))
     })
-    let model = ProjectPullRequestModel(cache: cache, probe: { directory in
-        probes.append([directory])
-        return GitStatusModel.branchSnapshot(in: directory)
-    })
+    let model = ProjectPullRequestModel(
+        cache: cache,
+        probe: { directory in
+            probes.append([directory])
+            return GitStatusModel.branchSnapshot(in: directory)
+        })
     model.sync(directory: repo)
     await waitForPR(72, in: model)
     let head = URL(fileURLWithPath: initial.gitDirectory).appendingPathComponent("HEAD")
@@ -318,7 +386,7 @@ private func checkWatchedContextChanges(_ repo: String) async {
     let count = probes.calls().count
     try! originalHead.write(to: head, options: .atomic)
     try! originalConfig.write(to: config, options: .atomic)
-    for _ in 0..<150 {
+    for _ in 0 ..< 150 {
         if probes.calls().count > count { break }
         try? await Task.sleep(nanoseconds: 20_000_000)
     }
@@ -336,12 +404,16 @@ private func checkWatchedContextChanges(_ repo: String) async {
     require(model.context?.headRepository.nameWithOwner == "another/fork", "remote config change was not resolved")
     require(GitCommandRunner.runData(["switch", "feature/one"], in: repo).status == 0, "real branch switch failed")
     await waitForPR(75, in: model)
-    require(GitCommandRunner.runData(["remote", "set-url", "origin", "git@github.com:example/fork.git"], in: repo).status == 0,
-            "remote config restoration failed")
+    require(
+        GitCommandRunner.runData(["remote", "set-url", "origin", "git@github.com:example/fork.git"], in: repo).status == 0,
+        "remote config restoration failed")
     await waitForPR(72, in: model)
-    require(queries.calls() == [["feature/one", "example/fork"], [branch, "example/fork"],
-                               [branch, "another/fork"], ["feature/one", "another/fork"]],
-            "context changes must query the new branch/repository and reuse fresh results")
+    require(
+        queries.calls() == [
+            ["feature/one", "example/fork"], [branch, "example/fork"],
+            [branch, "another/fork"], ["feature/one", "another/fork"],
+        ],
+        "context changes must query the new branch/repository and reuse fresh results")
     require(snapshot(repo) == initial, "fixture context must be restored")
     model.detach()
     print("Git watcher identity: atomic replacement, reattached HEAD/config, real branch switch and remote changes passed")
@@ -352,32 +424,36 @@ private func checkWatchedLookupRace(_ repo: String) async {
     let cache = ProjectPullRequestCache(lookup: { item in
         if item.localBranch == "feature/one" { await gate.wait() }
         let number = item.localBranch == "feature/one" ? 76 : 77
-        return .pullRequest(ProjectPullRequest(number: number, status: .open,
-            url: URL(string: "https://github.com/example/base/pull/\(number)")!))
+        return .pullRequest(
+            ProjectPullRequest(
+                number: number, status: .open,
+                url: URL(string: "https://github.com/example/base/pull/\(number)")!))
     })
     let model = ProjectPullRequestModel(cache: cache)
     model.sync(directory: repo)
-    for _ in 0..<150 {
+    for _ in 0 ..< 150 {
         if await gate.started { break }
         try? await Task.sleep(nanoseconds: 20_000_000)
     }
     let started = await gate.started
     require(started, "the old branch lookup must be pending before switching")
-    require(GitCommandRunner.runData(["switch", "feature/watched"], in: repo).status == 0,
-            "fixture branch switch during pending lookup failed")
+    require(
+        GitCommandRunner.runData(["switch", "feature/watched"], in: repo).status == 0,
+        "fixture branch switch during pending lookup failed")
     await waitForPR(77, in: model)
     var states: [ProjectPullRequestState] = []
     let observation = model.$state.dropFirst().sink { states.append($0) }
     await gate.release()
-    for _ in 0..<150 {
+    for _ in 0 ..< 150 {
         if await gate.finished { break }
         try? await Task.sleep(nanoseconds: 20_000_000)
     }
     try? await Task.sleep(nanoseconds: 400_000_000)
-    require(states.allSatisfy {
-        if case .pullRequest(let pr) = $0 { return pr.number == 77 }
-        return false
-    }, "an old asynchronous result must not replace or invalidate the current PR")
+    require(
+        states.allSatisfy {
+            if case .pullRequest(let pr) = $0 { return pr.number == 77 }
+            return false
+        }, "an old asynchronous result must not replace or invalidate the current PR")
     require(model.context?.localBranch == "feature/watched", "late old lookup changed the current branch context")
     await waitForPR(77, in: model)
     observation.cancel()
@@ -414,10 +490,12 @@ private func checkOpenDuringRefresh(_ repo: String) async {
         await queries.increment()
         return .pullRequest(await queries.calls == 1 ? initial : updated)
     })
-    let model = ProjectPullRequestModel(cache: cache, probe: { _ in
-        gate.pauseIfArmed()
-        return .repository(expected)
-    })
+    let model = ProjectPullRequestModel(
+        cache: cache,
+        probe: { _ in
+            gate.pauseIfArmed()
+            return .repository(expected)
+        })
     model.sync(directory: repo)
     await waitForPR(initial.number, in: model)
     var states: [ProjectPullRequestState] = []
@@ -433,14 +511,14 @@ private func checkOpenDuringRefresh(_ repo: String) async {
         }
     }
     model.refresh()
-    for _ in 0..<150 {
+    for _ in 0 ..< 150 {
         if gate.started { break }
         try? await Task.sleep(nanoseconds: 10_000_000)
     }
     require(clicked && gate.started, "the click must verify while the same-context refresh is pending")
     require(model.state == .loading, "the refresh must update state before the open callback returns")
     gate.resume()
-    for _ in 0..<150 {
+    for _ in 0 ..< 150 {
         if model.state == .pullRequest(updated) { break }
         try? await Task.sleep(nanoseconds: 10_000_000)
     }
@@ -470,13 +548,17 @@ private func gitProxy(_ environment: [String: String], in directory: String) -> 
 
 private func checkGitProxy(_ repo: String) {
     let base = ["PATH": "/usr/bin:/bin", "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null"]
-    for valid in ["http://127.0.0.1:7897", " socks5h://user:pass@proxy.example:1080 ", "https://[::1]:8443",
-                  "http://proxy.example", "socks5://proxy.example:1", "https://proxy.example:65535"] {
+    for valid in [
+        "http://127.0.0.1:7897", " socks5h://user:pass@proxy.example:1080 ", "https://[::1]:8443",
+        "http://proxy.example", "socks5://proxy.example:1", "https://proxy.example:65535",
+    ] {
         require(GitProxy.normalized(valid) == valid.trimmingCharacters(in: .whitespaces), "valid proxy \(valid)")
     }
-    for invalid in ["", "127.0.0.1:7897", "ftp://127.0.0.1:21", "http://", "http://a b:1", "http://h:1/?x=1", "http://h\n:1",
-                    "socks4://127.0.0.1:1080", "SOCKS4A://127.0.0.1:1080", "http://127.0.0.1:0",
-                    "http://127.0.0.1:65536", "https://[::1]:99999"] {
+    for invalid in [
+        "", "127.0.0.1:7897", "ftp://127.0.0.1:21", "http://", "http://a b:1", "http://h:1/?x=1", "http://h\n:1",
+        "socks4://127.0.0.1:1080", "SOCKS4A://127.0.0.1:1080", "http://127.0.0.1:0",
+        "http://127.0.0.1:65536", "https://[::1]:99999",
+    ] {
         require(GitProxy.normalized(invalid) == nil, "invalid proxy \(invalid.debugDescription)")
     }
     require(GitProxy.defaultEnabled == false && GitProxy.defaultAddress == "http://127.0.0.1:7897", "proxy defaults")
@@ -487,23 +569,27 @@ private func checkGitProxy(_ repo: String) {
     require(GitProxy.address == nil, "an invalid address must disable the proxy")
     GitProxy.update(enabled: true, address: " http://127.0.0.1:7897 ")
     let app = GitProxy.processEnvironment(inheriting: base)
-    require(app["HTTPS_PROXY"] == "http://127.0.0.1:7897" && app["https_proxy"] == "http://127.0.0.1:7897"
+    require(
+        app["HTTPS_PROXY"] == "http://127.0.0.1:7897" && app["https_proxy"] == "http://127.0.0.1:7897"
             && app["all_proxy"] == "http://127.0.0.1:7897", "gh must see the proxy")
     require(gitProxy(app, in: repo) == "http://127.0.0.1:7897", "app Git must use the proxy")
     let runner = GitCommandRunner.processEnvironment()
     require(runner["GIT_TERMINAL_PROMPT"] == "0" && runner["HTTPS_PROXY"] == "http://127.0.0.1:7897", "runner environment")
     let terminal = GitProxy.terminalEnvironment(inheriting: base)
-    require(Set(terminal.keys) == ["GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"],
-            "terminals must get only Git configuration")
+    require(
+        Set(terminal.keys) == ["GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"],
+        "terminals must get only Git configuration")
     require(gitProxy(base.merging(terminal) { $1 }, in: repo) == "http://127.0.0.1:7897", "terminal Git must use the proxy")
     let existing = base.merging(["GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.pager", "GIT_CONFIG_VALUE_0": "cat"]) { $1 }
     let appended = existing.merging(GitProxy.terminalEnvironment(inheriting: existing)) { $1 }
-    require(appended["GIT_CONFIG_COUNT"] == "2" && appended["GIT_CONFIG_KEY_0"] == "core.pager"
+    require(
+        appended["GIT_CONFIG_COUNT"] == "2" && appended["GIT_CONFIG_KEY_0"] == "core.pager"
             && gitProxy(appended, in: repo) == "http://127.0.0.1:7897", "existing GIT_CONFIG entries must be kept")
     // A reused PTY daemon applies the overrides to an environment without the
     // GUI's inherited entries, so the overrides alone must stay complete.
     let staleDaemon = base.merging(GitProxy.terminalEnvironment(inheriting: existing)) { $1 }
-    require(staleDaemon["GIT_CONFIG_KEY_0"] == "core.pager" && staleDaemon["GIT_CONFIG_VALUE_0"] == "cat"
+    require(
+        staleDaemon["GIT_CONFIG_KEY_0"] == "core.pager" && staleDaemon["GIT_CONFIG_VALUE_0"] == "cat"
             && gitProxy(staleDaemon, in: repo) == "http://127.0.0.1:7897", "terminal overrides must carry inherited entries")
     GitProxy.update(enabled: false, address: GitProxy.defaultAddress)
 }
@@ -516,69 +602,88 @@ struct ProjectPullRequestTests {
         let first = snapshot(repo), second = snapshot(worktree)
         require(first.branch == "feature/one", "main checkout branch")
         require(second.branch == "feature/two", "linked worktree branch")
-        require(first.gitDirectory != second.gitDirectory && first.commonGitDirectory == second.commonGitDirectory,
-                "linked worktree must use its own HEAD and shared config")
+        require(
+            first.gitDirectory != second.gitDirectory && first.commonGitDirectory == second.commonGitDirectory,
+            "linked worktree must use its own HEAD and shared config")
         let firstContext = context(first), secondContext = context(second)
         require(firstContext.headRepository.nameWithOwner == "example/fork", "head repository")
         require(firstContext.baseRepository?.nameWithOwner == "example/base", "upstream repository")
         require(secondContext.headBranch == "feature/two", "worktree branch resolution")
         checkBranchTagCollisions(repo, worktree: worktree)
-        let ambiguous = GitStatusModel.BranchSnapshot(root: first.root, gitDirectory: first.gitDirectory,
+        let ambiguous = GitStatusModel.BranchSnapshot(
+            root: first.root, gitDirectory: first.gitDirectory,
             commonGitDirectory: first.commonGitDirectory, branch: first.branch,
-            configuration: ["remote.a.url": ["git@github.com:example/a.git"],
-                            "remote.b.url": ["git@github.com:example/b.git"]])
+            configuration: [
+                "remote.a.url": ["git@github.com:example/a.git"],
+                "remote.b.url": ["git@github.com:example/b.git"],
+            ])
         guard case .ambiguous = ProjectPullRequestContext.resolve(ambiguous) else {
             fatalError("Multiple unrelated remotes must not be guessed")
         }
-        let nonGitHub = GitStatusModel.BranchSnapshot(root: first.root, gitDirectory: first.gitDirectory,
+        let nonGitHub = GitStatusModel.BranchSnapshot(
+            root: first.root, gitDirectory: first.gitDirectory,
             commonGitDirectory: first.commonGitDirectory, branch: first.branch,
             configuration: ["remote.origin.url": ["https://example.com/a/b.git"]])
         guard case .hidden = ProjectPullRequestContext.resolve(nonGitHub) else {
             fatalError("A non-GitHub remote must not be queried")
         }
         require(GitHubRepository.remote("https://example.com/a/b.git") == nil, "non-GitHub remote")
-        require(GitHubRepository.remote("git@github.com:Example/Fork.git")?.nameWithOwner == "example/fork",
-                "SSH remote resolution")
+        require(
+            GitHubRepository.remote("git@github.com:Example/Fork.git")?.nameWithOwner == "example/fork",
+            "SSH remote resolution")
         require(GitHubRepository.remote("https://github.com.evil.invalid/a/b") == nil, "spoofed host")
         guard case .notRepository = GitStatusModel.branchSnapshot(in: CommandLine.arguments[3]) else {
             fatalError("Plain directory must not be treated as a repository")
         }
 
-        for (state, draft, expected) in [("OPEN", false, ProjectPullRequest.Status.open),
-                                         ("OPEN", true, .draft), ("MERGED", false, .merged),
-                                         ("CLOSED", false, .closed)] {
+        for (state, draft, expected) in [
+            ("OPEN", false, ProjectPullRequest.Status.open),
+            ("OPEN", true, .draft), ("MERGED", false, .merged),
+            ("CLOSED", false, .closed),
+        ] {
             let actual = query(firstContext, output: response([node(42, state: state, draft: draft)]))
             guard case .pullRequest(let pr) = actual else { fatalError("missing \(expected) PR") }
             require(pr.number == 42 && pr.status == expected, "incorrect PR status")
         }
-        require(query(firstContext, output: response([node(9, repo: "other/fork")])) == .none,
-                "same branch in a different fork must not match")
-        require(query(firstContext, output: response([node(9, branch: "feature/two")])) == .none,
-                "other branch must not match")
-        require(query(firstContext, output: response([node(9, url: "https://evil.invalid/pull/9")])) == .none,
-                "unexpected PR URL must not be opened")
+        require(
+            query(firstContext, output: response([node(9, repo: "other/fork")])) == .none,
+            "same branch in a different fork must not match")
+        require(
+            query(firstContext, output: response([node(9, branch: "feature/two")])) == .none,
+            "other branch must not match")
+        require(
+            query(firstContext, output: response([node(9, url: "https://evil.invalid/pull/9")])) == .none,
+            "unexpected PR URL must not be opened")
         let ownPR = response([node(45, url: "https://github.com/example/fork/pull/45")])
         let empty = response([])
-        let ownResult = GitHubPullRequestWorker.query(firstContext,
-            locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, _, _ in
-                BoundedProcessResult(terminationStatus: 0, timedOut: false,
-                    output: BoundedProcessOutput(stdout: arguments.contains("name=fork") ? ownPR : empty,
-                                                 stderr: "", wasTruncated: false))
+        let ownResult = GitHubPullRequestWorker.query(
+            firstContext,
+            locate: { _ in URL(fileURLWithPath: "/usr/bin/true") },
+            command: { _, arguments, _, _ in
+                BoundedProcessResult(
+                    terminationStatus: 0, timedOut: false,
+                    output: BoundedProcessOutput(
+                        stdout: arguments.contains("name=fork") ? ownPR : empty,
+                        stderr: "", wasTruncated: false))
             })
         guard case .pullRequest(let own) = ownResult, own.number == 45 else {
             fatalError("an upstream remote must not hide a PR targeting the head repository")
         }
-        require(query(firstContext, output: response([], hasNext: true)) == .failed(.unavailable),
-                "incomplete results must not claim no PR")
+        require(
+            query(firstContext, output: response([], hasNext: true)) == .failed(.unavailable),
+            "incomplete results must not claim no PR")
         checkFilteredLookup(firstContext)
         require(query(firstContext, output: "", status: 4) == .failed(.notSignedIn), "authentication error")
         require(query(firstContext, output: "", timedOut: true) == .failed(.unavailable), "timeout")
         require(query(firstContext, output: "", truncated: true) == .failed(.unavailable), "truncated output")
-        require(GitHubPullRequestWorker.query(firstContext, locate: { _ in nil }) == .failed(.missingCLI),
-                "missing gh")
+        require(
+            GitHubPullRequestWorker.query(firstContext, locate: { _ in nil }) == .failed(.missingCLI),
+            "missing gh")
 
         let counter = Counter()
-        let cache = ProjectPullRequestCache(lookup: { _ in await counter.increment(); return .none })
+        let cache = ProjectPullRequestCache(lookup: { _ in
+            await counter.increment(); return .none
+        })
         _ = await cache.value(for: firstContext)
         _ = await cache.value(for: firstContext)
         let cachedCalls = await counter.calls
@@ -596,15 +701,17 @@ struct ProjectPullRequestTests {
         let switchingCache = ProjectPullRequestCache(lookup: { item in
             if item.localBranch == "feature/one" { try? await Task.sleep(nanoseconds: 600_000_000) }
             let number = item.localBranch == "feature/one" ? 1 : 2
-            return .pullRequest(ProjectPullRequest(number: number, status: .open,
-                url: URL(string: "https://github.com/example/base/pull/\(number)")!))
+            return .pullRequest(
+                ProjectPullRequest(
+                    number: number, status: .open,
+                    url: URL(string: "https://github.com/example/base/pull/\(number)")!))
         })
         let model = ProjectPullRequestModel(cache: switchingCache, probe: { _ in .repository(box.get()) })
         model.sync(directory: repo)
         try? await Task.sleep(nanoseconds: 100_000_000)
         box.set(second)
         model.sync(directory: repo, force: true)
-        for _ in 0..<100 {
+        for _ in 0 ..< 100 {
             if case .pullRequest(let pr) = model.state, pr.number == 2 { break }
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
@@ -620,9 +727,11 @@ struct ProjectPullRequestTests {
         model.detach()
         require(model.state == .hidden, "detached model must hide its result")
         if let liveBranch = ProcessInfo.processInfo.environment["ZSHELL_PR_LIVE_BRANCH"],
-           let liveRepository = ProcessInfo.processInfo.environment["ZSHELL_PR_LIVE_REPOSITORY"].flatMap(GitHubRepository.init),
-           let expected = ProcessInfo.processInfo.environment["ZSHELL_PR_LIVE_NUMBER"].flatMap(Int.init) {
-            let liveContext = ProjectPullRequestContext(root: repo, gitDirectory: first.gitDirectory,
+            let liveRepository = ProcessInfo.processInfo.environment["ZSHELL_PR_LIVE_REPOSITORY"].flatMap(GitHubRepository.init),
+            let expected = ProcessInfo.processInfo.environment["ZSHELL_PR_LIVE_NUMBER"].flatMap(Int.init)
+        {
+            let liveContext = ProjectPullRequestContext(
+                root: repo, gitDirectory: first.gitDirectory,
                 localBranch: liveBranch, headBranch: liveBranch, headRepository: liveRepository, baseRepository: nil)
             guard case .pullRequest(let livePR) = GitHubPullRequestWorker.query(liveContext), livePR.number == expected else {
                 fatalError("live GitHub lookup did not match the expected pull request")

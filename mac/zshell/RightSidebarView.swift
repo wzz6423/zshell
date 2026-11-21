@@ -21,7 +21,7 @@ struct RightSidebarView: View {
     @AppStorage("rightSidebarWidth") private var width: Double = 240
 
     private var sidebarWidthRange: ClosedRange<Double> {
-        (180 * settings.interfaceScale)...(500 * settings.interfaceScale)
+        (180 * settings.interfaceScale) ... (500 * settings.interfaceScale)
     }
 
     private var defaultSidebarWidth: Double {
@@ -44,10 +44,11 @@ struct RightSidebarView: View {
     /// Watching only these counters avoids reacting to prompt/input lifecycle
     /// updates while still catching commands completed in an unfocused pane.
     private var commandCompletionSequences: [UUID: UInt64] {
-        Dictionary(uniqueKeysWithValues:
-            manager.selectedProject?.sessions.map {
-                ($0.id, $0.commandLifecycle.completionSequence)
-            } ?? []
+        Dictionary(
+            uniqueKeysWithValues:
+                manager.selectedProject?.sessions.map {
+                    ($0.id, $0.commandLifecycle.completionSequence)
+                } ?? []
         )
     }
 
@@ -81,8 +82,9 @@ struct RightSidebarView: View {
             git: git,
             rootBadge: rootBadge,
             currentFilePath: openFilePath,
-            fontScale: CGFloat(settings.sidebarFontSize / AppSettings.defaultSidebarFontSize
-                * settings.interfaceScale),
+            fontScale: CGFloat(
+                settings.sidebarFontSize / AppSettings.defaultSidebarFontSize
+                    * settings.interfaceScale),
             openSearchResult: { openSearchResult($0) }
         )
     }
@@ -92,8 +94,9 @@ struct RightSidebarView: View {
             model: git,
             session: manager.selectedSession,
             isRemote: isProjectRemote,
-            fontScale: CGFloat(settings.sidebarFontSize / AppSettings.defaultSidebarFontSize
-                * settings.interfaceScale),
+            fontScale: CGFloat(
+                settings.sidebarFontSize / AppSettings.defaultSidebarFontSize
+                    * settings.interfaceScale),
             openFile: { manager.openFile($0) },
             openToSide: { manager.openFileToSide($0) },
             openDiff: { entry, staged in
@@ -126,8 +129,9 @@ struct RightSidebarView: View {
             remoteProject: isProjectRemote ? manager.selectedProject : nil,
             externalEditor: settings.externalEditor,
             showsVimHints: settings.vimCommandHints,
-            fontScale: CGFloat(settings.sidebarFontSize / AppSettings.defaultSidebarFontSize
-                * settings.interfaceScale)
+            fontScale: CGFloat(
+                settings.sidebarFontSize / AppSettings.defaultSidebarFontSize
+                    * settings.interfaceScale)
         )
     }
 
@@ -171,15 +175,19 @@ struct RightSidebarView: View {
                 syncModels()
             }
         }
-        .onReceive(NotificationCenter.default.publisher(
-            for: NSApplication.didBecomeActiveNotification
-        )) { _ in
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: NSApplication.didBecomeActiveNotification
+            )
+        ) { _ in
             applicationIsActive = true
             syncModels()
         }
-        .onReceive(NotificationCenter.default.publisher(
-            for: NSApplication.didResignActiveNotification
-        )) { _ in
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: NSApplication.didResignActiveNotification
+            )
+        ) { _ in
             applicationIsActive = false
         }
         .onChange(of: commandCompletionSequences) {
@@ -272,15 +280,16 @@ struct RightSidebarView: View {
             return
         }
         guard let project = manager.selectedProject,
-              let session = project.selectedSession
+            let session = project.selectedSession
         else {
             fileTree.configureRemote(nil)
             fileTree.sync(root: "")
             // An empty project has no shell to describe; drop whatever the
             // previous selection left behind, so a remote host's PIDs never
             // show up as signalable local rows.
-            info.sync(root: "", projectRoot: "", projectRootSource: .shell,
-                      shellName: "", shellPid: nil)
+            info.sync(
+                root: "", projectRoot: "", projectRootSource: .shell,
+                shellName: "", shellPid: nil)
             return
         }
         guard !project.isRemote else {
@@ -352,7 +361,8 @@ struct RightSidebarView: View {
         return (
             String(
                 localized: "job",
-                comment: "Files header badge: the panels follow a directory the terminal’s foreground job moved to, outside any worktree of the shell’s repository."
+                comment:
+                    "Files header badge: the panels follow a directory the terminal’s foreground job moved to, outside any worktree of the shell’s repository."
             ),
             String(localized: "Following the terminal job’s directory")
         )
@@ -364,7 +374,7 @@ struct RightSidebarView: View {
     /// mapped (unreadable or oversized file) still opens the file.
     private func openSearchResult(_ match: FileContentSearchModel.Match) {
         guard let project = manager.selectedProject,
-              !manager.fileContentSearch.rootPath.isEmpty
+            !manager.fileContentSearch.rootPath.isEmpty
         else { return }
         let root = manager.fileContentSearch.rootPath
         let path = (root as NSString).appendingPathComponent(match.path)

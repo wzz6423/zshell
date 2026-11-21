@@ -53,8 +53,8 @@ internal struct CandidateStorage: Sendable {
         bytes.withUnsafeBufferPointer { bytesPtr in
             bonus.withUnsafeBufferPointer { bonusPtr in
                 body(
-                    UnsafeBufferPointer(rebasing: bytesPtr[0..<length]),
-                    UnsafeBufferPointer(rebasing: bonusPtr[0..<length])
+                    UnsafeBufferPointer(rebasing: bytesPtr[0 ..< length]),
+                    UnsafeBufferPointer(rebasing: bonusPtr[0 ..< length])
                 )
             }
         }

@@ -25,8 +25,8 @@ package enum STGutterCalculations {
         fragmentViewMap.keyEnumerator().allObjects
             .compactMap { object -> NSTextLayoutFragment? in
                 guard let layoutFragment = object as? NSTextLayoutFragment,
-                      fragmentViewMap.object(forKey: layoutFragment) != nil,
-                      layoutFragment.rangeInElement.intersects(viewportRange)
+                    fragmentViewMap.object(forKey: layoutFragment) != nil,
+                    layoutFragment.rangeInElement.intersects(viewportRange)
                 else {
                     return nil
                 }
@@ -63,7 +63,8 @@ package enum STGutterCalculations {
         for textLineFragment: NSTextLineFragment,
         in layoutFragment: NSTextLayoutFragment
     ) -> CGRect {
-        let representedFragments = textLineFragment.isExtraLineFragment
+        let representedFragments =
+            textLineFragment.isExtraLineFragment
             ? [textLineFragment]
             : layoutFragment.textLineFragments.filter { !$0.isExtraLineFragment }
 

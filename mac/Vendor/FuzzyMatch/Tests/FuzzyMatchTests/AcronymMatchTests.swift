@@ -104,7 +104,7 @@ import Testing
 @Test func acronymMatchSkipsLongQuery() {
     // Queries > 8 chars should not trigger acronym pass
     let matcher = FuzzyMatcher()
-    let query = matcher.prepare("abcdefghi")  // 9 chars
+    let query = matcher.prepare("abcdefghi") // 9 chars
     var buffer = matcher.makeBuffer()
 
     let result = matcher.score("Alpha Beta Charlie Delta Echo Foxtrot Golf Hotel India", against: query, buffer: &buffer)

@@ -36,7 +36,8 @@ enum TerminalSessionDirectory {
     static func customDirectory(
         _ rawInput: String, homeDirectory: String = NSHomeDirectory()
     ) -> Result<String, ConfigurationError> {
-        let input = rawInput.hasPrefix("/") || rawInput == "~" || rawInput.hasPrefix("~/")
+        let input =
+            rawInput.hasPrefix("/") || rawInput == "~" || rawInput.hasPrefix("~/")
             ? rawInput : rawInput.trimmingCharacters(in: .whitespacesAndNewlines)
         let path: String
         if input == "~" {
@@ -64,7 +65,7 @@ enum TerminalSessionDirectory {
 
     static func validatedOrHome(_ directory: String?, homeDirectory: String = NSHomeDirectory()) -> String {
         guard let directory, directory.hasPrefix("/"),
-              case .success(let path) = validateDirectory(directory)
+            case .success(let path) = validateDirectory(directory)
         else { return homeDirectory }
         return path
     }

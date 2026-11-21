@@ -44,8 +44,7 @@ final class TerminalPromptQueue: nonisolated ObservableObject {
     }
 
     func togglePresentation() {
-        if isPresented { dismiss() }
-        else { present() }
+        if isPresented { dismiss() } else { present() }
     }
 
     // MARK: - Items
@@ -56,7 +55,8 @@ final class TerminalPromptQueue: nonisolated ObservableObject {
     /// queue can execute halfway through.
     func enqueue(_ command: String) {
         guard isEnabled else { return }
-        let flattened = command
+        let flattened =
+            command
             .replacingOccurrences(of: "\r\n", with: " ")
             .replacingOccurrences(of: "\r", with: " ")
             .replacingOccurrences(of: "\n", with: " ")
@@ -100,9 +100,10 @@ extension TerminalSession {
     func schedulePromptQueueDispatch() {
         cancelPromptQueueDispatch()
         guard AppSettings.shared.promptQueueEnabled,
-              promptQueue.isEnabled,
-              AppSettings.shared.promptQueueAutoDispatch,
-              !isReadOnly, !hasExited, !promptQueue.commands.isEmpty else { return }
+            promptQueue.isEnabled,
+            AppSettings.shared.promptQueueAutoDispatch,
+            !isReadOnly, !hasExited, !promptQueue.commands.isEmpty
+        else { return }
         let generation = promptQueueDispatchGeneration
         promptQueueDispatchTask = Task { [weak self] in
             defer {
@@ -110,16 +111,18 @@ extension TerminalSession {
                     self.promptQueueDispatchTask = nil
                 }
             }
-            for attempt in 0..<TerminalSession.promptQueueDispatchAttempts {
+            for attempt in 0 ..< TerminalSession.promptQueueDispatchAttempts {
                 do {
-                    try await Task.sleep(for: attempt == 0
-                        ? TerminalSession.promptQueueSettleDelay
-                        : TerminalSession.promptQueueRetryDelay)
+                    try await Task.sleep(
+                        for: attempt == 0
+                            ? TerminalSession.promptQueueSettleDelay
+                            : TerminalSession.promptQueueRetryDelay)
                 } catch { return }
                 guard let self, !Task.isCancelled,
-                      self.promptQueueDispatchGeneration == generation,
-                      AppSettings.shared.promptQueueEnabled,
-                      AppSettings.shared.promptQueueAutoDispatch else { return }
+                    self.promptQueueDispatchGeneration == generation,
+                    AppSettings.shared.promptQueueEnabled,
+                    AppSettings.shared.promptQueueAutoDispatch
+                else { return }
                 if self.dispatchQueuedPrompt(at: 0) { break }
             }
         }
@@ -135,12 +138,12 @@ extension TerminalSession {
 
     var canSendQueuedPrompt: Bool {
         guard AppSettings.shared.promptQueueEnabled,
-              promptQueue.isEnabled,
-              !isReadOnly, !hasExited,
-              let shellPID = shellPid, shellPID > 0,
-              surface.foregroundPid == shellPID,
-              !TerminalCommandTaskStore.shared.hasActiveTask(terminalID: id),
-              terminalPromptQueueIsReady
+            promptQueue.isEnabled,
+            !isReadOnly, !hasExited,
+            let shellPID = shellPid, shellPID > 0,
+            surface.foregroundPid == shellPID,
+            !TerminalCommandTaskStore.shared.hasActiveTask(terminalID: id),
+            terminalPromptQueueIsReady
         else { return false }
         if let sent = promptQueueSentToken {
             guard promptQueueCompletedToken == sent else { return false }
@@ -161,7 +164,9 @@ extension TerminalSession {
         guard canSendQueuedPrompt, promptQueue.commands.indices.contains(index) else { return false }
         if let context = ZshellAutomationRouter.context(forSession: id) {
             guard context.session === self, belongs(to: context.manager) else { return false }
-        } else if hostManagerID != nil { return false }
+        } else if hostManagerID != nil {
+            return false
+        }
         let command = promptQueue.commands[index]
         guard reservePromptQueueSend(for: command) else { return false }
         guard sendCommand(command), surface.sendPromptQueueEnter() else { return false }

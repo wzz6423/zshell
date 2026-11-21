@@ -13,14 +13,16 @@ struct FileTreePanelView: NSViewRepresentable {
     func makeNSView(context: Context) -> AppKitFileTreePanel {
         let panel = AppKitFileTreePanel()
         panel.configure(manager: manager, git: git)
-        panel.update(rootBadge: rootBadge, currentFilePath: currentFilePath,
-                     fontScale: fontScale, openSearchResult: openSearchResult)
+        panel.update(
+            rootBadge: rootBadge, currentFilePath: currentFilePath,
+            fontScale: fontScale, openSearchResult: openSearchResult)
         return panel
     }
 
     func updateNSView(_ panel: AppKitFileTreePanel, context: Context) {
-        panel.update(rootBadge: rootBadge, currentFilePath: currentFilePath,
-                     fontScale: fontScale, openSearchResult: openSearchResult)
+        panel.update(
+            rootBadge: rootBadge, currentFilePath: currentFilePath,
+            fontScale: fontScale, openSearchResult: openSearchResult)
     }
 }
 
@@ -114,7 +116,9 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         table.addTableColumn(column)
         table.menuForRow = { [weak self] row in self?.menu(for: row) }
         table.handleKey = { [weak self] event in self?.handleKey(event) ?? false }
-        table.onDragExit = { [weak self] in self?.dropPath = nil; self?.updateVisibleRows() }
+        table.onDragExit = { [weak self] in
+            self?.dropPath = nil; self?.updateVisibleRows()
+        }
         table.registerForDraggedTypes([.fileURL])
         table.setDraggingSourceOperationMask([.copy], forLocal: false)
         table.setDraggingSourceOperationMask([.copy], forLocal: true)
@@ -159,8 +163,10 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         syncFromModel()
     }
 
-    func update(rootBadge: (text: String, description: String)?, currentFilePath: String?, fontScale: CGFloat,
-                openSearchResult: @escaping (FileContentSearchModel.Match) -> Void) {
+    func update(
+        rootBadge: (text: String, description: String)?, currentFilePath: String?, fontScale: CGFloat,
+        openSearchResult: @escaping (FileContentSearchModel.Match) -> Void
+    ) {
         self.rootBadge = rootBadge
         self.currentFilePath = currentFilePath
         self.openSearchResult = openSearchResult
@@ -238,11 +244,13 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         }
         if items != model.items {
             let oldItems = items
-            let stableRows = oldItems.count == model.items.count
+            let stableRows =
+                oldItems.count == model.items.count
                 && zip(oldItems, model.items).allSatisfy { $0.path == $1.path }
             items = model.items
-            if stableRows { updateVisibleRows() }
-            else {
+            if stableRows {
+                updateVisibleRows()
+            } else {
                 // Keep the field editor during a background listing. Reload
                 // only when row identity changes, then restore an active edit.
                 let editText = activeEdit.map { $0.field.currentEditor()?.string ?? $0.field.stringValue }
@@ -253,15 +261,19 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
                 restoreSelection()
                 updatingSelection = false
                 if let editItem, let index = items.firstIndex(where: { $0.path == editItem.path }),
-                   model.renamingPath == editItem.path || (editItem.isDraft && model.draft != nil) {
+                    model.renamingPath == editItem.path || (editItem.isDraft && model.draft != nil)
+                {
                     beginEditing(at: index, text: editText)
                 }
             }
-        } else { updateVisibleRows() }
+        } else {
+            updateVisibleRows()
+        }
         if activeEdit == nil, let index = items.firstIndex(where: { $0.isDraft || $0.path == model.renamingPath }) {
             beginEditing(at: index)
         } else if let edit = activeEdit,
-                  model.renamingPath != edit.item.path && !(edit.item.isDraft && model.draft != nil) {
+            model.renamingPath != edit.item.path && !(edit.item.isDraft && model.draft != nil)
+        {
             endEditing(commit: false)
         }
         needsLayout = true
@@ -294,12 +306,15 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         badgeLabel.frame = NSRect(x: inset + labelWidth - badgeWidth, y: titleY, width: badgeWidth, height: lineHeight)
         for (index, button) in buttons.enumerated() {
             (button.cell as? CenteredIconButtonCell)?.opticalSize = 11 * metrics.fontScale
-            button.frame = NSRect(x: bounds.width - inset - controlsWidth + CGFloat(index) * slot,
-                                  y: controlsY,
-                                  width: slot, height: slot)
-            button.image = NSImage(systemSymbolName: button === importButton ? "square.and.arrow.down" : button === searchButton ? "magnifyingglass" : "arrow.up.forward.app",
-                                   accessibilityDescription: nil)?.withSymbolConfiguration(
-                .init(pointSize: 11 * metrics.fontScale, weight: .regular))
+            button.frame = NSRect(
+                x: bounds.width - inset - controlsWidth + CGFloat(index) * slot,
+                y: controlsY,
+                width: slot, height: slot)
+            button.image = NSImage(
+                systemSymbolName: button === importButton
+                    ? "square.and.arrow.down" : button === searchButton ? "magnifyingglass" : "arrow.up.forward.app",
+                accessibilityDescription: nil)?.withSymbolConfiguration(
+                    .init(pointSize: 11 * metrics.fontScale, weight: .regular))
         }
         var y = headerHeight
         if !notice.isHidden {
@@ -320,9 +335,11 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
     }
 
     private func refreshLanguage() {
-        for (button, title) in [(importButton, String(localized: "Import Files…")),
-                                (searchButton, String(localized: "Search File Contents")),
-                                (revealButton, String(localized: "Reveal in Finder"))] {
+        for (button, title) in [
+            (importButton, String(localized: "Import Files…")),
+            (searchButton, String(localized: "Search File Contents")),
+            (revealButton, String(localized: "Reveal in Finder")),
+        ] {
             button.toolTip = title
             button.setAccessibilityLabel(title)
         }
@@ -357,19 +374,19 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
     private func configure(_ cell: FileTreeRowView, at row: Int) {
         guard let item = item(at: row), let model else { return }
         let decoration = isRemote ? nil : git?.fileDecoration(for: item.path, isDirectory: item.isDirectory)
-        cell.configure(item: item, expanded: model.isExpanded(item), decoration: decoration,
-                       current: item.path == currentFilePath, selected: item.path == selectedPath,
-                       drop: item.path == dropPath, scale: metrics.fontScale)
+        cell.configure(
+            item: item, expanded: model.isExpanded(item), decoration: decoration,
+            current: item.path == currentFilePath, selected: item.path == selectedPath,
+            drop: item.path == dropPath, scale: metrics.fontScale)
         cell.onPress = { [weak self] in
-            if item.isDirectory { self?.model?.toggle(item) }
-            else if self?.isRemote == false { self?.manager?.previewFile(item.path) }
+            if item.isDirectory { self?.model?.toggle(item) } else if self?.isRemote == false { self?.manager?.previewFile(item.path) }
         }
     }
 
     private func updateVisibleRows() {
         let visible = table.rows(in: table.visibleRect)
         guard visible.location != NSNotFound else { return }
-        for row in visible.location..<NSMaxRange(visible) where items.indices.contains(row) {
+        for row in visible.location ..< NSMaxRange(visible) where items.indices.contains(row) {
             if let cell = table.view(atColumn: 0, row: row, makeIfNecessary: false) as? FileTreeRowView {
                 configure(cell, at: row)
             }
@@ -388,10 +405,13 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
 
     @objc private func activateClickedRow() {
         guard let item = item(at: table.clickedRow >= 0 ? table.clickedRow : table.selectedRow), !item.isDraft else { return }
-        if item.isDirectory { model?.toggle(item) }
-        else if !isRemote, NSApp.currentEvent?.modifierFlags.contains(.command) == true {
+        if item.isDirectory {
+            model?.toggle(item)
+        } else if !isRemote, NSApp.currentEvent?.modifierFlags.contains(.command) == true {
             NSWorkspace.shared.open(URL(fileURLWithPath: item.path))
-        } else { manager?.previewFile(item.path) }
+        } else {
+            manager?.previewFile(item.path)
+        }
     }
 
     @objc private func openClickedRow() {
@@ -406,20 +426,23 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
             return true
         }
         guard !flags.contains(.command), !flags.contains(.control), !flags.contains(.option),
-              let item = item(at: table.selectedRow), !item.isDraft else { return false }
+            let item = item(at: table.selectedRow), !item.isDraft
+        else { return false }
         switch event.keyCode {
         case 36, 76:
             if item.isDirectory { model?.toggle(item) } else { manager?.openFile(item.path) }
         case 49:
             if item.isDirectory { model?.toggle(item) } else { manager?.previewFile(item.path) }
         case 124:
-            if item.isDirectory, model?.isExpanded(item) == false { model?.toggle(item) }
-            else if item.isDirectory, items.indices.contains(table.selectedRow + 1), items[table.selectedRow + 1].depth > item.depth {
+            if item.isDirectory, model?.isExpanded(item) == false {
+                model?.toggle(item)
+            } else if item.isDirectory, items.indices.contains(table.selectedRow + 1), items[table.selectedRow + 1].depth > item.depth {
                 table.selectRowIndexes(IndexSet(integer: table.selectedRow + 1), byExtendingSelection: false)
             }
         case 123:
-            if item.isDirectory, model?.isExpanded(item) == true { model?.toggle(item) }
-            else if let parent = items[..<table.selectedRow].lastIndex(where: { $0.depth < item.depth && $0.isDirectory }) {
+            if item.isDirectory, model?.isExpanded(item) == true {
+                model?.toggle(item)
+            } else if let parent = items[..<table.selectedRow].lastIndex(where: { $0.depth < item.depth && $0.isDirectory }) {
                 table.selectRowIndexes(IndexSet(integer: parent), byExtendingSelection: false)
                 table.scrollRowToVisible(parent)
             }
@@ -522,8 +545,10 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         guard canMutate, let item = item(at: row) else { return }
         table.scrollRowToVisible(row)
         guard let cell = table.view(atColumn: 0, row: row, makeIfNecessary: true) as? FileTreeRowView else { return }
-        let field = cell.beginEditing(text: text ?? (item.isDraft ? "" : item.name),
-                                      placeholder: item.isDraft ? (item.isDirectory ? String(localized: "Folder name") : String(localized: "File name")) : String(localized: "Name"))
+        let field = cell.beginEditing(
+            text: text ?? (item.isDraft ? "" : item.name),
+            placeholder: item.isDraft
+                ? (item.isDirectory ? String(localized: "Folder name") : String(localized: "File name")) : String(localized: "Name"))
         field.delegate = self
         activeEdit = (item, field)
         guard !editFocusScheduled else { return }
@@ -549,7 +574,9 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
                     if edit.item.isDraft {
                         if let created = await model.commitRemoteDraft(name: name) { project?.openFile(created) }
                     } else if let destination = await model.renameRemote(edit.item, to: name) {
-                        if let source = project?.fileSource { self?.manager?.fileRenamed(from: edit.item.path, to: destination, source: source) }
+                        if let source = project?.fileSource {
+                            self?.manager?.fileRenamed(from: edit.item.path, to: destination, source: source)
+                        }
                         self?.selectedPath = destination
                     }
                 }
@@ -574,12 +601,15 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         return URL(fileURLWithPath: item.path) as NSURL
     }
 
-    func tableView(_ tableView: NSTableView, validateDrop info: NSDraggingInfo,
-                   proposedRow row: Int, proposedDropOperation dropOperation: NSTableView.DropOperation) -> NSDragOperation {
+    func tableView(
+        _ tableView: NSTableView, validateDrop info: NSDraggingInfo,
+        proposedRow row: Int, proposedDropOperation dropOperation: NSTableView.DropOperation
+    ) -> NSDragOperation {
         guard AppSettings.shared.fileTreeDragImport, manager?.canImportFiles == true, model?.rootPath.isEmpty == false,
-              canMutate, !items.contains(where: \.isDraft),
-              activeEdit == nil, !draggedURLs(info).isEmpty,
-              info.draggingSource as? NSTableView !== table else {
+            canMutate, !items.contains(where: \.isDraft),
+            activeEdit == nil, !draggedURLs(info).isEmpty,
+            info.draggingSource as? NSTableView !== table
+        else {
             dropPath = nil
             updateVisibleRows()
             return []
@@ -587,17 +617,19 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         let targetRow = row >= 0 && row < items.count ? row : -1
         let item = item(at: targetRow)
         dropPath = item.map { $0.isDirectory ? $0.path : ($0.path as NSString).deletingLastPathComponent } ?? model?.rootPath
-        if item?.isDirectory == true { table.setDropRow(targetRow, dropOperation: .on) }
-        else { table.setDropRow(-1, dropOperation: .on) }
+        if item?.isDirectory == true { table.setDropRow(targetRow, dropOperation: .on) } else { table.setDropRow(-1, dropOperation: .on) }
         updateVisibleRows()
         return .copy
     }
 
-    func tableView(_ tableView: NSTableView, acceptDrop info: NSDraggingInfo,
-                   row: Int, dropOperation: NSTableView.DropOperation) -> Bool {
+    func tableView(
+        _ tableView: NSTableView, acceptDrop info: NSDraggingInfo,
+        row: Int, dropOperation: NSTableView.DropOperation
+    ) -> Bool {
         defer { dropPath = nil; updateVisibleRows() }
         guard AppSettings.shared.fileTreeDragImport, canMutate, let manager,
-              let directory = dropPath, info.draggingSource as? NSTableView !== table else { return false }
+            let directory = dropPath, info.draggingSource as? NSTableView !== table
+        else { return false }
         let urls = draggedURLs(info)
         guard !urls.isEmpty else { return false }
         FileTreeImportController.shared.importFiles(urls, manager: manager, directory: directory)
@@ -694,8 +726,10 @@ private final class FileTreeRowView: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func configure(item: FileTreeModel.Item, expanded: Bool, decoration: GitStatusModel.FileDecoration?,
-                   current: Bool, selected: Bool, drop: Bool, scale: CGFloat) {
+    func configure(
+        item: FileTreeModel.Item, expanded: Bool, decoration: GitStatusModel.FileDecoration?,
+        current: Bool, selected: Bool, drop: Bool, scale: CGFloat
+    ) {
         if self.item?.path != item.path {
             field?.delegate = nil
             field?.removeFromSuperview()
@@ -706,17 +740,21 @@ private final class FileTreeRowView: NSView {
         self.selected = selected
         self.drop = drop
         self.scale = scale
-        disclosure.image = item.isDirectory && !item.isDraft
+        disclosure.image =
+            item.isDirectory && !item.isDraft
             ? NSImage(systemSymbolName: expanded ? "chevron.down" : "chevron.right", accessibilityDescription: nil)?
                 .withSymbolConfiguration(.init(pointSize: 8 * scale, weight: .semibold)) : nil
         disclosure.contentTintColor = .tertiaryLabelColor
-        icon.image = item.isDirectory
-            ? NSImage(systemSymbolName: "folder.fill", accessibilityDescription: nil)?.withSymbolConfiguration(.init(pointSize: 10 * scale, weight: .regular))
+        icon.image =
+            item.isDirectory
+            ? NSImage(systemSymbolName: "folder.fill", accessibilityDescription: nil)?.withSymbolConfiguration(
+                .init(pointSize: 10 * scale, weight: .regular))
             : MaterialFileIcon.image(forPath: item.path, appearance: effectiveAppearance)
         icon.contentTintColor = item.isDirectory ? Theme.accent.withAlphaComponent(0.8) : nil
         nameLabel.stringValue = item.name
         nameLabel.font = .systemFont(ofSize: 11.5 * scale)
-        nameLabel.textColor = decoration?.fileTreeColor ?? (item.name.hasPrefix(".") ? .secondaryLabelColor.withAlphaComponent(0.55) : .secondaryLabelColor)
+        nameLabel.textColor =
+            decoration?.fileTreeColor ?? (item.name.hasPrefix(".") ? .secondaryLabelColor.withAlphaComponent(0.55) : .secondaryLabelColor)
         nameLabel.isHidden = field != nil
         statusLabel.stringValue = decoration?.fileTreeBadge ?? ""
         statusLabel.font = .monospacedSystemFont(ofSize: 9 * scale, weight: .semibold)
@@ -769,7 +807,8 @@ private final class FileTreeRowView: NSView {
         let nameHeight = min(bounds.height, nameLabel.intrinsicContentSize.height)
         let statusHeight = min(bounds.height, statusLabel.intrinsicContentSize.height)
         nameLabel.frame = NSRect(x: labelX, y: (bounds.height - nameHeight) / 2, width: width, height: nameHeight)
-        statusLabel.frame = NSRect(x: bounds.width - statusWidth - 6, y: (bounds.height - statusHeight) / 2, width: statusWidth, height: statusHeight)
+        statusLabel.frame = NSRect(
+            x: bounds.width - statusWidth - 6, y: (bounds.height - statusHeight) / 2, width: statusWidth, height: statusHeight)
         field?.frame = NSRect(x: labelX, y: 0, width: max(0, bounds.width - labelX - 4), height: bounds.height)
     }
 

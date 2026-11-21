@@ -67,9 +67,10 @@ final class AlacrittyRenderStats: @unchecked Sendable {
         lastReport = Date()
         lock.unlock()
 
-        NSLog(String(
-            format: "zshell-render drawn=%d skipped=%d rows=%d mean=%.3fms worst=%.3fms",
-            drawn, skipped, rows, mean, worst
-        ))
+        NSLog(
+            String(
+                format: "zshell-render drawn=%d skipped=%d rows=%d mean=%.3fms worst=%.3fms",
+                drawn, skipped, rows, mean, worst
+            ))
     }
 }

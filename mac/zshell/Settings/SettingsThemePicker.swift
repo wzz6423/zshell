@@ -194,10 +194,12 @@ private final class ThemePreviewView: NSView {
         let dots = [0xFF5F57, 0xFEBC2E, 0x28C840]
         for (index, hex) in dots.enumerated() {
             let x = Self.padding + CGFloat(index) * 7
-            NSColor(srgbRed: CGFloat((hex >> 16) & 0xff) / 255,
-                    green: CGFloat((hex >> 8) & 0xff) / 255,
-                    blue: CGFloat(hex & 0xff) / 255,
-                    alpha: 1).setFill()
+            NSColor(
+                srgbRed: CGFloat((hex >> 16) & 0xff) / 255,
+                green: CGFloat((hex >> 8) & 0xff) / 255,
+                blue: CGFloat(hex & 0xff) / 255,
+                alpha: 1
+            ).setFill()
             NSBezierPath(ovalIn: NSRect(x: x, y: 6, width: 4.5, height: 4.5)).fill()
         }
         let sidebarFaint = text.withAlphaComponent(0.35)

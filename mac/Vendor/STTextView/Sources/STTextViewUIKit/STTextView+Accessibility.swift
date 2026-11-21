@@ -10,7 +10,7 @@ extension STTextView {
 
     override open var isAccessibilityElement: Bool {
         get { true }
-        set { }
+        set {}
     }
 
     override open var accessibilityTraits: UIAccessibilityTraits {
@@ -21,14 +21,14 @@ extension STTextView {
             }
             return traits
         }
-        set { }
+        set {}
     }
 
     override open var accessibilityLabel: String? {
         get {
             NSLocalizedString("Text Editor", comment: "Accessibility label for text editor")
         }
-        set { }
+        set {}
     }
 
     override open var accessibilityValue: String? {
@@ -49,7 +49,7 @@ extension STTextView {
             }
             return nil
         }
-        set { }
+        set {}
     }
 
     /// The textual context of the text view, which helps VoiceOver
@@ -116,7 +116,7 @@ extension STTextView {
         get {
             isEditable || isSelectable
         }
-        set { }
+        set {}
     }
 
     /// Handles the VoiceOver two-finger Z gesture (escape/back).
@@ -240,10 +240,12 @@ extension STTextView: UIAccessibilityReadingContent {
         )
 
         // Find the text location at this point
-        guard let location = textLayoutManager.caretLocation(
-            interactingAt: adjustedPoint,
-            inContainerAt: textLayoutManager.documentRange.location
-        ) else {
+        guard
+            let location = textLayoutManager.caretLocation(
+                interactingAt: adjustedPoint,
+                inContainerAt: textLayoutManager.documentRange.location
+            )
+        else {
             return NSNotFound
         }
 
@@ -274,7 +276,7 @@ extension STTextView: UIAccessibilityReadingContent {
     /// - Returns: The frame of the line in screen coordinates, or `.zero` if the line number is invalid.
     public func accessibilityFrame(forLineNumber lineNumber: Int) -> CGRect {
         guard let lineRange = textRange(forLine: lineNumber),
-              let segmentFrame = textLayoutManager.textSegmentFrame(in: lineRange, type: .standard)
+            let segmentFrame = textLayoutManager.textSegmentFrame(in: lineRange, type: .standard)
         else {
             return .zero
         }
@@ -322,7 +324,8 @@ extension STTextView {
                 for textLineFragment in layoutFragment.textLineFragments {
                     // Check if this line contains our location
                     if let lineRange = textLineFragment.textRange(in: layoutFragment),
-                       lineRange.contains(location) || lineRange.location == location {
+                        lineRange.contains(location) || lineRange.location == location
+                    {
                         foundLine = lineCount
                         return false
                     }

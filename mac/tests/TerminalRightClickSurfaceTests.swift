@@ -48,8 +48,7 @@ import GhosttyTerminal
 
 @main struct TerminalRightClickSurfaceTests {
     @MainActor static func main() {
-        do { try run() }
-        catch { fputs("Right-click surface failed: \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("Right-click surface failed: \(error)\n", stderr); exit(1) }
     }
 
     @MainActor static func run() throws {
@@ -69,7 +68,8 @@ import GhosttyTerminal
             interactiveShell: nil, workingDirectory: record.deletingLastPathComponent().path,
             environment: ["TERM": "xterm-256color", "LC_ALL": "en_US.UTF-8"]
         )
-        let surface: any TerminalBackendSurface = backend == "ghostty"
+        let surface: any TerminalBackendSurface =
+            backend == "ghostty"
             ? ZshellTerminalView(launch: launch) : AlacrittyTerminalView(launch: launch)
         surface.frame = NSRect(x: 0, y: 0, width: 900, height: 480)
         let window = RightClickWindow(contentRect: surface.frame, styleMask: [.titled], backing: .buffered, defer: false)
@@ -88,11 +88,12 @@ import GhosttyTerminal
         defer {
             if clipboard.changeCount == ownedClipboardCount {
                 clipboard.clearContents()
-                clipboard.writeObjects(saved.map { entries in
-                    let item = NSPasteboardItem()
-                    for (type, bytes) in entries { item.setData(bytes, forType: type) }
-                    return item
-                })
+                clipboard.writeObjects(
+                    saved.map { entries in
+                        let item = NSPasteboardItem()
+                        for (type, bytes) in entries { item.setData(bytes, forType: type) }
+                        return item
+                    })
             }
             for confirmation in events.confirmations { confirmation.deny() }
             surface.setSurfaceVisible(false)
@@ -116,13 +117,16 @@ import GhosttyTerminal
         func control(_ text: String) {
             if let ghostty = surface as? ZshellTerminalView {
                 ghostty.performBindingAction("text:" + text.utf8.map { String(format: "\\x%02x", $0) }.joined())
-            } else { surface.sendText(text) }
+            } else {
+                surface.sendText(text)
+            }
         }
         func mouse(_ type: NSEvent.EventType, x: Int = 2, y: Int = 0, flags: NSEvent.ModifierFlags = []) -> NSEvent {
             let snapshot = surface.readVisibleSnapshot()!
             let top = snapshot.origin.y + (CGFloat(y) + 0.5) * snapshot.cellSize.height
-            let point = NSPoint(x: snapshot.origin.x + (CGFloat(x) + 0.25) * snapshot.cellSize.width,
-                                y: surface.isFlipped ? top : surface.bounds.height - top)
+            let point = NSPoint(
+                x: snapshot.origin.x + (CGFloat(x) + 0.25) * snapshot.cellSize.width,
+                y: surface.isFlipped ? top : surface.bounds.height - top)
             return NSEvent.mouseEvent(
                 with: type, location: surface.convert(point, to: nil), modifierFlags: flags,
                 timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
@@ -179,8 +183,9 @@ import GhosttyTerminal
         let copiedStart = bytes().count
         rightClick()
         ownedClipboardCount = clipboard.changeCount
-        try check(clipboard.string(forType: .string)?.contains("SELECT_RIGHT_CLICK") == true,
-                  "copy-or-paste copies the selected grid text")
+        try check(
+            clipboard.string(forType: .string)?.contains("SELECT_RIGHT_CLICK") == true,
+            "copy-or-paste copies the selected grid text")
         try check(bytes().count == copiedStart, "copying a selection never pastes or sends mouse bytes")
         surface.mouseDown(with: mouse(.leftMouseDown, x: 24, y: 2))
         surface.mouseUp(with: mouse(.leftMouseUp, x: 24, y: 2))
@@ -206,8 +211,10 @@ import GhosttyTerminal
         try wait("multi-line paste can be approved after a second right-click") { !events.confirmations.isEmpty }
         events.confirmations.removeFirst().approve()
         try wait("approved right-click paste preserves the backend's existing encoding") {
-            bytes().dropFirst(unsafeStart) == Data((backend == "ghostty"
-                ? "unsafe\rsecond line" : "\u{1b}[200~unsafe\rsecond line\u{1b}[201~").utf8)
+            bytes().dropFirst(unsafeStart)
+                == Data(
+                    (backend == "ghostty"
+                        ? "unsafe\rsecond line" : "\u{1b}[200~unsafe\rsecond line\u{1b}[201~").utf8)
         }
 
         for (mode, code) in [("sgr", "\u{12}"), ("legacy", "\u{13}")] {
@@ -221,7 +228,8 @@ import GhosttyTerminal
                 surface.rightMouseDown(with: down)
                 surface.rightMouseDragged(with: mouse(.rightMouseDragged, x: 3))
                 surface.rightMouseUp(with: mouse(.rightMouseUp, x: 3))
-                let expected = mode == "sgr"
+                let expected =
+                    mode == "sgr"
                     ? Data("\u{1b}[<2;3;1M\u{1b}[<34;4;1M\u{1b}[<2;4;1m".utf8)
                     : Data([0x1b, 0x5b, 0x4d, 34, 35, 33, 0x1b, 0x5b, 0x4d, 66, 36, 33, 0x1b, 0x5b, 0x4d, 35, 36, 33])
                 try wait("\(mode) mouse press/drag/release remains exact with \(action.rawValue)") {
@@ -232,21 +240,25 @@ import GhosttyTerminal
             }
             for flags: NSEvent.ModifierFlags in [.shift, .command] {
                 let menu = surface.menu(for: mouse(.rightMouseDown, flags: flags))
-                try check(menu?.items.contains { $0.action == #selector(NSText.paste(_:)) } == true,
-                          "explicit modifier keeps the complete menu available in \(mode)")
+                try check(
+                    menu?.items.contains { $0.action == #selector(NSText.paste(_:)) } == true,
+                    "explicit modifier keeps the complete menu available in \(mode)")
             }
             let controlMenu = surface.menu(for: mouse(.leftMouseDown, flags: .control))
-            try check(controlMenu?.items.contains { $0.action == #selector(NSText.copy(_:)) } == true,
-                      "Control-click can reach the standard menu while mouse reporting is active")
+            try check(
+                controlMenu?.items.contains { $0.action == #selector(NSText.copy(_:)) } == true,
+                "Control-click can reach the standard menu while mouse reporting is active")
         }
         try setMode("plain", code: "\u{14}")
         AppMenuController.shared.install()
         let edit = app.mainMenu?.items.first { $0.title == "Edit" }?.submenu
         let contextCommand = edit?.items.first { $0.action == NSSelectorFromString("showTerminalContextMenu:") }
-        try check(contextCommand != nil && contextCommand?.target == nil
-                  && contextCommand?.keyEquivalent == "\u{f70d}" && contextCommand?.keyEquivalentModifierMask == .shift,
-                  "Edit menu provides Shift-F10 through the responder chain")
-        try check(surface.responds(to: NSSelectorFromString("showTerminalContextMenu:")), "the real backend implements the keyboard menu action")
+        try check(
+            contextCommand != nil && contextCommand?.target == nil
+                && contextCommand?.keyEquivalent == "\u{f70d}" && contextCommand?.keyEquivalentModifierMask == .shift,
+            "Edit menu provides Shift-F10 through the responder chain")
+        try check(
+            surface.responds(to: NSSelectorFromString("showTerminalContextMenu:")), "the real backend implements the keyboard menu action")
         let pane = SettingsTerminalPane()
         let settingsView = pane.view
         func popups(_ view: NSView) -> [NSPopUpButton] {
@@ -257,7 +269,8 @@ import GhosttyTerminal
             return (view as? NSTextField).map { [$0] } ?? view.subviews.flatMap(textFields)
         }
         let popup = popups(settingsView).first { $0.accessibilityLabel() == "Right-click action" }
-        try check(popup?.itemTitles == TerminalRightClickAction.allCases.map(\.title), "native settings exposes all three right-click choices")
+        try check(
+            popup?.itemTitles == TerminalRightClickAction.allCases.map(\.title), "native settings exposes all three right-click choices")
         for (index, action) in TerminalRightClickAction.allCases.enumerated() {
             popup?.selectItem(at: index)
             popup?.sendAction(popup!.action, to: popup!.target)
@@ -265,30 +278,37 @@ import GhosttyTerminal
         }
         settings.terminalRightClickAction = .copyOrPaste
         pumpRightClick(0.1)
-        try check(popup?.titleOfSelectedItem == TerminalRightClickAction.copyOrPaste.title, "the settings picker reflects live setting changes")
+        try check(
+            popup?.titleOfSelectedItem == TerminalRightClickAction.copyOrPaste.title, "the settings picker reflects live setting changes")
         for language in AppLanguage.allCases where language != .system {
             AppLocalization.apply(language)
             let localizedPane = SettingsTerminalPane()
             localizedPane.setCategory(.terminal)
-            let settingsWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 460),
-                                          styleMask: [.titled], backing: .buffered, defer: false)
+            let settingsWindow = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 480, height: 460),
+                styleMask: [.titled], backing: .buffered, defer: false)
             settingsWindow.isReleasedWhenClosed = false
             settingsWindow.contentViewController = localizedPane
             let localizedPopup = popups(localizedPane.view).first {
                 $0.accessibilityLabel() == String(localized: "Right-click action")
             }
-            try check(localizedPopup?.itemTitles == TerminalRightClickAction.allCases.map(\.title),
-                      "\(language.rawValue) exposes every localized right-click action")
+            try check(
+                localizedPopup?.itemTitles == TerminalRightClickAction.allCases.map(\.title),
+                "\(language.rawValue) exposes every localized right-click action")
             for width in [480.0, 900] {
                 settingsWindow.setContentSize(NSSize(width: width, height: 460))
                 localizedPane.view.layoutSubtreeIfNeeded()
-                try check(localizedPane.revealSearchResult(String(localized: "Right-click action"), in: String(localized: "Input")),
-                          "\(language.rawValue) settings search reveals the row at \(Int(width))pt")
+                try check(
+                    localizedPane.revealSearchResult(String(localized: "Right-click action"), in: String(localized: "Input")),
+                    "\(language.rawValue) settings search reveals the row at \(Int(width))pt")
                 let labelColumn = (localizedPopup?.superview as? NSStackView)?.arrangedSubviews.first
                 let labels = labelColumn.map(textFields) ?? []
-                try check(!labels.isEmpty && labels.allSatisfy {
-                    $0.frame.height + 1 >= $0.cell!.cellSize(forBounds: NSRect(x: 0, y: 0, width: $0.frame.width, height: 10_000)).height
-                }, "\(language.rawValue) right-click labels fit at \(Int(width))pt")
+                try check(
+                    !labels.isEmpty
+                        && labels.allSatisfy {
+                            $0.frame.height + 1
+                                >= $0.cell!.cellSize(forBounds: NSRect(x: 0, y: 0, width: $0.frame.width, height: 10_000)).height
+                        }, "\(language.rawValue) right-click labels fit at \(Int(width))pt")
             }
             settingsWindow.contentViewController = nil
             settingsWindow.close()

@@ -70,21 +70,24 @@ struct TerminalLifecycleTests {
 
         let appliesInitial = gate.shouldApply(initial)
         let skipsDuplicate = !gate.shouldApply(initial)
-        let appliesWidthChange = gate.shouldApply(.init(
-            scale: 2,
-            pixelWidth: 1_602,
-            pixelHeight: 1_200
-        ))
-        let appliesHeightChange = gate.shouldApply(.init(
-            scale: 2,
-            pixelWidth: 1_600,
-            pixelHeight: 1_202
-        ))
-        let appliesScaleChange = gate.shouldApply(.init(
-            scale: 3,
-            pixelWidth: 2_403,
-            pixelHeight: 1_800
-        ))
+        let appliesWidthChange = gate.shouldApply(
+            .init(
+                scale: 2,
+                pixelWidth: 1_602,
+                pixelHeight: 1_200
+            ))
+        let appliesHeightChange = gate.shouldApply(
+            .init(
+                scale: 2,
+                pixelWidth: 1_600,
+                pixelHeight: 1_202
+            ))
+        let appliesScaleChange = gate.shouldApply(
+            .init(
+                scale: 3,
+                pixelWidth: 2_403,
+                pixelHeight: 1_800
+            ))
 
         #expect(appliesInitial)
         #expect(skipsDuplicate)

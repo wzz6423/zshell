@@ -82,7 +82,7 @@ public protocol MarkupVisitor<Result> {
      - returns: The result of the visit.
      */
     mutating func visitThematicBreak(_ thematicBreak: ThematicBreak) -> Result
-    
+
     /**
      Visit an `HTML` element and return the result.
 
@@ -186,7 +186,7 @@ public protocol MarkupVisitor<Result> {
      - returns: The result of the visit.
      */
     mutating func visitLink(_ link: Link) -> Result
-    
+
     /**
      Visit a `SoftBreak` element and return the result.
 
@@ -273,7 +273,7 @@ public protocol MarkupVisitor<Result> {
     - parameter attributes: An `InlineAttributes` element.
     - returns: The result of the visit.
      */
-     mutating func visitInlineAttributes(_ attributes: InlineAttributes) -> Result
+    mutating func visitInlineAttributes(_ attributes: InlineAttributes) -> Result
 
     /**
      Visit a `DoxygenDiscussion` element and return the result.
@@ -420,7 +420,7 @@ extension MarkupVisitor {
         return defaultVisit(doxygenNote)
     }
     public mutating func visitDoxygenAbstract(_ doxygenAbstract: DoxygenAbstract) -> Result {
-            return defaultVisit(doxygenAbstract)
+        return defaultVisit(doxygenAbstract)
     }
     public mutating func visitDoxygenParameter(_ doxygenParam: DoxygenParameter) -> Result {
         return defaultVisit(doxygenParam)

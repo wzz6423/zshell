@@ -667,7 +667,8 @@
 
         @MainActor
         func testCompareWrapModeLongLine() {
-            let longLine = "This is a very long line of text that will definitely need to wrap when the container width is constrained to a narrow value like two hundred pixels"
+            let longLine =
+                "This is a very long line of text that will definitely need to wrap when the container width is constrained to a narrow value like two hundred pixels"
 
             let nsTextView = NSTextView(usingTextLayoutManager: true)
             nsTextView.frame = CGRect(x: 0, y: 0, width: 200, height: 100)
@@ -733,7 +734,8 @@
 
             XCTAssertGreaterThan(gutterWidth, 0, "Gutter should have non-zero width when line numbers are shown")
             XCTAssertGreaterThan(frameWidthWithGutter, frameWidthWithoutGutter, "Frame should be wider with gutter")
-            XCTAssertEqual(frameWidthWithGutter, frameWidthWithoutGutter + gutterWidth, accuracy: 1.0, "Frame width should include gutter width")
+            XCTAssertEqual(
+                frameWidthWithGutter, frameWidthWithoutGutter + gutterWidth, accuracy: 1.0, "Frame width should include gutter width")
         }
 
         @MainActor
@@ -758,7 +760,7 @@
         func testSizeToFitWithGutterAndLongContent() {
             // Test horizontal scrolling scenario: long content with line numbers enabled
             let longLine = String(repeating: "x", count: 200) // Very long line
-            
+
             let stTextView = STTextView()
             stTextView.frame = CGRect(x: 0, y: 0, width: 300, height: 100)
             stTextView.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
@@ -772,7 +774,8 @@
             let textWidth = stTextView.textLayoutManager.usageBoundsForTextContainer.width
 
             // Frame should be at least text width + gutter width
-            XCTAssertGreaterThanOrEqual(stTextView.frame.width, textWidth + gutterWidth - 1, "Frame should include both text content and gutter")
+            XCTAssertGreaterThanOrEqual(
+                stTextView.frame.width, textWidth + gutterWidth - 1, "Frame should include both text content and gutter")
         }
 
         @MainActor
@@ -816,7 +819,8 @@
                 to: CGPoint(x: stTextView.frame.width - clipView.bounds.width, y: 0)
             )
             scrollView.reflectScrolledClipView(clipView)
-            let visibleTrailingGap = clipView.bounds.maxX
+            let visibleTrailingGap =
+                clipView.bounds.maxX
                 - rightmostTextEdge
                 - (stTextView.gutterView?.frame.width ?? 0)
             XCTAssertGreaterThanOrEqual(visibleTrailingGap, 16)

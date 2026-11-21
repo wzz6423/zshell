@@ -19,7 +19,7 @@ let package = Package(
     products: [
         .library(
             name: "Markdown",
-            targets: ["Markdown"]),
+            targets: ["Markdown"])
     ],
     targets: [
         .target(
@@ -47,18 +47,18 @@ let package = Package(
 if ProcessInfo.processInfo.environment["SWIFTCI_USE_LOCAL_DEPS"] == nil {
     // Building standalone, so fetch all dependencies remotely.
     package.dependencies += [
-        .package(url: "https://github.com/swiftlang/swift-cmark.git", branch: "gfm"),
+        .package(url: "https://github.com/swiftlang/swift-cmark.git", branch: "gfm")
     ]
-    
+
     // SwiftPM command plugins are only supported by Swift version 5.6 and later.
     #if swift(>=5.6)
-    package.dependencies += [
-        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.1.0"),
-    ]
+        package.dependencies += [
+            .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.1.0")
+        ]
     #endif
 } else {
     // Building in the Swift.org CI system, so rely on local versions of dependencies.
     package.dependencies += [
-        .package(path: "../cmark"),
+        .package(path: "../cmark")
     ]
 }

@@ -50,7 +50,8 @@ internal func editDistancePositions(
     prefixMode: Bool = false
 ) -> [Int]? {
     let queryLen = query.count
-    let candidateLen = prefixMode
+    let candidateLen =
+        prefixMode
         ? min(candidate.count, queryLen + maxEditDistance)
         : candidate.count
     guard queryLen > 0, candidateLen > 0 else { return nil }
@@ -65,23 +66,23 @@ internal func editDistancePositions(
     var trace = [UInt8](repeating: 0, count: rows * cols)
 
     // First row: cost[0][j] = j (delete j query chars to match empty candidate)
-    for j in 1...queryLen {
+    for j in 1 ... queryLen {
         cost[j] = j
         trace[j] = 2
     }
     // First column: in prefix mode cost[i][0] = i (standard Levenshtein);
     // in substring mode cost[i][0] = 0 (free start at any position)
     if prefixMode {
-        for i in 1...candidateLen {
+        for i in 1 ... candidateLen {
             cost[i * cols] = i
             trace[i * cols] = 3
         }
     }
 
-    for i in 1...candidateLen {
+    for i in 1 ... candidateLen {
         let candidateChar = candidate[i - 1]
 
-        for j in 1...queryLen {
+        for j in 1 ... queryLen {
             let queryChar = query[j - 1]
             let idx = i * cols + j
 
@@ -126,7 +127,7 @@ internal func editDistancePositions(
     // Find best ending position (minimum cost[i][queryLen])
     var bestDist = Int.max
     var bestEnd = -1
-    for i in 1...candidateLen {
+    for i in 1 ... candidateLen {
         let dist = cost[i * cols + queryLen]
         if dist <= bestDist {
             bestDist = dist

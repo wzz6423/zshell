@@ -39,7 +39,7 @@ enum TerminalSelectionAnchor {
     ) -> NSRange? {
         guard !word.isEmpty else { return nil }
         guard pointX.isFinite, pointY.isFinite,
-              cellWidthPoints.isFinite, cellHeightPoints.isFinite
+            cellWidthPoints.isFinite, cellHeightPoints.isFinite
         else { return nil }
         guard cellWidthPoints > 0, cellHeightPoints > 0 else { return nil }
         guard pointX >= 0, pointY >= 0 else { return nil }
@@ -47,7 +47,7 @@ enum TerminalSelectionAnchor {
         let rowDouble = pointY / cellHeightPoints
         let columnDouble = pointX / cellWidthPoints
         guard rowDouble.isFinite, columnDouble.isFinite,
-              rowDouble < Double(Int.max), columnDouble < Double(Int.max)
+            rowDouble < Double(Int.max), columnDouble < Double(Int.max)
         else { return nil }
 
         let row = Int(rowDouble)

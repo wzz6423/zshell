@@ -29,10 +29,12 @@ struct TerminalProfilesTests {
         first.user = "root"
         first.directory = "/srv/*"
         first.program = "vim"
-        first.appearance = .init(themeDark: "Dracula", fontFamily: "Fixture Mono", fontSize: 18,
-                                 cursorShape: "block", cursorBlinking: false)
-        first.launchSettings = .init(environmentVariables: [.init(name: "MODE", value: "production")],
-                                     initializationCommand: "echo initialized")
+        first.appearance = .init(
+            themeDark: "Dracula", fontFamily: "Fixture Mono", fontSize: 18,
+            cursorShape: "block", cursorBlinking: false)
+        first.launchSettings = .init(
+            environmentVariables: [.init(name: "MODE", value: "production")],
+            initializationCommand: "echo initialized")
         first.startupProgram = "/bin/zsh"
         first.startupArguments = "-l"
         var fallback = TerminalProfile(name: "Fallback")
@@ -54,8 +56,9 @@ struct TerminalProfilesTests {
         check(TerminalProfile.firstMatch(in: [fallback], context: .init())?.id == fallback.id, "empty fields wildcard")
         check(context.matches(TerminalProfile(name: "Host alias", host: "prod-*")), "case insensitive hosts")
 
-        let base = TerminalLaunchSettings(environmentVariables: [.init(name: "MODE", value: "base"), .init(name: "KEEP", value: "yes")],
-                                          initializationCommand: "base init")
+        let base = TerminalLaunchSettings(
+            environmentVariables: [.init(name: "MODE", value: "base"), .init(name: "KEEP", value: "yes")],
+            initializationCommand: "base init")
         let applied = first.applyingLaunchSettings(to: base)
         check(applied.environment == ["MODE": "production", "KEEP": "yes"], "launch variable overlay")
         check(base.environment["MODE"] == "base", "base launch immutable")
@@ -63,17 +66,23 @@ struct TerminalProfilesTests {
         check(fallback.applyingLaunchSettings(to: base) == base, "unspecified launch settings inherited")
 
         let remoteOnlyProgram = "/zshell-profile-fixture/remote-only"
-        check(TerminalStartupCommand.resolve(program: remoteOnlyProgram, arguments: "'hello world'")
-              == .failure(.programNotExecutable), "local startup requires an executable")
-        check(TerminalStartupCommand.resolve(program: "  \(remoteOnlyProgram)  ", arguments: "'hello world'",
-                                             requireLocalExecutable: false)
-              == .success(.init(program: remoteOnlyProgram, arguments: ["hello world"])),
-              "remote startup accepts an absolute remote-only executable")
-        check(TerminalStartupCommand.resolve(program: "relative", arguments: "", requireLocalExecutable: false)
-              == .failure(.programNotExecutable), "remote startup rejects relative programs")
-        check(TerminalStartupCommand.resolve(program: remoteOnlyProgram, arguments: "'unterminated",
-                                             requireLocalExecutable: false)
-              == .failure(.invalidArguments), "remote startup rejects malformed arguments")
+        check(
+            TerminalStartupCommand.resolve(program: remoteOnlyProgram, arguments: "'hello world'")
+                == .failure(.programNotExecutable), "local startup requires an executable")
+        check(
+            TerminalStartupCommand.resolve(
+                program: "  \(remoteOnlyProgram)  ", arguments: "'hello world'",
+                requireLocalExecutable: false)
+                == .success(.init(program: remoteOnlyProgram, arguments: ["hello world"])),
+            "remote startup accepts an absolute remote-only executable")
+        check(
+            TerminalStartupCommand.resolve(program: "relative", arguments: "", requireLocalExecutable: false)
+                == .failure(.programNotExecutable), "remote startup rejects relative programs")
+        check(
+            TerminalStartupCommand.resolve(
+                program: remoteOnlyProgram, arguments: "'unterminated",
+                requireLocalExecutable: false)
+                == .failure(.invalidArguments), "remote startup rejects malformed arguments")
 
         let lines = TerminalProfile.configLines([first, fallback])
         let parsed = TOML.parseStrictly(text: lines.joined(separator: "\n"))
@@ -96,7 +105,8 @@ struct TerminalProfilesTests {
         check(!invalid.isValid, "unsupported cursor rejected")
         let malformed = TOML.parseStrictly(text: TerminalProfile.configLines([invalid]).joined(separator: "\n"))
         check(TerminalProfile.read(malformed.values).isEmpty, "invalid persisted profiles skipped")
-        check(TerminalProfile.configLines(Array(repeating: fallback, count: 65)).filter { $0.contains(".id =") }.count == 64, "profile limit")
+        check(
+            TerminalProfile.configLines(Array(repeating: fallback, count: 65)).filter { $0.contains(".id =") }.count == 64, "profile limit")
 
         let pid = getpid()
         check(processWorkingDirectory(pid: pid) != nil, "real kernel cwd")

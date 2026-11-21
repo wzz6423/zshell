@@ -29,9 +29,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if os(macOS) && !targetEnvironment(macCatalyst)
-import AppKit
+    import AppKit
 #elseif os(iOS) || os(visionOS)
-import UIKit
+    import UIKit
 #endif
 
 extension NSTextLineFragment {
@@ -56,13 +56,15 @@ extension NSTextLineFragment {
             return nil
         }
 
-        guard let startLocation = textContentManager.location(textLayoutFragment.rangeInElement.location, offsetBy: characterRange.location) else {
+        guard let startLocation = textContentManager.location(textLayoutFragment.rangeInElement.location, offsetBy: characterRange.location)
+        else {
             return nil
         }
 
         return NSTextRange(
             location: startLocation,
-            end: textContentManager.location(textLayoutFragment.rangeInElement.location, offsetBy: characterRange.location + characterRange.length)
+            end: textContentManager.location(
+                textLayoutFragment.rangeInElement.location, offsetBy: characterRange.location + characterRange.length)
         )
     }
 }

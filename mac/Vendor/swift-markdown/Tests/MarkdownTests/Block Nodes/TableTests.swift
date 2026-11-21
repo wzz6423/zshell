@@ -23,12 +23,12 @@ class TableTests: XCTestCase {
             let table = Table(header: Table.Head(Table.Cell(Text("OK"))))
             XCTAssertNotNil(table.head)
             let expectedDump = """
-            Table alignments: |-|
-            ├─ Head
-            │  └─ Cell
-            │     └─ Text "OK"
-            └─ Body
-            """
+                Table alignments: |-|
+                ├─ Head
+                │  └─ Cell
+                │     └─ Text "OK"
+                └─ Body
+                """
             XCTAssertEqual(expectedDump, table.debugDescription())
             XCTAssertTrue(table.body.isEmpty)
         }
@@ -37,10 +37,10 @@ class TableTests: XCTestCase {
     func testSetHeader() {
         do { // non-empty -> empty
             let source = """
-            |x|y|z|
-            |-|-|-|
-            |1|2|3|
-            """
+                |x|y|z|
+                |-|-|-|
+                |1|2|3|
+                """
             let document = Document(parsing: source)
             var table = document.child(at: 0) as! Table
             XCTAssertFalse(table.head.isEmpty)
@@ -48,18 +48,18 @@ class TableTests: XCTestCase {
             XCTAssertTrue(table.head.isEmpty)
 
             let expectedDump = """
-            Document
-            └─ Table alignments: |-|-|-|
-               ├─ Head
-               └─ Body
-                  └─ Row
-                     ├─ Cell
-                     │  └─ Text "1"
-                     ├─ Cell
-                     │  └─ Text "2"
-                     └─ Cell
-                        └─ Text "3"
-            """
+                Document
+                └─ Table alignments: |-|-|-|
+                   ├─ Head
+                   └─ Body
+                      └─ Row
+                         ├─ Cell
+                         │  └─ Text "1"
+                         ├─ Cell
+                         │  └─ Text "2"
+                         └─ Cell
+                            └─ Text "3"
+                """
             XCTAssertEqual(expectedDump, table.root.debugDescription())
         }
 
@@ -71,16 +71,16 @@ class TableTests: XCTestCase {
             )
             XCTAssertFalse(table.head.isEmpty)
             let expectedDump = """
-            Table alignments: |-|-|-|
-            ├─ Head
-            │  ├─ Cell
-            │  │  └─ Text "x"
-            │  ├─ Cell
-            │  │  └─ Text "y"
-            │  └─ Cell
-            │     └─ Text "z"
-            └─ Body
-            """
+                Table alignments: |-|-|-|
+                ├─ Head
+                │  ├─ Cell
+                │  │  └─ Text "x"
+                │  ├─ Cell
+                │  │  └─ Text "y"
+                │  └─ Cell
+                │     └─ Text "z"
+                └─ Body
+                """
             XCTAssertEqual(expectedDump, table.root.debugDescription())
         }
     }
@@ -92,11 +92,12 @@ class TableTests: XCTestCase {
         }
 
         do { // some
-            let table = Table(body: Table.Body([
-                Table.Row(),
-                Table.Row(),
-                Table.Row(),
-            ]))
+            let table = Table(
+                body: Table.Body([
+                    Table.Row(),
+                    Table.Row(),
+                    Table.Row(),
+                ]))
             XCTAssertTrue(table.head.isEmpty)
             XCTAssertEqual(3, table.body.childCount)
         }
@@ -105,10 +106,10 @@ class TableTests: XCTestCase {
     func testSetBody() {
         do { // non-empty -> empty
             let source = """
-            |x|y|z|
-            |-|-|-|
-            |1|2|3|
-            """
+                |x|y|z|
+                |-|-|-|
+                |1|2|3|
+                """
             let document = Document(parsing: source)
             var table = document.child(at: 0) as! Table
             XCTAssertFalse(table.head.isEmpty)
@@ -118,25 +119,25 @@ class TableTests: XCTestCase {
             XCTAssertTrue(table.body.isEmpty)
 
             let expectedDump = """
-            Document
-            └─ Table alignments: |-|-|-|
-               ├─ Head
-               │  ├─ Cell
-               │  │  └─ Text "x"
-               │  ├─ Cell
-               │  │  └─ Text "y"
-               │  └─ Cell
-               │     └─ Text "z"
-               └─ Body
-            """
+                Document
+                └─ Table alignments: |-|-|-|
+                   ├─ Head
+                   │  ├─ Cell
+                   │  │  └─ Text "x"
+                   │  ├─ Cell
+                   │  │  └─ Text "y"
+                   │  └─ Cell
+                   │     └─ Text "z"
+                   └─ Body
+                """
             XCTAssertEqual(expectedDump, table.root.debugDescription())
         }
 
         do { // empty -> non-empty
             let source = """
-            |x|y|z|
-            |-|-|-|
-            """
+                |x|y|z|
+                |-|-|-|
+                """
             let document = Document(parsing: source)
             var table = document.child(at: 0) as! Table
             XCTAssertFalse(table.head.isEmpty)
@@ -152,24 +153,24 @@ class TableTests: XCTestCase {
             XCTAssertFalse(table.body.isEmpty)
 
             let expectedDump = """
-            Document
-            └─ Table alignments: |-|-|-|
-               ├─ Head
-               │  ├─ Cell
-               │  │  └─ Text "x"
-               │  ├─ Cell
-               │  │  └─ Text "y"
-               │  └─ Cell
-               │     └─ Text "z"
-               └─ Body
-                  └─ Row
-                     ├─ Cell
-                     │  └─ Text "1"
-                     ├─ Cell
-                     │  └─ Text "2"
-                     └─ Cell
-                        └─ Text "3"
-            """
+                Document
+                └─ Table alignments: |-|-|-|
+                   ├─ Head
+                   │  ├─ Cell
+                   │  │  └─ Text "x"
+                   │  ├─ Cell
+                   │  │  └─ Text "y"
+                   │  └─ Cell
+                   │     └─ Text "z"
+                   └─ Body
+                      └─ Row
+                         ├─ Cell
+                         │  └─ Text "1"
+                         ├─ Cell
+                         │  └─ Text "2"
+                         └─ Cell
+                            └─ Text "3"
+                """
             XCTAssertEqual(expectedDump, table.root.debugDescription())
 
         }
@@ -177,68 +178,68 @@ class TableTests: XCTestCase {
 
     func testParse() {
         let source = """
-        |x|y|
-        |-|-|
-        |1|2|
-        |3|4|
-        """
+            |x|y|
+            |-|-|
+            |1|2|
+            |3|4|
+            """
         let document = Document(parsing: source)
         let expectedDump = """
-        Document @1:1-4:6
-        └─ Table @1:1-4:6 alignments: |-|-|
-           ├─ Head @1:1-1:6
-           │  ├─ Cell @1:2-1:3
-           │  │  └─ Text @1:2-1:3 "x"
-           │  └─ Cell @1:4-1:5
-           │     └─ Text @1:4-1:5 "y"
-           └─ Body @3:1-4:6
-              ├─ Row @3:1-3:6
-              │  ├─ Cell @3:2-3:3
-              │  │  └─ Text @3:2-3:3 "1"
-              │  └─ Cell @3:4-3:5
-              │     └─ Text @3:4-3:5 "2"
-              └─ Row @4:1-4:6
-                 ├─ Cell @4:2-4:3
-                 │  └─ Text @4:2-4:3 "3"
-                 └─ Cell @4:4-4:5
-                    └─ Text @4:4-4:5 "4"
-        """
+            Document @1:1-4:6
+            └─ Table @1:1-4:6 alignments: |-|-|
+               ├─ Head @1:1-1:6
+               │  ├─ Cell @1:2-1:3
+               │  │  └─ Text @1:2-1:3 "x"
+               │  └─ Cell @1:4-1:5
+               │     └─ Text @1:4-1:5 "y"
+               └─ Body @3:1-4:6
+                  ├─ Row @3:1-3:6
+                  │  ├─ Cell @3:2-3:3
+                  │  │  └─ Text @3:2-3:3 "1"
+                  │  └─ Cell @3:4-3:5
+                  │     └─ Text @3:4-3:5 "2"
+                  └─ Row @4:1-4:6
+                     ├─ Cell @4:2-4:3
+                     │  └─ Text @4:2-4:3 "3"
+                     └─ Cell @4:4-4:5
+                        └─ Text @4:4-4:5 "4"
+            """
         XCTAssertEqual(expectedDump, document.debugDescription(options: .printSourceLocations))
     }
 
     func testParseCellSpans() {
         let source = """
-        | one | two | three |
-        | --- | --- | ----- |
-        | big      || small |
-        | ^        || small |
-        """
+            | one | two | three |
+            | --- | --- | ----- |
+            | big      || small |
+            | ^        || small |
+            """
 
         let document = Document(parsing: source)
 
         let expectedDump = """
-        Document @1:1-4:22
-        └─ Table @1:1-4:22 alignments: |-|-|-|
-           ├─ Head @1:1-1:22
-           │  ├─ Cell @1:2-1:7
-           │  │  └─ Text @1:3-1:6 "one"
-           │  ├─ Cell @1:8-1:13
-           │  │  └─ Text @1:9-1:12 "two"
-           │  └─ Cell @1:14-1:21
-           │     └─ Text @1:15-1:20 "three"
-           └─ Body @3:1-4:22
-              ├─ Row @3:1-3:22
-              │  ├─ Cell @3:2-3:12 colspan: 2 rowspan: 2
-              │  │  └─ Text @3:3-3:6 "big"
-              │  ├─ Cell @3:13-3:14 colspan: 0
-              │  └─ Cell @3:14-3:21
-              │     └─ Text @3:15-3:20 "small"
-              └─ Row @4:1-4:22
-                 ├─ Cell @4:2-4:12 colspan: 2 rowspan: 0
-                 ├─ Cell @4:13-4:14 colspan: 0
-                 └─ Cell @4:14-4:21
-                    └─ Text @4:15-4:20 "small"
-        """
+            Document @1:1-4:22
+            └─ Table @1:1-4:22 alignments: |-|-|-|
+               ├─ Head @1:1-1:22
+               │  ├─ Cell @1:2-1:7
+               │  │  └─ Text @1:3-1:6 "one"
+               │  ├─ Cell @1:8-1:13
+               │  │  └─ Text @1:9-1:12 "two"
+               │  └─ Cell @1:14-1:21
+               │     └─ Text @1:15-1:20 "three"
+               └─ Body @3:1-4:22
+                  ├─ Row @3:1-3:22
+                  │  ├─ Cell @3:2-3:12 colspan: 2 rowspan: 2
+                  │  │  └─ Text @3:3-3:6 "big"
+                  │  ├─ Cell @3:13-3:14 colspan: 0
+                  │  └─ Cell @3:14-3:21
+                  │     └─ Text @3:15-3:20 "small"
+                  └─ Row @4:1-4:22
+                     ├─ Cell @4:2-4:12 colspan: 2 rowspan: 0
+                     ├─ Cell @4:13-4:14 colspan: 0
+                     └─ Cell @4:14-4:21
+                        └─ Text @4:15-4:20 "small"
+            """
         XCTAssertEqual(expectedDump, document.debugDescription(options: .printSourceLocations))
     }
 }

@@ -10,12 +10,15 @@ enum BrowserStorageStateTests {
             "path": .string("/"), "expires": .number(expiration), "httpOnly": .bool(true),
             "secure": .bool(true), "sameSite": .string("Strict"),
         ]
-        func data(_ cookies: [[String: ZshellJSONValue]], origin: String = "https://example.test",
-                  entries: [ZshellJSONValue] = [.object(["name": .string("login"), "value": .string("fixture-only")])]) throws -> Data {
-            try JSONEncoder().encode(ZshellJSONValue.object([
-                "cookies": .array(cookies.map(ZshellJSONValue.object)),
-                "origins": .array([.object(["origin": .string(origin), "localStorage": .array(entries)])]),
-            ]))
+        func data(
+            _ cookies: [[String: ZshellJSONValue]], origin: String = "https://example.test",
+            entries: [ZshellJSONValue] = [.object(["name": .string("login"), "value": .string("fixture-only")])]
+        ) throws -> Data {
+            try JSONEncoder().encode(
+                ZshellJSONValue.object([
+                    "cookies": .array(cookies.map(ZshellJSONValue.object)),
+                    "origins": .array([.object(["origin": .string(origin), "localStorage": .array(entries)])]),
+                ]))
         }
         let initial = try BrowserStorageState.decode(data([cookie]), format: .storageState, for: url)
         precondition(initial.cookies.count == 1 && initial.localStorage?["login"] == "fixture-only")
@@ -82,7 +85,8 @@ enum BrowserStorageStateTests {
         var parent = cookie
         parent["domain"] = .string(".example.test")
         let subdomain = URL(string: "https://app.example.test")!
-        let parentState = try BrowserStorageState.decode(data([parent], origin: "https://app.example.test"), format: .storageState, for: subdomain)
+        let parentState = try BrowserStorageState.decode(
+            data([parent], origin: "https://app.example.test"), format: .storageState, for: subdomain)
         precondition(parentState.cookies.first?.domain == ".example.test")
         let withoutDot = Data("example.test\tTRUE\t/\tFALSE\t0\tfixture\ttest-only\n".utf8)
         let includedSubdomains = try BrowserStorageState.decode(withoutDot, format: .cookies, for: subdomain)
@@ -104,6 +108,7 @@ enum BrowserStorageStateTests {
         }
         let normalized = try BrowserStorageState.origin(for: URL(string: "https://EXAMPLE.test:443/a?q=1")!)
         precondition(normalized == "https://example.test")
-        print("Storage-state codec: JSON/Netscape round trips, attributes, origin/domain/public-suffix scope, type and size rejection passed")
+        print(
+            "Storage-state codec: JSON/Netscape round trips, attributes, origin/domain/public-suffix scope, type and size rejection passed")
     }
 }

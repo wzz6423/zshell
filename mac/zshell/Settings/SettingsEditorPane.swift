@@ -58,16 +58,18 @@ final class SettingsEditorPane: SettingsPaneViewController {
                 ),
             ]),
             SettingsGroup(rows: [recoveryRow, manageDrafts]),
-            SettingsGroup(header: String(localized: "Files"), rows: [
-                SettingsRow(
-                    title: String(localized: "Allow remote file changes"),
-                    control: remoteWriteSwitch
-                ),
-                SettingsRow(
-                    title: String(localized: "Import by dragging into the file tree"),
-                    control: dragImportSwitch
-                ),
-            ]),
+            SettingsGroup(
+                header: String(localized: "Files"),
+                rows: [
+                    SettingsRow(
+                        title: String(localized: "Allow remote file changes"),
+                        control: remoteWriteSwitch
+                    ),
+                    SettingsRow(
+                        title: String(localized: "Import by dragging into the file tree"),
+                        control: dragImportSwitch
+                    ),
+                ]),
         ]
     }
 
@@ -79,10 +81,17 @@ final class SettingsEditorPane: SettingsPaneViewController {
         remoteWriteSwitch.isOn = settings.remoteFileWritesEnabled
         protectSavesSwitch.isOn = settings.protectEditorSaves
         recoverDraftsSwitch.isOn = settings.recoverEditorDrafts
-        let explanation = settings.recoverEditorDrafts
-            ? String(localized: "Recover unsaved file and editable diff changes after relaunch. Backups stay on this Mac for up to 30 days. Capacity limits may delete older backups sooner.")
+        let explanation =
+            settings.recoverEditorDrafts
+            ? String(
+                localized:
+                    "Recover unsaved file and editable diff changes after relaunch. Backups stay on this Mac for up to 30 days. Capacity limits may delete older backups sooner."
+            )
             : String(localized: "New backups and automatic recovery are off. Recover or delete unexpired backups with Recover Drafts…")
-        let expiry = String(localized: "Expired backups are deleted while Zshell runs, even with backups off. If Zshell is closed, cleanup runs the next time it opens.")
+        let expiry = String(
+            localized:
+                "Expired backups are deleted while Zshell runs, even with backups off. If Zshell is closed, cleanup runs the next time it opens."
+        )
         recoveryRow.setDescription([explanation, expiry, EditorDraftStore.shared.lastError].compactMap { $0 }.joined(separator: "\n"))
     }
 }

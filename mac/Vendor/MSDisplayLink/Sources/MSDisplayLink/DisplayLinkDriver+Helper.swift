@@ -22,7 +22,8 @@ class DisplayLinkDriverHelperBase: Identifiable {
             frameRatePreferencesDidChange()
         }
 
-        referenceHolder = referenceHolder
+        referenceHolder =
+            referenceHolder
             .filter { $0.object != nil }
             .filter { $0.object?.id != object.id }
             + [.init(object: object)]

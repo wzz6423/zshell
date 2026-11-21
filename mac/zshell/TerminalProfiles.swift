@@ -8,15 +8,17 @@ nonisolated struct TerminalProfileContext: Codable, Equatable, Sendable {
     var hostAlias: String?
 
     func matches(_ profile: TerminalProfile) -> Bool {
-        (profile.host.isEmpty || [host, hostAlias].compactMap { $0 }.contains {
-            TerminalProfileGlob.matches(profile.host.lowercased(), $0.lowercased())
-        })
+        (profile.host.isEmpty
+            || [host, hostAlias].compactMap { $0 }.contains {
+                TerminalProfileGlob.matches(profile.host.lowercased(), $0.lowercased())
+            })
             && matches(profile.user, user)
             && matches(profile.directory, directory)
-            && (profile.program.isEmpty || program.map {
-                TerminalProfileGlob.matches(profile.program, $0)
-                    || TerminalProfileGlob.matches(profile.program, ($0 as NSString).lastPathComponent)
-            } == true)
+            && (profile.program.isEmpty
+                || program.map {
+                    TerminalProfileGlob.matches(profile.program, $0)
+                        || TerminalProfileGlob.matches(profile.program, ($0 as NSString).lastPathComponent)
+                } == true)
     }
 
     private func matches(_ pattern: String, _ value: String?) -> Bool {
@@ -58,7 +60,7 @@ nonisolated struct TerminalProfile: Equatable, Identifiable {
                 $0.utf8.count <= Self.maximumPatternBytes
                     && $0.rangeOfCharacter(from: .controlCharacters) == nil
             }
-            && appearance.fontSize.map { $0.isFinite && (8...32).contains($0) } != false
+            && appearance.fontSize.map { $0.isFinite && (8 ... 32).contains($0) } != false
             && appearance.cursorShape.map { ["block", "bar", "underline"].contains($0) } != false
             && [appearance.themeDark, appearance.themeLight, appearance.fontFamily].compactMap { $0 }.allSatisfy {
                 $0.utf8.count <= 128 && $0.rangeOfCharacter(from: .controlCharacters) == nil
@@ -79,11 +81,13 @@ nonisolated struct TerminalProfile: Equatable, Identifiable {
     func applyingLaunchSettings(
         to base: TerminalLaunchSettings, usesConfiguredInitializationCommand: Bool = true
     ) -> TerminalLaunchSettings {
-        base.applying(TerminalLaunchSettingsOverride(
-            environmentVariables: launchSettings.environmentVariables,
-            initializationMode: usesConfiguredInitializationCommand && launchSettings.initializationCommand != nil ? .replace : .inherit,
-            initializationCommand: launchSettings.initializationCommand
-        ))
+        base.applying(
+            TerminalLaunchSettingsOverride(
+                environmentVariables: launchSettings.environmentVariables,
+                initializationMode: usesConfiguredInitializationCommand && launchSettings.initializationCommand != nil
+                    ? .replace : .inherit,
+                initializationCommand: launchSettings.initializationCommand
+            ))
     }
 
     static func firstMatch(in profiles: [TerminalProfile], context: TerminalProfileContext) -> TerminalProfile? {
@@ -93,10 +97,11 @@ nonisolated struct TerminalProfile: Equatable, Identifiable {
     static func read(_ values: [String: TOML.Value]) -> [TerminalProfile] {
         var profiles: [TerminalProfile] = []
         var seen = Set<UUID>()
-        for index in 0..<maximumCount {
+        for index in 0 ..< maximumCount {
             let prefix = "terminal.profiles.\(index)."
             guard let rawID = values[prefix + "id"]?.string, let id = UUID(uuidString: rawID),
-                  let name = values[prefix + "name"]?.string, seen.insert(id).inserted else { continue }
+                let name = values[prefix + "name"]?.string, seen.insert(id).inserted
+            else { continue }
             var profile = TerminalProfile(id: id, name: name)
             profile.enabled = values[prefix + "enabled"]?.bool ?? true
             profile.host = values[prefix + "host"]?.string ?? ""
@@ -137,8 +142,10 @@ nonisolated struct TerminalProfile: Equatable, Identifiable {
             string("id", profile.id.uuidString)
             string("name", profile.name)
             if !profile.enabled { lines.append(prefix + "enabled = false") }
-            for (key, value) in [("host", profile.host), ("user", profile.user),
-                                 ("directory", profile.directory), ("program", profile.program)] where !value.isEmpty {
+            for (key, value) in [
+                ("host", profile.host), ("user", profile.user),
+                ("directory", profile.directory), ("program", profile.program),
+            ] where !value.isEmpty {
                 string(key, value)
             }
             string("theme-dark", profile.appearance.themeDark)
@@ -163,7 +170,8 @@ nonisolated struct TerminalProfile: Equatable, Identifiable {
 nonisolated enum TerminalProfileGlob {
     static func matches(_ pattern: String, _ value: String) -> Bool {
         guard pattern.utf8.count <= TerminalProfile.maximumPatternBytes,
-              value.utf8.count <= 4096, !value.contains("\0") else { return false }
+            value.utf8.count <= 4096, !value.contains("\0")
+        else { return false }
         let pattern = Array(pattern.unicodeScalars)
         let value = Array(value.unicodeScalars)
         var p = 0

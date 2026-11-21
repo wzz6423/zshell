@@ -36,15 +36,17 @@ struct FileTreeImportTests {
         func read(_ directory: URL, _ name: String) throws -> String {
             try String(contentsOf: directory.appendingPathComponent(name), encoding: .utf8)
         }
-        func run(_ urls: [URL], decisions: [Int: FileTreeImportService.Decision] = [:],
-                 operation: FileTreeImportOperation = FileTreeImportOperation(), destination: URL? = nil) throws -> [String] {
-            let plan = try FileTreeImportService.prepare(sources: urls, root: target.path,
-                                                        directory: (destination ?? target).path, operation: operation)
+        func run(
+            _ urls: [URL], decisions: [Int: FileTreeImportService.Decision] = [:],
+            operation: FileTreeImportOperation = FileTreeImportOperation(), destination: URL? = nil
+        ) throws -> [String] {
+            let plan = try FileTreeImportService.prepare(
+                sources: urls, root: target.path,
+                directory: (destination ?? target).path, operation: operation)
             return try FileTreeImportService.perform(plan, decisions: decisions, operation: operation)
         }
         func fails(_ message: String, _ body: () throws -> Void) throws {
-            do { try body() }
-            catch { print("PASS: " + message); return }
+            do { try body() } catch { print("PASS: " + message); return }
             throw TestFailure(description: message + " unexpectedly succeeded")
         }
         func cleanStaging() throws {
@@ -53,8 +55,9 @@ struct FileTreeImportTests {
         func rejectsRecursion(_ source: URL, root: URL, directory: URL, _ message: String) throws {
             let contents = try fm.contentsOfDirectory(atPath: directory.path)
             do {
-                _ = try FileTreeImportService.prepare(sources: [source], root: root.path, directory: directory.path,
-                                                      operation: FileTreeImportOperation())
+                _ = try FileTreeImportService.prepare(
+                    sources: [source], root: root.path, directory: directory.path,
+                    operation: FileTreeImportOperation())
                 throw TestFailure(description: message + " unexpectedly accepted")
             } catch FileTreeImportService.Failure.recursiveCopy(let name) {
                 try require(name == source.lastPathComponent, "Recursive error names the source")
@@ -70,24 +73,30 @@ struct FileTreeImportTests {
         let suppliedRoot = root.appendingPathComponent("projects")
         let suppliedDirectory = suppliedRoot.appendingPathComponent("imports")
         if fm.fileExists(atPath: suppliedDirectory.path) {
-            let casePlan = try FileTreeImportService.prepare(sources: [plain], root: suppliedRoot.path,
-                                                            directory: suppliedDirectory.path, operation: FileTreeImportOperation())
+            let casePlan = try FileTreeImportService.prepare(
+                sources: [plain], root: suppliedRoot.path,
+                directory: suppliedDirectory.path, operation: FileTreeImportOperation())
             _ = try FileTreeImportService.perform(casePlan, decisions: [:], operation: FileTreeImportOperation())
             try require(read(imports, "plain.txt") == "original", "Case-insensitive destination spelling imports into the same node")
-            try rejectsRecursion(projects, root: suppliedRoot, directory: suppliedDirectory,
-                                 "case-insensitive descendant recursion rejected before staging")
-            try rejectsRecursion(projects, root: suppliedRoot, directory: suppliedRoot,
-                                 "case-insensitive same-directory recursion rejected before staging")
+            try rejectsRecursion(
+                projects, root: suppliedRoot, directory: suppliedDirectory,
+                "case-insensitive descendant recursion rejected before staging")
+            try rejectsRecursion(
+                projects, root: suppliedRoot, directory: suppliedRoot,
+                "case-insensitive same-directory recursion rejected before staging")
             let mixedDestination = try FileTreeImportService.destination(root: suppliedRoot.path, directory: imports.path)
-            try require(mixedDestination.directorySnapshot.sameNode(as: casePlan.destination.directorySnapshot),
-                        "Mixed-case root and descendant identify the same destination")
+            try require(
+                mixedDestination.directorySnapshot.sameNode(as: casePlan.destination.directorySnapshot),
+                "Mixed-case root and descendant identify the same destination")
             let mixedRoot = try FileTreeImportService.destination(root: projects.path, directory: suppliedRoot.path)
-            try require(mixedRoot.rootSnapshot.sameNode(as: mixedRoot.directorySnapshot),
-                        "Mixed-case root and same directory are accepted")
+            try require(
+                mixedRoot.rootSnapshot.sameNode(as: mixedRoot.directorySnapshot),
+                "Mixed-case root and same directory are accepted")
             print("PASS: mixed-case root containment uses node identity")
             let next = try file(source, "case-next.txt")
-            let beforeMove = try FileTreeImportService.prepare(sources: [next], root: suppliedRoot.path,
-                                                              directory: suppliedDirectory.path, operation: FileTreeImportOperation())
+            let beforeMove = try FileTreeImportService.prepare(
+                sources: [next], root: suppliedRoot.path,
+                directory: suppliedDirectory.path, operation: FileTreeImportOperation())
             let moved = projects.appendingPathComponent("Moved")
             try fm.moveItem(at: imports, to: moved)
             try fails("case-insensitive destination moved after planning") {
@@ -97,10 +106,13 @@ struct FileTreeImportTests {
             try fails("case-insensitive destination replaced after planning") {
                 _ = try FileTreeImportService.perform(beforeMove, decisions: [:], operation: FileTreeImportOperation())
             }
-            try require(!fm.fileExists(atPath: moved.appendingPathComponent("case-next.txt").path)
-                        && fm.contentsOfDirectory(atPath: imports.path).isEmpty, "Moved and replacement directories remain unchanged")
+            try require(
+                !fm.fileExists(atPath: moved.appendingPathComponent("case-next.txt").path)
+                    && fm.contentsOfDirectory(atPath: imports.path).isEmpty, "Moved and replacement directories remain unchanged")
             print("PASS: actual case-insensitive directory spelling and retained node identity protection")
-        } else { print("SKIP: case-insensitive directory spelling on a case-sensitive volume") }
+        } else {
+            print("SKIP: case-insensitive directory spelling on a case-sensitive volume")
+        }
         try require(run([plain]).count == 1, "Copy plain file")
         try require(read(target, "plain.txt") == "original" && read(source, "plain.txt") == "original", "Source survives copy")
         let folder = source.appendingPathComponent("folder")
@@ -111,28 +123,34 @@ struct FileTreeImportTests {
         print("PASS: file, nested folder, unicode and source preservation")
         let sibling = source.appendingPathComponent("folder-other")
         try fm.createDirectory(at: sibling, withIntermediateDirectories: false)
-        let siblingPlan = try FileTreeImportService.prepare(sources: [folder], root: source.path, directory: sibling.path,
-                                                           operation: FileTreeImportOperation())
+        let siblingPlan = try FileTreeImportService.prepare(
+            sources: [folder], root: source.path, directory: sibling.path,
+            operation: FileTreeImportOperation())
         _ = try FileTreeImportService.perform(siblingPlan, decisions: [:], operation: FileTreeImportOperation())
-        try require(read(sibling.appendingPathComponent("folder/nested"), "中文.txt") == "nested",
-                    "Sibling destination with a shared name prefix accepts the folder copy")
+        try require(
+            read(sibling.appendingPathComponent("folder/nested"), "中文.txt") == "nested",
+            "Sibling destination with a shared name prefix accepts the folder copy")
         print("PASS: sibling folder import remains allowed")
 
         try Data("replacement".utf8).write(to: plain)
-        let collision = try FileTreeImportService.prepare(sources: [plain], root: target.path, directory: target.path,
-                                                          operation: FileTreeImportOperation())
+        let collision = try FileTreeImportService.prepare(
+            sources: [plain], root: target.path, directory: target.path,
+            operation: FileTreeImportOperation())
         try require(collision.conflicts == [0], "Conflict captured before write")
-        try require(FileTreeImportService.perform(collision, decisions: [0: .skip], operation: FileTreeImportOperation()).isEmpty,
-                    "Skip produces no import")
+        try require(
+            FileTreeImportService.perform(collision, decisions: [0: .skip], operation: FileTreeImportOperation()).isEmpty,
+            "Skip produces no import")
         try require(read(target, "plain.txt") == "original", "Skip preserves existing content")
-        try require(FileTreeImportService.perform(collision, decisions: [0: .replace], operation: FileTreeImportOperation()).count == 1,
-                    "Explicit replace imports")
+        try require(
+            FileTreeImportService.perform(collision, decisions: [0: .replace], operation: FileTreeImportOperation()).count == 1,
+            "Explicit replace imports")
         try require(read(target, "plain.txt") == "replacement", "Replace updates content")
         print("PASS: Replace and Skip")
         try cleanStaging()
 
-        let directoryCollisionPlan = try FileTreeImportService.prepare(sources: [folder], root: target.path, directory: target.path,
-                                                                       operation: FileTreeImportOperation())
+        let directoryCollisionPlan = try FileTreeImportService.prepare(
+            sources: [folder], root: target.path, directory: target.path,
+            operation: FileTreeImportOperation())
         let directoryEdit = target.appendingPathComponent("folder/nested/中文.txt")
         try Data("external-nested".utf8).write(to: directoryEdit)
         try fails("nested destination edit before folder replacement") {
@@ -142,7 +160,9 @@ struct FileTreeImportTests {
         try cleanStaging()
 
         try fails("missing conflict decision") { _ = try run([plain]) }
-        try fails("same folder and hard-link self copy") { _ = try run([target.appendingPathComponent("plain.txt")], decisions: [0: .replace]) }
+        try fails("same folder and hard-link self copy") {
+            _ = try run([target.appendingPathComponent("plain.txt")], decisions: [0: .replace])
+        }
         let hardLink = source.appendingPathComponent("hard.txt")
         try fm.linkItem(at: target.appendingPathComponent("plain.txt"), to: hardLink)
         try fm.linkItem(at: hardLink, to: target.appendingPathComponent("hard.txt"))
@@ -158,15 +178,17 @@ struct FileTreeImportTests {
         let nestedLink = target.appendingPathComponent("nested-link")
         try fm.createSymbolicLink(at: nestedLink, withDestinationURL: targetNested)
         try rejectsRecursion(targetFolder, root: target, directory: nestedLink, "symlink-resolved descendant recursion")
-        let linkedPlan = try FileTreeImportService.prepare(sources: [plain], root: target.path, directory: nestedLink.path,
-                                                          operation: FileTreeImportOperation())
+        let linkedPlan = try FileTreeImportService.prepare(
+            sources: [plain], root: target.path, directory: nestedLink.path,
+            operation: FileTreeImportOperation())
         try fm.removeItem(at: nestedLink)
         try fm.createSymbolicLink(at: nestedLink, withDestinationURL: outside)
         try fails("destination symlink changed after planning") {
             _ = try FileTreeImportService.perform(linkedPlan, decisions: [:], operation: FileTreeImportOperation())
         }
-        try require(!fm.fileExists(atPath: targetNested.appendingPathComponent("plain.txt").path)
-                    && fm.contentsOfDirectory(atPath: outside.path).isEmpty, "Changed destination link publishes no copies")
+        try require(
+            !fm.fileExists(atPath: targetNested.appendingPathComponent("plain.txt").path)
+                && fm.contentsOfDirectory(atPath: outside.path).isEmpty, "Changed destination link publishes no copies")
         let another = root.appendingPathComponent("another")
         try fm.createDirectory(at: another, withIntermediateDirectories: false)
         let duplicate = try file(another, "plain.txt")
@@ -175,11 +197,15 @@ struct FileTreeImportTests {
         let link = source.appendingPathComponent("link")
         try fm.createSymbolicLink(atPath: link.path, withDestinationPath: "missing-target")
         _ = try run([link])
-        try require(fm.destinationOfSymbolicLink(atPath: target.appendingPathComponent("link").path) == "missing-target", "Dangling symbolic link copied verbatim")
+        try require(
+            fm.destinationOfSymbolicLink(atPath: target.appendingPathComponent("link").path) == "missing-target",
+            "Dangling symbolic link copied verbatim")
         let loop = folder.appendingPathComponent("loop")
         try fm.createSymbolicLink(at: loop, withDestinationURL: folder)
         _ = try run([folder], decisions: [0: .replace])
-        try require(fm.destinationOfSymbolicLink(atPath: target.appendingPathComponent("folder/loop").path) == folder.path, "Directory link not traversed")
+        try require(
+            fm.destinationOfSymbolicLink(atPath: target.appendingPathComponent("folder/loop").path) == folder.path,
+            "Directory link not traversed")
         print("PASS: symbolic links, dangling links and cycles")
         try cleanStaging()
 
@@ -197,9 +223,10 @@ struct FileTreeImportTests {
         let cancelledAddition = try file(source, "cancelled-addition.txt")
         let cancelledReplacement = try file(source, "cancelled-replacement.txt", "new replacement")
         _ = try file(target, "cancelled-replacement.txt", "old replacement")
-        let cancelledPlan = try FileTreeImportService.prepare(sources: [cancelledAddition, cancelledReplacement],
-                                                              root: target.path, directory: target.path,
-                                                              operation: FileTreeImportOperation())
+        let cancelledPlan = try FileTreeImportService.prepare(
+            sources: [cancelledAddition, cancelledReplacement],
+            root: target.path, directory: target.path,
+            operation: FileTreeImportOperation())
         let afterPublishOperation = FileTreeImportOperation()
         ImportRollbackRaceFixture.action.withLock { $0 = { _ in afterPublishOperation.cancel() } }
         var rolledBackCancellation = false
@@ -207,17 +234,20 @@ struct FileTreeImportTests {
             _ = try FileTreeImportService.perform(cancelledPlan, decisions: [1: .replace], operation: afterPublishOperation)
         } catch is CancellationError { rolledBackCancellation = true }
         ImportRollbackRaceFixture.action.withLock { $0 = nil }
-        try require(rolledBackCancellation && !fm.fileExists(atPath: target.appendingPathComponent("cancelled-addition.txt").path)
-                    && read(target, "cancelled-replacement.txt") == "old replacement",
-                    "Cancellation removes added copies and restores unchanged replacements")
-        try require(read(source, "cancelled-addition.txt") == "new" && read(source, "cancelled-replacement.txt") == "new replacement",
-                    "Cancellation preserves both source files")
+        try require(
+            rolledBackCancellation && !fm.fileExists(atPath: target.appendingPathComponent("cancelled-addition.txt").path)
+                && read(target, "cancelled-replacement.txt") == "old replacement",
+            "Cancellation removes added copies and restores unchanged replacements")
+        try require(
+            read(source, "cancelled-addition.txt") == "new" && read(source, "cancelled-replacement.txt") == "new replacement",
+            "Cancellation preserves both source files")
         try cleanStaging()
         print("PASS: cancellation rolls back added and replaced items after publication")
 
         let raceFile = try file(source, "raced.txt")
-        let racePlan = try FileTreeImportService.prepare(sources: [raceFile], root: target.path, directory: target.path,
-                                                        operation: FileTreeImportOperation())
+        let racePlan = try FileTreeImportService.prepare(
+            sources: [raceFile], root: target.path, directory: target.path,
+            operation: FileTreeImportOperation())
         _ = try file(target, "raced.txt", "concurrent")
         try fails("new destination collision after planning") {
             _ = try FileTreeImportService.perform(racePlan, decisions: [:], operation: FileTreeImportOperation())
@@ -229,20 +259,24 @@ struct FileTreeImportTests {
         let second = try file(source, "second.txt")
         _ = try file(target, "first.txt", "old-first")
         _ = try file(target, "second.txt", "old-second")
-        let rollbackPlan = try FileTreeImportService.prepare(sources: [first, second], root: target.path, directory: target.path,
-                                                            operation: FileTreeImportOperation())
+        let rollbackPlan = try FileTreeImportService.prepare(
+            sources: [first, second], root: target.path, directory: target.path,
+            operation: FileTreeImportOperation())
         let mutate = FileTreeImportOperation { name in
             if name == "second.txt" { try? Data("external-second".utf8).write(to: target.appendingPathComponent("second.txt")) }
         }
         try fails("rollback earlier replacement after a later race") {
             _ = try FileTreeImportService.perform(rollbackPlan, decisions: [0: .replace, 1: .replace], operation: mutate)
         }
-        try require(read(target, "first.txt") == "old-first" && read(target, "second.txt") == "external-second", "Rollback restores first and preserves concurrent second")
+        try require(
+            read(target, "first.txt") == "old-first" && read(target, "second.txt") == "external-second",
+            "Rollback restores first and preserves concurrent second")
         try cleanStaging()
 
         let newlyAdded = try file(source, "changed-after-publish.txt")
-        let incompletePlan = try FileTreeImportService.prepare(sources: [newlyAdded], root: target.path, directory: target.path,
-                                                              operation: FileTreeImportOperation())
+        let incompletePlan = try FileTreeImportService.prepare(
+            sources: [newlyAdded], root: target.path, directory: target.path,
+            operation: FileTreeImportOperation())
         let incompleteOperation = FileTreeImportOperation()
         ImportRollbackRaceFixture.action.withLock { action in
             action = { _ in
@@ -255,20 +289,24 @@ struct FileTreeImportTests {
             _ = try FileTreeImportService.perform(incompletePlan, decisions: [:], operation: incompleteOperation)
         } catch FileTreeImportService.Failure.recovery(let path) { recoveryPath = path }
         ImportRollbackRaceFixture.action.withLock { $0 = nil }
-        try require(read(target, "changed-after-publish.txt") == "concurrent edit survives", "Changed newly imported item survives cancellation")
+        try require(
+            read(target, "changed-after-publish.txt") == "concurrent edit survives", "Changed newly imported item survives cancellation")
         guard let recoveryPath else { throw TestFailure(description: "Incomplete rollback must report recovery") }
-        try require(fm.contentsOfDirectory(atPath: recoveryPath + "/originals").isEmpty
-                    && !fm.fileExists(atPath: recoveryPath + "/incoming/changed-after-publish.txt"),
-                    "A changed new import has no guaranteed saved copy")
+        try require(
+            fm.contentsOfDirectory(atPath: recoveryPath + "/originals").isEmpty
+                && !fm.fileExists(atPath: recoveryPath + "/incoming/changed-after-publish.txt"),
+            "A changed new import has no guaranteed saved copy")
         let recoveryMessage = FileTreeImportService.Failure.recovery(recoveryPath).localizedDescription
-        try require(recoveryMessage.contains("could not be fully undone") && recoveryMessage.contains("may be available"),
-                    "Recovery message qualifies incomplete rollback and available files")
+        try require(
+            recoveryMessage.contains("could not be fully undone") && recoveryMessage.contains("may be available"),
+            "Recovery message qualifies incomplete rollback and available files")
         try fm.removeItem(atPath: recoveryPath)
         try cleanStaging()
         print("PASS: cancellation preserves concurrent import edits and recovery folder may contain no saved copy")
 
-        let changedPlan = try FileTreeImportService.prepare(sources: [first], root: target.path, directory: target.path,
-                                                           operation: FileTreeImportOperation())
+        let changedPlan = try FileTreeImportService.prepare(
+            sources: [first], root: target.path, directory: target.path,
+            operation: FileTreeImportOperation())
         try Data("changed-source".utf8).write(to: first)
         try fails("source changed after planning") {
             _ = try FileTreeImportService.perform(changedPlan, decisions: [0: .replace], operation: FileTreeImportOperation())
@@ -277,23 +315,26 @@ struct FileTreeImportTests {
 
         let movingDirectory = target.appendingPathComponent("moving")
         try fm.createDirectory(at: movingDirectory, withIntermediateDirectories: false)
-        let movingPlan = try FileTreeImportService.prepare(sources: [second], root: target.path, directory: movingDirectory.path,
-                                                          operation: FileTreeImportOperation())
+        let movingPlan = try FileTreeImportService.prepare(
+            sources: [second], root: target.path, directory: movingDirectory.path,
+            operation: FileTreeImportOperation())
         let movedDirectory = target.appendingPathComponent("moved")
         try fm.moveItem(at: movingDirectory, to: movedDirectory)
         try fm.createDirectory(at: movingDirectory, withIntermediateDirectories: false)
         try fails("destination directory identity changed") {
             _ = try FileTreeImportService.perform(movingPlan, decisions: [:], operation: FileTreeImportOperation())
         }
-        try require(fm.contentsOfDirectory(atPath: movingDirectory.path).isEmpty && fm.contentsOfDirectory(atPath: movedDirectory.path).isEmpty,
-                    "Neither old nor new destination gains copies")
+        try require(
+            fm.contentsOfDirectory(atPath: movingDirectory.path).isEmpty && fm.contentsOfDirectory(atPath: movedDirectory.path).isEmpty,
+            "Neither old nor new destination gains copies")
 
         let selectionDestination = try FileTreeImportService.destination(root: target.path, directory: movingDirectory.path)
         try fm.moveItem(at: movingDirectory, to: target.appendingPathComponent("moved-again"))
         try fm.createDirectory(at: movingDirectory, withIntermediateDirectories: false)
         try fails("destination replaced while file selection is open") {
-            _ = try FileTreeImportService.prepare(sources: [second], root: target.path, directory: movingDirectory.path,
-                                                 operation: FileTreeImportOperation(), destination: selectionDestination)
+            _ = try FileTreeImportService.prepare(
+                sources: [second], root: target.path, directory: movingDirectory.path,
+                operation: FileTreeImportOperation(), destination: selectionDestination)
         }
         try require(fm.contentsOfDirectory(atPath: movingDirectory.path).isEmpty, "Selection never imports into replacement folder")
 
@@ -301,12 +342,13 @@ struct FileTreeImportTests {
         let aliasData = try plain.bookmarkData(options: .suitableForBookmarkFile, includingResourceValuesForKeys: nil, relativeTo: nil)
         try URL.writeBookmarkData(aliasData, to: alias)
         _ = try run([alias])
-        try require(Data(contentsOf: alias) == Data(contentsOf: target.appendingPathComponent("Finder Alias")), "Finder alias copied as an item")
+        try require(
+            Data(contentsOf: alias) == Data(contentsOf: target.appendingPathComponent("Finder Alias")), "Finder alias copied as an item")
         print("PASS: Finder aliases copied without resolving the leaf")
 
         let deep = source.appendingPathComponent("deep")
         var nested = deep
-        for _ in 0..<(FileTreeImportService.maximumDepth + 2) {
+        for _ in 0 ..< (FileTreeImportService.maximumDepth + 2) {
             try fm.createDirectory(at: nested, withIntermediateDirectories: true)
             nested.appendPathComponent("d")
         }
@@ -326,10 +368,11 @@ struct FileTreeImportTests {
 
         let large = source.appendingPathComponent("large")
         try fm.createDirectory(at: large, withIntermediateDirectories: false)
-        for index in 0..<2_000 { _ = try file(large, "file-\(index).txt") }
+        for index in 0 ..< 2_000 { _ = try file(large, "file-\(index).txt") }
         let begin = ContinuousClock.now
         _ = try run([large])
-        try require(fm.contentsOfDirectory(atPath: target.appendingPathComponent("large").path).count == 2_000, "Large directory copied fully")
+        try require(
+            fm.contentsOfDirectory(atPath: target.appendingPathComponent("large").path).count == 2_000, "Large directory copied fully")
         print("PASS: 2000-file import in \(begin.duration(to: .now))")
         try cleanStaging()
         print("PASS: all file-tree import production filesystem checks")

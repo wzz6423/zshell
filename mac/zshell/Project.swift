@@ -131,8 +131,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     var fileSource: FileSource {
         if case let .ssh(endpoint, directory, authentication, credentialID) = location {
-            return .remote(RemoteFileSource(endpoint: endpoint, root: directory ?? "~",
-                                           authentication: authentication, credentialID: credentialID))
+            return .remote(
+                RemoteFileSource(
+                    endpoint: endpoint, root: directory ?? "~",
+                    authentication: authentication, credentialID: credentialID))
         }
         if isRemote {
             guard let endpoint = remoteEndpoint else { return .unavailableRemote }
@@ -182,7 +184,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             return customName
         }
         guard let title = selectedSession?.title,
-              !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else {
             return fallbackName
         }
@@ -305,8 +307,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         // the same root and is ignored, which keeps the file tree from
         // collapsing its expanded rows every time a command runs.
         if let foregroundCwd,
-           let foregroundRoot = Self.closestGitRepository(containing: foregroundCwd),
-           foregroundRoot != shellRoot {
+            let foregroundRoot = Self.closestGitRepository(containing: foregroundCwd),
+            foregroundRoot != shellRoot
+        {
             return (foregroundRoot, .foreground(isWorktree: Self.isLinkedWorktree(foregroundRoot)))
         }
         return (shellRoot, .shell)
@@ -319,8 +322,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let gitPath = (root as NSString).appendingPathComponent(".git")
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: gitPath, isDirectory: &isDirectory),
-              !isDirectory.boolValue,
-              let contents = try? String(contentsOfFile: gitPath, encoding: .utf8)
+            !isDirectory.boolValue,
+            let contents = try? String(contentsOfFile: gitPath, encoding: .utf8)
         else { return false }
         return contents.contains("/worktrees/")
     }
@@ -397,7 +400,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             explicitlyResumeConversation: true
         )
         session.agentConversationHistoryID = record.id
-        session.agentConversationResumeDeadline = session.reconnectedToPersistentPTY
+        session.agentConversationResumeDeadline =
+            session.reconnectedToPersistentPTY
             ? nil : Date().addingTimeInterval(30)
         let tab = makeTab(content: .session(session))
         tab.customName = Self.normalizedCustomName(record.title)
@@ -468,19 +472,22 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 case .tailscale(let name, _):
                     context = .init(host: name, directory: directory)
                 }
-                initialTerminalProfile = AppSettings.shared.automaticallyApplyTerminalProfiles ? TerminalProfile.firstMatch(
-                    in: AppSettings.shared.terminalProfiles, context: context
-                ) : nil
+                initialTerminalProfile =
+                    AppSettings.shared.automaticallyApplyTerminalProfiles
+                    ? TerminalProfile.firstMatch(
+                        in: AppSettings.shared.terminalProfiles, context: context
+                    ) : nil
                 let base = launchSettings ?? self.launchSettings
-                let configuredLaunch = initialTerminalProfile?.applyingLaunchSettings(
-                    to: base, usesConfiguredInitializationCommand: usesConfiguredInitializationCommand
-                ) ?? base
+                let configuredLaunch =
+                    initialTerminalProfile?.applyingLaunchSettings(
+                        to: base, usesConfiguredInitializationCommand: usesConfiguredInitializationCommand
+                    ) ?? base
                 let remoteStartup = initialTerminalProfile.flatMap { profile -> [String]? in
                     guard !isRestoredSession, usesConfiguredStartupCommand, commandArguments == nil,
-                          case .success(let startup?) = TerminalStartupCommand.resolve(
+                        case .success(let startup?) = TerminalStartupCommand.resolve(
                             program: profile.startupProgram, arguments: profile.startupArguments,
                             requireLocalExecutable: false
-                          )
+                        )
                     else { return nil }
                     return startup.argv
                 }
@@ -503,7 +510,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             remoteConnection = nil
             do {
                 let material = try authentication.makeMaterial(credentialID: credentialID)
-                launchArguments = ["/usr/bin/ssh"]
+                launchArguments =
+                    ["/usr/bin/ssh"]
                     + (try endpoint.terminalArguments(
                         remoteDirectory: remoteDirectory,
                         authentication: authentication,
@@ -541,9 +549,12 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             additionalEnvironment: additionalEnvironment,
             agentResume: isRemote ? nil : agentResume,
             agentFork: isRemote ? nil : agentFork,
-            worktree: isRemote ? nil : worktree ?? selectedSession?.worktree.flatMap {
-                SessionWorktreeService.contains(initialDirectory ?? "", in: $0.path) ? $0 : nil
-            },
+            worktree: isRemote
+                ? nil
+                : worktree
+                    ?? selectedSession?.worktree.flatMap {
+                        SessionWorktreeService.contains(initialDirectory ?? "", in: $0.path) ? $0 : nil
+                    },
             isRestoredSession: isRestoredSession,
             allowsPersistence: sharedHost == nil,
             explicitlyResumeConversation: explicitlyResumeConversation,
@@ -568,7 +579,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     func attachRemoteSession(_ info: RemoteSessionInfo) {
         guard sharedHost != nil, let id = UUID(uuidString: info.sessionId),
-              !sessions.contains(where: { $0.remoteConnection?.sessionID == id }) else { return }
+            !sessions.contains(where: { $0.remoteConnection?.sessionID == id })
+        else { return }
         let session = makeSession(isRestoredSession: true, remoteSessionID: id)
         let tab = makeTab(content: .session(session))
         append(tab)
@@ -650,15 +662,17 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         usesConfiguredStartupCommand: Bool = true
     ) -> (tab: PaneTab, pane: Pane, session: TerminalSession)? {
         guard let tab = tabs.first(where: { $0.layout.contains(targetPaneID) }),
-              let target = tab.allPanes.first(where: { $0.id == targetPaneID }),
-              !target.content.isDiff
+            let target = tab.allPanes.first(where: { $0.id == targetPaneID }),
+            !target.content.isDiff
         else { return nil }
 
-        let contextDirectory: String? = switch target.content {
-        case .session(let session): session.currentDirectoryPath
-        default: tab.sessions.first?.currentDirectoryPath
-            ?? tab.contextSession?.currentDirectoryPath
-        }
+        let contextDirectory: String? =
+            switch target.content {
+            case .session(let session): session.currentDirectoryPath
+            default:
+                tab.sessions.first?.currentDirectoryPath
+                    ?? tab.contextSession?.currentDirectoryPath
+            }
         let directory = directory ?? contextDirectory ?? sessionDirectory(policy: .current)
         let localDirectory = isRemote ? nil : sessionDirectory(directory)
         if let localDirectory, TerminalManager.isRemovingWorktree(containing: localDirectory) {
@@ -714,15 +728,17 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         editorState: EditorState? = nil
     ) {
         if behavior != .newPinned,
-           let (tab, paneID) = behavior == .pinned
-               ? findFilePreviewPane(path: path) ?? findFilePane(path: path)
-               : findFilePane(path: path) {
+            let (tab, paneID) = behavior == .pinned
+                ? findFilePreviewPane(path: path) ?? findFilePane(path: path)
+                : findFilePane(path: path)
+        {
             if behavior == .pinned { tab.pinFilePreview() }
             selectedTabID = tab.id
             tab.focusedPaneID = paneID
             if let location = editorState?.selectionLocation,
-               let pane = tab.allPanes.first(where: { $0.id == paneID }),
-               case .file(let file) = pane.content {
+                let pane = tab.allPanes.first(where: { $0.id == paneID }),
+                case .file(let file) = pane.content
+            {
                 file.revealSelection(at: location)
             }
             return
@@ -736,8 +752,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             file.editorState = editorState
         }
         if behavior == .preview,
-           let tab = tabs.first(where: \.canReplaceFilePreview),
-           tab.replaceFilePreview(with: file) {
+            let tab = tabs.first(where: \.canReplaceFilePreview),
+            tab.replaceFilePreview(with: file)
+        {
             tab.contextSession = context
             selectedTabID = tab.id
             return
@@ -773,8 +790,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     private func findFilePreviewPane(path: String) -> (tab: PaneTab, paneID: UUID)? {
         for tab in tabs where tab.canReplaceFilePreview {
             guard let pane = tab.allPanes.first,
-                  case .file(let file) = pane.content,
-                  file.path == path else { continue }
+                case .file(let file) = pane.content,
+                file.path == path
+            else { continue }
             return (tab, pane.id)
         }
         return nil
@@ -823,13 +841,15 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         beside targetPaneID: UUID? = nil,
         focus: Bool = true
     ) -> BrowserTab? {
-        let tab = targetPaneID.flatMap { id in
-            tabs.first(where: { $0.layout.contains(id) })
-        } ?? selectedTab
+        let tab =
+            targetPaneID.flatMap { id in
+                tabs.first(where: { $0.layout.contains(id) })
+            } ?? selectedTab
         guard let tab,
-              let target = tab.allPanes.first(where: {
-                  $0.id == (targetPaneID ?? tab.focusedPaneID)
-              }), !target.content.isDiff else { return nil }
+            let target = tab.allPanes.first(where: {
+                $0.id == (targetPaneID ?? tab.focusedPaneID)
+            }), !target.content.isDiff
+        else { return nil }
         let browser = makeBrowser(
             initialURL: initialURL,
             initialFocus: initialFocus
@@ -883,7 +903,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         if let (tab, pane) = findDiffPane(
             repoRoot: repoRoot, path: path, staged: staged, commitHash: nil
         ),
-           case .diff(let diff) = pane.content {
+            case .diff(let diff) = pane.content
+        {
             diff.untracked = untracked
             diff.origPath = origPath
             diff.reload()
@@ -1077,7 +1098,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         while let content = tabs.flatMap(\.allContents).first(where: { confirmation.requiresConfirmation($0) }) {
             manager?.selectedProjectID = id
             if let tab = tabs.first(where: { $0.paneID(forContent: content.id) != nil }),
-               let paneID = tab.paneID(forContent: content.id) {
+                let paneID = tab.paneID(forContent: content.id)
+            {
                 selectedTabID = tab.id
                 tab.focusedPaneID = paneID
             }
@@ -1096,7 +1118,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     private func confirmCloseUnsaved(_ content: PaneContent, in window: NSWindow?) async -> Bool {
         guard let confirmation = UnsavedChangesConfirmation() else { return true }
         guard await confirmation.confirm(content, in: window),
-              !confirmation.requiresConfirmation(content) else { return true }
+            !confirmation.requiresConfirmation(content)
+        else { return true }
         confirmation.commitDiscards()
         removePaneWithContent(content.id)
         return false
@@ -1134,11 +1157,15 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             if let manager {
                 let worktreeSessions = targets.compactMap { content -> TerminalSession? in
                     if case .session(let session) = content, session.worktree != nil,
-                       sessions.contains(where: { $0 === session }) { return session }
+                        sessions.contains(where: { $0 === session })
+                    {
+                        return session
+                    }
                     return nil
                 }
                 for session in worktreeSessions where sessions.contains(where: { $0 === session }) {
-                    guard let remove = await manager.confirmCloseWorktreeSession(session, in: self, closingSessions: worktreeSessions) else { return }
+                    guard let remove = await manager.confirmCloseWorktreeSession(session, in: self, closingSessions: worktreeSessions)
+                    else { return }
                     choices.append((session, remove))
                 }
             }
@@ -1146,8 +1173,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             confirmation.commitDiscards()
             closeApprovedContents(targets, preserving: choices.map(\.session))
             if let manager {
-                do { try await manager.closeApprovedWorktreeSessions(choices, in: self) }
-                catch { await manager.showWorktreeError(error, in: window) }
+                do { try await manager.closeApprovedWorktreeSessions(choices, in: self) } catch {
+                    await manager.showWorktreeError(error, in: window)
+                }
             }
         }
     }
@@ -1190,7 +1218,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     func renameTabGroup(_ id: UUID, to name: String) {
         guard let name = Self.normalizedCustomName(name),
-              let index = tabGroups.firstIndex(where: { $0.id == id }) else { return }
+            let index = tabGroups.firstIndex(where: { $0.id == id })
+        else { return }
         tabGroups[index].name = name
     }
 
@@ -1201,7 +1230,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     func setTabGroupCollapsed(_ collapsed: Bool, id: UUID) {
         guard let index = tabGroups.firstIndex(where: { $0.id == id }),
-              tabGroups[index].isCollapsed != collapsed else { return }
+            tabGroups[index].isCollapsed != collapsed
+        else { return }
         tabGroups[index].isCollapsed = collapsed
     }
 
@@ -1213,8 +1243,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     func moveTabGroup(_ id: UUID, to targetID: UUID) {
         guard id != targetID,
-              let source = tabGroups.firstIndex(where: { $0.id == id }),
-              let target = tabGroups.firstIndex(where: { $0.id == targetID }) else { return }
+            let source = tabGroups.firstIndex(where: { $0.id == id }),
+            let target = tabGroups.firstIndex(where: { $0.id == targetID })
+        else { return }
         let group = tabGroups.remove(at: source)
         tabGroups.insert(group, at: target)
         normalizeTabOrder()
@@ -1222,7 +1253,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     func moveTab(_ id: UUID, toGroup groupID: UUID?) {
         guard let index = tabs.firstIndex(where: { $0.id == id }),
-              groupID == nil || tabGroup(id: groupID) != nil else { return }
+            groupID == nil || tabGroup(id: groupID) != nil
+        else { return }
         let tab = tabs[index]
         if tab.tabGroupID != groupID || (groupID != nil && tab.isPinned) {
             tabs.remove(at: index)
@@ -1257,7 +1289,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         tabGroups = groups.compactMap { group in
             guard seen.insert(group.id).inserted else { return nil }
             var group = group
-            group.name = Self.normalizedCustomName(group.name)
+            group.name =
+                Self.normalizedCustomName(group.name)
                 ?? String(localized: "New Tab Group")
             return group
         }
@@ -1278,9 +1311,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// "Close Tabs to the Right" all describe the same sequence. Fixed tabs
     /// occupy their own section and leave a group when pinned.
     private func normalizeTabOrder() {
-        let positions = Dictionary(uniqueKeysWithValues: tabGroups.enumerated().map {
-            ($0.element.id, $0.offset)
-        })
+        let positions = Dictionary(
+            uniqueKeysWithValues: tabGroups.enumerated().map {
+                ($0.element.id, $0.offset)
+            })
         for tab in tabs where tab.isPinned || tab.tabGroupID.map({ positions[$0] == nil }) == true {
             if tab.tabGroupID != nil { tab.tabGroupID = nil }
         }
@@ -1299,7 +1333,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     func setPinned(_ pinned: Bool, for tab: PaneTab) {
         guard tab.isPinned != pinned,
-              let index = tabs.firstIndex(where: { $0.id == tab.id })
+            let index = tabs.firstIndex(where: { $0.id == tab.id })
         else { return }
 
         tabs.remove(at: index)
@@ -1315,9 +1349,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// transaction; selection continues to follow the dragged tab's ID.
     func moveTab(_ draggedID: UUID, to targetID: UUID) {
         guard draggedID != targetID,
-              let draggedIndex = tabs.firstIndex(where: { $0.id == draggedID }),
-              let targetIndex = tabs.firstIndex(where: { $0.id == targetID }),
-              tabs[draggedIndex].isPinned == tabs[targetIndex].isPinned
+            let draggedIndex = tabs.firstIndex(where: { $0.id == draggedID }),
+            let targetIndex = tabs.firstIndex(where: { $0.id == targetID }),
+            tabs[draggedIndex].isPinned == tabs[targetIndex].isPinned
         else { return }
 
         var reorderedTabs = tabs
@@ -1342,8 +1376,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let source = tabs[sourceIndex]
         let panesBefore = source.allPanes
         guard panesBefore.count > 1,
-              let paneIndex = panesBefore.firstIndex(where: { $0.id == paneID }),
-              !panesBefore[paneIndex].content.isDiff
+            let paneIndex = panesBefore.firstIndex(where: { $0.id == paneID }),
+            !panesBefore[paneIndex].content.isDiff
         else { return nil }
 
         let result = source.layout.removingPane(paneID)
@@ -1387,13 +1421,13 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         ZshellAutomationEventHub.shared.beginTopologyChange()
         defer { ZshellAutomationEventHub.shared.endTopologyChange() }
         guard draggedID != targetTabID,
-              let draggedIndex = tabs.firstIndex(where: { $0.id == draggedID }),
-              let draggedTab = tabs.first(where: { $0.id == draggedID }),
-              let targetTab = tabs.first(where: { $0.id == targetTabID }),
-              draggedTab.isPinned == targetTab.isPinned,
-              !draggedTab.allContents.contains(where: \.isDiff),
-              let targetPane = targetTab.allPanes.first(where: { $0.id == targetPaneID }),
-              !targetPane.content.isDiff
+            let draggedIndex = tabs.firstIndex(where: { $0.id == draggedID }),
+            let draggedTab = tabs.first(where: { $0.id == draggedID }),
+            let targetTab = tabs.first(where: { $0.id == targetTabID }),
+            draggedTab.isPinned == targetTab.isPinned,
+            !draggedTab.allContents.contains(where: \.isDiff),
+            let targetPane = targetTab.allPanes.first(where: { $0.id == targetPaneID }),
+            !targetPane.content.isDiff
         else { return false }
 
         targetTab.insert(
@@ -1472,15 +1506,17 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         session.onAgentConversationChanged = { [weak self] session, identity in
             guard let self, !self.isRemote || self.sharedHost != nil else { return }
             let store = AgentConversationHistoryStore.shared
-            let title = self.tabs.first(where: { $0.sessions.contains(where: { $0 === session }) })?.customName
+            let title =
+                self.tabs.first(where: { $0.sessions.contains(where: { $0 === session }) })?.customName
                 ?? session.agentStatus?.alias
             if let id = session.agentConversationHistoryID {
                 let continues = identity.map { store.record(id: id)?.matches($0) == true } ?? false
                 if !continues { store.ended(id: id, terminalID: session.id, title: title) }
             }
             session.agentConversationHistoryID = identity.map {
-                store.note($0, projectID: self.conversationHistoryProjectID, projectName: self.name,
-                           title: title, terminalID: session.id)
+                store.note(
+                    $0, projectID: self.conversationHistoryProjectID, projectName: self.name,
+                    title: title, terminalID: session.id)
             }
         }
         session.onExited = { [weak self] session in
@@ -1496,7 +1532,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                     self?.updateBrowserConnection()
                 }
         }
-        if session.agentConversationOwner?.isAlive == true || session.remoteStatus?.state == .connected, let identity = session.agentResume {
+        if session.agentConversationOwner?.isAlive == true || session.remoteStatus?.state == .connected, let identity = session.agentResume
+        {
             session.onAgentConversationChanged?(session, identity)
         }
     }
@@ -1523,7 +1560,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     private func shiftSelection(by offset: Int) {
         guard !tabs.isEmpty,
-              let current = tabs.firstIndex(where: { $0.id == selectedTabID })
+            let current = tabs.firstIndex(where: { $0.id == selectedTabID })
         else { return }
         let next = (current + offset + tabs.count) % tabs.count
         selectedTabID = tabs[next].id
@@ -1541,12 +1578,14 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         guard let first = contents.first else { return }
         switch first {
         case .session(let directory):
-            guard newSession(
-                directory: directory, commandArguments: commands[0]?.argv,
-                launchSettings: TerminalLaunchSettings(initializationCommand: commands[0]?.initializationCommand),
-                remoteSessionID: remoteSessionIDs[0], usesConfiguredStartupCommand: false,
-                usesConfiguredInitializationCommand: false
-            ) != nil else { return }
+            guard
+                newSession(
+                    directory: directory, commandArguments: commands[0]?.argv,
+                    launchSettings: TerminalLaunchSettings(initializationCommand: commands[0]?.initializationCommand),
+                    remoteSessionID: remoteSessionIDs[0], usesConfiguredStartupCommand: false,
+                    usesConfiguredInitializationCommand: false
+                ) != nil
+            else { return }
         case .browser(let url):
             newBrowserTab(initialURL: url, initialFocus: .none)
         case .file, .diff, .commitDiff: return
@@ -1562,19 +1601,22 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 let content: PaneContent
                 switch pane.content {
                 case .session(let directory):
-                    content = .session(makeSession(
-                        directory: directory, commandArguments: commands[paneIndex]?.argv,
-                        launchSettings: TerminalLaunchSettings(initializationCommand: commands[paneIndex]?.initializationCommand),
-                        remoteSessionID: remoteSessionIDs[paneIndex], usesConfiguredStartupCommand: false,
-                        usesConfiguredInitializationCommand: false
-                    ))
+                    content = .session(
+                        makeSession(
+                            directory: directory, commandArguments: commands[paneIndex]?.argv,
+                            launchSettings: TerminalLaunchSettings(initializationCommand: commands[paneIndex]?.initializationCommand),
+                            remoteSessionID: remoteSessionIDs[paneIndex], usesConfiguredStartupCommand: false,
+                            usesConfiguredInitializationCommand: false
+                        ))
                 case .browser(let url): content = .browser(makeBrowser(initialURL: url, initialFocus: .none))
                 case .file, .diff, .commitDiff: preconditionFailure("Template layouts are validated before application")
                 }
                 return .pane(Pane(content: content))
             case .split(let axis, let fraction, let first, let second):
-                return .split(PaneSplit(axis: axis, fraction: CGFloat(fraction),
-                                       first: rebuild(first), second: rebuild(second)))
+                return .split(
+                    PaneSplit(
+                        axis: axis, fraction: CGFloat(fraction),
+                        first: rebuild(first), second: rebuild(second)))
             }
         }
         tab.layout = rebuild(recipe.layout)
@@ -1637,31 +1679,34 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         switch snap {
         case .pane(let pane):
             let restoredHistory = pane.historyKey.flatMap { histories[$0] }
-            return .pane(Pane(content: makeContent(
-                from: pane.content,
-                restoredHistory: restoredHistory,
-                launchSettings: launchSettings,
-                agentResume: pane.agentResume,
-                restoredSessionID: pane.terminalID,
-                remoteSessionID: pane.remoteSessionID,
-                worktree: pane.worktree,
-                draftID: pane.draftID
-            )))
+            return .pane(
+                Pane(
+                    content: makeContent(
+                        from: pane.content,
+                        restoredHistory: restoredHistory,
+                        launchSettings: launchSettings,
+                        agentResume: pane.agentResume,
+                        restoredSessionID: pane.terminalID,
+                        remoteSessionID: pane.remoteSessionID,
+                        worktree: pane.worktree,
+                        draftID: pane.draftID
+                    )))
         case .split(let axis, let fraction, let first, let second):
-            return .split(PaneSplit(
-                axis: axis,
-                fraction: CGFloat(fraction),
-                first: restoreLayout(
-                    from: first,
-                    histories: histories,
-                    launchSettings: launchSettings
-                ),
-                second: restoreLayout(
-                    from: second,
-                    histories: histories,
-                    launchSettings: launchSettings
-                )
-            ))
+            return .split(
+                PaneSplit(
+                    axis: axis,
+                    fraction: CGFloat(fraction),
+                    first: restoreLayout(
+                        from: first,
+                        histories: histories,
+                        launchSettings: launchSettings
+                    ),
+                    second: restoreLayout(
+                        from: second,
+                        histories: histories,
+                        launchSettings: launchSettings
+                    )
+                ))
         }
     }
 
@@ -1677,16 +1722,17 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     ) -> PaneContent {
         switch snap {
         case .session(let workingDirectory):
-            return .session(makeSession(
-                directory: workingDirectory,
-                restoredHistory: restoredHistory,
-                launchSettings: launchSettings,
-                agentResume: agentResume,
-                isRestoredSession: true,
-                restoredSessionID: restoredSessionID,
-                remoteSessionID: remoteSessionID,
-                worktree: worktree
-            ))
+            return .session(
+                makeSession(
+                    directory: workingDirectory,
+                    restoredHistory: restoredHistory,
+                    launchSettings: launchSettings,
+                    agentResume: agentResume,
+                    isRestoredSession: true,
+                    restoredSessionID: restoredSessionID,
+                    remoteSessionID: remoteSessionID,
+                    worktree: worktree
+                ))
         case .file(let path, let editorState):
             let file = FileTab(path: path, source: fileSource, draftID: draftID ?? UUID(), recoveringDraft: draftID != nil)
             if let editorState { file.editorState = editorState }
@@ -1694,24 +1740,26 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         case .browser(let url):
             return .browser(makeBrowser(initialURL: url, initialFocus: .none))
         case .diff(let repoRoot, let path, let staged, let untracked, let origPath):
-            return .diff(DiffTab(
-                repoRoot: repoRoot, path: path, staged: staged,
-                untracked: untracked, origPath: origPath,
-                draftID: draftID ?? UUID(), recoveringDraft: draftID != nil
-            ))
+            return .diff(
+                DiffTab(
+                    repoRoot: repoRoot, path: path, staged: staged,
+                    untracked: untracked, origPath: origPath,
+                    draftID: draftID ?? UUID(), recoveringDraft: draftID != nil
+                ))
         case .commitDiff(
             let repoRoot, let path, let commitHash, let parentHash, let status, let origPath
         ):
-            return .diff(DiffTab(
-                repoRoot: repoRoot,
-                path: path,
-                staged: false,
-                untracked: false,
-                origPath: origPath,
-                commitHash: commitHash,
-                commitParentHash: parentHash,
-                commitStatus: status.first
-            ))
+            return .diff(
+                DiffTab(
+                    repoRoot: repoRoot,
+                    path: path,
+                    staged: false,
+                    untracked: false,
+                    origPath: origPath,
+                    commitHash: commitHash,
+                    commitParentHash: parentHash,
+                    commitStatus: status.first
+                ))
         }
     }
 
@@ -1719,8 +1767,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// selection. When the current tab is pinned, starts the unpinned section.
     private func insertNextToSelected(_ tab: PaneTab) {
         if let selectedTabID,
-           let index = tabs.firstIndex(where: { $0.id == selectedTabID }),
-           !tabs[index].isPinned {
+            let index = tabs.firstIndex(where: { $0.id == selectedTabID }),
+            !tabs[index].isPinned
+        {
             tab.tabGroupID = tabs[index].tabGroupID
             tabs.insert(tab, at: index + 1)
         } else {

@@ -158,7 +158,10 @@ struct CommandPaletteView: View {
 
     private var commands: [PaletteCommand] {
         var items: [PaletteCommand] = [
-            PaletteCommand(id: "new-session", title: "New Session", systemImage: "terminal", shortcut: settings.commandShortcut(for: .newSession).displayString) {
+            PaletteCommand(
+                id: "new-session", title: "New Session", systemImage: "terminal",
+                shortcut: settings.commandShortcut(for: .newSession).displayString
+            ) {
                 manager.newSession()
             },
             PaletteCommand(id: "new-browser-tab", title: "New Browser Tab", systemImage: "globe") {
@@ -167,7 +170,10 @@ struct CommandPaletteView: View {
             PaletteCommand(id: "new-browser-pane", title: "New Browser Pane", systemImage: "globe") {
                 manager.newBrowserPane()
             },
-            PaletteCommand(id: "clear-terminal", title: "Clear Terminal", systemImage: "eraser", shortcut: settings.commandShortcut(for: .clearTerminal).displayString) {
+            PaletteCommand(
+                id: "clear-terminal", title: "Clear Terminal", systemImage: "eraser",
+                shortcut: settings.commandShortcut(for: .clearTerminal).displayString
+            ) {
                 manager.clearActiveTerminal()
             },
             PaletteCommand(id: "toggle-prompt-queue", title: "Toggle Prompt Queue", systemImage: "list.bullet.rectangle", shortcut: "⇧⌘M") {
@@ -203,7 +209,9 @@ struct CommandPaletteView: View {
             PaletteCommand(id: "focus-next-pane", title: "Focus Next Pane", systemImage: "arrow.forward.square", shortcut: "⌘]") {
                 manager.focusNextPane()
             },
-            PaletteCommand(id: "toggle-pane-zoom", title: "Toggle Pane Zoom", systemImage: "arrow.up.left.and.arrow.down.right", shortcut: "⇧⌘↩") {
+            PaletteCommand(
+                id: "toggle-pane-zoom", title: "Toggle Pane Zoom", systemImage: "arrow.up.left.and.arrow.down.right", shortcut: "⇧⌘↩"
+            ) {
                 manager.togglePaneZoom()
             },
             PaletteCommand(id: "equalize-panes", title: "Equalize Panes", systemImage: "rectangle.split.3x1", shortcut: "⌃⌘=") {
@@ -221,28 +229,46 @@ struct CommandPaletteView: View {
             PaletteCommand(id: "resize-pane-right", title: "Resize Pane Right", systemImage: "arrow.right.to.line", shortcut: "⌃⌘→") {
                 manager.resizePaneRight()
             },
-            PaletteCommand(id: "new-project", title: "New Project", systemImage: "folder.badge.plus", shortcut: settings.commandShortcut(for: .newProject).displayString) {
+            PaletteCommand(
+                id: "new-project", title: "New Project", systemImage: "folder.badge.plus",
+                shortcut: settings.commandShortcut(for: .newProject).displayString
+            ) {
                 manager.newProject()
             },
             PaletteCommand(id: "new-ssh-project", title: "New SSH Project…", systemImage: "network") {
                 manager.promptForSSHProject()
             },
-            PaletteCommand(id: "close-tab", title: "Close Tab", systemImage: "xmark.square", shortcut: settings.commandShortcut(for: .closePane).displayString) {
+            PaletteCommand(
+                id: "close-tab", title: "Close Tab", systemImage: "xmark.square",
+                shortcut: settings.commandShortcut(for: .closePane).displayString
+            ) {
                 manager.closeSelectedTab()
             },
             PaletteCommand(id: "save-file", title: "Save File", systemImage: "square.and.arrow.down", shortcut: "⌘S") {
                 manager.saveSelectedFile()
             },
-            PaletteCommand(id: "toggle-left-sidebar", title: "Toggle Left Sidebar", systemImage: "sidebar.left", shortcut: settings.commandShortcut(for: .toggleLeftSidebar).displayString) {
+            PaletteCommand(
+                id: "toggle-left-sidebar", title: "Toggle Left Sidebar", systemImage: "sidebar.left",
+                shortcut: settings.commandShortcut(for: .toggleLeftSidebar).displayString
+            ) {
                 manager.toggleLeftSidebar()
             },
-            PaletteCommand(id: "toggle-sidebar", title: "Toggle Right Sidebar", systemImage: "sidebar.right", shortcut: settings.commandShortcut(for: .toggleRightSidebar).displayString) {
+            PaletteCommand(
+                id: "toggle-sidebar", title: "Toggle Right Sidebar", systemImage: "sidebar.right",
+                shortcut: settings.commandShortcut(for: .toggleRightSidebar).displayString
+            ) {
                 manager.toggleSidebar()
             },
-            PaletteCommand(id: "toggle-files", title: "Toggle Files Panel", systemImage: "doc.text", shortcut: settings.commandShortcut(for: .toggleFilesPanel).displayString) {
+            PaletteCommand(
+                id: "toggle-files", title: "Toggle Files Panel", systemImage: "doc.text",
+                shortcut: settings.commandShortcut(for: .toggleFilesPanel).displayString
+            ) {
                 manager.togglePanel(.files)
             },
-            PaletteCommand(id: "toggle-git", title: "Toggle Git Panel", systemImage: "arrow.triangle.branch", shortcut: settings.commandShortcut(for: .toggleGitPanel).displayString) {
+            PaletteCommand(
+                id: "toggle-git", title: "Toggle Git Panel", systemImage: "arrow.triangle.branch",
+                shortcut: settings.commandShortcut(for: .toggleGitPanel).displayString
+            ) {
                 manager.togglePanel(.git)
             },
             PaletteCommand(id: "toggle-info", title: "Toggle Info Panel", systemImage: "info.circle", shortcut: "⇧⌘I") {
@@ -274,10 +300,16 @@ struct CommandPaletteView: View {
             PaletteCommand(id: "prev-tab", title: "Previous Tab", systemImage: "arrow.left", shortcut: "⇧⌘[") {
                 manager.selectPreviousTab()
             },
-            PaletteCommand(id: "next-project", title: "Next Project", systemImage: "arrow.right.square", shortcut: settings.commandShortcut(for: .nextProject).displayString) {
+            PaletteCommand(
+                id: "next-project", title: "Next Project", systemImage: "arrow.right.square",
+                shortcut: settings.commandShortcut(for: .nextProject).displayString
+            ) {
                 manager.selectNextProject()
             },
-            PaletteCommand(id: "prev-project", title: "Previous Project", systemImage: "arrow.left.square", shortcut: settings.commandShortcut(for: .previousProject).displayString) {
+            PaletteCommand(
+                id: "prev-project", title: "Previous Project", systemImage: "arrow.left.square",
+                shortcut: settings.commandShortcut(for: .previousProject).displayString
+            ) {
                 manager.selectPreviousProject()
             },
         ]
@@ -359,12 +391,14 @@ struct CommandPaletteView: View {
             guard !project.isRemote else { return nil }
             let root: String?
             if let session = project.selectedSession {
-                root = project.panelRoot(
-                    followingSessionAt: session.currentDirectoryPath,
-                    foregroundAt: session.foregroundDirectoryPath
-                ).root
+                root =
+                    project.panelRoot(
+                        followingSessionAt: session.currentDirectoryPath,
+                        foregroundAt: session.foregroundDirectoryPath
+                    ).root
             } else if let pinned = project.customDirectory,
-                      FileManager.default.fileExists(atPath: pinned) {
+                FileManager.default.fileExists(atPath: pinned)
+            {
                 root = pinned
             } else {
                 root = nil
@@ -405,11 +439,13 @@ struct CommandPaletteView: View {
         var matches: [(command: PaletteCommand, score: Double, order: Int)] = []
         matches.reserveCapacity(commands.count)
         for (order, command) in commands.enumerated() {
-            guard let score = fuzzyScore(
-                command.searchText ?? command.title,
-                query,
-                buffer: &buffer
-            ) else { continue }
+            guard
+                let score = fuzzyScore(
+                    command.searchText ?? command.title,
+                    query,
+                    buffer: &buffer
+                )
+            else { continue }
             matches.append((command, score, order))
         }
         matches.sort {
@@ -469,9 +505,15 @@ struct CommandPaletteView: View {
                     .textFieldStyle(.plain)
                     .font(.system(size: 15))
                     .focused($searchFocused)
-                    .onKeyPress(.downArrow) { move(1); return .handled }
-                    .onKeyPress(.upArrow) { move(-1); return .handled }
-                    .onKeyPress(.escape) { handleEscapeFromKeyboard(); return .handled }
+                    .onKeyPress(.downArrow) {
+                        move(1); return .handled
+                    }
+                    .onKeyPress(.upArrow) {
+                        move(-1); return .handled
+                    }
+                    .onKeyPress(.escape) {
+                        handleEscapeFromKeyboard(); return .handled
+                    }
                     .onSubmit { runSelected() }
             }
             .padding(.horizontal, 14)
@@ -643,16 +685,16 @@ struct CommandPaletteView: View {
         title.font = .system(size: 12.5)
         title.foregroundColor = isSelected ? .primary : .secondary
         guard command.section == .file,
-              let highlightQuery
+            let highlightQuery
         else { return title }
 
         let ranges = filenameMatchRanges(for: command, query: highlightQuery)
         for range in ranges {
             guard let lower = AttributedString.Index(range.lowerBound, within: title),
-                  let upper = AttributedString.Index(range.upperBound, within: title)
+                let upper = AttributedString.Index(range.upperBound, within: title)
             else { continue }
-            title[lower..<upper].font = .system(size: 12.5, weight: .semibold)
-            title[lower..<upper].foregroundColor = Color(nsColor: Theme.accent)
+            title[lower ..< upper].font = .system(size: 12.5, weight: .semibold)
+            title[lower ..< upper].foregroundColor = Color(nsColor: Theme.accent)
         }
         return title
     }
@@ -668,8 +710,8 @@ struct CommandPaletteView: View {
             return ranges
         }
         guard let relativePath = command.searchText,
-              relativePath.hasSuffix(command.title),
-              let pathRanges = Self.fuzzyMatcher.highlight(relativePath, against: query)
+            relativePath.hasSuffix(command.title),
+            let pathRanges = Self.fuzzyMatcher.highlight(relativePath, against: query)
         else { return [] }
 
         let filenameStart = relativePath.index(
@@ -681,17 +723,19 @@ struct CommandPaletteView: View {
             let clippedLower = max(pathRange.lowerBound, filenameStart)
             let lowerOffset = relativePath.distance(from: filenameStart, to: clippedLower)
             let upperOffset = relativePath.distance(from: filenameStart, to: pathRange.upperBound)
-            guard let lower = command.title.index(
-                command.title.startIndex,
-                offsetBy: lowerOffset,
-                limitedBy: command.title.endIndex
-            ),
-            let upper = command.title.index(
-                command.title.startIndex,
-                offsetBy: upperOffset,
-                limitedBy: command.title.endIndex
-            ) else { return nil }
-            return lower..<upper
+            guard
+                let lower = command.title.index(
+                    command.title.startIndex,
+                    offsetBy: lowerOffset,
+                    limitedBy: command.title.endIndex
+                ),
+                let upper = command.title.index(
+                    command.title.startIndex,
+                    offsetBy: upperOffset,
+                    limitedBy: command.title.endIndex
+                )
+            else { return nil }
+            return lower ..< upper
         }
     }
 

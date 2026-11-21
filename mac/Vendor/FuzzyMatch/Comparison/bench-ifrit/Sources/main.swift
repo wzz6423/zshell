@@ -62,7 +62,8 @@ if let idx = CommandLine.arguments.firstIndex(of: "--queries"), idx + 1 < Comman
 // Default to 1 iteration — Ifrit is too slow for multiple iterations
 let iterationsArg: Int
 if let idx = CommandLine.arguments.firstIndex(of: "--iterations"), idx + 1 < CommandLine.arguments.count,
-   let count = Int(CommandLine.arguments[idx + 1]), count > 0 {
+    let count = Int(CommandLine.arguments[idx + 1]), count > 0
+{
     iterationsArg = count
 } else {
     iterationsArg = 1
@@ -103,9 +104,12 @@ let iterations = iterationsArg
 // Warmup
 do {
     let warmupQuery = queries.first ?? Query(text: "test", field: "name", category: "other")
-    let candidates = warmupQuery.field == "symbol" ? symbolCandidates
-                   : warmupQuery.field == "isin" ? isinCandidates
-                   : nameCandidates
+    let candidates =
+        warmupQuery.field == "symbol"
+        ? symbolCandidates
+        : warmupQuery.field == "isin"
+            ? isinCandidates
+            : nameCandidates
     _ = fuse.searchSync(warmupQuery.text, in: candidates)
     print("Warmup complete")
 }
@@ -119,13 +123,16 @@ print("")
 print("=== Benchmark: Ifrit (Fuse) scoring \(queries.count) queries x \(instruments.count) candidates ===")
 print("")
 
-for iter in 0..<iterations {
+for iter in 0 ..< iterations {
     let iterStart = now()
 
     for (qi, q) in queries.enumerated() {
-        let candidates = q.field == "symbol" ? symbolCandidates
-                       : q.field == "isin" ? isinCandidates
-                       : nameCandidates
+        let candidates =
+            q.field == "symbol"
+            ? symbolCandidates
+            : q.field == "isin"
+                ? isinCandidates
+                : nameCandidates
         let qStart = now()
 
         let results = fuse.searchSync(q.text, in: candidates)
@@ -152,7 +159,9 @@ print("")
 let medianTotal = iterationTotalsMs.sorted()[iterations / 2]
 let minTotal = iterationTotalsMs.min()!
 let maxTotal = iterationTotalsMs.max()!
-print("Total time for \(queries.count) queries (min/median/max): \(String(format: "%.1f", minTotal))ms / \(String(format: "%.1f", medianTotal))ms / \(String(format: "%.1f", maxTotal))ms")
+print(
+    "Total time for \(queries.count) queries (min/median/max): \(String(format: "%.1f", minTotal))ms / \(String(format: "%.1f", medianTotal))ms / \(String(format: "%.1f", maxTotal))ms"
+)
 
 let candidatesPerQuery = Double(instruments.count)
 let totalCandidatesScored = candidatesPerQuery * Double(queries.count)
@@ -163,9 +172,11 @@ print("")
 
 // Per-category summary
 let categorySet = Set(queries.map(\.category))
-let categories = ["exact_symbol", "exact_name", "exact_isin", "prefix",
-                   "typo", "substring", "multi_word", "symbol_spaces", "abbreviation"]
-    .filter { categorySet.contains($0) }
+let categories = [
+    "exact_symbol", "exact_name", "exact_isin", "prefix",
+    "typo", "substring", "multi_word", "symbol_spaces", "abbreviation",
+]
+.filter { categorySet.contains($0) }
 
 func pad(_ str: String, _ width: Int, right: Bool = false) -> String {
     if str.count >= abs(width) { return str }
@@ -177,7 +188,9 @@ func fmtD(_ value: Double, _ decimals: Int) -> String {
     String(format: "%.\(decimals)f", value)
 }
 
-print("\(pad("Category", 22)) \(pad("Queries", 8, right: true)) \(pad("Med(ms)", 8, right: true)) \(pad("Min(ms)", 8, right: true)) \(pad("Matches", 8, right: true))")
+print(
+    "\(pad("Category", 22)) \(pad("Queries", 8, right: true)) \(pad("Med(ms)", 8, right: true)) \(pad("Min(ms)", 8, right: true)) \(pad("Matches", 8, right: true))"
+)
 print(String(repeating: "-", count: 60))
 
 for cat in categories {
@@ -191,13 +204,17 @@ for cat in categories {
     let totalMin = indices.map { qi in queryTimingsMs[qi].min()! }.reduce(0, +)
     let totalMatches = indices.map { queryMatchCounts[$0] }.reduce(0, +)
 
-    print("\(pad(cat, 22)) \(pad("\(indices.count)", 8, right: true)) \(pad(fmtD(totalMedian, 2), 8, right: true)) \(pad(fmtD(totalMin, 2), 8, right: true)) \(pad("\(totalMatches)", 8, right: true))")
+    print(
+        "\(pad(cat, 22)) \(pad("\(indices.count)", 8, right: true)) \(pad(fmtD(totalMedian, 2), 8, right: true)) \(pad(fmtD(totalMin, 2), 8, right: true)) \(pad("\(totalMatches)", 8, right: true))"
+    )
 }
 
 print("")
 print("=== Per-Query Detail (sorted by median time, descending) ===")
 print("")
-print("\(pad("Query", 32)) \(pad("Field", 8)) \(pad("Category", 16)) \(pad("Med(ms)", 8, right: true)) \(pad("Min(ms)", 8, right: true)) \(pad("Matches", 8, right: true))")
+print(
+    "\(pad("Query", 32)) \(pad("Field", 8)) \(pad("Category", 16)) \(pad("Med(ms)", 8, right: true)) \(pad("Min(ms)", 8, right: true)) \(pad("Matches", 8, right: true))"
+)
 print(String(repeating: "-", count: 96))
 
 let sortedIndices = queries.indices.sorted { a, b in
@@ -211,5 +228,7 @@ for qi in sortedIndices {
     let med = queryTimingsMs[qi].sorted()[iterations / 2]
     let minTime = queryTimingsMs[qi].min()!
     let displayQuery = q.text.count > 30 ? String(q.text.prefix(27)) + "..." : q.text
-    print("\(pad(displayQuery, 32)) \(pad(q.field, 8)) \(pad(q.category, 16)) \(pad(fmtD(med, 2), 8, right: true)) \(pad(fmtD(minTime, 2), 8, right: true)) \(pad("\(queryMatchCounts[qi])", 8, right: true))")
+    print(
+        "\(pad(displayQuery, 32)) \(pad(q.field, 8)) \(pad(q.category, 16)) \(pad(fmtD(med, 2), 8, right: true)) \(pad(fmtD(minTime, 2), 8, right: true)) \(pad("\(queryMatchCounts[qi])", 8, right: true))"
+    )
 }

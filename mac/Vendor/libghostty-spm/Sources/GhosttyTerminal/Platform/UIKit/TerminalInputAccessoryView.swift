@@ -66,11 +66,12 @@
             keyButtons.forEach { $0.applyRegularStyle(style) }
 
             for (modifier, button) in modifierButtons {
-                let activation = switch modifier {
-                case .ctrl: ctrlActivation
-                case .alt: altActivation
-                case .command: commandActivation
-                }
+                let activation =
+                    switch modifier {
+                    case .ctrl: ctrlActivation
+                    case .alt: altActivation
+                    case .command: commandActivation
+                    }
                 button.applyModifierStyle(activation, isDisabled: hasMarkedText, style: style)
             }
         }
@@ -256,7 +257,7 @@
                 configuration.attributedTitle = AttributedString(
                     title,
                     attributes: AttributeContainer([
-                        .font: UIFont.monospacedSystemFont(ofSize: 13, weight: .semibold),
+                        .font: UIFont.monospacedSystemFont(ofSize: 13, weight: .semibold)
                     ])
                 )
                 button.configuration = configuration
@@ -296,11 +297,12 @@
 
             blurView.effect = makeBarEffect()
             blurView.layer.cornerCurve = .continuous
-            blurView.layer.cornerRadius = if #available(iOS 26, *) {
-                barHeight / 2
-            } else {
-                0
-            }
+            blurView.layer.cornerRadius =
+                if #available(iOS 26, *) {
+                    barHeight / 2
+                } else {
+                    0
+                }
 
             invalidateIntrinsicContentSize()
         }
@@ -361,9 +363,10 @@
                 lockIndicator.heightAnchor.constraint(equalToConstant: 3),
             ])
 
-            addAction(UIAction { [weak self] _ in
-                self?.handler()
-            }, for: .touchUpInside)
+            addAction(
+                UIAction { [weak self] _ in
+                    self?.handler()
+                }, for: .touchUpInside)
         }
 
         @available(*, unavailable)

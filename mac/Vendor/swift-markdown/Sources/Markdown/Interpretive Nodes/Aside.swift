@@ -25,76 +25,76 @@ public struct Aside {
     public struct Kind: RawRepresentable, CaseIterable, Hashable, Sendable {
         /// A "note" aside.
         public static let note = Kind(rawValue: "Note")!
-        
+
         /// A "tip" aside.
         public static let tip = Kind(rawValue: "Tip")!
-        
+
         /// An "important" aside.
         public static let important = Kind(rawValue: "Important")!
-        
+
         /// An "experiment" aside.
         public static let experiment = Kind(rawValue: "Experiment")!
-        
+
         /// A "warning" aside.
         public static let warning = Kind(rawValue: "Warning")!
-        
+
         /// An "attention" aside.
         public static let attention = Kind(rawValue: "Attention")!
-        
+
         /// An "author" aside.
         public static let author = Kind(rawValue: "Author")!
-        
+
         /// An "authors" aside.
         public static let authors = Kind(rawValue: "Authors")!
-        
+
         /// A "bug" aside.
         public static let bug = Kind(rawValue: "Bug")!
-        
+
         /// A "complexity" aside.
         public static let complexity = Kind(rawValue: "Complexity")!
-        
+
         /// A "copyright" aside.
         public static let copyright = Kind(rawValue: "Copyright")!
-        
+
         /// A "date" aside.
         public static let date = Kind(rawValue: "Date")!
-        
+
         /// An "invariant" aside.
         public static let invariant = Kind(rawValue: "Invariant")!
-        
+
         /// A "mutatingVariant" aside.
         public static let mutatingVariant = Kind(rawValue: "MutatingVariant")!
-        
+
         /// A "nonMutatingVariant" aside.
         public static let nonMutatingVariant = Kind(rawValue: "NonMutatingVariant")!
-        
+
         /// A "postcondition" aside.
         public static let postcondition = Kind(rawValue: "Postcondition")!
-        
+
         /// A "precondition" aside.
         public static let precondition = Kind(rawValue: "Precondition")!
-        
+
         /// A "remark" aside.
         public static let remark = Kind(rawValue: "Remark")!
-        
+
         /// A "requires" aside.
         public static let requires = Kind(rawValue: "Requires")!
-        
+
         /// A "since" aside.
         public static let since = Kind(rawValue: "Since")!
-        
+
         /// A "todo" aside.
         public static let todo = Kind(rawValue: "ToDo")!
-        
+
         /// A "version" aside.
         public static let version = Kind(rawValue: "Version")!
-        
+
         /// A "throws" aside.
         public static let `throws` = Kind(rawValue: "Throws")!
-        
+
         /// A "seeAlso" aside.
         public static let seeAlso = Kind(rawValue: "SeeAlso")!
-        
+
         /// A collection of preconfigured aside kinds.
         public static var allCases: [Aside.Kind] {
             [
@@ -124,7 +124,7 @@ public struct Aside {
                 seeAlso,
             ]
         }
-        
+
         /// The heading text to use when rendering this kind of aside.
         ///
         /// For multi-word asides this value may differ from the aside's ``rawValue``.
@@ -149,10 +149,10 @@ public struct Aside {
                 return rawValue
             }
         }
-        
+
         /// The underlying raw string value.
         public var rawValue: String
-        
+
         /// Creates an aside kind with the specified raw value.
         /// - Parameter rawValue: The string the aside displays as its title.
         public init?(rawValue: String) {
@@ -209,10 +209,12 @@ public struct Aside {
 
 extension BlockQuote {
     func parseAsideTag(tagRequirement: Aside.TagRequirement) -> (tag: String, newBlockQuote: BlockQuote)? {
-        guard let initialText = self.child(through: [
-            (0, Paragraph.self),
-            (0, Text.self),
-        ]) as? Text, let firstColonIndex = initialText.string.firstIndex(of: ":") else {
+        guard
+            let initialText = self.child(through: [
+                (0, Paragraph.self),
+                (0, Text.self),
+            ]) as? Text, let firstColonIndex = initialText.string.firstIndex(of: ":")
+        else {
             return nil
         }
 
@@ -225,19 +227,22 @@ extension BlockQuote {
             return nil
         }
 
-        let shiftCount = kindTag.utf8.count + 1 + initialText.string[firstColonIndex...].dropFirst().prefix(while: {
-            $0 == " " || $0 == "\t"
-        }).count
+        let shiftCount =
+            kindTag.utf8.count + 1
+            + initialText.string[firstColonIndex...].dropFirst().prefix(while: {
+                $0 == " " || $0 == "\t"
+            }).count
         let textRange: SourceRange? = initialText.range.map({ originalRange in
             var newStart = originalRange.lowerBound
             newStart.column = min(newStart.column + shiftCount, originalRange.upperBound.column)
-            return newStart..<originalRange.upperBound
+            return newStart ..< originalRange.upperBound
         })
 
-        guard let newBlockQuote = self._data.substitutingChild(
-            .text(parsedRange: textRange, string: String(trimmedText)),
-            through: [0, 0],
-            preserveRange: true) as? BlockQuote
+        guard
+            let newBlockQuote = self._data.substitutingChild(
+                .text(parsedRange: textRange, string: String(trimmedText)),
+                through: [0, 0],
+                preserveRange: true) as? BlockQuote
         else {
             return nil
         }

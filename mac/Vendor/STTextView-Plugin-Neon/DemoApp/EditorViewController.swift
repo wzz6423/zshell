@@ -20,8 +20,12 @@ class EditorViewController: NSViewController {
 
         let sourceCodeTheme = Theme(
             ///Themes.xcassets
-            colors: Theme.Colors(bundle: Bundle(path: Bundle.main.resourcePath! + "/STTextView-Plugin-Neon_STPluginNeon.bundle")!, name: "neon.plugin.default"),
-            fonts: Theme.Fonts(bundle: Bundle(path: Bundle.main.resourcePath! + "/STTextView-Plugin-Neon_STPluginNeon.bundle")!, name: "neon.plugin.default")
+            colors: Theme.Colors(
+                bundle: Bundle(path: Bundle.main.resourcePath! + "/STTextView-Plugin-Neon_STPluginNeon.bundle")!,
+                name: "neon.plugin.default"),
+            fonts: Theme.Fonts(
+                bundle: Bundle(path: Bundle.main.resourcePath! + "/STTextView-Plugin-Neon_STPluginNeon.bundle")!,
+                name: "neon.plugin.default")
         )
 
         textView.addPlugin(
@@ -37,25 +41,25 @@ class EditorViewController: NSViewController {
         textView.highlightSelectedLine = false
         textView.showsLineNumbers = false
         textView.text = """
-        // https://www.swift.org/getting-started/library-swiftpm/
-        import Foundation
+            // https://www.swift.org/getting-started/library-swiftpm/
+            import Foundation
 
-        struct Email: CustomStringConvertible {
-            var description: String
+            struct Email: CustomStringConvertible {
+                var description: String
 
-            public init(_ emailString: String) throws {
-                let regex = #"[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"#
-                guard let _ = emailString.range(of: regex, options: .regularExpression) else {
-                    throw InvalidEmailError(email: emailString)
+                public init(_ emailString: String) throws {
+                    let regex = #"[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"#
+                    guard let _ = emailString.range(of: regex, options: .regularExpression) else {
+                        throw InvalidEmailError(email: emailString)
+                    }
+                    self.description = emailString
                 }
-                self.description = emailString
             }
-        }
 
-        private struct InvalidEmailError: Error {
-            let email: String
-        }
-        """
+            private struct InvalidEmailError: Error {
+                let email: String
+            }
+            """
     }
 
     @IBAction func toggleTextWrap(_ sender: Any?) {

@@ -10,21 +10,24 @@
             modifiers: NSEvent.ModifierFlags = [],
             eventType: NSEvent.EventType = .keyDown
         )
-            throws -> NSEvent {
+            throws -> NSEvent
+        {
             guard let keyCode = keyMapping[characters] else { throw SetupError.unknownCharacters(characters) }
 
-            guard let event = NSEvent.keyEvent(
-                with: eventType,
-                location: .zero,
-                modifierFlags: modifiers,
-                timestamp: CFTimeInterval(),
-                windowNumber: 0,
-                context: nil,
-                characters: characters,
-                charactersIgnoringModifiers: characters,
-                isARepeat: false,
-                keyCode: keyCode
-            ) else { throw SetupError.eventCreationError }
+            guard
+                let event = NSEvent.keyEvent(
+                    with: eventType,
+                    location: .zero,
+                    modifierFlags: modifiers,
+                    timestamp: CFTimeInterval(),
+                    windowNumber: 0,
+                    context: nil,
+                    characters: characters,
+                    charactersIgnoringModifiers: characters,
+                    isARepeat: false,
+                    keyCode: keyCode
+                )
+            else { throw SetupError.eventCreationError }
 
             return event
         }
@@ -36,24 +39,27 @@
             modifiers: NSEvent.ModifierFlags = [],
             eventType: NSEvent.EventType = .keyDown
         )
-            throws -> NSEvent {
+            throws -> NSEvent
+        {
             let keyCode = CGKeyCode(UInt16(key.keyCode))
             guard let cgEvent = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: true),
-                  let nsEvent = NSEvent(cgEvent: cgEvent)
+                let nsEvent = NSEvent(cgEvent: cgEvent)
             else { throw SetupError.eventCreationError }
 
-            guard let event = NSEvent.keyEvent(
-                with: eventType,
-                location: .zero,
-                modifierFlags: modifiers,
-                timestamp: CFTimeInterval(),
-                windowNumber: 0,
-                context: nil,
-                characters: nsEvent.characters ?? "",
-                charactersIgnoringModifiers: nsEvent.charactersIgnoringModifiers ?? "",
-                isARepeat: false,
-                keyCode: keyCode
-            ) else { throw SetupError.eventCreationError }
+            guard
+                let event = NSEvent.keyEvent(
+                    with: eventType,
+                    location: .zero,
+                    modifierFlags: modifiers,
+                    timestamp: CFTimeInterval(),
+                    windowNumber: 0,
+                    context: nil,
+                    characters: nsEvent.characters ?? "",
+                    charactersIgnoringModifiers: nsEvent.charactersIgnoringModifiers ?? "",
+                    isARepeat: false,
+                    keyCode: keyCode
+                )
+            else { throw SetupError.eventCreationError }
 
             return event
         }
@@ -68,9 +74,9 @@
             guard let nsevent = NSEvent(cgEvent: cgevent) else { continue }
 
             guard nsevent.type == .keyDown,
-                  nsevent.specialKey == nil,
-                  let characters = nsevent.charactersIgnoringModifiers,
-                  !characters.isEmpty
+                nsevent.specialKey == nil,
+                let characters = nsevent.charactersIgnoringModifiers,
+                !characters.isEmpty
             else { continue }
             mapping[characters] = UInt16(keyCode)
         }

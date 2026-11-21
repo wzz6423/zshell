@@ -20,7 +20,7 @@ public struct CustomInline: RecurringInlineMarkup {
         let absoluteRaw = AbsoluteRawMarkup(markup: raw, metadata: MarkupMetadata(id: .newRoot(), indexInParent: 0))
         self.init(_MarkupData(absoluteRaw))
     }
-    
+
     init(_ data: _MarkupData) {
         self._data = data
     }

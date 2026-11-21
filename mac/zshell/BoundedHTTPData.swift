@@ -77,7 +77,7 @@ nonisolated enum BoundedHTTPData {
             _ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
             completionHandler: @escaping @Sendable (URLSession.ResponseDisposition) -> Void
         ) {
-            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
                 finish(.failure(Failure.invalidResponse))
                 completionHandler(.cancel)
                 return
@@ -125,10 +125,13 @@ nonisolated enum BoundedHTTPData {
             newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void
         ) {
             if let delegate {
-                delegate.urlSession?(session, task: task, willPerformHTTPRedirection: response,
-                                     newRequest: request, completionHandler: completionHandler)
+                delegate.urlSession?(
+                    session, task: task, willPerformHTTPRedirection: response,
+                    newRequest: request, completionHandler: completionHandler)
                     ?? completionHandler(request)
-            } else { completionHandler(request) }
+            } else {
+                completionHandler(request)
+            }
         }
 
         func urlSession(
@@ -138,7 +141,9 @@ nonisolated enum BoundedHTTPData {
             if let delegate {
                 delegate.urlSession?(session, task: task, didReceive: challenge, completionHandler: completionHandler)
                     ?? completionHandler(.performDefaultHandling, nil)
-            } else { completionHandler(.performDefaultHandling, nil) }
+            } else {
+                completionHandler(.performDefaultHandling, nil)
+            }
         }
     }
 }

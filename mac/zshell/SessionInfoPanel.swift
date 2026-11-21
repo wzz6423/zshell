@@ -16,8 +16,9 @@ struct SessionInfoPanel: NSViewRepresentable {
     }
 
     func updateNSView(_ view: SessionInfoPanelView, context: Context) {
-        view.configure(model: model, session: session, remoteProject: remoteProject,
-                       editor: externalEditor, showsVimHints: showsVimHints, fontScale: fontScale)
+        view.configure(
+            model: model, session: session, remoteProject: remoteProject,
+            editor: externalEditor, showsVimHints: showsVimHints, fontScale: fontScale)
     }
 
     static func dismantleNSView(_ view: SessionInfoPanelView, coordinator: ()) {
@@ -76,11 +77,12 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
             hints.widthAnchor.constraint(equalTo: information.widthAnchor),
         ])
         hints.isHidden = true
-        hintHeading = button(String(localized: "VIM COMMANDS"), symbol: "chevron.down",
-                             help: String(localized: "VIM COMMANDS")) { [weak self] in
+        hintHeading = button(
+            String(localized: "VIM COMMANDS"), symbol: "chevron.down",
+            help: String(localized: "VIM COMMANDS")
+        ) { [weak self] in
             guard let self else { return }
-            if self.collapsed.contains("vim") { self.collapsed.remove("vim") }
-            else { self.collapsed.insert("vim") }
+            if self.collapsed.contains("vim") { self.collapsed.remove("vim") } else { self.collapsed.insert("vim") }
             self.rebuildHints()
         }
         NotificationCenter.default.addObserver(
@@ -91,8 +93,10 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
         hintSearch.sendsSearchStringImmediately = true
         hintSearch.delegate = self
         for view in [hintHeading!, hintMode, hintSearch, hintRows] { add(view, to: hints) }
-        for name in [NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification,
-                     NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification] {
+        for name in [
+            NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification,
+            NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification,
+        ] {
             NotificationCenter.default.addObserver(self, selector: #selector(updatePolling), name: name, object: nil)
         }
     }
@@ -109,8 +113,10 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
         updatePolling()
     }
 
-    func configure(model: SessionInfoModel, session: TerminalSession?, remoteProject: Project?,
-                   editor: ExternalEditor, showsVimHints: Bool, fontScale: CGFloat) {
+    func configure(
+        model: SessionInfoModel, session: TerminalSession?, remoteProject: Project?,
+        editor: ExternalEditor, showsVimHints: Bool, fontScale: CGFloat
+    ) {
         let changedSession = self.session?.id != session?.id
         let changedStyle = self.fontScale != fontScale || accentColor != Theme.accent
         self.session = session
@@ -125,7 +131,8 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
         }
         // Process samples change every two seconds. Mode polling updates only
         // the hint rows, preserving the directory and process controls.
-        let signature = "\(model.rootPath)|\(model.projectRootPath)|\(model.projectRootSource)|\(model.shellPid)|\(model.shellName)|\(model.processes)|\(model.ports)|\(String(describing: model.remoteSource))|\(model.remoteError ?? "")|\(fontScale)|\(editor)|\(remoteProject?.id.uuidString ?? "")|\(String(describing: remoteProject?.remoteConnectionState))|\(effectiveAppearance.name)"
+        let signature =
+            "\(model.rootPath)|\(model.projectRootPath)|\(model.projectRootSource)|\(model.shellPid)|\(model.shellName)|\(model.processes)|\(model.ports)|\(String(describing: model.remoteSource))|\(model.remoteError ?? "")|\(fontScale)|\(editor)|\(remoteProject?.id.uuidString ?? "")|\(String(describing: remoteProject?.remoteConnectionState))|\(effectiveAppearance.name)"
         renderInformation = { [weak self, weak model, weak remoteProject] in
             guard let self, let model else { return }
             self.rebuildInformation(model: model, remoteProject: remoteProject, editor: editor)
@@ -156,7 +163,8 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
 
     @objc private func updatePolling() {
         guard showsVimHints, window?.isKeyWindow == true, NSApp.isActive,
-              !isHiddenOrHasHiddenAncestor else {
+            !isHiddenOrHasHiddenAncestor
+        else {
             stopPolling()
             return
         }
@@ -170,7 +178,8 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
 
     private func pollMode() {
         guard let session, !session.hasExited, session.terminalIsAtLiveBottom,
-              let foreground = session.surface.foregroundPid else {
+            let foreground = session.surface.foregroundPid
+        else {
             setMode(nil)
             return
         }
@@ -192,12 +201,15 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
         // is in the center. Once recognized, only its status rows are needed.
         let sampleLines = mode == nil && VimModeDetection.transports.contains(executable) ? 120 : 8
         guard VimModeDetection.canInspect(executable: executable),
-              let text = session.surface.readVisibleText(maxLines: sampleLines, maxColumns: 512) else {
+            let text = session.surface.readVisibleText(maxLines: sampleLines, maxColumns: 512)
+        else {
             setMode(nil)
             return
         }
-        setMode(VimModeDetection.detect(executable: executable, title: session.title,
-                                       text: text, previouslyDetected: mode != nil))
+        setMode(
+            VimModeDetection.detect(
+                executable: executable, title: session.title,
+                text: text, previouslyDetected: mode != nil))
     }
 
     private func setMode(_ next: VimMode?) {
@@ -261,8 +273,9 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
         }
         let header = NSStackView()
         header.orientation = .horizontal
-        let title = label(model.shellName.isEmpty ? String(localized: "Session") : model.shellName,
-                          size: 12, weight: .semibold)
+        let title = label(
+            model.shellName.isEmpty ? String(localized: "Session") : model.shellName,
+            size: 12, weight: .semibold)
         header.addArrangedSubview(title)
         header.addArrangedSubview(NSView())
         let refresh = button("", symbol: "arrow.clockwise", help: String(localized: "Refresh")) { [weak model] in
@@ -277,15 +290,22 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
             }
         }
         if !model.projectRootPath.isEmpty {
-            let title: String = switch model.projectRootSource {
-            case .pinned: String(localized: "PROJECT DIRECTORY")
-            case .shell: String(localized: "PROJECT DIRECTORY (AUTO)")
-            case .foreground(let isWorktree): isWorktree
-                ? String(localized: "PROJECT DIRECTORY (WORKTREE)")
-                : String(localized: "PROJECT DIRECTORY (JOB)")
-            }
-            section("root", title: title, in: information,
-                    help: String(localized: "Files and Git anchor to this directory. When automatic, it follows the closest Git repository containing the shell’s current directory, or the one the terminal’s foreground job moved to — a coding agent that switched to its own worktree. A directory set manually from the project’s context menu is always used as-is.")) {
+            let title: String =
+                switch model.projectRootSource {
+                case .pinned: String(localized: "PROJECT DIRECTORY")
+                case .shell: String(localized: "PROJECT DIRECTORY (AUTO)")
+                case .foreground(let isWorktree):
+                    isWorktree
+                        ? String(localized: "PROJECT DIRECTORY (WORKTREE)")
+                        : String(localized: "PROJECT DIRECTORY (JOB)")
+                }
+            section(
+                "root", title: title, in: information,
+                help: String(
+                    localized:
+                        "Files and Git anchor to this directory. When automatic, it follows the closest Git repository containing the shell’s current directory, or the one the terminal’s foreground job moved to — a coding agent that switched to its own worktree. A directory set manually from the project’s context menu is always used as-is."
+                )
+            ) {
                 directory(model.projectRootPath, editor: editor)
             }
         }
@@ -297,8 +317,9 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
             for port in model.ports {
                 let urlString = "http://localhost:\(port.port)"
                 let open = { if let url = port.url { NSWorkspace.shared.open(url) } }
-                let row = button("\(port.port)  \(port.processName)", symbol: "network",
-                                 help: String(localized: "Open \(urlString)"), action: open)
+                let row = button(
+                    "\(port.port)  \(port.processName)", symbol: "network",
+                    help: String(localized: "Open \(urlString)"), action: open)
                 row.menu = menu([
                     (String(localized: "Open in Browser"), open),
                     (String(localized: "Copy URL"), { Self.copy(urlString) }),
@@ -343,10 +364,11 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
                     add(row, to: information)
                     continue
                 }
-                row.menu = menu([
-                    (String(localized: "Terminate"), { [weak model] in model?.kill(process.pid) }),
-                    (String(localized: "Force Kill"), { [weak model] in model?.kill(process.pid, force: true) }),
-                ] + copies)
+                row.menu = menu(
+                    [
+                        (String(localized: "Terminate"), { [weak model] in model?.kill(process.pid) }),
+                        (String(localized: "Force Kill"), { [weak model] in model?.kill(process.pid, force: true) }),
+                    ] + copies)
                 row.actionButton = button("", symbol: "xmark", help: String(localized: "Terminate Process")) { [weak model] in
                     model?.kill(process.pid)
                 }
@@ -367,29 +389,35 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
         actions.distribution = .fillEqually
         actions.spacing = 4
         let url = URL(fileURLWithPath: path)
-        actions.addArrangedSubview(button("Finder", symbol: "arrow.up.forward.app", help: String(localized: "Open in Finder")) {
-            NSWorkspace.shared.activateFileViewerSelecting([url])
-        })
-        let openEditor = button(editor.title, symbol: "chevron.left.forwardslash.chevron.right",
-                                help: String(localized: "Open in \(editor.title)")) { editor.open(url) }
+        actions.addArrangedSubview(
+            button("Finder", symbol: "arrow.up.forward.app", help: String(localized: "Open in Finder")) {
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            })
+        let openEditor = button(
+            editor.title, symbol: "chevron.left.forwardslash.chevron.right",
+            help: String(localized: "Open in \(editor.title)")
+        ) { editor.open(url) }
         openEditor.isEnabled = editor.isAvailable
         actions.addArrangedSubview(openEditor)
-        actions.addArrangedSubview(button(String(localized: "Copy"), symbol: "doc.on.doc", help: String(localized: "Copy Path")) {
-            Self.copy(path)
-        })
+        actions.addArrangedSubview(
+            button(String(localized: "Copy"), symbol: "doc.on.doc", help: String(localized: "Copy Path")) {
+                Self.copy(path)
+            })
         add(actions, to: information)
     }
 
-    private func section(_ id: String, title: String, count: Int = 0, in stack: NSStackView,
-                         help: String? = nil, body: () -> Void) {
-        let heading = button(count > 0 ? "\(title)  \(count)" : title,
-                             symbol: collapsed.contains(id) ? "chevron.right" : "chevron.down",
-                             help: help ?? title) { [weak self] in
+    private func section(
+        _ id: String, title: String, count: Int = 0, in stack: NSStackView,
+        help: String? = nil, body: () -> Void
+    ) {
+        let heading = button(
+            count > 0 ? "\(title)  \(count)" : title,
+            symbol: collapsed.contains(id) ? "chevron.right" : "chevron.down",
+            help: help ?? title
+        ) { [weak self] in
             guard let self else { return }
-            if self.collapsed.contains(id) { self.collapsed.remove(id) }
-            else { self.collapsed.insert(id) }
-            if id == "vim" { self.rebuildHints() }
-            else { self.renderInformation?() }
+            if self.collapsed.contains(id) { self.collapsed.remove(id) } else { self.collapsed.insert(id) }
+            if id == "vim" { self.rebuildHints() } else { self.renderInformation?() }
         }
         heading.font = .systemFont(ofSize: 9.5 * fontScale, weight: .medium)
         heading.contentTintColor = .secondaryLabelColor
@@ -398,8 +426,10 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
         if !collapsed.contains(id) { body() }
     }
 
-    private func label(_ text: String, size: CGFloat, weight: NSFont.Weight = .regular,
-                       color: NSColor = .labelColor) -> NSTextField {
+    private func label(
+        _ text: String, size: CGFloat, weight: NSFont.Weight = .regular,
+        color: NSColor = .labelColor
+    ) -> NSTextField {
         let field = NSTextField(wrappingLabelWithString: text)
         field.font = .systemFont(ofSize: size * fontScale, weight: weight)
         field.textColor = color
@@ -478,8 +508,10 @@ private final class InfoActionRow: NSStackView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         for area in trackingAreas { removeTrackingArea(area) }
-        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
-                                      owner: self, userInfo: nil))
+        addTrackingArea(
+            NSTrackingArea(
+                rect: .zero, options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+                owner: self, userInfo: nil))
     }
     override func mouseEntered(with event: NSEvent) { actionButton?.alphaValue = 1 }
     override func mouseExited(with event: NSEvent) { actionButton?.alphaValue = 0 }

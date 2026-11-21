@@ -132,20 +132,26 @@ nonisolated enum AppLocalization {
 
     static var current: Selection { selection.withLock { $0 } }
 
-    static func resolve(_ language: AppLanguage, systemLanguages: [String]? = nil,
-                        bundle: Bundle = .main) -> Selection {
-        let preferences = language == .system
-            ? (systemLanguages ?? UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)?["AppleLanguages"] as? [String] ?? ["en"])
+    static func resolve(
+        _ language: AppLanguage, systemLanguages: [String]? = nil,
+        bundle: Bundle = .main
+    ) -> Selection {
+        let preferences =
+            language == .system
+            ? (systemLanguages ?? UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)?["AppleLanguages"] as? [String]
+                ?? ["en"])
             : [language.rawValue]
         // Match supported regional variants before Foundation can fall through
         // from pt-PT to a later preference instead of our pt-BR translation.
         let supportedPreferences = preferences.map {
             AppLanguage.from(identifier: $0)?.rawValue ?? $0
         }
-        let identifier = Bundle.preferredLocalizations(
-            from: AppLanguage.localizationIdentifiers, forPreferences: supportedPreferences
-        ).first ?? "en"
-        let resourceBundle = bundle.url(forResource: identifier, withExtension: "lproj")
+        let identifier =
+            Bundle.preferredLocalizations(
+                from: AppLanguage.localizationIdentifiers, forPreferences: supportedPreferences
+            ).first ?? "en"
+        let resourceBundle =
+            bundle.url(forResource: identifier, withExtension: "lproj")
             .flatMap(Bundle.init(url:)) ?? bundle
         return Selection(identifier: identifier, bundle: resourceBundle, locale: Locale(identifier: identifier))
     }

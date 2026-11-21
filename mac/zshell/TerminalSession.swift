@@ -146,56 +146,71 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     ) {
         let sessionID = restoredSessionID ?? UUID()
         let existingPTY = remoteConnection == nil ? restoredSessionID.flatMap { PersistentPTY.reconnect(id: $0) } : nil
-        let preserve = remoteConnection == nil && allowsPersistence
+        let preserve =
+            remoteConnection == nil && allowsPersistence
             && (AppSettings.shared.preserveTerminalSessions
                 || AppSettings.shared.browserAccessEnabled && remotePasteTarget == nil || existingPTY != nil)
-        let resumeLaunch = agentFork?.forkLaunch() ?? agentResume?.resumeLaunch(
-            enabled: AppSettings.shared.aiEnabled
-                && (explicitlyResumeConversation || isRestoredSession && AppSettings.shared.resumeAgentConversations),
-            hasLiveTerminal: existingPTY != nil
-        )
+        let resumeLaunch =
+            agentFork?.forkLaunch()
+            ?? agentResume?.resumeLaunch(
+                enabled: AppSettings.shared.aiEnabled
+                    && (explicitlyResumeConversation || isRestoredSession && AppSettings.shared.resumeAgentConversations),
+                hasLiveTerminal: existingPTY != nil
+            )
         let directory = TerminalSessionDirectory.validatedOrHome(
             existingPTY?.workingDirectory ?? resumeLaunch?.workingDirectory ?? initialDirectory
         )
-        let requestedCommand = resumeLaunch?.arguments
+        let requestedCommand =
+            resumeLaunch?.arguments
             ?? commandArguments.flatMap { $0.isEmpty ? nil : $0 }
             ?? (isRestoredSession || !usesConfiguredStartupCommand ? nil : Self.configuredStartupCommand())
-        let initialProfile = initialTerminalProfile ?? (AppSettings.shared.automaticallyApplyTerminalProfiles
-            && remoteConnection == nil && remotePasteTarget == nil
-            ? TerminalProfile.firstMatch(in: AppSettings.shared.terminalProfiles, context: .init(
-                host: ProcessInfo.processInfo.hostName, user: NSUserName(), directory: directory,
-                program: requestedCommand?.first ?? Self.loginShell(), hostAlias: "localhost"
-            )) : nil)
-        let launchSettings = remoteConnection == nil
+        let initialProfile =
+            initialTerminalProfile
+            ?? (AppSettings.shared.automaticallyApplyTerminalProfiles
+                && remoteConnection == nil && remotePasteTarget == nil
+                ? TerminalProfile.firstMatch(
+                    in: AppSettings.shared.terminalProfiles,
+                    context: .init(
+                        host: ProcessInfo.processInfo.hostName, user: NSUserName(), directory: directory,
+                        program: requestedCommand?.first ?? Self.loginShell(), hostAlias: "localhost"
+                    )) : nil)
+        let launchSettings =
+            remoteConnection == nil
             ? initialProfile?.applyingLaunchSettings(
                 to: launchSettings, usesConfiguredInitializationCommand: usesConfiguredInitializationCommand
             ) ?? launchSettings : launchSettings
         let profileCommand = initialProfile.flatMap { profile -> [String]? in
             guard !isRestoredSession, usesConfiguredStartupCommand, commandArguments == nil, resumeLaunch == nil,
-                  case .success(let startup?) = TerminalStartupCommand.resolve(
+                case .success(let startup?) = TerminalStartupCommand.resolve(
                     program: profile.startupProgram, arguments: profile.startupArguments
-                  ) else { return nil }
+                )
+            else { return nil }
             return startup.argv
         }
-        let directCommand = resumeLaunch?.arguments
+        let directCommand =
+            resumeLaunch?.arguments
             ?? commandArguments.flatMap { $0.isEmpty ? nil : $0 }
             ?? profileCommand ?? requestedCommand
         let shellPath = directCommand?.first ?? Self.loginShell()
         let initialAppearance = initialProfile?.appearance ?? TerminalProfileAppearance()
         launchTerminalProfileID = initialProfile?.id
         let backend = AppSettings.shared.terminalBackend
-        let artifacts = existingPTY.map {
-            let integration = $0.launchDirectoryURL?.appendingPathComponent("zsh-integration", isDirectory: true)
-            return LaunchArtifacts(directoryURL: $0.launchDirectoryURL, pidFileURL: nil,
-                                   replayFileURL: nil, shellIntegrationDirectoryURL: integration.flatMap {
-                                       FileManager.default.fileExists(atPath: $0.path) ? $0 : nil
-                                   })
-        } ?? Self.makeLaunchArtifacts(
-            restoredHistory: restoredHistory,
-            backend: backend,
-            shellPath: directCommand == nil ? shellPath : nil,
-            persistentSessionID: preserve ? sessionID : nil
-        )
+        let artifacts =
+            existingPTY.map {
+                let integration = $0.launchDirectoryURL?.appendingPathComponent("zsh-integration", isDirectory: true)
+                return LaunchArtifacts(
+                    directoryURL: $0.launchDirectoryURL, pidFileURL: nil,
+                    replayFileURL: nil,
+                    shellIntegrationDirectoryURL: integration.flatMap {
+                        FileManager.default.fileExists(atPath: $0.path) ? $0 : nil
+                    })
+            }
+            ?? Self.makeLaunchArtifacts(
+                restoredHistory: restoredHistory,
+                backend: backend,
+                shellPath: directCommand == nil ? shellPath : nil,
+                persistentSessionID: preserve ? sessionID : nil
+            )
         let launchScript = Self.makeLaunchScript(
             backend: backend,
             shellPath: shellPath,
@@ -245,9 +260,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         var pty = existingPTY
         if pty == nil, canPersist {
             do {
-                pty = try PersistentPTY.create(id: sessionID, launch: launch,
-                                              launchDirectoryURL: artifacts.directoryURL,
-                                              theme: AlacrittyTheme.current(initialAppearance))
+                pty = try PersistentPTY.create(
+                    id: sessionID, launch: launch,
+                    launchDirectoryURL: artifacts.directoryURL,
+                    theme: AlacrittyTheme.current(initialAppearance))
             } catch {
                 ZshellCLIService.shared.revokeTerminal(id: sessionID)
                 var fallback = Self.surfaceEnvironment(
@@ -277,9 +293,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             startupCommandForTemplate = isRestoredSession ? nil : remoteConnection.command
             initializationCommandForTemplate = isRestoredSession ? nil : remoteConnection.initializationCommand
         } else {
-            startupCommandForTemplate = agentResume == nil && agentFork == nil && remotePasteTarget == nil
-                && !isRestoredSession ? directCommand : nil
-            initializationCommandForTemplate = directCommand == nil && !isRestoredSession
+            startupCommandForTemplate =
+                agentResume == nil && agentFork == nil && remotePasteTarget == nil
+                    && !isRestoredSession ? directCommand : nil
+            initializationCommandForTemplate =
+                directCommand == nil && !isRestoredSession
                 ? launchSettings.initializationCommand : nil
         }
         reconnectedToPersistentPTY = existingPTY != nil
@@ -287,7 +305,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         launchWorkingDirectory = directory
         launchDirectoryURL = artifacts.directoryURL
         shellPidFileURL = artifacts.pidFileURL
-        supportsCommandTaskShellIntegration = directCommand == nil
+        supportsCommandTaskShellIntegration =
+            directCommand == nil
             && artifacts.shellIntegrationDirectoryURL != nil
         title = (shellPath as NSString).lastPathComponent
         agentStatus = nil
@@ -312,11 +331,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             AppSettings.shared.$terminalProfiles,
             AppSettings.shared.$automaticallyApplyTerminalProfiles.removeDuplicates()
         )
-            .dropFirst().receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.lastTerminalProfileContext = nil
-                self?.refreshTerminalProfile()
-            }
+        .dropFirst().receive(on: DispatchQueue.main)
+        .sink { [weak self] _ in
+            self?.lastTerminalProfileContext = nil
+            self?.refreshTerminalProfile()
+        }
 
         remoteObservation = remoteConnection?.$status.sink { [weak self, weak remoteConnection] status in
             self?.remoteStatus = status
@@ -341,7 +360,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         }
         applyTheme()
         if resumeLaunch != nil, let identity = agentResume,
-           let kind = ZshellAgentKind(rawValue: identity.provider.rawValue) {
+            let kind = ZshellAgentKind(rawValue: identity.provider.rawValue)
+        {
             declareAutomationAgent(alias: identity.alias ?? kind.rawValue, kind: kind)
         }
         if remoteConnection == nil { AgentAutomationMonitor.shared.register(self) }
@@ -493,7 +513,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     }
 
     func waitUntilStarted() async -> Bool {
-        for _ in 0..<50 {
+        for _ in 0 ..< 50 {
             if hasExited || isTerminating { return false }
             if let pid = shellPid, Darwin.kill(pid, 0) == 0 {
                 // The launch shim writes its PID before exec; let immediate
@@ -507,7 +527,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     }
 
     func waitUntilTerminated() async -> Bool {
-        for _ in 0..<50 {
+        for _ in 0 ..< 50 {
             if hasExited, shellPid.map({ Darwin.kill($0, 0) != 0 && errno == ESRCH }) ?? true { return true }
             try? await Task.sleep(for: .milliseconds(40))
         }
@@ -574,7 +594,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 
         // A backend can close its PTY before the delayed kill; its raw file
         // descriptor may already belong to a newly opened terminal by then.
-        let processes = processAlive && persistentPTY == nil
+        let processes =
+            processAlive && persistentPTY == nil
             ? PTYSessionProcesses(root: shellPid, foreground: surface.foregroundPid) : nil
         processes?.signal(SIGHUP)
 
@@ -637,7 +658,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     var foregroundDirectoryPath: String? {
         guard remoteConnection == nil else { return nil }
         guard let foreground = surface.foregroundPid, foreground > 0,
-              foreground != shellPid
+            foreground != shellPid
         else { return nil }
         return processWorkingDirectory(pid: foreground)
     }
@@ -655,7 +676,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// acceptance and subsequent empty prompt, including parked panes.
     func reservePromptQueueSend(for command: String) -> Bool {
         guard !isTerminating, canSendQueuedPrompt,
-              let launchDirectoryURL, let shellPID = shellPid else { return false }
+            let launchDirectoryURL, let shellPID = shellPid
+        else { return false }
         let token = UUID()
         let request = "\(shellPID)\n\(token.uuidString)\n\(command)\n"
         do {
@@ -670,10 +692,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 
     var promptQueueCompletedToken: UUID? {
         guard let launchDirectoryURL, let shellPID = shellPid,
-              let value = try? String(
+            let value = try? String(
                 contentsOf: launchDirectoryURL.appendingPathComponent("prompt-queue.completed"),
                 encoding: .utf8
-              ) else { return nil }
+            )
+        else { return nil }
         let fields = value.split(separator: ":", omittingEmptySubsequences: false)
         guard fields.count == 2, pid_t(fields[0]) == shellPID else { return nil }
         return UUID(uuidString: String(fields[1]))
@@ -741,9 +764,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             let fresh = persistentPTY.fetchForegroundPID()
             Task { @MainActor [weak self] in
                 guard let self, !self.hasExited, !self.isTerminating,
-                      AppSettings.shared.restoreTerminalHistory,
-                      self.commandLifecycle.phase != .executing,
-                      self.commandLifecycle.completionSequence == generation else { return }
+                    AppSettings.shared.restoreTerminalHistory,
+                    self.commandLifecycle.phase != .executing,
+                    self.commandLifecycle.completionSequence == generation
+                else { return }
                 TerminalHistorySerializer.storeFinishedCommandCapture(
                     capture, into: &self.lastHistorySnapshot,
                     shellPID: shellPID, foregroundPID: fresh
@@ -785,9 +809,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     var shellPid: pid_t? {
         if let cachedShellPid, cachedShellPid > 0 { return cachedShellPid }
         guard !hasExited, let shellPidFileURL,
-              let text = try? String(contentsOf: shellPidFileURL, encoding: .utf8),
-              let value = pid_t(text.trimmingCharacters(in: .whitespacesAndNewlines)),
-              value > 0
+            let text = try? String(contentsOf: shellPidFileURL, encoding: .utf8),
+            let value = pid_t(text.trimmingCharacters(in: .whitespacesAndNewlines)),
+            value > 0
         else { return nil }
         cachedShellPid = value
         return value
@@ -819,17 +843,20 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         if let pathOverride, !pathOverride.isEmpty {
             environment["PATH"] = pathOverride
         }
-        environment.merge(additionalEnvironment.filter {
-            $0.key != "TERM" || TerminalLaunchSettings.isValidTermName($0.value)
-        }, uniquingKeysWith: { _, additionalValue in
-            additionalValue
-        })
+        environment.merge(
+            additionalEnvironment.filter {
+                $0.key != "TERM" || TerminalLaunchSettings.isValidTermName($0.value)
+            },
+            uniquingKeysWith: { _, additionalValue in
+                additionalValue
+            })
         // A remote shell resolves the proxy's loopback address on its own host,
         // so only local shells inherit the Settings proxy, and only for Git.
         if usesGitProxy {
             environment.merge(
-                GitProxy.terminalEnvironment(inheriting: ProcessInfo.processInfo.environment
-                    .merging(environment, uniquingKeysWith: { _, launchValue in launchValue })),
+                GitProxy.terminalEnvironment(
+                    inheriting: ProcessInfo.processInfo.environment
+                        .merging(environment, uniquingKeysWith: { _, launchValue in launchValue })),
                 uniquingKeysWith: { _, proxyValue in proxyValue }
             )
         }
@@ -852,7 +879,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         persistentSessionID: UUID? = nil
     ) -> LaunchArtifacts {
         let fileManager = FileManager.default
-        let directory = persistentSessionID.map(PersistentCLIConnection.launchDirectory(for:))
+        let directory =
+            persistentSessionID.map(PersistentCLIConnection.launchDirectory(for:))
             ?? fileManager.temporaryDirectory.appendingPathComponent("zshell-terminal-\(UUID().uuidString)", isDirectory: true)
         do {
             if let persistentSessionID { try PersistentCLIConnection.prepare(for: persistentSessionID) }
@@ -864,11 +892,13 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             let pidFile = directory.appendingPathComponent("shell.pid")
             var replayFile: URL?
             if AppSettings.shared.restoreTerminalHistory,
-               let restoredHistory,
-               !restoredHistory.isEmpty {
+                let restoredHistory,
+                !restoredHistory.isEmpty
+            {
                 let file = directory.appendingPathComponent("history.vt")
                 let separator = restoredHistory.hasSuffix("\n") ? "" : "\r\n"
-                let contents = restoredHistory + separator
+                let contents =
+                    restoredHistory + separator
                     + TerminalHistorySerializer.restoredBanner() + "\r\n"
                 try Data(contents.utf8).write(to: file, options: .atomic)
                 try fileManager.setAttributes(
@@ -929,7 +959,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             let path = shellQuote(replayFileURL.path)
             commands.append("if [ -r \(path) ]; then /bin/cat \(path); /bin/rm -f \(path); fi")
         }
-        let resumeFailure = conversationFork
+        let resumeFailure =
+            conversationFork
             ? String(localized: "Could not fork the recorded agent conversation. Check the provider’s output above.")
             : String(localized: "Could not resume the recorded agent conversation. Opening a new shell.")
         if resumeFailed {
@@ -970,10 +1001,12 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 // provider the terminal's foreground process group: pane state
                 // reads the agent, and ^C stops only the agent. TSTP stays
                 // ignored because nothing can resume a stopped agent here.
-                let run = conversationFork
+                let run =
+                    conversationFork
                     ? "set -m; trap '' TSTP; \(invocation); result=$?; trap - TSTP; set +m; if [ \"$result\" -ne 0 ]; then printf '%s\\n' \(shellQuote(resumeFailure)) >&2; fi; exec \(shellQuote(resumeShell)) -l"
                     : "exec \(invocation)"
-                let restore = "if command -v \(shellQuote(commandArguments[0])) >/dev/null 2>&1 "
+                let restore =
+                    "if command -v \(shellQuote(commandArguments[0])) >/dev/null 2>&1 "
                     + "&& cd \(shellQuote(resumeLaunch.workingDirectory)); then "
                     + "\(run); else \(fallback); fi"
                 commands.append("if [ -n \"$ZSHELL_ORIGINAL_ZDOTDIR\" ]; then export ZDOTDIR=\"$ZSHELL_ORIGINAL_ZDOTDIR\"; fi")
@@ -1023,10 +1056,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         shellPath: String?
     ) throws -> URL? {
         guard let shellPath,
-              (shellPath as NSString).lastPathComponent == "zsh"
+            (shellPath as NSString).lastPathComponent == "zsh"
         else { return nil }
 
-        let integrationDirectory = directory
+        let integrationDirectory =
+            directory
             .appendingPathComponent("zsh-integration", isDirectory: true)
         try FileManager.default.createDirectory(
             at: integrationDirectory,
@@ -1277,96 +1311,99 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             files[".zshrc"]? += """
 
 
-            # Command-completion notifications. The shim only ever reaches
-            # Zshell's own zsh panes -- other shells get no shim, and a nested
-            # zsh reads the user's own config -- so the OSC 777 printed here
-            # is consumed by the app that injected this script and never
-            # reaches a third-party terminal. The threshold and error switch
-            # are baked in above. zsh/datetime supplies the wall-clock start
-            # stamp; on a zsh too old to provide one the feature silently
-            # stays off.
-            _zshell_notify_seconds=\(AppSettings.shared.notifyFinishSeconds)
-            _zshell_notify_on_error=\(AppSettings.shared.notifyOnError ? 1 : 0)
-            _zshell_notify_stamp=0
-            _zshell_notify_word=''
-            _zshell_notify_id='\(UUID().uuidString)'
-            _zshell_notify_sequence=0
-            zmodload -i zsh/datetime 2>/dev/null
-            if (( $+EPOCHSECONDS )); then
-              _zshell_notify_preexec() {
-                local _zshell_notify_prev=$?
-                _zshell_notify_stamp=$EPOCHSECONDS
-                local -a _zshell_notify_words
-                _zshell_notify_words=(${(z)1})
-                _zshell_notify_word=${_zshell_notify_words[1]}
-                return $_zshell_notify_prev
-              }
-              # Runs ahead of every other precmd hook: prompt frameworks
-              # install their own precmd work -- git status, kubectl context
-              # -- whose commands would overwrite `$?` before a hook appended
-              # after theirs could read it, so the command's own exit status
-              # must be captured first. Returning it keeps `$?` for the hooks
-              # behind exactly as if this hook were absent.
-              _zshell_notify_precmd() {
-                local _zshell_notify_status=$?
-                if (( _zshell_notify_stamp )); then
-                  local _zshell_notify_elapsed=$(( EPOCHSECONDS - _zshell_notify_stamp ))
-                  _zshell_notify_stamp=0
-                  local _zshell_notify_fire=0
-                  if (( _zshell_notify_seconds > 0 && _zshell_notify_elapsed >= _zshell_notify_seconds )); then
-                    _zshell_notify_fire=1
-                  fi
-                  if (( _zshell_notify_on_error && _zshell_notify_status != 0 )); then
-                    _zshell_notify_fire=1
-                  fi
-                  if (( _zshell_notify_fire )); then
-                    # The command name becomes notification text: strip
-                    # control characters, which the notification parsers
-                    # reject the whole message over, and `;`, which would
-                    # forge the title/body field split; cap the rest so one
-                    # pathological word cannot flood a banner. Nothing
-                    # presentable left means nothing to announce.
-                    local _zshell_notify_name=${_zshell_notify_word//[[:cntrl:];]/}
-                    _zshell_notify_name=${_zshell_notify_name[1,64]}
-                    if [[ -n $_zshell_notify_name ]]; then
-                      local _zshell_notify_outcome=finished
-                      (( _zshell_notify_status != 0 )) && _zshell_notify_outcome=failed
-                      local _zshell_notify_message="$_zshell_notify_name $_zshell_notify_outcome — ${_zshell_notify_elapsed}s, exit $_zshell_notify_status"
-                      (( ++_zshell_notify_sequence ))
-                      # Both backends forward this typed title alongside the
-                      # body; each result stays paired with its own message.
-                      printf '\\e]777;notify;zshell-command:%s:%s:%s;%s\\e\\\\' "$_zshell_notify_id" "$_zshell_notify_sequence" "$_zshell_notify_status" "$_zshell_notify_message"
+                # Command-completion notifications. The shim only ever reaches
+                # Zshell's own zsh panes -- other shells get no shim, and a nested
+                # zsh reads the user's own config -- so the OSC 777 printed here
+                # is consumed by the app that injected this script and never
+                # reaches a third-party terminal. The threshold and error switch
+                # are baked in above. zsh/datetime supplies the wall-clock start
+                # stamp; on a zsh too old to provide one the feature silently
+                # stays off.
+                _zshell_notify_seconds=\(AppSettings.shared.notifyFinishSeconds)
+                _zshell_notify_on_error=\(AppSettings.shared.notifyOnError ? 1 : 0)
+                _zshell_notify_stamp=0
+                _zshell_notify_word=''
+                _zshell_notify_id='\(UUID().uuidString)'
+                _zshell_notify_sequence=0
+                zmodload -i zsh/datetime 2>/dev/null
+                if (( $+EPOCHSECONDS )); then
+                  _zshell_notify_preexec() {
+                    local _zshell_notify_prev=$?
+                    _zshell_notify_stamp=$EPOCHSECONDS
+                    local -a _zshell_notify_words
+                    _zshell_notify_words=(${(z)1})
+                    _zshell_notify_word=${_zshell_notify_words[1]}
+                    return $_zshell_notify_prev
+                  }
+                  # Runs ahead of every other precmd hook: prompt frameworks
+                  # install their own precmd work -- git status, kubectl context
+                  # -- whose commands would overwrite `$?` before a hook appended
+                  # after theirs could read it, so the command's own exit status
+                  # must be captured first. Returning it keeps `$?` for the hooks
+                  # behind exactly as if this hook were absent.
+                  _zshell_notify_precmd() {
+                    local _zshell_notify_status=$?
+                    if (( _zshell_notify_stamp )); then
+                      local _zshell_notify_elapsed=$(( EPOCHSECONDS - _zshell_notify_stamp ))
+                      _zshell_notify_stamp=0
+                      local _zshell_notify_fire=0
+                      if (( _zshell_notify_seconds > 0 && _zshell_notify_elapsed >= _zshell_notify_seconds )); then
+                        _zshell_notify_fire=1
+                      fi
+                      if (( _zshell_notify_on_error && _zshell_notify_status != 0 )); then
+                        _zshell_notify_fire=1
+                      fi
+                      if (( _zshell_notify_fire )); then
+                        # The command name becomes notification text: strip
+                        # control characters, which the notification parsers
+                        # reject the whole message over, and `;`, which would
+                        # forge the title/body field split; cap the rest so one
+                        # pathological word cannot flood a banner. Nothing
+                        # presentable left means nothing to announce.
+                        local _zshell_notify_name=${_zshell_notify_word//[[:cntrl:];]/}
+                        _zshell_notify_name=${_zshell_notify_name[1,64]}
+                        if [[ -n $_zshell_notify_name ]]; then
+                          local _zshell_notify_outcome=finished
+                          (( _zshell_notify_status != 0 )) && _zshell_notify_outcome=failed
+                          local _zshell_notify_message="$_zshell_notify_name $_zshell_notify_outcome — ${_zshell_notify_elapsed}s, exit $_zshell_notify_status"
+                          (( ++_zshell_notify_sequence ))
+                          # Both backends forward this typed title alongside the
+                          # body; each result stays paired with its own message.
+                          printf '\\e]777;notify;zshell-command:%s:%s:%s;%s\\e\\\\' "$_zshell_notify_id" "$_zshell_notify_sequence" "$_zshell_notify_status" "$_zshell_notify_message"
+                        fi
+                      fi
                     fi
+                    return $_zshell_notify_status
+                  }
+                  add-zsh-hook preexec _zshell_notify_preexec
+                  # add-zsh-hook only appends, and the last precmd hook sees
+                  # whatever the ones before it left in `$?` -- that ordering is
+                  # the whole reason this hook is prepended by hand.
+                  if [[ -z "${precmd_functions[(r)_zshell_notify_precmd]}" ]]; then
+                    precmd_functions=(_zshell_notify_precmd "${precmd_functions[@]}")
                   fi
                 fi
-                return $_zshell_notify_status
-              }
-              add-zsh-hook preexec _zshell_notify_preexec
-              # add-zsh-hook only appends, and the last precmd hook sees
-              # whatever the ones before it left in `$?` -- that ordering is
-              # the whole reason this hook is prepended by hand.
-              if [[ -z "${precmd_functions[(r)_zshell_notify_precmd]}" ]]; then
-                precmd_functions=(_zshell_notify_precmd "${precmd_functions[@]}")
-              fi
-            fi
-            """
+                """
         }
         for (name, contents) in files {
             let file = integrationDirectory.appendingPathComponent(name)
             // .zshrc restores ZDOTDIR, so the proxy .zlogin is no longer a
             // reliable injection point after the user's configuration loads.
-            let taskIntegration = name == ".zshrc"
+            let taskIntegration =
+                name == ".zshrc"
                 ? TerminalCommandTaskShellIntegration.script(in: directory) : ""
             // The user's rc needs its real ZDOTDIR, but zsh must return to the
             // proxy for .zlogin so initialization runs after the user's login file.
-            let initializationIntegration = name == ".zshrc" ? """
+            let initializationIntegration =
+                name == ".zshrc"
+                ? """
 
-            if [[ -n \"$ZSHELL_INIT_COMMAND\" ]]; then
-              _zshell_init_zdotdir=\"${ZDOTDIR:-$HOME}\"
-              [[ \"$_zshell_init_zdotdir\" == \(integrationDirectoryPath) ]] && _zshell_init_zdotdir=\"$ZSHELL_ORIGINAL_ZDOTDIR\"
-              export ZDOTDIR=\(integrationDirectoryPath)
-            fi
-            """ : ""
+                if [[ -n \"$ZSHELL_INIT_COMMAND\" ]]; then
+                  _zshell_init_zdotdir=\"${ZDOTDIR:-$HOME}\"
+                  [[ \"$_zshell_init_zdotdir\" == \(integrationDirectoryPath) ]] && _zshell_init_zdotdir=\"$ZSHELL_ORIGINAL_ZDOTDIR\"
+                  export ZDOTDIR=\(integrationDirectoryPath)
+                fi
+                """ : ""
             try Data((contents + taskIntegration + initializationIntegration + "\n").utf8).write(to: file, options: .atomic)
             try FileManager.default.setAttributes(
                 [.posixPermissions: 0o600], ofItemAtPath: file.path
@@ -1448,22 +1485,22 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
 
     var terminalPromptSelectionIsReady: Bool {
         guard !hasExited, let launchDirectoryURL, let foregroundPID = surface.foregroundPid,
-              let value = try? String(
+            let value = try? String(
                 contentsOf: launchDirectoryURL.appendingPathComponent("prompt-selection.pid"),
                 encoding: .utf8
-              ),
-              let readyPID = pid_t(value.trimmingCharacters(in: .whitespacesAndNewlines))
+            ),
+            let readyPID = pid_t(value.trimmingCharacters(in: .whitespacesAndNewlines))
         else { return false }
         return readyPID > 0 && readyPID == foregroundPID
     }
 
     var terminalPromptQueueIsReady: Bool {
         guard terminalPromptSelectionIsReady,
-              let launchDirectoryURL, let foregroundPID = surface.foregroundPid,
-              let value = try? String(
+            let launchDirectoryURL, let foregroundPID = surface.foregroundPid,
+            let value = try? String(
                 contentsOf: launchDirectoryURL.appendingPathComponent("prompt-queue.pid"),
                 encoding: .utf8
-              )
+            )
         else { return false }
         return value.trimmingCharacters(in: .whitespacesAndNewlines) == String(foregroundPID)
     }
@@ -1475,13 +1512,15 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
 
     func terminalDidChangeWorkingDirectory(_ path: String) {
         guard !path.isEmpty else { return }
-        workingDirectory = path.hasPrefix("/")
+        workingDirectory =
+            path.hasPrefix("/")
             ? URL(fileURLWithPath: path).absoluteString : path
     }
 
     func terminalDidChangeCellSize(_ size: CGSize) {
         guard size.width > 0, size.height > 0,
-              terminalCellSize != size else { return }
+            terminalCellSize != size
+        else { return }
         terminalCellSize = size
     }
 
@@ -1599,7 +1638,8 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
             return
         }
         let result = TerminalCommandNotificationResult.parse(title: title)
-        TerminalNotificationService.shared.post(message: message, sessionID: id,
+        TerminalNotificationService.shared.post(
+            message: message, sessionID: id,
             kind: result == nil ? .terminal : .command,
             eventKey: result.map { "command:\($0.id):\($0.sequence)" },
             isFailure: result.map { $0.exitCode != 0 } ?? false)
@@ -1628,8 +1668,8 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
             return .url(url)
         }
         if let url = URL(string: value),
-           url.scheme != nil,
-           !url.isFileURL
+            url.scheme != nil,
+            !url.isFileURL
         {
             return .url(url)
         }
@@ -1647,7 +1687,8 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
     /// names, version strings) never become links and both backends agree on
     /// what is clickable.
     private static let bareWebAddressPattern: NSRegularExpression? = {
-        let tlds = "com|net|org|edu|gov|mil|int|info|xyz|top|site|online|cloud|vip|app|dev|io|ai|me|cc|tv|fm|gg|sh|so|co"
+        let tlds =
+            "com|net|org|edu|gov|mil|int|info|xyz|top|site|online|cloud|vip|app|dev|io|ai|me|cc|tv|fm|gg|sh|so|co"
             + "|cn|jp|de|uk|ru|fr|kr|us|nl|se|no|fi|dk|es|it|pt|pl|cz|at|ch|be|au|br|mx|in|hk|tw|sg|my|id|ca|ie|nz|za"
         let host = "(?:www\\.)?[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\\.(?:\(tlds))"
         let tail = "(?::\\d{1,5})?(?:[/?#]\\S*)?"
@@ -1669,18 +1710,19 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
         // IP hints share the same host action as Command-clicked URLs.
         // URLComponents requires brackets around a bare IPv6 address.
         let octets = candidate.split(separator: ".", omittingEmptySubsequences: false)
-        if octets.count == 4, octets.allSatisfy({ Int($0).map { (0...255).contains($0) } == true }) {
+        if octets.count == 4, octets.allSatisfy({ Int($0).map { (0 ... 255).contains($0) } == true }) {
             return URL(string: "http://\(candidate)")
         }
         if candidate.contains(":"), !candidate.contains("/"),
-           candidate.unicodeScalars.allSatisfy({ CharacterSet(charactersIn: "0123456789abcdefABCDEF:").contains($0) }),
-           let components = URLComponents(string: "http://[\(candidate)]"), components.host != nil {
+            candidate.unicodeScalars.allSatisfy({ CharacterSet(charactersIn: "0123456789abcdefABCDEF:").contains($0) }),
+            let components = URLComponents(string: "http://[\(candidate)]"), components.host != nil
+        {
             return components.url
         }
         guard let pattern = bareWebAddressPattern,
-              let match = pattern.firstMatch(in: candidate, range: NSRange(candidate.startIndex..., in: candidate)),
-              match.range.length == candidate.utf16.count,
-              !candidate.isEmpty
+            let match = pattern.firstMatch(in: candidate, range: NSRange(candidate.startIndex..., in: candidate)),
+            match.range.length == candidate.utf16.count,
+            !candidate.isEmpty
         else { return nil }
         guard var components = URLComponents(string: "https://\(candidate)") else { return nil }
         if components.host?.lowercased() == "localhost" { components.scheme = "http" }
@@ -1783,8 +1825,9 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
     }
 
     var terminalAllowsFileDrop: Bool {
-        !isReadOnly && (remoteConnection == nil && remotePasteTarget == nil
-            || AppSettings.shared.remoteDropUpload && canUploadFiles)
+        !isReadOnly
+            && (remoteConnection == nil && remotePasteTarget == nil
+                || AppSettings.shared.remoteDropUpload && canUploadFiles)
     }
 
     func terminalHandleFileDrop(_ urls: [URL], paste: @escaping (String) -> Void) -> Bool {
@@ -1827,8 +1870,9 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
             // Wait until AppKit restores the terminal's window after the sheet.
             DispatchQueue.main.async {
                 guard let self, let window, self.surface.window === window, window.isKeyWindow,
-                      self.hostManagerID == managerID, self.canUploadFiles, self.surface.inputGeneration == inputGeneration,
-                      self.remoteConnection === connection, connection?.pasteGeneration == generation else { return }
+                    self.hostManagerID == managerID, self.canUploadFiles, self.surface.inputGeneration == inputGeneration,
+                    self.remoteConnection === connection, connection?.pasteGeneration == generation
+                else { return }
                 window.makeFirstResponder(self.surface)
                 self.agentObservation.pendingInterrupt = nil
                 _ = self.uploadSelectedFiles(urls, paste: { [weak self] text in self?.surface.sendPaste(text + " ") })
@@ -1848,8 +1892,11 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
         let isRemote = connection != nil || target != nil
         guard !isReadOnly, !isTerminating, !hasExited, surface.hasEffectiveTerminalFocus else { return true }
         guard target != .unavailable,
-              connection == nil || connection?.status.state == .connected && connection?.isActiveClient == true else {
-            showClipboardPasteError(RemoteHostError.message(String(localized: "Reconnect and take control of the remote terminal before pasting files.")), remote: true)
+            connection == nil || connection?.status.state == .connected && connection?.isActiveClient == true
+        else {
+            showClipboardPasteError(
+                RemoteHostError.message(String(localized: "Reconnect and take control of the remote terminal before pasting files.")),
+                remote: true)
             return true
         }
         guard clipboardPasteTask == nil else { NSSound.beep(); return true }
@@ -1868,7 +1915,8 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
                     return try RemotePasteUpload.upload(input, host: host, project: project, sessionID: sessionID, clientID: clientID)
                 }
                 if case .ssh(let endpoint, let authentication, let credentialID) = target {
-                    return try RemotePasteUpload.uploadSSH(input, endpoint: endpoint, authentication: authentication, credentialID: credentialID)
+                    return try RemotePasteUpload.uploadSSH(
+                        input, endpoint: endpoint, authentication: authentication, credentialID: credentialID)
                 }
                 if !isRemote, case .image(let bytes) = input {
                     return [try LocalClipboardImageStore.save(bytes).path]
@@ -1888,13 +1936,15 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
                 guard let self, self.clipboardPasteGeneration == pasteGeneration else { return }
                 self.clipboardPasteTask = nil
                 guard !Task.isCancelled, !self.isReadOnly, self.surface.inputGeneration == inputGeneration,
-                      !self.isTerminating, !self.hasExited,
-                      self.hostManagerID == managerID, self.remotePasteTarget == target,
-                      self.surface.hasEffectiveTerminalFocus else { return }
+                    !self.isTerminating, !self.hasExited,
+                    self.hostManagerID == managerID, self.remotePasteTarget == target,
+                    self.surface.hasEffectiveTerminalFocus
+                else { return }
                 if let connection {
                     guard self.remoteConnection === connection, connection.host == host,
-                          connection.pasteGeneration == generation, connection.status.state == .connected,
-                          connection.isActiveClient else { return }
+                        connection.pasteGeneration == generation, connection.status.state == .connected,
+                        connection.isActiveClient
+                    else { return }
                 } else {
                     guard let pid = self.shellPid, Darwin.kill(pid, 0) == 0 else { return }
                 }
@@ -1918,7 +1968,8 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
         guard let window = surface.window else { NSSound.beep(); return }
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = remote
+        alert.messageText =
+            remote
             ? String(localized: "Couldn’t upload files to the remote terminal")
             : String(localized: "Couldn’t paste the clipboard image")
         alert.informativeText = error.localizedDescription
@@ -1939,16 +1990,18 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
         case .unsafePaste:
             alert.messageText = String(localized: "Warning: Potentially Unsafe Paste")
             alert.informativeText =
-                String(localized: "Pasting this text to the terminal may be dangerous because it looks like one or more commands may execute.")
+                String(
+                    localized: "Pasting this text to the terminal may be dangerous because it looks like one or more commands may execute.")
         case .programRead:
             alert.messageText = String(localized: "Authorize Clipboard Access")
             alert.informativeText =
                 String(localized: "A program is attempting to read from the clipboard. The current clipboard contents are shown below.")
         }
         alert.accessoryView = Self.clipboardPreview(request.contents)
-        alert.addButton(withTitle: request.kind == .unsafePaste
-            ? String(localized: "Paste")
-            : String(localized: "Allow"))
+        alert.addButton(
+            withTitle: request.kind == .unsafePaste
+                ? String(localized: "Paste")
+                : String(localized: "Allow"))
         let cancel = alert.addButton(
             withTitle: request.kind == .unsafePaste
                 ? String(localized: "Cancel")
@@ -1962,7 +2015,8 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
         Task { @MainActor [weak self] in
             if request.kind == .unsafePaste {
                 guard let self, !self.isReadOnly, self.surface.inputGeneration == inputGeneration,
-                      self.unsafePasteConfirmations[id] != nil else {
+                    self.unsafePasteConfirmations[id] != nil
+                else {
                     self?.unsafePasteConfirmations[id] = nil
                     request.deny()
                     return
@@ -1971,7 +2025,8 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
             let response = await alert.beginSheetModal(for: window)
             self?.unsafePasteConfirmations[id] = nil
             if response == .alertFirstButtonReturn, let self,
-               request.kind != .unsafePaste || !self.isReadOnly && self.surface.inputGeneration == inputGeneration {
+                request.kind != .unsafePaste || !self.isReadOnly && self.surface.inputGeneration == inputGeneration
+            {
                 request.approve()
             } else {
                 request.deny()

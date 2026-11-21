@@ -26,9 +26,10 @@ final class SettingsPermissionCoordinator: ObservableObject {
         }
     }
 
-    @Published private(set) var statuses = Dictionary(uniqueKeysWithValues: SettingsPermission.allCases.map {
-        ($0, $0.requiresSystemSettings ? SettingsPermissionStatus.manual : .notDetermined)
-    })
+    @Published private(set) var statuses = Dictionary(
+        uniqueKeysWithValues: SettingsPermission.allCases.map {
+            ($0, $0.requiresSystemSettings ? SettingsPermissionStatus.manual : .notDetermined)
+        })
     @Published private(set) var failures: [SettingsPermission: Failure] = [:]
     @Published private(set) var requesting: SettingsPermission?
     var onOpenSettings: ((SettingsPermission) -> Void)?
@@ -39,11 +40,12 @@ final class SettingsPermissionCoordinator: ObservableObject {
     private var requestGeneration = UUID()
 
     convenience init() {
-        self.init(dependencies: Dependencies(
-            read: SystemSettingsPermissions.read,
-            request: SystemSettingsPermissions.request,
-            openSettings: { NSWorkspace.shared.open($0) }
-        ))
+        self.init(
+            dependencies: Dependencies(
+                read: SystemSettingsPermissions.read,
+                request: SystemSettingsPermissions.request,
+                openSettings: { NSWorkspace.shared.open($0) }
+            ))
     }
 
     init(dependencies: Dependencies) {
@@ -68,7 +70,8 @@ final class SettingsPermissionCoordinator: ObservableObject {
         for permission in SettingsPermission.allCases where permission != requesting {
             dependencies.read(permission) { [weak self] status in
                 guard let self, self.isActive, self.refreshGeneration == generation,
-                      self.requesting != permission else { return }
+                    self.requesting != permission
+                else { return }
                 self.update(permission, status: status)
             }
         }

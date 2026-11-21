@@ -6,7 +6,10 @@ import STTextKitPlus
 
 extension NSTextLayoutManager {
 
-    func enumerateSubstrings(in range: NSTextRange, options: String.EnumerationOptions = [], using block: (String?, NSTextRange, NSTextRange?, UnsafeMutablePointer<ObjCBool>) -> Void) {
+    func enumerateSubstrings(
+        in range: NSTextRange, options: String.EnumerationOptions = [],
+        using block: (String?, NSTextRange, NSTextRange?, UnsafeMutablePointer<ObjCBool>) -> Void
+    ) {
         enumerateSubstrings(from: range.location, options: options) { substring, substringRange, enclosingRange, stop in
             let shouldContinue = substringRange.location < range.endLocation
             if !shouldContinue {
@@ -27,7 +30,9 @@ extension NSTextLayoutManager {
     ///   - range: The location at which to start the enumeration.
     ///   - reverse: Whether to start the enumeration from the end of the range.
     ///   - block: A closure you provide to determine if the enumeration finishes early.
-    func enumerateRenderingAttributes(in range: NSTextRange, reverse: Bool, using block: (NSTextLayoutManager, [NSAttributedString.Key: Any], NSTextRange) -> Bool) {
+    func enumerateRenderingAttributes(
+        in range: NSTextRange, reverse: Bool, using block: (NSTextLayoutManager, [NSAttributedString.Key: Any], NSTextRange) -> Bool
+    ) {
         enumerateRenderingAttributes(from: range.location, reverse: reverse) { textLayoutManager, attributes, textRange in
             let shouldContinue = textRange.location < range.endLocation
             if !shouldContinue {
@@ -70,7 +75,8 @@ extension NSTextLayoutManager {
 
                 if lineTextRange.contains(range.endLocation) {
                     // cut off everything after endLocation
-                    let trailingOffset = lineFragment.locationForCharacter(at: offset(from: range.endLocation, to: lineTextRange.endLocation))
+                    let trailingOffset = lineFragment.locationForCharacter(
+                        at: offset(from: range.endLocation, to: lineTextRange.endLocation))
                     width = width - trailingOffset.x
 
                     if range.endLocation < lineTextRange.endLocation {
@@ -88,4 +94,3 @@ extension NSTextLayoutManager {
         }
     }
 }
-

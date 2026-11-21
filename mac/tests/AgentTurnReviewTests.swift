@@ -29,7 +29,7 @@ struct AgentTurnReviewTests {
         _ = try git(["init", "-q", "-b", "main"])
         _ = try git(["config", "user.name", "Review Tests"])
         _ = try git(["config", "user.email", "review@example.invalid"])
-        let original = (1...80).map { "line \($0)\n" }.joined()
+        let original = (1 ... 80).map { "line \($0)\n" }.joined()
         try write("tracked.txt", original)
         try write("deleted.txt", "restore this\n")
         try write("no-newline.txt", "old")
@@ -43,11 +43,14 @@ struct AgentTurnReviewTests {
         _ = try git(["add", "tracked.txt"])
         let baselineText = staged.replacingOccurrences(of: "line 5\n", with: "user unstaged\n")
         try write("tracked.txt", baselineText)
-        try FileManager.default.setAttributes([.posixPermissions: 0o640], ofItemAtPath: repository.appendingPathComponent("tracked.txt").path)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o640], ofItemAtPath: repository.appendingPathComponent("tracked.txt").path)
         let attribute = Data("preserve review metadata".utf8)
-        precondition(attribute.withUnsafeBytes {
-            setxattr(repository.appendingPathComponent("tracked.txt").path, "com.zshell.review-test", $0.baseAddress, attribute.count, 0, 0)
-        } == 0)
+        precondition(
+            attribute.withUnsafeBytes {
+                setxattr(
+                    repository.appendingPathComponent("tracked.txt").path, "com.zshell.review-test", $0.baseAddress, attribute.count, 0, 0)
+            } == 0)
         try write("existing untracked.txt", "user draft\n")
         try write("ignored.txt", "must stay ignored\n")
         let index = try read(".git/index")
@@ -64,7 +67,8 @@ struct AgentTurnReviewTests {
         try Data([0, 3, 4]).write(to: repository.appendingPathComponent("binary.bin"))
         try Data(repeating: 65, count: AgentReviewGit.maxFileBytes + 1)
             .write(to: repository.appendingPathComponent("large.txt"))
-        try FileManager.default.createSymbolicLink(atPath: repository.appendingPathComponent("link.txt").path, withDestinationPath: "/etc/hosts")
+        try FileManager.default.createSymbolicLink(
+            atPath: repository.appendingPathComponent("link.txt").path, withDestinationPath: "/etc/hosts")
         let after = try AgentReviewGit.capture(in: root)
         check(try read(".git/index") == index)
         let files = try AgentReviewGit.files(from: before, to: after)
@@ -194,7 +198,8 @@ struct AgentTurnReviewTests {
         try FileManager.default.removeItem(at: folder)
         try FileManager.default.createSymbolicLink(at: folder, withDestinationURL: outside)
         try expectFailure {
-            try AgentReviewGit.revert(file: safeFile, contents: safeContents, hunk: safeContents.hunks[0], revertedIDs: [], before: safeBefore, after: safeAfter)
+            try AgentReviewGit.revert(
+                file: safeFile, contents: safeContents, hunk: safeContents.hunks[0], revertedIDs: [], before: safeBefore, after: safeAfter)
         }
         check(try Data(contentsOf: outside.appendingPathComponent("file.txt")) == Data("outside must stay\n".utf8))
 
@@ -206,14 +211,17 @@ struct AgentTurnReviewTests {
         let populated = try AgentReviewGit.capture(in: unborn.path)
         let unbornFile = try AgentReviewGit.files(from: empty, to: populated)[0]
         let unbornContents = try AgentReviewGit.contents(for: unbornFile, before: empty, after: populated)
-        try AgentReviewGit.revert(file: unbornFile, contents: unbornContents, hunk: unbornContents.hunks[0], revertedIDs: [], before: empty, after: populated)
+        try AgentReviewGit.revert(
+            file: unbornFile, contents: unbornContents, hunk: unbornContents.hunks[0], revertedIDs: [], before: empty, after: populated)
         precondition(!FileManager.default.fileExists(atPath: unborn.appendingPathComponent("new.txt").path))
         precondition(!FileManager.default.fileExists(atPath: unborn.appendingPathComponent(".git/index").path))
-        for index in 0...AgentReviewGit.maxPaths {
+        for index in 0 ... AgentReviewGit.maxPaths {
             try Data().write(to: unborn.appendingPathComponent("path-\(index)"))
         }
         try expectFailure { _ = try AgentReviewGit.capture(in: unborn.path) }
         precondition(!FileManager.default.fileExists(atPath: unborn.appendingPathComponent(".git/index").path))
-        print("Agent turn review: snapshot/index isolation, temporal scopes, hunk reversal, CRLF/EOF, untracked/deleted/binary/oversize/symlink, stale HEAD/content, Keep, active and concurrent turn guards passed")
+        print(
+            "Agent turn review: snapshot/index isolation, temporal scopes, hunk reversal, CRLF/EOF, untracked/deleted/binary/oversize/symlink, stale HEAD/content, Keep, active and concurrent turn guards passed"
+        )
     }
 }

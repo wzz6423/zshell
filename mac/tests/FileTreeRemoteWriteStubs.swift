@@ -24,7 +24,9 @@ nonisolated struct RemoteTrashEntry: Sendable {}
 
 nonisolated struct RemoteFileService {
     func capabilities(source: RemoteFileSource) throws -> RemoteFileCapabilities { .unavailable }
-    func create(source: RemoteFileSource, directory: String, name: String, isDirectory: Bool) throws -> String { throw CocoaError(.fileWriteUnknown) }
+    func create(source: RemoteFileSource, directory: String, name: String, isDirectory: Bool) throws -> String {
+        throw CocoaError(.fileWriteUnknown)
+    }
     func rename(source: RemoteFileSource, path: String, name: String) throws -> String { throw CocoaError(.fileWriteUnknown) }
     func trash(source: RemoteFileSource, path: String) throws -> RemoteTrashEntry { throw CocoaError(.fileWriteUnknown) }
     func restore(source: RemoteFileSource, entry: RemoteTrashEntry) throws -> String { throw CocoaError(.fileWriteUnknown) }

@@ -138,7 +138,7 @@ private func rank(
     // Simulates a user progressively typing "covestro" — every prefix should
     // match the candidate "Covestro AG" as a prefix match
     let candidate = "Covestro AG"
-    for length in 1...8 {
+    for length in 1 ... 8 {
         let query = String("covestro".prefix(length))
         let result = score(query, against: candidate)
         #expect(result != nil, "Query '\(query)' (\(length) chars) should match '\(candidate)'")
@@ -152,12 +152,14 @@ private func rank(
     // "cove" should rank "Covestro AG" highly, above unrelated strings
     // that might accidentally fuzzy-match
     let pickerConfig = MatchConfig(algorithm: .editDistance(EditDistanceConfig(prefixWeight: 4.0, substringWeight: 0.5)))
-    let results = rank("cove", against: [
-        "Covestro AG",
-        "COVIVIO HOTELS",
-        "COVIVIO",
-        "Some Random String"
-    ], config: pickerConfig)
+    let results = rank(
+        "cove",
+        against: [
+            "Covestro AG",
+            "COVIVIO HOTELS",
+            "COVIVIO",
+            "Some Random String",
+        ], config: pickerConfig)
 
     #expect(results.count >= 2)
     // Covestro should be in the results (exact prefix match on "cove")
@@ -168,13 +170,15 @@ private func rank(
 
 @Test func covQuery_matchesSymbolAndName() {
     // "cov" should match both symbols like "COV" and names like "Covestro"
-    let results = rank("cov", against: [
-        "COV",
-        "COVH",
-        "1COV",
-        "Covestro AG",
-        "COVIVIO"
-    ])
+    let results = rank(
+        "cov",
+        against: [
+            "COV",
+            "COVH",
+            "1COV",
+            "Covestro AG",
+            "COVIVIO",
+        ])
 
     #expect(results.count >= 4)
     // Exact match "COV" should be first
@@ -208,16 +212,20 @@ private func rank(
     // prefix matches should strongly dominate
     let pickerConfig = MatchConfig(algorithm: .editDistance(EditDistanceConfig(prefixWeight: 4.0, substringWeight: 0.5)))
 
-    let results = rank("cov", against: [
-        "Covestro AG",       // prefix match
-        "Discovery Corp",    // "cov" appears as substring in "Discovery"... no
-        "RECOVERY LTD"      // "cov" appears as substring in "reCOVery"
-    ], config: pickerConfig)
+    let results = rank(
+        "cov",
+        against: [
+            "Covestro AG", // prefix match
+            "Discovery Corp", // "cov" appears as substring in "Discovery"... no
+            "RECOVERY LTD", // "cov" appears as substring in "reCOVery"
+        ], config: pickerConfig)
 
     if let covestro = results.first(where: { $0.candidate == "Covestro AG" }),
-       let recovery = results.first(where: { $0.candidate == "RECOVERY LTD" }) {
-        #expect(covestro.score > recovery.score,
-                "Prefix match 'Covestro AG' should outscore substring match 'RECOVERY LTD'")
+        let recovery = results.first(where: { $0.candidate == "RECOVERY LTD" })
+    {
+        #expect(
+            covestro.score > recovery.score,
+            "Prefix match 'Covestro AG' should outscore substring match 'RECOVERY LTD'")
     }
 }
 
@@ -239,14 +247,15 @@ private func rank(
         "EOBPM52609I484000P",
         "AOEOQ2609I201900C",
         "POZA12812F209000P",
-        "DE0006062144"
+        "DE0006062144",
     ]
 
     for candidate in randomStrings {
         let result = score("cove", against: candidate, config: pickerConfig)
         if let result {
-            #expect(result < 0.5,
-                    "'cove' should score low against random identifier '\(candidate)' (got \(result))")
+            #expect(
+                result < 0.5,
+                "'cove' should score low against random identifier '\(candidate)' (got \(result))")
         }
     }
 }
@@ -332,13 +341,15 @@ private func rank(
 
 @Test func shortQuery_currencyTypoRanking() {
     // "UDS" should rank "USD" first; "USD Fund" and "USDA" blocked by restriction
-    let results = rank("UDS", against: [
-        "USD",
-        "USD Fund",
-        "USDA",
-        "UDS",          // exact match
-        "Something Else"
-    ])
+    let results = rank(
+        "UDS",
+        against: [
+            "USD",
+            "USD Fund",
+            "USDA",
+            "UDS", // exact match
+            "Something Else",
+        ])
 
     // "UDS" exact match should be present
     let udsExact = results.first { $0.candidate == "UDS" }

@@ -36,7 +36,7 @@ extension FileHandle {
         defer {
             hash.deallocate()
         }
-        
+
         return hash.reduce("") { $0 + String(format: "%02x", $1) }
     }
 

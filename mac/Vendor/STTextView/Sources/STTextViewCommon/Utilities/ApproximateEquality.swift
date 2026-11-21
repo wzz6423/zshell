@@ -130,12 +130,14 @@ package extension FloatingPoint {
             // Self is infinite and other is finite. Replace self with the binade
             // of the greatestFiniteMagnitude, and reduce the exponent of other by
             // one to compensate.
-            let scaledSelf = Self(sign: self.sign,
-                                  exponent: Self.greatestFiniteMagnitude.exponent,
-                                  significand: 1)
-            let scaledOther = Self(sign: .plus,
-                                   exponent: -1,
-                                   significand: other)
+            let scaledSelf = Self(
+                sign: self.sign,
+                exponent: Self.greatestFiniteMagnitude.exponent,
+                significand: 1)
+            let scaledOther = Self(
+                sign: .plus,
+                exponent: -1,
+                significand: other)
             // Now both values are finite, so re-run the naive comparison.
             return scaledSelf.isAlmostEqual(to: scaledOther, tolerance: tolerance)
         }

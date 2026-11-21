@@ -46,8 +46,9 @@ struct TerminalSessionDirectorySurfaceTests {
     static func mount(_ session: TerminalSession) {
         guard windows[session.id] == nil else { return }
         sessions.append(session)
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 420),
-                              styleMask: [.titled], backing: .buffered, defer: false)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 420),
+            styleMask: [.titled], backing: .buffered, defer: false)
         session.surface.frame = window.contentView!.bounds
         window.contentView = session.surface
         session.surface.setSurfaceVisible(true)
@@ -59,10 +60,13 @@ struct TerminalSessionDirectorySurfaceTests {
         mount(session)
         do {
             try wait(label + " shell starts") {
-                session.shellPid != nil && (session.surface.readVisibleText(maxLines: 100, maxColumns: 200) ?? "").contains("DIRECTORY-READY>")
+                session.shellPid != nil
+                    && (session.surface.readVisibleText(maxLines: 100, maxColumns: 200) ?? "").contains("DIRECTORY-READY>")
             }
         } catch {
-            print("DIRECTORY_DIAGNOSTIC label=\(label) exited=\(session.hasExited) shellPID=\(session.shellPid.map(String.init) ?? "nil") foregroundPID=\(session.surface.foregroundPid.map(String.init) ?? "nil") frame=\(session.surface.frame)")
+            print(
+                "DIRECTORY_DIAGNOSTIC label=\(label) exited=\(session.hasExited) shellPID=\(session.shellPid.map(String.init) ?? "nil") foregroundPID=\(session.surface.foregroundPid.map(String.init) ?? "nil") frame=\(session.surface.frame)"
+            )
             print("DIRECTORY_DIAGNOSTIC visible=\(session.surface.readVisibleText(maxLines: 100, maxColumns: 200) ?? "nil")")
             throw error
         }
@@ -72,12 +76,15 @@ struct TerminalSessionDirectorySurfaceTests {
         session.sendEnter()
         try wait(label + " shell reports cwd") { (try? String(contentsOf: marker, encoding: .utf8))?.isEmpty == false }
         let reported = try String(contentsOf: marker, encoding: .utf8).trimmingCharacters(in: .newlines)
-        try check(SessionWorktreeService.canonical(reported) == SessionWorktreeService.canonical(directory),
-                  label + " real PTY cwd")
-        try check(session.shellPid.flatMap(processWorkingDirectory(pid:)).map(SessionWorktreeService.canonical)
-                    == SessionWorktreeService.canonical(directory), label + " kernel cwd")
-        try check(SessionWorktreeService.canonical(session.currentDirectoryPath) == SessionWorktreeService.canonical(directory),
-                  label + " session cwd")
+        try check(
+            SessionWorktreeService.canonical(reported) == SessionWorktreeService.canonical(directory),
+            label + " real PTY cwd")
+        try check(
+            session.shellPid.flatMap(processWorkingDirectory(pid:)).map(SessionWorktreeService.canonical)
+                == SessionWorktreeService.canonical(directory), label + " kernel cwd")
+        try check(
+            SessionWorktreeService.canonical(session.currentDirectoryPath) == SessionWorktreeService.canonical(directory),
+            label + " session cwd")
     }
 
     static func newSession(_ project: Project) throws -> TerminalSession {
@@ -137,8 +144,9 @@ struct TerminalSessionDirectorySurfaceTests {
         try git(["commit", "--allow-empty", "-qm", "base"], directory: repo.path)
         let manager = TerminalManager()
         let project = manager.selectedProject!
-        let managerWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 400),
-                                     styleMask: [.titled], backing: .buffered, defer: false)
+        let managerWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 400),
+            styleMask: [.titled], backing: .buffered, defer: false)
         manager.attach(to: managerWindow)
         var settingsWindow: NSWindow?
         var workspaceController: ZshellWorkspaceWindowController?
@@ -167,8 +175,10 @@ struct TerminalSessionDirectorySurfaceTests {
         let anchorTab = project.selectedTabID
         let originalPID = anchor.shellPid
         settings.newSessionCustomDirectory = custom.path
-        for (policy, expected) in [(NewSessionDirectoryPolicy.current, current.path), (.project, repo.path),
-                                   (.home, home.path), (.custom, custom.path)] {
+        for (policy, expected) in [
+            (NewSessionDirectoryPolicy.current, current.path), (.project, repo.path),
+            (.home, home.path), (.custom, custom.path),
+        ] {
             settings.newSessionDirectoryPolicy = policy
             project.selectedTabID = anchorTab
             try verify(newSession(project), directory: expected, root: root, label: policy.rawValue)
@@ -207,7 +217,8 @@ struct TerminalSessionDirectorySurfaceTests {
         let split = project.selectedTab!.sessions.last!
         try verify(split, directory: current.path, root: root, label: "split source overrides custom")
         let targetPaneID = project.selectedTab!.paneID(forContent: anchor.id)!
-        let automationSplit = project.automationSplitTerminal(beside: targetPaneID, toward: .bottom,
+        let automationSplit = project.automationSplitTerminal(
+            beside: targetPaneID, toward: .bottom,
             directory: nil, focus: false)!.session
         try verify(automationSplit, directory: current.path, root: root, label: "automation split source")
         let tabGroup = project.createTabGroup()
@@ -225,15 +236,19 @@ struct TerminalSessionDirectorySurfaceTests {
         settings.newSessionCustomDirectory = custom.path
         let missingExplicit = project.newSession(directory: root.appendingPathComponent("missing-explicit").path)!
         try verify(missingExplicit, directory: home.path, root: root, label: "missing explicit uses home")
-        let template = WorkspaceTemplate(name: "Directory template", tabs: [
-            .init(layout: .pane(.init(content: .session(workingDirectory: "sub"), weight: 1)),
-                  focusedPaneIndex: 0, terminals: [.init(paneIndex: 0)])
-        ], selectedTabIndex: 0)
+        let template = WorkspaceTemplate(
+            name: "Directory template",
+            tabs: [
+                .init(
+                    layout: .pane(.init(content: .session(workingDirectory: "sub"), weight: 1)),
+                    focusedPaneIndex: 0, terminals: [.init(paneIndex: 0)])
+            ], selectedTabIndex: 0)
         let applied = try manager.applyWorkspaceTemplate(template, projectRoot: repo.path)
         try verify(applied.selectedSession!, directory: current.path, root: root, label: "template preserves directory")
-        let restored = project.restoreTab(from: .init(
-            layout: .pane(.init(content: .session(workingDirectory: explicit.path), weight: 1)), focusedPaneIndex: 0
-        ))!.sessions[0]
+        let restored = project.restoreTab(
+            from: .init(
+                layout: .pane(.init(content: .session(workingDirectory: explicit.path), weight: 1)), focusedPaneIndex: 0
+            ))!.sessions[0]
         try verify(restored, directory: explicit.path, root: root, label: "restored preserves directory")
         manager.openOrFocusDirectories([explicit.path])
         try verify(manager.selectedSession!, directory: explicit.path, root: root, label: "Finder preserves directory")
@@ -253,8 +268,9 @@ struct TerminalSessionDirectorySurfaceTests {
         project.selectedTabID = anchorTab
         project.selectedTab?.focusedPaneID = targetPaneID
         settings.newSessionDirectoryPolicy = .project
-        anchor.sendCommand("/bin/zsh -c " + TerminalSession.shellQuote("cd -- \"$1\" && exec /bin/sleep 60")
-            + " fixture " + TerminalSession.shellQuote(worktreeNested.path))
+        anchor.sendCommand(
+            "/bin/zsh -c " + TerminalSession.shellQuote("cd -- \"$1\" && exec /bin/sleep 60")
+                + " fixture " + TerminalSession.shellQuote(worktreeNested.path))
         anchor.sendEnter()
         try wait("foreground job moves into its linked checkout") {
             anchor.foregroundDirectoryPath.map(SessionWorktreeService.canonical)
@@ -264,13 +280,16 @@ struct TerminalSessionDirectorySurfaceTests {
         try verify(newSession(project), directory: worktreePath.path, root: root, label: "project follows foreground checkout")
         Darwin.kill(foregroundPID, SIGTERM)
         try wait("source shell regains foreground after checkout job") { anchor.surface.foregroundPid == anchor.shellPid }
-        try check(SessionWorktreeService.canonical(anchor.currentDirectoryPath) == SessionWorktreeService.canonical(current.path),
-                  "foreground checkout keeps source shell directory")
+        try check(
+            SessionWorktreeService.canonical(anchor.currentDirectoryPath) == SessionWorktreeService.canonical(current.path),
+            "foreground checkout keeps source shell directory")
         settings.newSessionDirectoryPolicy = .custom
         var associationResult: Result<SessionWorktree, Error>?
         let associationTask = Task { @MainActor in
-            do { associationResult = .success(try await SessionWorktreeService().association(at: worktreePath.path, sourceDirectory: repo.path)) }
-            catch { associationResult = .failure(error) }
+            do {
+                associationResult = .success(
+                    try await SessionWorktreeService().association(at: worktreePath.path, sourceDirectory: repo.path))
+            } catch { associationResult = .failure(error) }
         }
         defer { associationTask.cancel() }
         try wait("worktree association uses current Git identity") { associationResult != nil }
@@ -280,8 +299,7 @@ struct TerminalSessionDirectorySurfaceTests {
         var removalResult: Error?
         var removalFinished = false
         let removal = Task { @MainActor in
-            do { try await TerminalManager.removeWorktreeFromGitPanel(association) }
-            catch { removalResult = error }
+            do { try await TerminalManager.removeWorktreeFromGitPanel(association) } catch { removalResult = error }
             removalFinished = true
         }
         defer { removal.cancel() }
@@ -290,8 +308,9 @@ struct TerminalSessionDirectorySurfaceTests {
         }
         settings.newSessionCustomDirectory = association.path
         let sessionCount = project.sessions.count
-        try check(project.newSession() == nil && project.sessions.count == sessionCount,
-                  "resolved custom directory is blocked during worktree removal")
+        try check(
+            project.newSession() == nil && project.sessions.count == sessionCount,
+            "resolved custom directory is blocked during worktree removal")
         try wait("worktree removal finishes safely") { removalFinished }
         try check(removalResult != nil && fm.fileExists(atPath: worktreePath.path), "worktree with live source remains on disk")
         settings.newSessionCustomDirectory = custom.path
@@ -300,21 +319,27 @@ struct TerminalSessionDirectorySurfaceTests {
         settings.newSessionCustomDirectory = symlink.path
         try verify(newSession(project), directory: custom.path, root: root, label: "custom symlink enters real target")
         settings.newSessionCustomDirectory = custom.path
-        let ssh = Project(fallbackName: "SSH fixture", manager: manager,
-            location: .ssh(endpoint: try SSHEndpoint(host: "127.0.0.1", port: 1), remoteDirectory: "/remote/root", authentication: .password),
+        let ssh = Project(
+            fallbackName: "SSH fixture", manager: manager,
+            location: .ssh(
+                endpoint: try SSHEndpoint(host: "127.0.0.1", port: 1), remoteDirectory: "/remote/root", authentication: .password),
             createInitialSession: false)
         let sshSession = ssh.newSession()!
-        try check(sshSession.currentDirectoryPath == home.path && ssh.remoteDirectory == "/remote/root",
-                  "SSH keeps remote root and local relay home")
+        try check(
+            sshSession.currentDirectoryPath == home.path && ssh.remoteDirectory == "/remote/root",
+            "SSH keeps remote root and local relay home")
         sshSession.terminate()
         let host = try RemoteHost(name: "Shared fixture", address: "tailscale://127.0.0.1:1")
-        let shared = Project(fallbackName: "Shared fixture", manager: manager,
-                             location: .shared(host: host, directory: "/remote/root"), createInitialSession: false)
+        let shared = Project(
+            fallbackName: "Shared fixture", manager: manager,
+            location: .shared(host: host, directory: "/remote/root"), createInitialSession: false)
         let sharedSession = shared.newSession()!
-        try check(sharedSession.remoteConnection?.projectDirectory == "/remote/root"
-                    && sharedSession.currentDirectoryPath == "/remote/root", "shared root is not replaced by local custom path")
-        try check(shared.newSessionDirectoryContext.currentDirectory == nil && ssh.newSessionDirectoryContext.currentDirectory == nil,
-                  "remote context cannot feed a new local project")
+        try check(
+            sharedSession.remoteConnection?.projectDirectory == "/remote/root"
+                && sharedSession.currentDirectoryPath == "/remote/root", "shared root is not replaced by local custom path")
+        try check(
+            shared.newSessionDirectoryContext.currentDirectory == nil && ssh.newSessionDirectoryContext.currentDirectory == nil,
+            "remote context cannot feed a new local project")
         sharedSession.terminate()
         manager.selectedProjectID = project.id
         project.selectedTabID = anchorTab
@@ -336,14 +361,16 @@ struct TerminalSessionDirectorySurfaceTests {
         overlay.toggle()
         settings.newSessionDirectoryPolicy = .home
         overlay.toggle()
-        try check(overlay.workspace!.sessions[0] === reusable && !reusable.hasExited,
-                  "reusable Quick Terminal keeps its existing session after policy change")
+        try check(
+            overlay.workspace!.sessions[0] === reusable && !reusable.hasExited,
+            "reusable Quick Terminal keeps its existing session after policy change")
         overlay.toggle()
         overlay.stop()
         let pane = SettingsTerminalPane()
         pane.setCategory(.terminal)
-        let uiWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 780),
-                                styleMask: [.titled], backing: .buffered, defer: false)
+        let uiWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 780),
+            styleMask: [.titled], backing: .buffered, defer: false)
         uiWindow.isReleasedWhenClosed = false
         uiWindow.contentViewController = pane
         uiWindow.title = "Session Directory Fixture · " + backend.rawValue
@@ -362,9 +389,12 @@ struct TerminalSessionDirectorySurfaceTests {
         field.stringValue = "relative"
         editor.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
         try check(settings.newSessionCustomDirectory == "relative", "AppKit custom directory edits persist")
-        try check(descendants(editor).compactMap { $0 as? NSTextField }.contains {
-            $0.stringValue == String(localized: "Enter an absolute path or ~/folder. New sessions use the current directory until this path is valid.")
-        }, "AppKit shows the actual invalid path reason")
+        try check(
+            descendants(editor).compactMap { $0 as? NSTextField }.contains {
+                $0.stringValue
+                    == String(
+                        localized: "Enter an absolute path or ~/folder. New sessions use the current directory until this path is valid.")
+            }, "AppKit shows the actual invalid path reason")
         field.stringValue = custom.path
         editor.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
         pane.view.layoutSubtreeIfNeeded()
@@ -374,8 +404,9 @@ struct TerminalSessionDirectorySurfaceTests {
                 && values?["terminal.custom-directory"]?.string == custom.path
         }
         let savedConfig = try String(contentsOf: AppSettings.configURL, encoding: .utf8)
-        let reloadedConfig = savedConfig.replacingOccurrences(of: "terminal.new-session-directory = \"custom\"",
-                                                             with: "terminal.new-session-directory = \"home\"")
+        let reloadedConfig = savedConfig.replacingOccurrences(
+            of: "terminal.new-session-directory = \"custom\"",
+            with: "terminal.new-session-directory = \"home\"")
         try reloadedConfig.write(to: AppSettings.configURL, atomically: true, encoding: .utf8)
         try wait("external directory preference refreshes AppKit settings") {
             settings.newSessionDirectoryPolicy == .home && popup.indexOfSelectedItem == 2
@@ -418,7 +449,9 @@ struct TerminalSessionDirectorySurfaceTests {
                 controller.window?.makeKeyAndOrderFront(nil)
                 NSApp.activate(ignoringOtherApps: true)
             }
-            print("DIRECTORY_WORKSPACE_READY config=\(AppSettings.configURL.path) home=\(home.path) current=\(current.path) custom=\(custom.path) explicit=\(explicit.path) pinned=\(pinned.path) group=\(grouped.path)")
+            print(
+                "DIRECTORY_WORKSPACE_READY config=\(AppSettings.configURL.path) home=\(home.path) current=\(current.path) custom=\(custom.path) explicit=\(explicit.path) pinned=\(pinned.path) group=\(grouped.path)"
+            )
             pump(min(max(Double(ProcessInfo.processInfo.environment["ZSHELL_DIRECTORY_TEST_HOLD_SECONDS"] ?? "10") ?? 10, 0), 120))
         }
         if visible {
@@ -429,7 +462,8 @@ struct TerminalSessionDirectorySurfaceTests {
         pump(0.2)
         if let representation = pane.view.bitmapImageRepForCachingDisplay(in: pane.view.bounds) {
             pane.view.cacheDisplay(in: pane.view.bounds, to: representation)
-            try representation.representation(using: .png, properties: [:])?.write(to: results.appendingPathComponent(backend.rawValue + ".png"))
+            try representation.representation(using: .png, properties: [:])?.write(
+                to: results.appendingPathComponent(backend.rawValue + ".png"))
         }
         if visible {
             let seconds = Double(ProcessInfo.processInfo.environment["ZSHELL_DIRECTORY_TEST_HOLD_SECONDS"] ?? "10") ?? 10

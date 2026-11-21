@@ -297,19 +297,21 @@ public struct MarkupFormatter: MarkupWalker {
             - doxygenCommandPrefix: The command command prefix, which defaults to ``DoxygenCommandPrefix/backslash``.
             - adjacentDoxygenCommandsSpacing: The spacing to use when formatting adjacent Doxygen commands.
          */
-        public init(unorderedListMarker: UnorderedListMarker = .dash,
-                    orderedListNumerals: OrderedListNumerals = .allSame(1),
-                    useCodeFence: UseCodeFence = .always,
-                    defaultCodeBlockLanguage: String? = nil,
-                    thematicBreakCharacter: ThematicBreakCharacter = .dash,
-                    thematicBreakLength: UInt = 5,
-                    emphasisMarker: EmphasisMarker = .star,
-                    condenseAutolinks: Bool = true,
-                    preferredHeadingStyle: PreferredHeadingStyle = .atx,
-                    preferredLineLimit: PreferredLineLimit? = nil,
-                    customLinePrefix: String = "",
-                    doxygenCommandPrefix: DoxygenCommandPrefix = .backslash,
-                    adjacentDoxygenCommandsSpacing: AdjacentDoxygenCommandsSpacing = .singleNewline) {
+        public init(
+            unorderedListMarker: UnorderedListMarker = .dash,
+            orderedListNumerals: OrderedListNumerals = .allSame(1),
+            useCodeFence: UseCodeFence = .always,
+            defaultCodeBlockLanguage: String? = nil,
+            thematicBreakCharacter: ThematicBreakCharacter = .dash,
+            thematicBreakLength: UInt = 5,
+            emphasisMarker: EmphasisMarker = .star,
+            condenseAutolinks: Bool = true,
+            preferredHeadingStyle: PreferredHeadingStyle = .atx,
+            preferredLineLimit: PreferredLineLimit? = nil,
+            customLinePrefix: String = "",
+            doxygenCommandPrefix: DoxygenCommandPrefix = .backslash,
+            adjacentDoxygenCommandsSpacing: AdjacentDoxygenCommandsSpacing = .singleNewline
+        ) {
             self.unorderedListMarker = unorderedListMarker
             self.orderedListNumerals = orderedListNumerals
             self.useCodeFence = useCodeFence
@@ -469,7 +471,8 @@ public struct MarkupFormatter: MarkupWalker {
                 }
                 orderedListCount += 1
             } else if !(element is ListItem),
-                let parentListItem = element.parent as? ListItem {
+                let parentListItem = element.parent as? ListItem
+            {
                 /*
                  Align contents with list item markers.
 
@@ -522,7 +525,7 @@ public struct MarkupFormatter: MarkupWalker {
 
         let prefix = linePrefix(for: element)
 
-        for _ in 0..<state.queuedNewlines {
+        for _ in 0 ..< state.queuedNewlines {
             result += "\n"
             state.currentLength += 1
             result += prefix
@@ -749,12 +752,13 @@ public struct MarkupFormatter: MarkupWalker {
             ensurePrecedingNewlineCount(atLeast: 1)
         }
 
-        let checkbox = listItem.checkbox.map {
-            switch $0 {
-            case .checked: return "[x] "
-            case .unchecked: return "[ ] "
-            }
-        } ?? ""
+        let checkbox =
+            listItem.checkbox.map {
+                switch $0 {
+                case .checked: return "[x] "
+                case .unchecked: return "[ ] "
+                }
+            } ?? ""
 
         if listItem.parent is UnorderedList {
             print("\(formattingOptions.unorderedListMarker.rawValue) \(checkbox)", for: listItem)
@@ -770,7 +774,8 @@ public struct MarkupFormatter: MarkupWalker {
         }
 
         if case .setext = formattingOptions.preferredHeadingStyle,
-            heading.level < 3 /* See fatalError below. */ {
+            heading.level < 3 /* See fatalError below. */
+        {
             // Print a Setext-style heading.
             descendInto(heading)
             queueNewline()
@@ -797,8 +802,9 @@ public struct MarkupFormatter: MarkupWalker {
         if thematicBreak.indexInParent > 0 {
             ensurePrecedingNewlineCount(atLeast: 2)
         }
-        let breakString = String(repeating: formattingOptions.thematicBreakCharacter.rawValue,
-                                 count: Int(formattingOptions.thematicBreakLength))
+        let breakString = String(
+            repeating: formattingOptions.thematicBreakCharacter.rawValue,
+            count: Int(formattingOptions.thematicBreakLength))
         print(breakString, for: thematicBreak)
     }
 
@@ -860,8 +866,9 @@ public struct MarkupFormatter: MarkupWalker {
     public mutating func visitLink(_ link: Link) {
         let savedState = state
         if formattingOptions.condenseAutolinks,
-           link.isAutolink,
-           let destination = link.destination {
+            link.isAutolink,
+            let destination = link.destination
+        {
             print("<\(destination)>", for: link)
         } else {
             func printRegularLink() {
@@ -946,47 +953,60 @@ public struct MarkupFormatter: MarkupWalker {
 
         /// All of the independently formatted head cells' text, adding cells
         /// as needed to meet the uniform `uniformColumnCount`.
-        let headCellTexts = Array(table.head.cells.map {
-            $0.formatIndependently(options: cellFormattingOptions)
-        }).ensuringCount(atLeast: uniformColumnCount, filler: "")
+        let headCellTexts = Array(
+            table.head.cells.map {
+                $0.formatIndependently(options: cellFormattingOptions)
+            }
+        ).ensuringCount(atLeast: uniformColumnCount, filler: "")
 
         /// All of the column-span values from the head cells, adding cells as
         /// needed to meet the uniform `uniformColumnCount`.
-        let headCellSpans = Array(table.head.cells.map {
-            $0.colspan
-        }).ensuringCount(atLeast: uniformColumnCount, filler: 1)
+        let headCellSpans = Array(
+            table.head.cells.map {
+                $0.colspan
+            }
+        ).ensuringCount(atLeast: uniformColumnCount, filler: 1)
 
         /// All of the independently formatted body cells' text by row, adding
         /// cells to each row to meet the `uniformColumnCount`.
-        let bodyRowTexts = Array(table.body.rows.map { row -> [String] in
-            return Array(row.cells.map {
-                if $0.rowspan == 0 {
-                    // If this cell is being spanned over, replace its text
-                    // (which should be the empty string anyway) with the
-                    // rowspan marker.
-                    return "^"
-                } else {
-                    return $0.formatIndependently(options: cellFormattingOptions)
-                }
-            }).ensuringCount(atLeast: uniformColumnCount,
-                             filler: "")
-        })
+        let bodyRowTexts = Array(
+            table.body.rows.map { row -> [String] in
+                return Array(
+                    row.cells.map {
+                        if $0.rowspan == 0 {
+                            // If this cell is being spanned over, replace its text
+                            // (which should be the empty string anyway) with the
+                            // rowspan marker.
+                            return "^"
+                        } else {
+                            return $0.formatIndependently(options: cellFormattingOptions)
+                        }
+                    }
+                ).ensuringCount(
+                    atLeast: uniformColumnCount,
+                    filler: "")
+            })
 
         /// All of the column- and row-span information for the body cells,
         /// cells to each row to meet the `uniformColumnCount`.
-        let bodyRowSpans = Array(table.body.rows.map { row in
-            return Array(row.cells.map {
-                (colspan: $0.colspan, rowspan: $0.rowspan)
-            }).ensuringCount(atLeast: uniformColumnCount,
-                             filler: (colspan: 1, rowspan: 1))
-        })
+        let bodyRowSpans = Array(
+            table.body.rows.map { row in
+                return Array(
+                    row.cells.map {
+                        (colspan: $0.colspan, rowspan: $0.rowspan)
+                    }
+                ).ensuringCount(
+                    atLeast: uniformColumnCount,
+                    filler: (colspan: 1, rowspan: 1))
+            })
 
         // Next, calculate the maximum width of each column.
 
         /// The column alignments of the table, filled out to `uniformColumnCount`.
         let columnAlignments = table.columnAlignments
-            .ensuringCount(atLeast: uniformColumnCount,
-                           filler: nil)
+            .ensuringCount(
+                atLeast: uniformColumnCount,
+                filler: nil)
 
         // Start with the column alignments. The following are the minimum to
         // specify each column alignment in markdown:
@@ -1002,7 +1022,7 @@ public struct MarkupFormatter: MarkupWalker {
             }
             switch alignment {
             case .left,
-                 .right:
+                .right:
                 return 2
             case .center:
                 return 3
@@ -1020,8 +1040,9 @@ public struct MarkupFormatter: MarkupWalker {
         for row in bodyRowTexts {
             finalColumnWidths.ensureCount(atLeast: row.count, filler: 0)
             for (i, cellText) in row.enumerated() {
-                finalColumnWidths[i] = max(finalColumnWidths[i],
-                                           cellText.count)
+                finalColumnWidths[i] = max(
+                    finalColumnWidths[i],
+                    cellText.count)
             }
         }
 
@@ -1038,7 +1059,7 @@ public struct MarkupFormatter: MarkupWalker {
 
         /// Each of the header cells expanded to the right dimensions by
         /// extending each line with spaces to fit the uniform column width.
-        let expandedHeaderCellTexts = (0..<uniformColumnCount)
+        let expandedHeaderCellTexts = (0 ..< uniformColumnCount)
             .map { column -> String in
                 let colspan = headCellSpans[column]
                 if colspan == 0 {
@@ -1070,7 +1091,7 @@ public struct MarkupFormatter: MarkupWalker {
                     let dashes = String(repeating: "-", count: columnWidth - 2)
                     return ":\(dashes):"
                 }
-        }
+            }
 
         /// Each of the body cells expanded to the right dimensions by
         /// extending each line with spaces to fit the uniform column width
@@ -1078,7 +1099,7 @@ public struct MarkupFormatter: MarkupWalker {
         let expandedBodyRowTexts = bodyRowTexts.enumerated()
             .map { (row, rowCellTexts) -> [String] in
                 let rowSpans = bodyRowSpans[row]
-                return (0..<uniformColumnCount).map { column -> String in
+                return (0 ..< uniformColumnCount).map { column -> String in
                     let colspan = rowSpans[column].colspan
                     if colspan == 0 {
                         // If this cell is being spanned over, collapse it so it
@@ -1115,22 +1136,26 @@ public struct MarkupFormatter: MarkupWalker {
 
     /// See ``MarkupFormatter/visitTable(_:)-61rlp`` for more information.
     public mutating func visitTableHead(_ tableHead: Table.Head) {
-        fatalError("Do not call \(#function) directly; markdown tables must be formatted as a single unit. Call `visitTable` on the parent table")
+        fatalError(
+            "Do not call \(#function) directly; markdown tables must be formatted as a single unit. Call `visitTable` on the parent table")
     }
 
     /// See ``MarkupFormatter/visitTable(_:)-61rlp`` for more information.
     public mutating func visitTableBody(_ tableBody: Table.Body) {
-        fatalError("Do not call \(#function) directly; markdown tables must be formatted as a single unit. Call `visitTable` on the parent table")
+        fatalError(
+            "Do not call \(#function) directly; markdown tables must be formatted as a single unit. Call `visitTable` on the parent table")
     }
 
     /// See ``MarkupFormatter/visitTable(_:)-61rlp`` for more information.
     public mutating func visitTableRow(_ tableRow: Table.Row) {
-        fatalError("Do not call \(#function) directly; markdown tables must be formatted as a single unit. Call `visitTable` on the parent table")
+        fatalError(
+            "Do not call \(#function) directly; markdown tables must be formatted as a single unit. Call `visitTable` on the parent table")
     }
 
     /// See ``MarkupFormatter/visitTable(_:)-61rlp`` for more information.
     public mutating func visitTableCell(_ tableCell: Table.Cell) {
-        fatalError("Do not call \(#function) directly; markdown tables must be formatted as a single unit. Call `visitTable` on the parent table")
+        fatalError(
+            "Do not call \(#function) directly; markdown tables must be formatted as a single unit. Call `visitTable` on the parent table")
     }
 
     public mutating func visitBlockDirective(_ blockDirective: BlockDirective) {

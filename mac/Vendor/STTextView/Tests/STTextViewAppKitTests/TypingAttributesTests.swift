@@ -108,26 +108,32 @@
 
             // Set content with custom attributes
             let customFont = NSFont.boldSystemFont(ofSize: 44)
-            let attributedString = NSAttributedString(string: "Test", attributes: [
-                .font: customFont,
-                .foregroundColor: NSColor.red
-            ])
+            let attributedString = NSAttributedString(
+                string: "Test",
+                attributes: [
+                    .font: customFont,
+                    .foregroundColor: NSColor.red,
+                ])
             textView.attributedText = attributedString
 
             // Typing attributes should be derived from the new attributed content
-            XCTAssertEqual(textView.typingAttributes[.font] as? NSFont, customFont,
-                          "Typing attributes should be derived from new attributed content")
+            XCTAssertEqual(
+                textView.typingAttributes[.font] as? NSFont, customFont,
+                "Typing attributes should be derived from new attributed content")
 
             // Replace content again with different attributes
             let anotherFont = NSFont.systemFont(ofSize: 88)
-            let anotherString = NSAttributedString(string: "New", attributes: [
-                .font: anotherFont,
-            ])
+            let anotherString = NSAttributedString(
+                string: "New",
+                attributes: [
+                    .font: anotherFont
+                ])
             textView.attributedText = anotherString
 
             // Typing attributes should be derived from the new content, not the previous
-            XCTAssertEqual(textView.typingAttributes[.font] as? NSFont, anotherFont,
-                          "Typing attributes should be derived from replacement attributed content")
+            XCTAssertEqual(
+                textView.typingAttributes[.font] as? NSFont, anotherFont,
+                "Typing attributes should be derived from replacement attributed content")
         }
 
         func testTypingAttributesResetOnSetText() {
@@ -144,8 +150,9 @@
             textView.text = "New Content"
 
             // Typing attributes should use default font, not the previous content's attributes
-            XCTAssertEqual(textView.typingAttributes[.font] as? NSFont, defaultFont,
-                          "Typing attributes should reset to default font when setting new text content")
+            XCTAssertEqual(
+                textView.typingAttributes[.font] as? NSFont, defaultFont,
+                "Typing attributes should reset to default font when setting new text content")
         }
 
         func testTypingAttributesNotInheritedFromPreviousContent() {
@@ -154,9 +161,11 @@
 
             // Set content with custom attributes
             let customFont = NSFont.boldSystemFont(ofSize: 44)
-            let attributedString = NSAttributedString(string: "Test", attributes: [
-                .font: customFont,
-            ])
+            let attributedString = NSAttributedString(
+                string: "Test",
+                attributes: [
+                    .font: customFont
+                ])
             textView.attributedText = attributedString
 
             // Verify typing attributes are from the attributed content
@@ -166,8 +175,9 @@
             textView.text = "Plain text"
 
             // Typing attributes should use default font
-            XCTAssertEqual(textView.typingAttributes[.font] as? NSFont, defaultFont,
-                          "Setting plain text should not inherit attributes from previous attributed content")
+            XCTAssertEqual(
+                textView.typingAttributes[.font] as? NSFont, defaultFont,
+                "Setting plain text should not inherit attributes from previous attributed content")
         }
     }
 #endif

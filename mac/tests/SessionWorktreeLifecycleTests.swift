@@ -14,15 +14,14 @@ struct SessionWorktreeLifecycleTests {
     }
 
     @MainActor private static func rejects(_ name: String, _ operation: () async throws -> Void) async throws {
-        do { try await operation() }
-        catch { try check(true, name); return }
+        do { try await operation() } catch { try check(true, name); return }
         try check(false, name)
     }
 
     @MainActor private static func shellDirectory(_ session: TerminalSession, marker: URL) async throws -> String {
         session.sendCommand("pwd -P > " + TerminalSession.shellQuote(marker.path))
         session.sendEnter()
-        for _ in 0..<50 {
+        for _ in 0 ..< 50 {
             if let value = try? String(contentsOf: marker, encoding: .utf8), !value.isEmpty {
                 return value.trimmingCharacters(in: .newlines)
             }
@@ -34,7 +33,7 @@ struct SessionWorktreeLifecycleTests {
     @MainActor private static func startForegroundJob(_ session: TerminalSession) async throws -> pid_t {
         session.sendCommand("trap '' HUP; sleep 30")
         session.sendEnter()
-        for _ in 0..<50 {
+        for _ in 0 ..< 50 {
             if let pid = session.surface.foregroundPid, pid != session.shellPid, Darwin.kill(pid, 0) == 0 { return pid }
             try await Task.sleep(for: .milliseconds(100))
         }
@@ -58,15 +57,17 @@ struct SessionWorktreeLifecycleTests {
         quick.sendEnter()
         let path = try await shellDirectory(quick, marker: root.appendingPathComponent("quick-directory.txt"))
         try check(SessionWorktreeService.canonical(path) == worktree.path, "Quick Terminal enters the linked checkout")
-        for _ in 0..<50 where SessionWorktreeService.canonical(quick.currentDirectoryPath) != worktree.path {
+        for _ in 0 ..< 50 where SessionWorktreeService.canonical(quick.currentDirectoryPath) != worktree.path {
             try await Task.sleep(for: .milliseconds(100))
         }
         overlay.toggle()
-        try check(overlay.allSessions.filter { $0.id == quick.id }.count == 1,
-                  "the hidden reusable workspace contributes one deduplicated session")
+        try check(
+            overlay.allSessions.filter { $0.id == quick.id }.count == 1,
+            "the hidden reusable workspace contributes one deduplicated session")
         try check(TerminalManager.worktreeIsInUse(worktree.path), "hidden reusable Quick Terminal protects its checkout")
-        try check(!TerminalManager.worktreeIsInUse(worktree.path, excluding: quick.id),
-                  "excluding the only Quick Terminal user does not keep the checkout busy")
+        try check(
+            !TerminalManager.worktreeIsInUse(worktree.path, excluding: quick.id),
+            "excluding the only Quick Terminal user does not keep the checkout busy")
         try await rejects("Git panel cleanup refuses the hidden Quick Terminal checkout") {
             try await TerminalManager.removeWorktreeFromGitPanel(worktree)
         }
@@ -77,17 +78,20 @@ struct SessionWorktreeLifecycleTests {
         try await rejects("session cleanup cannot exclude another hidden Quick Terminal user") {
             _ = try await manager.closeWorktreeSession(local, in: project, removeWorktree: true)
         }
-        try check(project.sessions.contains { $0 === local } && FileManager.default.fileExists(atPath: worktree.path),
-                  "refused Quick Terminal cleanup preserves the checkout and main-window session")
+        try check(
+            project.sessions.contains { $0 === local } && FileManager.default.fileExists(atPath: worktree.path),
+            "refused Quick Terminal cleanup preserves the checkout and main-window session")
         _ = try await manager.closeWorktreeSession(local, in: project, removeWorktree: false)
         _ = await local.waitUntilTerminated()
         AppSettings.shared.quickTerminalMode = .fresh
         overlay.toggle()
-        try check(overlay.workspace !== reusable && overlay.allSessions.contains { $0 === quick },
-                  "switching to a fresh workspace retains the hidden reusable session in usage checks")
-        try check(TerminalManager.worktreeIsInUse(worktree.path)
-                  && !TerminalManager.worktreeIsInUse(worktree.path, excluding: quick.id),
-                  "hidden reusable cwd protection and exclusion survive a mode switch")
+        try check(
+            overlay.workspace !== reusable && overlay.allSessions.contains { $0 === quick },
+            "switching to a fresh workspace retains the hidden reusable session in usage checks")
+        try check(
+            TerminalManager.worktreeIsInUse(worktree.path)
+                && !TerminalManager.worktreeIsInUse(worktree.path, excluding: quick.id),
+            "hidden reusable cwd protection and exclusion survive a mode switch")
         try await rejects("Git panel cleanup still refuses after switching Quick Terminal modes") {
             try await TerminalManager.removeWorktreeFromGitPanel(worktree)
         }
@@ -96,8 +100,9 @@ struct SessionWorktreeLifecycleTests {
         for session in sessions { _ = await session.waitUntilTerminated() }
         try check(!TerminalManager.worktreeIsInUse(worktree.path), "closing Quick Terminal releases its worktree usage")
         try await TerminalManager.removeWorktreeFromGitPanel(worktree)
-        try check(!FileManager.default.fileExists(atPath: worktree.path),
-                  "Git panel cleanup removes the checkout after all Quick Terminal users stop")
+        try check(
+            !FileManager.default.fileExists(atPath: worktree.path),
+            "Git panel cleanup removes the checkout after all Quick Terminal users stop")
         try check(QuickTerminalOffscreen.isSafe(), "Quick Terminal verification stays offscreen without activating or capturing input")
     }
 
@@ -110,8 +115,9 @@ struct SessionWorktreeLifecycleTests {
             MainActor.assumeIsolated {
                 for session in TerminalManager.automationManagers.flatMap(\.projects).flatMap(\.sessions)
                 where windows[session.id] == nil {
-                    let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
-                                          styleMask: [.titled], backing: .buffered, defer: false)
+                    let window = NSWindow(
+                        contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+                        styleMask: [.titled], backing: .buffered, defer: false)
                     window.contentView = session.surface
                     session.surface.setSurfaceVisible(true)
                     windows[session.id] = window
@@ -128,7 +134,8 @@ struct SessionWorktreeLifecycleTests {
             status = 1
         }
         mounting.invalidate()
-        let sessions = TerminalManager.automationManagers.flatMap(\.projects).flatMap(\.sessions)
+        let sessions =
+            TerminalManager.automationManagers.flatMap(\.projects).flatMap(\.sessions)
             + GlobalTerminalOverlay.shared.allSessions
         GlobalTerminalOverlay.shared.stop()
         sessions.forEach { $0.terminate() }
@@ -151,18 +158,21 @@ struct SessionWorktreeLifecycleTests {
             let restored = project.sessions.filter { $0.worktree?.branch == "restart" }
             try check(restored.count == 2, "a fresh process restores both associated split panes")
             for (index, session) in restored.enumerated() {
-                try check(await session.waitUntilStarted() && session.backend == backend,
-                          "restored pane \(index) starts with the requested production backend")
+                try check(
+                    await session.waitUntilStarted() && session.backend == backend,
+                    "restored pane \(index) starts with the requested production backend")
                 let path = try await shellDirectory(session, marker: root.appendingPathComponent("restored-\(index).txt"))
-                try check(SessionWorktreeService.canonical(path) == session.worktree?.path,
-                          "restored pane \(index) runs in its recorded worktree")
+                try check(
+                    SessionWorktreeService.canonical(path) == session.worktree?.path,
+                    "restored pane \(index) runs in its recorded worktree")
             }
             try check(restored[0].worktree == restored[1].worktree, "the persisted split retains one exact worktree identity")
             _ = try await manager.closeWorktreeSession(restored[1], in: project, removeWorktree: false)
             _ = await restored[1].waitUntilTerminated()
             let removed = try await manager.closeWorktreeSession(restored[0], in: project, removeWorktree: true)
-            try check(removed && !FileManager.default.fileExists(atPath: restored[0].worktree!.path),
-                      "restored association still authorizes safe cleanup of its own checkout")
+            try check(
+                removed && !FileManager.default.fileExists(atPath: restored[0].worktree!.path),
+                "restored association still authorizes safe cleanup of its own checkout")
             return
         }
 
@@ -171,13 +181,15 @@ struct SessionWorktreeLifecycleTests {
         try check(first.backend == backend, "new worktree session uses the requested production backend")
         let worktree = first.worktree!
         let path = try await shellDirectory(first, marker: root.appendingPathComponent("created.txt"))
-        try check(SessionWorktreeService.canonical(path) == worktree.path,
-                  "the real shell starts inside its new worktree (\(path), expected \(worktree.path))")
+        try check(
+            SessionWorktreeService.canonical(path) == worktree.path,
+            "the real shell starts inside its new worktree (\(path), expected \(worktree.path))")
         project.splitRight()
         guard let split = project.selectedSession, split.id != first.id else {
             throw SessionWorktreeError(message: "The production split did not create another terminal.")
         }
-        try check(await split.waitUntilStarted() && split.worktree == worktree, "a production split inherits the exact worktree association")
+        try check(
+            await split.waitUntilStarted() && split.worktree == worktree, "a production split inherits the exact worktree association")
         try await rejects("cleanup refuses another live session in the worktree") {
             _ = try await manager.closeWorktreeSession(first, in: project, removeWorktree: true)
         }
@@ -189,15 +201,18 @@ struct SessionWorktreeLifecycleTests {
         try await rejects("cleanup refuses untracked data with the real session still open") {
             _ = try await manager.closeWorktreeSession(first, in: project, removeWorktree: true)
         }
-        try check(project.sessions.contains { $0.id == first.id } && FileManager.default.fileExists(atPath: dirty.path),
-                  "refused dirty cleanup preserves both data and the live session")
+        try check(
+            project.sessions.contains { $0.id == first.id } && FileManager.default.fileExists(atPath: dirty.path),
+            "refused dirty cleanup preserves both data and the live session")
         try FileManager.default.removeItem(at: dirty)
         let foregroundPID = try await startForegroundJob(first)
-        try check(try await manager.closeWorktreeSession(first, in: project, removeWorktree: true),
-                  "clean cleanup stops the real shell and removes its checkout")
-        for _ in 0..<20 where Darwin.kill(foregroundPID, 0) == 0 { try await Task.sleep(for: .milliseconds(50)) }
-        try check(Darwin.kill(foregroundPID, 0) != 0 && errno == ESRCH,
-                  "the captured foreground job is force-stopped when it ignores HUP")
+        try check(
+            try await manager.closeWorktreeSession(first, in: project, removeWorktree: true),
+            "clean cleanup stops the real shell and removes its checkout")
+        for _ in 0 ..< 20 where Darwin.kill(foregroundPID, 0) == 0 { try await Task.sleep(for: .milliseconds(50)) }
+        try check(
+            Darwin.kill(foregroundPID, 0) != 0 && errno == ESRCH,
+            "the captured foreground job is force-stopped when it ignores HUP")
         try check(!FileManager.default.fileExists(atPath: worktree.path), "cleanup removes the checkout directory")
 
         try await checkQuickTerminalProtection(manager: manager, project: project, repo: repo, root: root)
@@ -207,8 +222,9 @@ struct SessionWorktreeLifecycleTests {
         _ = await kept.waitUntilTerminated()
         manager.reopenClosedSession()
         guard let reopened = project.selectedSession else { throw SessionWorktreeError(message: "Reopen did not create a session.") }
-        try check(await reopened.waitUntilStarted() && reopened.worktree == kept.worktree,
-                  "reopen keeps the checkout association in its original project")
+        try check(
+            await reopened.waitUntilStarted() && reopened.worktree == kept.worktree,
+            "reopen keeps the checkout association in its original project")
         _ = try await manager.closeWorktreeSession(reopened, in: project, removeWorktree: false)
         _ = await reopened.waitUntilTerminated()
         manager.close(project)
@@ -218,15 +234,17 @@ struct SessionWorktreeLifecycleTests {
         }
         let replacementStarted = await replacement.waitUntilStarted()
         try check(replacementStarted, "reopen starts a real shell after its original project closes")
-        try check(replacement.worktree == kept.worktree,
-                  "reopen retains the association after its original project closes")
+        try check(
+            replacement.worktree == kept.worktree,
+            "reopen retains the association after its original project closes")
         _ = try await manager.closeWorktreeSession(replacement, in: replacementProject, removeWorktree: true)
 
         let restart = try await manager.newWorktreeSession(in: replacementProject, branch: "restart", sourceDirectory: repo.path)
         replacementProject.splitRight()
         guard let restartSplit = replacementProject.selectedSession else { throw SessionWorktreeError(message: "Missing restart split.") }
-        try check(await restartSplit.waitUntilStarted() && restartSplit.worktree == restart.worktree,
-                  "restart fixture has two live panes associated with one checkout")
+        try check(
+            await restartSplit.waitUntilStarted() && restartSplit.worktree == restart.worktree,
+            "restart fixture has two live panes associated with one checkout")
         TerminalManager.prepareForApplicationQuit(endAll: true)
         _ = UserDefaults.standard.synchronize()
         try check(!SessionStore.load().isEmpty, "the production quit path writes a restorable workspace snapshot")

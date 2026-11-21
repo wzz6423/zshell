@@ -9,19 +9,19 @@ let package = Package(
     products: [
         .library(
             name: "STTextView-Plugin-Neon",
-            targets: ["STPluginNeon"]),
+            targets: ["STPluginNeon"])
     ],
     dependencies: [
         .package(path: "../STTextView"),
         .package(path: "../Neon"),
-        .package(path: "../SwiftTreeSitter")
+        .package(path: "../SwiftTreeSitter"),
     ],
     targets: [
         .target(
             name: "STPluginNeon",
             dependencies: [
                 .target(name: "STPluginNeonAppKit", condition: .when(platforms: [.macOS])),
-                .target(name: "STPluginNeonUIKit", condition: .when(platforms: [.iOS, .macCatalyst]))
+                .target(name: "STPluginNeonUIKit", condition: .when(platforms: [.iOS, .macCatalyst])),
             ]
         ),
         .target(
@@ -29,7 +29,7 @@ let package = Package(
             dependencies: [
                 .product(name: "STTextView", package: "STTextView"),
                 .product(name: "Neon", package: "Neon"),
-                .target(name: "TreeSitterResource")
+                .target(name: "TreeSitterResource"),
             ],
             resources: [.process("Themes.xcassets")]
         ),
@@ -38,7 +38,7 @@ let package = Package(
             dependencies: [
                 .product(name: "STTextView", package: "STTextView"),
                 .product(name: "Neon", package: "Neon"),
-                .target(name: "TreeSitterResource")
+                .target(name: "TreeSitterResource"),
             ],
             resources: [.process("Themes.xcassets")]
         ),
@@ -85,7 +85,7 @@ let package = Package(
                 .target(name: "TreeSitterTypeScript"),
                 .target(name: "TreeSitterTypeScriptQueries"),
                 .target(name: "TreeSitterYAML"),
-                .target(name: "TreeSitterYAMLQueries")            
+                .target(name: "TreeSitterYAMLQueries"),
             ]
         ),
         .target(name: "TreeSitterAstro", cSettings: [.headerSearchPath("src")]),
@@ -94,7 +94,9 @@ let package = Package(
         .target(name: "TreeSitterBashQueries", resources: [.copy("highlights.scm")]),
         .target(name: "TreeSitterC", cSettings: [.headerSearchPath("src")]),
         .target(name: "TreeSitterCQueries", resources: [.copy("highlights.scm")]),
-        .target(name: "TreeSitterComment", exclude: ["src/tree_sitter_comment/chars.c", "src/tree_sitter_comment/parser.c"], cSettings: [.headerSearchPath("src")]),
+        .target(
+            name: "TreeSitterComment", exclude: ["src/tree_sitter_comment/chars.c", "src/tree_sitter_comment/parser.c"],
+            cSettings: [.headerSearchPath("src")]),
         .target(name: "TreeSitterCommentQueries", resources: [.copy("highlights.scm")]),
         .target(name: "TreeSitterCSharp", cSettings: [.headerSearchPath("src")]),
         .target(name: "TreeSitterCSharpQueries", resources: [.copy("highlights.scm"), .copy("tags.scm")]),
@@ -115,7 +117,12 @@ let package = Package(
         .target(name: "TreeSitterJava", cSettings: [.headerSearchPath("src")]),
         .target(name: "TreeSitterJavaQueries", resources: [.copy("highlights.scm"), .copy("tags.scm")]),
         .target(name: "TreeSitterJavaScript", cSettings: [.headerSearchPath("src")]),
-        .target(name: "TreeSitterJavaScriptQueries", resources: [.copy("highlights-jsx.scm"), .copy("highlights-params.scm"), .copy("highlights.scm"), .copy("injections.scm"), .copy("locals.scm"), .copy("tags.scm")]),
+        .target(
+            name: "TreeSitterJavaScriptQueries",
+            resources: [
+                .copy("highlights-jsx.scm"), .copy("highlights-params.scm"), .copy("highlights.scm"), .copy("injections.scm"),
+                .copy("locals.scm"), .copy("tags.scm"),
+            ]),
         .target(name: "TreeSitterJSDoc", cSettings: [.headerSearchPath("src")]),
         .target(name: "TreeSitterJSDocQueries", resources: [.copy("highlights.scm")]),
         .target(name: "TreeSitterJSON", cSettings: [.headerSearchPath("src")]),

@@ -21,24 +21,24 @@ final class BasicInlineContainerTests: XCTestCase {
             XCTAssertEqual(expected.debugDescription(), gotten.detachedFromParent.debugDescription())
         }
     }
-    
+
     func testReplacingChildrenInRange() {
         let emphasis = Emphasis(Array(repeating: Text("OK"), count: 3))
         let id = emphasis._data.id
-        
+
         do { // Insert one
             let insertedChild = Text("Inserted")
             var newEmphasis = emphasis
-            newEmphasis.replaceChildrenInRange(0..<0, with: CollectionOfOne(insertedChild))
+            newEmphasis.replaceChildrenInRange(0 ..< 0, with: CollectionOfOne(insertedChild))
             assertElementDidntChange(emphasis, assertedStructure: Emphasis(Array(repeating: Text("OK"), count: 3)), expectedId: id)
             XCTAssertEqual(insertedChild.debugDescription(), (newEmphasis.child(at: 0) as! Text).detachedFromParent.debugDescription())
             XCTAssertEqual(4, newEmphasis.childCount)
         }
-        
+
         do { // Insert multiple
             let insertedChildren = Array(repeating: Text("Inserted"), count: 3)
             var newEmphasis = emphasis
-            newEmphasis.replaceChildrenInRange(0..<0, with: insertedChildren)
+            newEmphasis.replaceChildrenInRange(0 ..< 0, with: insertedChildren)
             assertElementDidntChange(emphasis, assertedStructure: Emphasis(Array(repeating: Text("OK"), count: 3)), expectedId: id)
             let expectedDump = """
                 Emphasis
@@ -52,19 +52,19 @@ final class BasicInlineContainerTests: XCTestCase {
             XCTAssertEqual(expectedDump, newEmphasis.debugDescription())
             XCTAssertEqual(6, newEmphasis.childCount)
         }
-        
+
         do { // Replace one
             let replacementChild = Text("Replacement")
             var newEmphasis = emphasis
-            newEmphasis.replaceChildrenInRange(0..<1, with: CollectionOfOne(replacementChild))
+            newEmphasis.replaceChildrenInRange(0 ..< 1, with: CollectionOfOne(replacementChild))
             XCTAssertEqual(replacementChild.debugDescription(), (newEmphasis.child(at: 0) as! Text).detachedFromParent.debugDescription())
             XCTAssertEqual(3, newEmphasis.childCount)
         }
-        
+
         do { // Replace many
             let replacementChild = Text("Replacement")
             var newEmphasis = emphasis
-            newEmphasis.replaceChildrenInRange(0..<2, with: CollectionOfOne(replacementChild))
+            newEmphasis.replaceChildrenInRange(0 ..< 2, with: CollectionOfOne(replacementChild))
             assertElementDidntChange(emphasis, assertedStructure: Emphasis(Array(repeating: Text("OK"), count: 3)), expectedId: id)
             let expectedDump = """
                 Emphasis
@@ -74,11 +74,11 @@ final class BasicInlineContainerTests: XCTestCase {
             XCTAssertEqual(expectedDump, newEmphasis.debugDescription())
             XCTAssertEqual(2, newEmphasis.childCount)
         }
-        
+
         do { // Replace all
             let replacementChild = Text("Replacement")
             var newEmphasis = emphasis
-            newEmphasis.replaceChildrenInRange(0..<3, with: CollectionOfOne(replacementChild))
+            newEmphasis.replaceChildrenInRange(0 ..< 3, with: CollectionOfOne(replacementChild))
             let expectedDump = """
                 Emphasis
                 └─ Text "Replacement"
@@ -98,6 +98,5 @@ final class BasicInlineContainerTests: XCTestCase {
             └─ Text "2"
             """
         XCTAssertEqual(expectedDump, newDocument.debugDescription())
-    }    
+    }
 }
-

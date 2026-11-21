@@ -7,15 +7,19 @@ struct TerminalNotificationHistoryTests {
     static func main() async throws {
         let root = URL(fileURLWithPath: CommandLine.arguments[1])
         let url = root.appendingPathComponent("history/records.json")
-        let target = TerminalNotificationTarget(terminalID: UUID(), projectID: UUID(), tabID: UUID(),
+        let target = TerminalNotificationTarget(
+            terminalID: UUID(), projectID: UUID(), tabID: UUID(),
             paneID: UUID(), projectName: "Fixture", tabName: "Build")
         let store = TerminalNotificationHistoryStore(url: url)
         await store.flush()
         precondition(!store.isLoading && store.records.isEmpty && store.persistenceError == nil)
-        let first = store.note(message: "Build needs input", target: target, kind: .agent,
-                               eventKey: "first", isPending: true).record!
-        let repeated = store.note(message: "Build needs input", target: target, kind: .agent,
-                                  eventKey: "first", isPending: true)
+        let first = store.note(
+            message: "Build needs input", target: target, kind: .agent,
+            eventKey: "first", isPending: true
+        ).record!
+        let repeated = store.note(
+            message: "Build needs input", target: target, kind: .agent,
+            eventKey: "first", isPending: true)
         precondition(!repeated.isNew && repeated.record?.id == first.id && store.records.count == 1)
         store.markRead(id: first.id)
         precondition(store.filtered(.unread).isEmpty && store.filtered(.pending).count == 1)
@@ -34,7 +38,7 @@ struct TerminalNotificationHistoryTests {
         precondition(bounded.message.utf8.count <= 2_048 && !bounded.message.contains("\u{1b}"))
         print("PASS deduplication, independent filters, explicit failure, episode lifetime, UTF-8 bounds")
 
-        for index in 0..<700 {
+        for index in 0 ..< 700 {
             _ = store.note(message: "Event \(index)", target: target, eventKey: "event:\(index)")
         }
         await store.flush()
@@ -80,8 +84,10 @@ struct TerminalNotificationHistoryTests {
         precondition(malformed.records.isEmpty && malformed.persistenceError != nil)
         let oversizedURL = root.appendingPathComponent("oversized/records.json")
         try PersistentCLIConnection.preparePrivateDirectory(oversizedURL.deletingLastPathComponent())
-        try PersistentCLIConnection.writePrivate(Data(repeating: 32,
-            count: TerminalNotificationHistoryStore.maximumBytes + 1), to: oversizedURL)
+        try PersistentCLIConnection.writePrivate(
+            Data(
+                repeating: 32,
+                count: TerminalNotificationHistoryStore.maximumBytes + 1), to: oversizedURL)
         let oversized = TerminalNotificationHistoryStore(url: oversizedURL)
         await oversized.flush()
         precondition(oversized.records.isEmpty && oversized.persistenceError != nil)
@@ -96,8 +102,10 @@ struct TerminalNotificationHistoryTests {
         let id = UUID()
         let command = TerminalCommandNotificationResult.parse(title: "zshell-command:\(id):2:7")!
         precondition(command.id == id && command.sequence == 2 && command.exitCode == 7)
-        for title in ["failed", "zshell-command:bad:2:1", "zshell-command:\(id):0:1",
-                      "zshell-command:\(id):1:256", "zshell-command:\(id):1:1:extra"] {
+        for title in [
+            "failed", "zshell-command:bad:2:1", "zshell-command:\(id):0:1",
+            "zshell-command:\(id):1:256", "zshell-command:\(id):1:1:extra",
+        ] {
             precondition(TerminalCommandNotificationResult.parse(title: title) == nil)
         }
         print("PASS command failure uses typed exit metadata, never message keywords")

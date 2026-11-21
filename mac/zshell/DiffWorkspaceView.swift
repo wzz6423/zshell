@@ -21,7 +21,8 @@ final class DiffWorkspaceLayout {
 
     func frame(for id: UUID, in host: NSView) -> NSRect? {
         guard let view = anchors[id]?.view, view.window != nil,
-              view.window === host.window, !view.isHiddenOrHasHiddenAncestor else { return nil }
+            view.window === host.window, !view.isHiddenOrHasHiddenAncestor
+        else { return nil }
         return view.convert(view.bounds, to: host)
     }
 }
@@ -47,8 +48,7 @@ final class DiffPaneAnchorNSView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        if window == nil { placement.detach(self) }
-        else { placement.attach(self) }
+        if window == nil { placement.detach(self) } else { placement.attach(self) }
     }
 
     override func setFrameOrigin(_ newOrigin: NSPoint) {
@@ -84,8 +84,9 @@ final class DiffWorkspaceNSView: NSView {
         observation = manager.objectWillChange.sink { [weak self] _ in self?.scheduleUpdate() }
         clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
             guard let self, event.window === self.window,
-                  let tab = self.manager.selectedProject?.selectedTab,
-                  let root = self.window?.contentView?.superview else { return event }
+                let tab = self.manager.selectedProject?.selectedTab,
+                let root = self.window?.contentView?.superview
+            else { return event }
             let hitPoint = root.superview?.convert(event.locationInWindow, from: nil) ?? event.locationInWindow
             guard let hit = root.hitTest(hitPoint) else { return event }
             let point = self.convert(event.locationInWindow, from: nil)
@@ -95,7 +96,9 @@ final class DiffWorkspaceNSView: NSView {
                         && (hit === view || hit.isDescendant(of: view))
                 }
                 return false
-            }) { tab.focusPane(pane.id) }
+            }) {
+                tab.focusPane(pane.id)
+            }
             return event
         }
         updateViews()
@@ -122,11 +125,13 @@ final class DiffWorkspaceNSView: NSView {
     override func layout() {
         super.layout()
         let tab = manager.selectedProject?.selectedTab
-        let visible = Set(tab?.allPanes.compactMap { pane -> UUID? in
-            guard !((tab?.isZoomed ?? false) && tab?.focusedPaneID != pane.id),
-                  case .diff(let diff) = pane.content else { return nil }
-            return diff.id
-        } ?? [])
+        let visible = Set(
+            tab?.allPanes.compactMap { pane -> UUID? in
+                guard !((tab?.isZoomed ?? false) && tab?.focusedPaneID != pane.id),
+                    case .diff(let diff) = pane.content
+                else { return nil }
+                return diff.id
+            } ?? [])
         for (id, view) in views {
             let frame = visible.contains(id) ? manager.diffWorkspaceLayout.frame(for: id, in: self) : nil
             let shown = frame.map { !$0.isEmpty && bounds.intersects($0) } ?? false

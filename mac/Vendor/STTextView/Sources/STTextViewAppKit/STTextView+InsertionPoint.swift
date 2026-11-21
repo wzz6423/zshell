@@ -19,7 +19,8 @@ extension STTextView {
             // rewrite it to lines
             var textSelectionFrames: [CGRect] = []
             for selectionTextRange in insertionPointsRanges {
-                textLayoutManager.enumerateTextSegments(in: selectionTextRange, type: .standard) { textSegmentRange, textSegmentFrame, _, _ in
+                textLayoutManager.enumerateTextSegments(in: selectionTextRange, type: .standard) {
+                    textSegmentRange, textSegmentFrame, _, _ in
                     if let textSegmentRange {
                         let documentRange = textLayoutManager.documentRange
                         guard !documentRange.isEmpty else {
@@ -43,7 +44,8 @@ extension STTextView {
                         guard !isAtEndLocation else {
                             // At the end of non-empty document
                             if let prevLocation = textLayoutManager.location(textSegmentRange.endLocation, offsetBy: -1),
-                                let prevTextLineFragment = textLayoutManager.textLineFragment(at: prevLocation) {
+                                let prevTextLineFragment = textLayoutManager.textLineFragment(at: prevLocation)
+                            {
                                 // Get insertion point height from the last-to-end (last) line fragment location
                                 // since we're at the end location at this point.
                                 textSelectionFrames.append(
@@ -76,7 +78,9 @@ extension STTextView {
             }
 
             for selectionFrame in textSelectionFrames where !selectionFrame.isNull && !selectionFrame.isInfinite {
-                let insertionViewFrame = CGRect(origin: selectionFrame.origin, size: CGSize(width: max(2, selectionFrame.width), height: selectionFrame.height)).pixelAligned
+                let insertionViewFrame = CGRect(
+                    origin: selectionFrame.origin, size: CGSize(width: max(2, selectionFrame.width), height: selectionFrame.height)
+                ).pixelAligned
                 let insertionView: STInsertionPointView
                 // re-use existing insertion views
                 if !existingViews.isEmpty {
@@ -85,15 +89,18 @@ extension STTextView {
                     insertionView.frame = insertionViewFrame
                 } else {
                     // add new views that exedes existing views
-                    let textInsertionIndicator: any STInsertionPointIndicatorProtocol = if let customTextInsertionIndicator = self.delegateProxy.textViewInsertionPointView(self, frame: CGRect(origin: .zero, size: insertionViewFrame.size)) {
-                        customTextInsertionIndicator
-                    } else {
-                        if #available(macOS 14, *) {
-                            STTextInsertionIndicatorNew(frame: CGRect(origin: .zero, size: insertionViewFrame.size))
+                    let textInsertionIndicator: any STInsertionPointIndicatorProtocol =
+                        if let customTextInsertionIndicator = self.delegateProxy.textViewInsertionPointView(
+                            self, frame: CGRect(origin: .zero, size: insertionViewFrame.size))
+                        {
+                            customTextInsertionIndicator
                         } else {
-                            STTextInsertionIndicatorOld(frame: CGRect(origin: .zero, size: insertionViewFrame.size))
+                            if #available(macOS 14, *) {
+                                STTextInsertionIndicatorNew(frame: CGRect(origin: .zero, size: insertionViewFrame.size))
+                            } else {
+                                STTextInsertionIndicatorOld(frame: CGRect(origin: .zero, size: insertionViewFrame.size))
+                            }
                         }
-                    }
 
                     insertionView = STInsertionPointView(frame: insertionViewFrame, textInsertionIndicator: textInsertionIndicator)
                     insertionView.clipsToBounds = false
@@ -224,4 +231,3 @@ private class STTextInsertionIndicatorOld: NSView, STInsertionPointIndicatorProt
         }
     }
 }
-

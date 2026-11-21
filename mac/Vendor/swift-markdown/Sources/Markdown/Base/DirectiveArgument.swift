@@ -36,7 +36,7 @@ public struct DirectiveArgumentText: Equatable, Sendable {
 
         /// A character was expected but not found at a source location.
         case missingExpectedCharacter(Character, location: SourceLocation)
-        
+
         /// Unexpected character at a source location.
         case unexpectedCharacter(Character, location: SourceLocation)
     }
@@ -49,7 +49,7 @@ public struct DirectiveArgumentText: Equatable, Sendable {
         @available(*, deprecated, renamed: "untrimmedText.startIndex")
         public var lineStartIndex: String.Index {
             get { untrimmedText.startIndex }
-            set { }
+            set {}
         }
 
         /// The index from which parsing should start.
@@ -81,27 +81,33 @@ public struct DirectiveArgumentText: Equatable, Sendable {
         /// ```
         /// quoted-literal -> " unquoted-literal "
         /// ```
-        func parseQuotedLiteral(from line: inout TrimmedLine,
-                                parseErrors: inout [ParseError]) -> TrimmedLine.Lex? {
+        func parseQuotedLiteral(
+            from line: inout TrimmedLine,
+            parseErrors: inout [ParseError]
+        ) -> TrimmedLine.Lex? {
             precondition(line.text.starts(with: "\""))
             _ = line.take(1)
 
-            guard let contents = line.lex(until: {
-                switch $0 {
-                case "\"":
-                    return .stop
-                default:
-                    return .continue
-                }
-            }, allowEscape: true, allowEmpty: true) else {
+            guard
+                let contents = line.lex(
+                    until: {
+                        switch $0 {
+                        case "\"":
+                            return .stop
+                        default:
+                            return .continue
+                        }
+                    }, allowEscape: true, allowEmpty: true)
+            else {
                 return nil
             }
 
-            _ = parseCharacter("\"", from: &line,
-                               required: true,
-                               allowEscape: true,
-                               diagnoseIfNotFound: true,
-                               parseErrors: &parseErrors)
+            _ = parseCharacter(
+                "\"", from: &line,
+                required: true,
+                allowEscape: true,
+                diagnoseIfNotFound: true,
+                parseErrors: &parseErrors)
 
             return contents
         }
@@ -112,14 +118,15 @@ public struct DirectiveArgumentText: Equatable, Sendable {
         /// unquoted-literal -> [^, :){]
         /// ```
         func parseUnquotedLiteral(from line: inout TrimmedLine) -> TrimmedLine.Lex? {
-            let result = line.lex(until: {
-                switch $0 {
-                case ",", " ", ":", ")", "{":
-                    return .stop
-                default:
-                    return .continue
-                }
-            }, allowEscape: true)
+            let result = line.lex(
+                until: {
+                    switch $0 {
+                    case ",", " ", ":", ")", "{":
+                        return .stop
+                    default:
+                        return .continue
+                    }
+                }, allowEscape: true)
             return result
         }
 
@@ -148,15 +155,18 @@ public struct DirectiveArgumentText: Equatable, Sendable {
         ///   - diagnoseIfNotFound: if `true` and the character was both required and not found, emit a diagnostic
         ///   - parseErrors: an array to update with any errors encountered while parsing
         /// - Returns: `true` if the character was found.
-        func parseCharacter(_ character: Character,
-                            from line: inout TrimmedLine,
-                            required: Bool,
-                            allowEscape: Bool,
-                            diagnoseIfNotFound: Bool,
-                            parseErrors: inout [ParseError]) -> Bool {
+        func parseCharacter(
+            _ character: Character,
+            from line: inout TrimmedLine,
+            required: Bool,
+            allowEscape: Bool,
+            diagnoseIfNotFound: Bool,
+            parseErrors: inout [ParseError]
+        ) -> Bool {
             guard line.lex(character, allowEscape: allowEscape) != nil || !required else {
                 if diagnoseIfNotFound,
-                   let expectedLocation = line.location {
+                    let expectedLocation = line.location
+                {
                     parseErrors.append(.missingExpectedCharacter(character, location: expectedLocation))
                 }
                 return false
@@ -188,18 +198,21 @@ public struct DirectiveArgumentText: Equatable, Sendable {
         public func parseNameValueArguments(parseErrors: inout [ParseError]) -> [DirectiveArgument] {
             var arguments = [DirectiveArgument]()
 
-            var line = TrimmedLine(untrimmedText[...],
-                                   source: range?.lowerBound.source,
-                                   lineNumber: range?.lowerBound.line,
-                                   parseIndex: parseIndex
+            var line = TrimmedLine(
+                untrimmedText[...],
+                source: range?.lowerBound.source,
+                lineNumber: range?.lowerBound.line,
+                parseIndex: parseIndex
             )
             line.lexWhitespace()
             while !line.isEmptyOrAllWhitespace {
                 let name: TrimmedLine.Lex?
                 let value: TrimmedLine.Lex
-                
+
                 guard let firstLiteral = parseLiteral(from: &line, parseErrors: &parseErrors) else {
-                    while parseCharacter(",", from: &line, required: true, allowEscape: false, diagnoseIfNotFound: false, parseErrors: &parseErrors) {
+                    while parseCharacter(
+                        ",", from: &line, required: true, allowEscape: false, diagnoseIfNotFound: false, parseErrors: &parseErrors)
+                    {
                         if let location = line.location {
                             parseErrors.append(.unexpectedCharacter(",", location: location))
                         }
@@ -207,17 +220,20 @@ public struct DirectiveArgumentText: Equatable, Sendable {
                     _ = line.lex(untilCharacter: ",")
                     continue
                 }
-                
+
                 // The first argument can be without a name.
                 // An argument without a name must be followed by a "," or be the only argument. Otherwise the argument will be parsed as a named argument.
                 if arguments.isEmpty && (line.isEmptyOrAllWhitespace || line.text.first == ",") {
                     name = nil
                     value = firstLiteral
                 } else {
-                    _ = parseCharacter(":", from: &line, required: true, allowEscape: false, diagnoseIfNotFound: true, parseErrors: &parseErrors)
-                    
+                    _ = parseCharacter(
+                        ":", from: &line, required: true, allowEscape: false, diagnoseIfNotFound: true, parseErrors: &parseErrors)
+
                     guard let secondLiteral = parseLiteral(from: &line, parseErrors: &parseErrors) else {
-                        while parseCharacter(",", from: &line, required: true, allowEscape: false, diagnoseIfNotFound: false, parseErrors: &parseErrors) {
+                        while parseCharacter(
+                            ",", from: &line, required: true, allowEscape: false, diagnoseIfNotFound: false, parseErrors: &parseErrors)
+                        {
                             if let location = line.location {
                                 parseErrors.append(.unexpectedCharacter(",", location: location))
                             }
@@ -228,36 +244,44 @@ public struct DirectiveArgumentText: Equatable, Sendable {
                     name = firstLiteral
                     value = secondLiteral
                 }
-                
+
                 let nameRange: SourceRange?
                 let valueRange: SourceRange?
 
                 if let lineLocation = line.location,
-                   let range = name?.range {
-                    nameRange = SourceLocation(line: lineLocation.line, column: range.lowerBound.column, source: range.lowerBound.source)..<SourceLocation(line: lineLocation.line, column: range.upperBound.column, source: range.upperBound.source)
+                    let range = name?.range
+                {
+                    nameRange =
+                        SourceLocation(line: lineLocation.line, column: range.lowerBound.column, source: range.lowerBound.source)
+                        ..< SourceLocation(line: lineLocation.line, column: range.upperBound.column, source: range.upperBound.source)
                 } else {
                     nameRange = nil
                 }
 
                 if let lineNumber = line.lineNumber,
-                   let range = value.range {
-                    valueRange = SourceLocation(line: lineNumber, column: range.lowerBound.column, source: range.lowerBound.source)..<SourceLocation(line: lineNumber, column: range.upperBound.column, source: range.lowerBound.source)
+                    let range = value.range
+                {
+                    valueRange =
+                        SourceLocation(line: lineNumber, column: range.lowerBound.column, source: range.lowerBound.source)
+                        ..< SourceLocation(line: lineNumber, column: range.upperBound.column, source: range.lowerBound.source)
                 } else {
                     valueRange = nil
                 }
                 line.lexWhitespace()
-                let hasTrailingComma = parseCharacter(",",
-                                                      from: &line,
-                                                      required: true,
-                                                      allowEscape: false,
-                                                      diagnoseIfNotFound: false,
-                                                      parseErrors: &parseErrors)
+                let hasTrailingComma = parseCharacter(
+                    ",",
+                    from: &line,
+                    required: true,
+                    allowEscape: false,
+                    diagnoseIfNotFound: false,
+                    parseErrors: &parseErrors)
 
-                let argument = DirectiveArgument(name: String(name?.text ?? ""),
-                                                 nameRange: nameRange,
-                                                 value: String(value.text),
-                                                 valueRange: valueRange,
-                                                 hasTrailingComma: hasTrailingComma)
+                let argument = DirectiveArgument(
+                    name: String(name?.text ?? ""),
+                    nameRange: nameRange,
+                    value: String(value.text),
+                    valueRange: valueRange,
+                    hasTrailingComma: hasTrailingComma)
                 arguments.append(argument)
 
                 line.lexWhitespace()
@@ -284,11 +308,13 @@ public struct DirectiveArgumentText: Equatable, Sendable {
 
     /// `true` if there are no segments or all segments consist entirely of whitespace.
     public var isEmpty: Bool {
-        return segments.isEmpty || segments.allSatisfy {
-            $0.untrimmedText.isEmpty || $0.untrimmedText.allSatisfy {
-                $0 == " " || $0 == "\t"
+        return segments.isEmpty
+            || segments.allSatisfy {
+                $0.untrimmedText.isEmpty
+                    || $0.untrimmedText.allSatisfy {
+                        $0 == " " || $0 == "\t"
+                    }
             }
-        }
     }
 
     /// Parse the line segments as name-value argument pairs separated by commas.
@@ -317,11 +343,14 @@ public struct DirectiveArgumentText: Equatable, Sendable {
             let segmentArguments = segment.parseNameValueArguments(parseErrors: &parseErrors)
             for argument in segmentArguments {
                 if let originalArgument = arguments.first(where: { $0.name == argument.name }),
-                   let firstLocation = originalArgument.nameRange?.lowerBound,
-                   let duplicateLocation = argument.nameRange?.lowerBound {
-                    parseErrors.append(.duplicateArgument(name: argument.name,
-                                                          firstLocation: firstLocation,
-                                                          duplicateLocation: duplicateLocation))
+                    let firstLocation = originalArgument.nameRange?.lowerBound,
+                    let duplicateLocation = argument.nameRange?.lowerBound
+                {
+                    parseErrors.append(
+                        .duplicateArgument(
+                            name: argument.name,
+                            firstLocation: firstLocation,
+                            duplicateLocation: duplicateLocation))
                 }
                 arguments.append(argument)
             }
@@ -330,7 +359,8 @@ public struct DirectiveArgumentText: Equatable, Sendable {
         if arguments.count > 1 {
             for argument in arguments.prefix(arguments.count - 1) {
                 if !argument.hasTrailingComma,
-                   let valueRange = argument.valueRange {
+                    let valueRange = argument.valueRange
+                {
                     parseErrors.append(.missingExpectedCharacter(",", location: valueRange.upperBound))
                 }
             }
@@ -384,4 +414,3 @@ public struct DirectiveArgument: Equatable, Sendable {
     /// `true` if the argument value was followed by a comma.
     public var hasTrailingComma: Bool
 }
-

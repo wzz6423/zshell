@@ -31,11 +31,13 @@ struct BrowserRemoteRoutingTests {
         let secondaryPort = Int(arguments[4])!
         let dualPort = Int(arguments[5])!
         guard BrowserRemoteRouting.routedURL(URL(string: "http://127.0.0.2:3000/a")!).host == "127-0-0-2.zshell-remote.localhost",
-              BrowserRemoteRouting.loopbackTarget(forAlias: "127-0-0-2.zshell-remote.localhost") == "127.0.0.2",
-              BrowserRemoteRouting.displayURL(URL(string: "http://ipv6-1.zshell-remote.localhost:3000/a")!).absoluteString == "http://[::1]:3000/a",
-              BrowserRemoteRouting.isLoopback(URL(string: "http://[::]:3000/a")!),
-              BrowserRemoteRouting.routedURL(URL(string: "http://[::]:3000/a")!).host == BrowserRemoteRouting.aliasHost,
-              BrowserRemoteRouting.loopbackTarget(forAlias: "8-8-8-8.zshell-remote.localhost") == nil else {
+            BrowserRemoteRouting.loopbackTarget(forAlias: "127-0-0-2.zshell-remote.localhost") == "127.0.0.2",
+            BrowserRemoteRouting.displayURL(URL(string: "http://ipv6-1.zshell-remote.localhost:3000/a")!).absoluteString
+                == "http://[::1]:3000/a",
+            BrowserRemoteRouting.isLoopback(URL(string: "http://[::]:3000/a")!),
+            BrowserRemoteRouting.routedURL(URL(string: "http://[::]:3000/a")!).host == BrowserRemoteRouting.aliasHost,
+            BrowserRemoteRouting.loopbackTarget(forAlias: "8-8-8-8.zshell-remote.localhost") == nil
+        else {
             throw failure("Routing lost the requested loopback address")
         }
         AppSettings.shared.preserveTerminalSessions = false
@@ -47,18 +49,23 @@ struct BrowserRemoteRoutingTests {
         let endpoint = try SSHEndpoint(host: "127.0.0.1", port: sshPort)
         manager.newSSHProject(endpoint: endpoint, remoteDirectory: nil)
         guard let project = manager.projects.first(where: { $0.isRemote }),
-              let caller = project.sessions.first else { throw failure("SSH project or terminal missing") }
+            let caller = project.sessions.first
+        else { throw failure("SSH project or terminal missing") }
 
-        let response = await request("browser.open", caller: caller.id, params: [
-            "url": .string("http://localhost:\(primaryPort)/redirect?start=1#before"),
-            "tab": .bool(true), "focus": .bool(false),
-        ])
+        let response = await request(
+            "browser.open", caller: caller.id,
+            params: [
+                "url": .string("http://localhost:\(primaryPort)/redirect?start=1#before"),
+                "tab": .bool(true), "focus": .bool(false),
+            ])
         guard response.ok, let id = response.result?.objectValue?["browser_id"]?.stringValue,
-              let browser = project.tabs.flatMap(\.browsers).first(where: { $0.id.uuidString == id }),
-              let routing = browser.remoteRouting else { throw failure("Automation did not create a project-bound remote browser: \(String(describing: response.error))") }
+            let browser = project.tabs.flatMap(\.browsers).first(where: { $0.id.uuidString == id }),
+            let routing = browser.remoteRouting
+        else { throw failure("Automation did not create a project-bound remote browser: \(String(describing: response.error))") }
 
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
-                              styleMask: [.titled], backing: .buffered, defer: false)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+            styleMask: [.titled], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.contentView = browser.webView
         defer { window.contentView = nil; window.close() }
@@ -66,26 +73,34 @@ struct BrowserRemoteRoutingTests {
         let deadline = Date().addingTimeInterval(10)
         var values: [String: Any] = [:]
         repeat {
-            values = try await browser.webView.evaluateJavaScript("({state:window.fixtureState,script:window.fixtureScript,dynamic:window.fixtureDynamic,pixel:document.querySelector('#pixel').complete && document.querySelector('#pixel').naturalWidth > 0,frame:!!document.querySelector('#child').contentWindow})") as? [String: Any] ?? [:]
+            values =
+                try await browser.webView.evaluateJavaScript(
+                    "({state:window.fixtureState,script:window.fixtureScript,dynamic:window.fixtureDynamic,pixel:document.querySelector('#pixel').complete && document.querySelector('#pixel').naturalWidth > 0,frame:!!document.querySelector('#child').contentWindow})"
+                ) as? [String: Any] ?? [:]
             if let state = values["state"] as? [String: Any],
-               state["websocket"] as? String == "hmr-echo", state["api"] != nil,
-               values["script"] as? String == "loaded", values["dynamic"] as? String == "loaded",
-               values["pixel"] as? Bool == true { break }
+                state["websocket"] as? String == "hmr-echo", state["api"] != nil,
+                values["script"] as? String == "loaded", values["dynamic"] as? String == "loaded",
+                values["pixel"] as? Bool == true
+            {
+                break
+            }
             try await Task.sleep(for: .milliseconds(50))
         } while Date() < deadline
         guard let state = values["state"] as? [String: Any],
-              state["path"] as? String == "/page/next",
-              state["query"] as? String == "?from=redirect&encoded=%2F",
-              state["hash"] as? String == "#fragment",
-              state["websocket"] as? String == "hmr-echo",
-              let api = state["api"] as? [String: Any], api["server"] as? String == "primary",
-              values["script"] as? String == "loaded", values["dynamic"] as? String == "loaded",
-              values["pixel"] as? Bool == true, values["frame"] as? Bool == true else {
+            state["path"] as? String == "/page/next",
+            state["query"] as? String == "?from=redirect&encoded=%2F",
+            state["hash"] as? String == "#fragment",
+            state["websocket"] as? String == "hmr-echo",
+            let api = state["api"] as? [String: Any], api["server"] as? String == "primary",
+            values["script"] as? String == "loaded", values["dynamic"] as? String == "loaded",
+            values["pixel"] as? Bool == true, values["frame"] as? Bool == true
+        else {
             throw failure("Redirect, resources, fetch or WebSocket did not load: \(values)")
         }
         guard browser.webView.url?.port == secondaryPort, routing.localProxyPort != nil,
-              browser.urlString == "http://localhost:\(secondaryPort)/page/next?from=redirect&encoded=%2F#fragment",
-              browser.snapshotURL == browser.urlString else {
+            browser.urlString == "http://localhost:\(secondaryPort)/page/next?from=redirect&encoded=%2F#fragment",
+            browser.snapshotURL == browser.urlString
+        else {
             throw failure("The browser lost the original remote URL or did not establish SSH forwarding")
         }
         let faviconDeadline = Date().addingTimeInterval(10)
@@ -93,28 +108,34 @@ struct BrowserRemoteRoutingTests {
         guard browser.favicon != nil else { throw failure("The redirected remote favicon did not load") }
         let waited = await request("browser.wait", caller: caller.id, params: ["browser_id": .string(id), "timeout_ms": .number(10_000)])
         guard waited.ok else { throw failure("Automation wait failed: \(String(describing: waited.error))") }
-        _ = try await browser.webView.evaluateJavaScript("document.cookie='remote_scope=only; path=/'; localStorage.setItem('remote_scope','only'); true")
+        _ = try await browser.webView.evaluateJavaScript(
+            "document.cookie='remote_scope=only; path=/'; localStorage.setItem('remote_scope','only'); true")
 
         let second = project.newBrowserTab(initialURL: "http://localhost:\(secondaryPort)/page/second", initialFocus: .none, focus: false)
         try await waitForPage(second, expectedPath: "/page/second")
         guard second.remoteRouting === routing,
-              try await second.webView.evaluateJavaScript("document.cookie.includes('remote_scope=only')") as? Bool == true else {
+            try await second.webView.evaluateJavaScript("document.cookie.includes('remote_scope=only')") as? Bool == true
+        else {
             throw failure("Browsers in one remote project did not share their routing and site data")
         }
-        let local = localProject.newBrowserTab(initialURL: "http://localhost:\(secondaryPort)/page/local", initialFocus: .none, focus: false)
+        let local = localProject.newBrowserTab(
+            initialURL: "http://localhost:\(secondaryPort)/page/local", initialFocus: .none, focus: false)
         try await waitForPage(local, expectedPath: "/page/local")
         guard local.remoteRouting == nil,
-              try await local.webView.evaluateJavaScript("document.cookie.includes('remote_scope=only')") as? Bool == false else {
+            try await local.webView.evaluateJavaScript("document.cookie.includes('remote_scope=only')") as? Bool == false
+        else {
             throw failure("Local and remote browser data stores were not isolated")
         }
         manager.newSSHProject(endpoint: endpoint, remoteDirectory: nil)
         guard let otherProject = manager.projects.first(where: { $0.isRemote && $0 !== project }) else {
             throw failure("Second remote project missing")
         }
-        let other = otherProject.newBrowserTab(initialURL: "http://localhost:\(secondaryPort)/page/other", initialFocus: .none, focus: false)
+        let other = otherProject.newBrowserTab(
+            initialURL: "http://localhost:\(secondaryPort)/page/other", initialFocus: .none, focus: false)
         try await waitForPage(other, expectedPath: "/page/other")
         guard other.remoteRouting !== routing,
-              try await other.webView.evaluateJavaScript("document.cookie.includes('remote_scope=only')") as? Bool == false else {
+            try await other.webView.evaluateJavaScript("document.cookie.includes('remote_scope=only')") as? Bool == false
+        else {
             throw failure("Separate remote projects shared site data")
         }
 
@@ -130,18 +151,21 @@ struct BrowserRemoteRoutingTests {
         try await waitForPage(other, expectedPath: "/api")
         let wildcardBody = try await other.webView.evaluateJavaScript("document.body.innerText") as? String ?? ""
         guard wildcardBody.contains("\"server\": \"primary\""),
-              other.webView.url?.host == BrowserRemoteRouting.aliasHost,
-              other.urlString == "http://localhost:\(primaryPort)/api?wildcard=\(backend)" else {
+            other.webView.url?.host == BrowserRemoteRouting.aliasHost,
+            other.urlString == "http://localhost:\(primaryPort)/api?wildcard=\(backend)"
+        else {
             throw failure("IPv6 wildcard navigation bypassed the remote localhost route: \(wildcardBody)")
         }
 
         guard let secondTab = project.tabs.first(where: { $0.browsers.contains { $0 === second } }),
-              manager.moveTab(id: secondTab.id, from: project.id, to: otherProject.id, in: ObjectIdentifier(manager)).failure == nil else {
+            manager.moveTab(id: secondTab.id, from: project.id, to: otherProject.id, in: ObjectIdentifier(manager)).failure == nil
+        else {
             throw failure("Moving the remote browser tab failed")
         }
         try await waitForPage(second, expectedPath: "/page/second")
         guard second.remoteRouting === other.remoteRouting,
-              try await second.webView.evaluateJavaScript("document.cookie.includes('remote_scope=only')") as? Bool == false else {
+            try await second.webView.evaluateJavaScript("document.cookie.includes('remote_scope=only')") as? Bool == false
+        else {
             throw failure("Moved remote browser kept the source project's routing or site data")
         }
 
@@ -153,33 +177,50 @@ struct BrowserRemoteRoutingTests {
         }
         let fresh = freshProject.newBrowserTab(initialURL: nil, initialFocus: .none, focus: false)
         guard fresh.remoteRouting?.loopbackRules == nil else { throw failure("Fresh routing already had rules") }
-        fresh.navigate(to: "data:text/html,<img srcset='http://127.0.0.1:\(primaryPort)/srcset-\(backend) 1x'><img srcset='http://[::]:\(dualPort)/srcset-ipv6-\(backend) 1x'>")
+        fresh.navigate(
+            to:
+                "data:text/html,<img srcset='http://127.0.0.1:\(primaryPort)/srcset-\(backend) 1x'><img srcset='http://[::]:\(dualPort)/srcset-ipv6-\(backend) 1x'>"
+        )
         let freshDeadline = Date().addingTimeInterval(5)
         while fresh.webView.url?.scheme != "data" || fresh.navigationIsLoading, Date() < freshDeadline {
             try await Task.sleep(for: .milliseconds(20))
         }
         try await Task.sleep(for: .milliseconds(500))
         guard fresh.webView.url?.scheme == "data", fresh.remoteRouting?.loopbackRules != nil,
-              fresh.remoteRouting?.localProxyPort == nil else {
+            fresh.remoteRouting?.localProxyPort == nil
+        else {
             throw failure("A public remote-project page loaded without loopback rules or started forwarding")
         }
         // Its first loopback requests start forwarding and wait for it.
-        fresh.navigate(to: "data:text/html,<script>fetch('http://localhost:\(primaryPort)/api?early=\(backend)').then(r=>r.json()).then(v=>window.early=v.path);const ws=new WebSocket('ws://localhost:\(primaryPort)/socket?early=\(backend)');ws.onopen=()=>ws.send('early-echo');ws.onmessage=e=>window.earlySocket=e.data;const x=new XMLHttpRequest();x.open('GET','http://localhost:\(primaryPort)/api?early-xhr=\(backend)');x.onload=()=>window.earlyXHR=JSON.parse(x.responseText).path;x.send();const i=new Image();i.onload=()=>window.earlyImage='loaded';i.src='http://127.0.0.1:\(primaryPort)/pixel.png?early=\(backend)'</script>")
+        fresh.navigate(
+            to:
+                "data:text/html,<script>fetch('http://localhost:\(primaryPort)/api?early=\(backend)').then(r=>r.json()).then(v=>window.early=v.path);const ws=new WebSocket('ws://localhost:\(primaryPort)/socket?early=\(backend)');ws.onopen=()=>ws.send('early-echo');ws.onmessage=e=>window.earlySocket=e.data;const x=new XMLHttpRequest();x.open('GET','http://localhost:\(primaryPort)/api?early-xhr=\(backend)');x.onload=()=>window.earlyXHR=JSON.parse(x.responseText).path;x.send();const i=new Image();i.onload=()=>window.earlyImage='loaded';i.src='http://127.0.0.1:\(primaryPort)/pixel.png?early=\(backend)'</script>"
+        )
         let earlyDeadline = Date().addingTimeInterval(10)
         var early: [String] = []
         while Date() < earlyDeadline {
-            early = try await fresh.webView.evaluateJavaScript("[String(window.early), String(window.earlySocket), String(window.earlyXHR), String(window.earlyImage)]") as? [String] ?? []
+            early =
+                try await fresh.webView.evaluateJavaScript(
+                    "[String(window.early), String(window.earlySocket), String(window.earlyXHR), String(window.earlyImage)]") as? [String]
+                ?? []
             if early == ["/api?early=\(backend)", "early-echo", "/api?early-xhr=\(backend)", "loaded"] { break }
             try await Task.sleep(for: .milliseconds(50))
         }
-        guard early == ["/api?early=\(backend)", "early-echo", "/api?early-xhr=\(backend)", "loaded"], fresh.remoteRouting?.localProxyPort != nil else {
+        guard early == ["/api?early=\(backend)", "early-echo", "/api?early-xhr=\(backend)", "loaded"],
+            fresh.remoteRouting?.localProxyPort != nil
+        else {
             throw failure("A public page's first loopback fetch, WebSocket, XHR or image did not reach the tunnel: \(early)")
         }
-        _ = try await fresh.webView.evaluateJavaScript("(()=>{fetch('http://[::]:\(primaryPort)/api?wildcard-fetch=\(backend)').then(r=>r.json()).then(v=>window.wildcardFetch=v.path);const ws=new WebSocket('ws://[::]:\(primaryPort)/socket?wildcard=\(backend)');ws.onopen=()=>ws.send('wildcard-echo');ws.onmessage=e=>window.wildcardSocket=e.data;const x=new XMLHttpRequest();x.open('GET','http://[::]:\(primaryPort)/api?wildcard-xhr=\(backend)');x.onload=()=>window.wildcardXHR=JSON.parse(x.responseText).path;x.send();const i=new Image();i.onload=()=>window.wildcardImage='loaded';i.src='http://[::]:\(primaryPort)/pixel.png?wildcard=\(backend)';return true})()")
+        _ = try await fresh.webView.evaluateJavaScript(
+            "(()=>{fetch('http://[::]:\(primaryPort)/api?wildcard-fetch=\(backend)').then(r=>r.json()).then(v=>window.wildcardFetch=v.path);const ws=new WebSocket('ws://[::]:\(primaryPort)/socket?wildcard=\(backend)');ws.onopen=()=>ws.send('wildcard-echo');ws.onmessage=e=>window.wildcardSocket=e.data;const x=new XMLHttpRequest();x.open('GET','http://[::]:\(primaryPort)/api?wildcard-xhr=\(backend)');x.onload=()=>window.wildcardXHR=JSON.parse(x.responseText).path;x.send();const i=new Image();i.onload=()=>window.wildcardImage='loaded';i.src='http://[::]:\(primaryPort)/pixel.png?wildcard=\(backend)';return true})()"
+        )
         let wildcardDeadline = Date().addingTimeInterval(10)
         var wildcard: [String] = []
         while Date() < wildcardDeadline {
-            wildcard = try await fresh.webView.evaluateJavaScript("[String(window.wildcardFetch),String(window.wildcardSocket),String(window.wildcardXHR),String(window.wildcardImage)]") as? [String] ?? []
+            wildcard =
+                try await fresh.webView.evaluateJavaScript(
+                    "[String(window.wildcardFetch),String(window.wildcardSocket),String(window.wildcardXHR),String(window.wildcardImage)]")
+                as? [String] ?? []
             if wildcard == ["/api?wildcard-fetch=\(backend)", "wildcard-echo", "/api?wildcard-xhr=\(backend)", "loaded"] { break }
             try await Task.sleep(for: .milliseconds(50))
         }
@@ -188,30 +229,43 @@ struct BrowserRemoteRoutingTests {
         }
         let freshRouting = fresh.remoteRouting!
         let publicURL = fresh.webView.url
-        _ = try await fresh.webView.evaluateJavaScript("window.publicPageToken='preserved';window.routingInvalidations=0;window.addEventListener('\(BrowserRemoteRouting.loopbackInvalidationName)',()=>window.routingInvalidations++);true")
+        _ = try await fresh.webView.evaluateJavaScript(
+            "window.publicPageToken='preserved';window.routingInvalidations=0;window.addEventListener('\(BrowserRemoteRouting.loopbackInvalidationName)',()=>window.routingInvalidations++);true"
+        )
         for available in [false, true] {
             freshRouting.setAvailable(available, projectID: freshProject.id)
             let deadline = Date().addingTimeInterval(5)
             let expected = available ? 2 : 1
             while Date() < deadline,
-                  (try await fresh.webView.evaluateJavaScript("window.routingInvalidations") as? Int ?? 0) < expected {
+                (try await fresh.webView.evaluateJavaScript("window.routingInvalidations") as? Int ?? 0) < expected
+            {
                 try await Task.sleep(for: .milliseconds(20))
             }
             guard (try await fresh.webView.evaluateJavaScript("window.routingInvalidations") as? Int ?? 0) >= expected,
-                  fresh.webView.url == publicURL, freshRouting.localProxyPort == nil else {
+                fresh.webView.url == publicURL, freshRouting.localProxyPort == nil
+            else {
                 throw failure("Public-page routing invalidation reloaded the document or kept stale forwarding")
             }
         }
-        _ = try await fresh.webView.evaluateJavaScript("(()=>{fetch('http://localhost:\(primaryPort)/api?reconnected=\(backend)').then(r=>r.json()).then(v=>window.reconnected=v.path);const ws=new WebSocket('ws://localhost:\(primaryPort)/socket?reconnected=\(backend)');ws.onopen=()=>ws.send('reconnected-echo');ws.onmessage=e=>window.reconnectedSocket=e.data;const x=new XMLHttpRequest();x.open('GET','http://localhost:\(primaryPort)/api?reconnected-xhr=\(backend)');x.onload=()=>window.reconnectedXHR=JSON.parse(x.responseText).path;x.send();const i=new Image();i.onload=()=>window.reconnectedImage='loaded';i.src='http://127.0.0.1:\(primaryPort)/pixel.png?reconnected=\(backend)';return true})()")
+        _ = try await fresh.webView.evaluateJavaScript(
+            "(()=>{fetch('http://localhost:\(primaryPort)/api?reconnected=\(backend)').then(r=>r.json()).then(v=>window.reconnected=v.path);const ws=new WebSocket('ws://localhost:\(primaryPort)/socket?reconnected=\(backend)');ws.onopen=()=>ws.send('reconnected-echo');ws.onmessage=e=>window.reconnectedSocket=e.data;const x=new XMLHttpRequest();x.open('GET','http://localhost:\(primaryPort)/api?reconnected-xhr=\(backend)');x.onload=()=>window.reconnectedXHR=JSON.parse(x.responseText).path;x.send();const i=new Image();i.onload=()=>window.reconnectedImage='loaded';i.src='http://127.0.0.1:\(primaryPort)/pixel.png?reconnected=\(backend)';return true})()"
+        )
         let reconnectedDeadline = Date().addingTimeInterval(10)
         var reconnected: [String] = []
         repeat {
-            reconnected = try await fresh.webView.evaluateJavaScript("[String(window.reconnected),String(window.reconnectedSocket),String(window.reconnectedXHR),String(window.reconnectedImage),window.publicPageToken]") as? [String] ?? []
-            if reconnected == ["/api?reconnected=\(backend)", "reconnected-echo", "/api?reconnected-xhr=\(backend)", "loaded", "preserved"] { break }
+            reconnected =
+                try await fresh.webView.evaluateJavaScript(
+                    "[String(window.reconnected),String(window.reconnectedSocket),String(window.reconnectedXHR),String(window.reconnectedImage),window.publicPageToken]"
+                ) as? [String] ?? []
+            if reconnected == ["/api?reconnected=\(backend)", "reconnected-echo", "/api?reconnected-xhr=\(backend)", "loaded", "preserved"]
+            {
+                break
+            }
             try await Task.sleep(for: .milliseconds(50))
         } while Date() < reconnectedDeadline
         guard reconnected == ["/api?reconnected=\(backend)", "reconnected-echo", "/api?reconnected-xhr=\(backend)", "loaded", "preserved"],
-              fresh.webView.url == publicURL, freshRouting.localProxyPort != nil else {
+            fresh.webView.url == publicURL, freshRouting.localProxyPort != nil
+        else {
             throw failure("Public-page loopback requests did not reconnect without reloading: \(reconnected)")
         }
         fresh.close()
@@ -224,13 +278,16 @@ struct BrowserRemoteRoutingTests {
         }
         try await Task.sleep(for: .milliseconds(300))
         guard other.webView.url?.scheme == "data", other.errorMessage == nil, !other.isPreparingNavigation,
-              other.remoteRouting?.localProxyPort == nil else {
+            other.remoteRouting?.localProxyPort == nil
+        else {
             throw failure("A public page waited for or failed on remote forwarding")
         }
 
         let oldPort = routing.localProxyPort!
         routing.setAvailable(false, projectID: project.id)
-        _ = try? await browser.webView.evaluateJavaScript("(()=>{fetch('http://localhost:\(primaryPort)/blocked-fetch-\(backend)').catch(()=>{});new WebSocket('ws://localhost:\(primaryPort)/socket?blocked=\(backend)');fetch('http://[::]:\(dualPort)/blocked-ipv6-fetch-\(backend)').catch(()=>{});new WebSocket('ws://[::]:\(dualPort)/socket?blocked-ipv6=\(backend)');return true})()")
+        _ = try? await browser.webView.evaluateJavaScript(
+            "(()=>{fetch('http://localhost:\(primaryPort)/blocked-fetch-\(backend)').catch(()=>{});new WebSocket('ws://localhost:\(primaryPort)/socket?blocked=\(backend)');fetch('http://[::]:\(dualPort)/blocked-ipv6-fetch-\(backend)').catch(()=>{});new WebSocket('ws://[::]:\(dualPort)/socket?blocked-ipv6=\(backend)');return true})()"
+        )
         try await Task.sleep(for: .milliseconds(500))
         browser.navigate(to: "http://localhost:\(primaryPort)/must-not-reach-local-\(backend)")
         try await Task.sleep(for: .milliseconds(500))
@@ -246,7 +303,9 @@ struct BrowserRemoteRoutingTests {
         browser.close()
         try await Task.sleep(for: .milliseconds(300))
         guard routing.localProxyPort == nil else { throw failure("Closing the last remote browser did not release forwarding") }
-        print("PASS \(backend): SSH project/browser automation, redirect, original URL, HTTP resources, fetch, WebSocket, project isolation and reconnect (old proxy \(oldPort))")
+        print(
+            "PASS \(backend): SSH project/browser automation, redirect, original URL, HTTP resources, fetch, WebSocket, project isolation and reconnect (old proxy \(oldPort))"
+        )
     }
 
     @MainActor private static func waitForPage(_ browser: BrowserTab, expectedPath: String) async throws {
@@ -254,16 +313,22 @@ struct BrowserRemoteRoutingTests {
         while Date() < deadline {
             if let message = browser.errorMessage { throw failure("Navigation failed: \(message)") }
             if !browser.navigationIsLoading, browser.webView.url?.path == expectedPath,
-               (try? await browser.webView.evaluateJavaScript("document.readyState")) as? String == "complete" { return }
+                (try? await browser.webView.evaluateJavaScript("document.readyState")) as? String == "complete"
+            {
+                return
+            }
             try await Task.sleep(for: .milliseconds(40))
         }
         throw failure("Timed out loading \(expectedPath), current URL \(String(describing: browser.webView.url))")
     }
 
-    @MainActor private static func request(_ method: String, caller: UUID, params: [String: ZshellJSONValue]) async -> ZshellAutomationResponse {
+    @MainActor private static func request(_ method: String, caller: UUID, params: [String: ZshellJSONValue]) async
+        -> ZshellAutomationResponse
+    {
         await ZshellAutomationRouter.route(
-            ZshellAutomationRequest(version: 1, id: UUID().uuidString, method: method,
-                                    token: "fixture-only", terminalID: caller.uuidString, params: params),
+            ZshellAutomationRequest(
+                version: 1, id: UUID().uuidString, method: method,
+                token: "fixture-only", terminalID: caller.uuidString, params: params),
             callerTerminalID: caller
         )
     }

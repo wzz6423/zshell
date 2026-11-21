@@ -35,14 +35,15 @@ enum TerminalClipboardIO {
         #endif
     }
 
-    nonisolated(unsafe) static var complete: (
-        _ surface: ghostty_surface_t,
-        _ string: UnsafePointer<CChar>,
-        _ state: UnsafeMutableRawPointer,
-        _ confirmed: Bool
-    ) -> Void = { surface, string, state, confirmed in
-        ghostty_surface_complete_clipboard_request(surface, string, state, confirmed)
-    }
+    nonisolated(unsafe) static var complete:
+        (
+            _ surface: ghostty_surface_t,
+            _ string: UnsafePointer<CChar>,
+            _ state: UnsafeMutableRawPointer,
+            _ confirmed: Bool
+        ) -> Void = { surface, string, state, confirmed in
+            ghostty_surface_complete_clipboard_request(surface, string, state, confirmed)
+        }
 }
 
 private enum TerminalCallbacks {

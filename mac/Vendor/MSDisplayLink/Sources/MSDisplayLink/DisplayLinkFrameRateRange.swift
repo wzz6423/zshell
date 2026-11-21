@@ -60,7 +60,8 @@ public struct DisplayLinkFrameRateRange: Sendable, Equatable {
         if minimum == 0, maximum == 0, preferred == 0 { return self }
         let maximum = maximum.isFinite && maximum > 0 ? maximum : Self.default.maximum
         let minimum = minimum.isFinite && minimum > 0 ? Swift.min(minimum, maximum) : Swift.min(1, maximum)
-        let preferred = preferred.isFinite && preferred != 0
+        let preferred =
+            preferred.isFinite && preferred != 0
             ? Swift.min(Swift.max(preferred, minimum), maximum)
             : 0
         return DisplayLinkFrameRateRange(minimum: minimum, maximum: maximum, preferred: preferred)

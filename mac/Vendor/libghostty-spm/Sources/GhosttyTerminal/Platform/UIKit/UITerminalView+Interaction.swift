@@ -114,7 +114,7 @@
             #endif
 
             guard hasIndirectPointerTouch,
-                  let touch = touches.first(where: { $0.type == .indirectPointer })
+                let touch = touches.first(where: { $0.type == .indirectPointer })
             else {
                 return false
             }
@@ -131,8 +131,7 @@
             let mods = ghostty_input_mods_e(rawValue: 0)
             let location = touch.location(in: self)
             let suppressSurfacePositionForSelectionMenu =
-                button == GHOSTTY_MOUSE_RIGHT &&
-                (pendingSelectionMenuPoint != nil || pointIsInsidePointerSelection(location))
+                button == GHOSTTY_MOUSE_RIGHT && (pendingSelectionMenuPoint != nil || pointIsInsidePointerSelection(location))
             TerminalDebugLog.log(
                 .input,
                 "pointer touch phase=\(phase) type=\(touch.type.rawValue) button=\(button.rawValue) location=\(NSCoder.string(for: location)) mask=\(event?.buttonMask.rawValue ?? 0)"
@@ -181,7 +180,7 @@
                 activePointerButton = nil
 
                 if releasedButton == GHOSTTY_MOUSE_RIGHT,
-                   pendingSelectionMenuPoint != nil
+                    pendingSelectionMenuPoint != nil
                 {
                     if selectionMenuPoint(at: location) != nil {
                         showSelectionCopyMenu(at: location)
@@ -237,7 +236,7 @@
 
         func updatePointerSelectionRect(to point: CGPoint) {
             guard activePointerButton == GHOSTTY_MOUSE_LEFT,
-                  let start = pointerSelectionStartPoint
+                let start = pointerSelectionStartPoint
             else { return }
 
             lastPointerSelectionRect = CGRect(
@@ -269,21 +268,24 @@
 
         func logPointerSelectionDiagnostics(context: String, point: CGPoint) {
             guard TerminalDebugLog.isEnabled,
-                  TerminalDebugLog.categories.contains(.input)
+                TerminalDebugLog.categories.contains(.input)
             else { return }
 
-            let rectDescription = lastPointerSelectionRect.map {
-                NSCoder.string(for: $0)
-            } ?? "nil"
+            let rectDescription =
+                lastPointerSelectionRect.map {
+                    NSCoder.string(for: $0)
+                } ?? "nil"
             let metricsDescription = surface?.size().map(\.debugSummary) ?? "nil"
             let selection = surface?.readSelectionResult()
-            let selectionDescription = selection.map {
-                "text=\(TerminalDebugLog.describe($0.text)) offset=\($0.offsetStart)+\($0.offsetLength)"
-            } ?? "nil"
+            let selectionDescription =
+                selection.map {
+                    "text=\(TerminalDebugLog.describe($0.text)) offset=\($0.offsetStart)+\($0.offsetLength)"
+                } ?? "nil"
             let word = surface?.quicklookWord()
-            let wordDescription = word.map {
-                "word=\(TerminalDebugLog.describe($0.word)) offset=\($0.offsetStart)+\($0.offsetLength) point=\(String(format: "%.2f", $0.pointX))x\(String(format: "%.2f", $0.pointY))"
-            } ?? "nil"
+            let wordDescription =
+                word.map {
+                    "word=\(TerminalDebugLog.describe($0.word)) offset=\($0.offsetStart)+\($0.offsetLength) point=\(String(format: "%.2f", $0.pointX))x\(String(format: "%.2f", $0.pointY))"
+                } ?? "nil"
             TerminalDebugLog.log(
                 .input,
                 "pointer selection \(context) viewBounds=\(NSCoder.string(for: bounds)) point=\(NSCoder.string(for: point)) rect=\(rectDescription) metrics=\(metricsDescription) selection=\(selectionDescription) quicklook=\(wordDescription)"
@@ -503,11 +505,12 @@
 
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
 
-                delegate.terminalDidRequestTextSelection(.init(
-                    text: text,
-                    anchorRange: anchorRange,
-                    sourcePoint: viewPoint
-                ))
+                delegate.terminalDidRequestTextSelection(
+                    .init(
+                        text: text,
+                        anchorRange: anchorRange,
+                        sourcePoint: viewPoint
+                    ))
             }
         #endif
 

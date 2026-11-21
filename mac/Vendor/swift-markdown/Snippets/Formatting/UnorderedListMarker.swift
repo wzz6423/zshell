@@ -3,22 +3,23 @@
 import Markdown
 
 let source = """
-- An
-- unordered
-- list
-"""
+    - An
+    - unordered
+    - list
+    """
 
 let document = Document(parsing: source)
 // Use an star or asterisk `*` as the unordered list marker.
 let formattedSource = document.format(options: .init(unorderedListMarker: .star))
 
-print("""
-## Original source:
-\(source)
+print(
+    """
+    ## Original source:
+    \(source)
 
-## Formatted source:
-\(formattedSource)
-""")
+    ## Formatted source:
+    \(formattedSource)
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

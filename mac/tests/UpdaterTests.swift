@@ -40,8 +40,12 @@ struct UpdaterTests {
             for slices in [1, 2] {
                 let config = UpdateFeedConfiguration(infoDictionary: info, architecture: architecture, installedSliceCount: slices)!
                 let file = slices == 1 ? "appcast-\(architecture).xml" : "appcast.xml"
-                expect(config.primary.absoluteString == "https://gitee.com/wzz6423/zshell/releases/download/update-release/\(file)", "Gitee feed architecture")
-                expect(config.fallback.absoluteString == "https://github.com/wzz6423/zshell/releases/latest/download/\(file)", "GitHub feed architecture")
+                expect(
+                    config.primary.absoluteString == "https://gitee.com/wzz6423/zshell/releases/download/update-release/\(file)",
+                    "Gitee feed architecture")
+                expect(
+                    config.fallback.absoluteString == "https://github.com/wzz6423/zshell/releases/latest/download/\(file)",
+                    "GitHub feed architecture")
             }
         }
         for key in ["SUPublicEDKey", "SUFeedURL", "ZshellReleaseFallbackAppcastURL"] {
@@ -79,22 +83,27 @@ struct UpdaterTests {
             ("ZZ", "US", .githubFirst),
             (nil, nil, .giteeFirst),
         ] {
-            expect(UpdateFeedPreference(countryCode: country, systemRegionCode: region) == expected,
-                   "IP country wins and invalid results fall back to the system region")
+            expect(
+                UpdateFeedPreference(countryCode: country, systemRegionCode: region) == expected,
+                "IP country wins and invalid results fall back to the system region")
         }
 
         var clock = Date()
         var lookups = 0
         var nextCountry: String? = "US"
-        let resolver = UpdateFeedResolver(loadCountryCode: { lookups += 1; return nextCountry },
-                                          systemRegionCode: { "CN" }, now: { clock })
+        let resolver = UpdateFeedResolver(
+            loadCountryCode: {
+                lookups += 1; return nextCountry
+            },
+            systemRegionCode: { "CN" }, now: { clock })
         expect(lookups == 0, "constructing resolver does not query the network")
         var resolved: UpdateFeedPreference?
         await resolver.resolve(manual: false) { resolved = $0 }?.value
         expect(resolved == .githubFirst && lookups == 1, "resolves IP country asynchronously")
         clock += UpdateFeedResolver.cacheLifetime - 1
-        expect(resolver.resolve(manual: true) { resolved = $0 } == nil && lookups == 1,
-               "manual check shares unexpired background lookup")
+        expect(
+            resolver.resolve(manual: true) { resolved = $0 } == nil && lookups == 1,
+            "manual check shares unexpired background lookup")
         clock += 1
         nextCountry = nil
         expect(resolver.preference == nil, "country cache expires after thirty minutes")
@@ -129,8 +138,9 @@ struct UpdaterTests {
         expect(resolved == .githubFirst, "manual lookup can restart before canceled request finishes")
         canceledLookup.continuations.removeFirst().resume(returning: "CN")
         await canceledTask?.value
-        expect(automaticCalls == 0 && canceledResolver.preference == .githubFirst,
-               "late canceled background result cannot replace newer manual country or resume a check")
+        expect(
+            automaticCalls == 0 && canceledResolver.preference == .githubFirst,
+            "late canceled background result cannot replace newer manual country or resume a check")
 
         let configuration = UpdateFeedConfiguration(infoDictionary: info, architecture: "arm64", installedSliceCount: 1)!
         let failure = NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)
@@ -148,7 +158,10 @@ struct UpdaterTests {
             let preference = UpdateFeedPreference(countryCode: country, systemRegionCode: nil)
             for kind in [SPUUpdateCheck.updates, .updatesInBackground, .updateInformation] {
                 expect(allowsCheck(delegate, updater, kind), "allows initial check")
-                expect(delegate.feedURLString(for: updater) == configuration.url(preference: preference, isUsingFallback: false).absoluteString, "country selects primary mirror")
+                expect(
+                    delegate.feedURLString(for: updater)
+                        == configuration.url(preference: preference, isUsingFallback: false).absoluteString,
+                    "country selects primary mirror")
                 var acknowledged = false
                 driver.showUpdaterError(failure) { acknowledged = true }
                 expect(acknowledged, "primary error acknowledged to allow fallback")
@@ -159,7 +172,9 @@ struct UpdaterTests {
                 checkCountry = country == "CN" ? "US" : "CN"
                 await checkResolver.resolve(manual: true) { _ in }?.value
                 expect(allowsCheck(delegate, updater, kind), "allows fallback check")
-                expect(delegate.feedURLString(for: updater) == configuration.url(preference: preference, isUsingFallback: true).absoluteString, "fallback keeps original cycle order")
+                expect(
+                    delegate.feedURLString(for: updater) == configuration.url(preference: preference, isUsingFallback: true).absoluteString,
+                    "fallback keeps original cycle order")
                 expect(!delegate.shouldSuppressUpdaterError, "fallback error remains visible")
                 let count = fallbackChecks.count
                 delegate.updater(updater, didFinishUpdateCycleFor: kind, error: failure)
@@ -172,16 +187,18 @@ struct UpdaterTests {
 
         let supersededLookup = PendingCountryLookup()
         var supersededClock = Date()
-        let supersededResolver = UpdateFeedResolver(loadCountryCode: { await supersededLookup.load() },
-                                                   systemRegionCode: { "CN" }, now: { supersededClock })
+        let supersededResolver = UpdateFeedResolver(
+            loadCountryCode: { await supersededLookup.load() },
+            systemRegionCode: { "CN" }, now: { supersededClock })
         let initialLookup = supersededResolver.resolve(manual: false) { _ in }
         try await waitUntil { supersededLookup.continuations.count == 1 }
         supersededLookup.continuations.removeFirst().resume(returning: "US")
         await initialLookup?.value
         let supersededDelegate = UpdateFeedDelegate(configuration: configuration, resolver: supersededResolver)
         let supersededDriver = UpdateUserDriver { supersededDelegate.shouldSuppressUpdaterError }
-        let supersededUpdater = SPUUpdater(hostBundle: .main, applicationBundle: .main,
-                                          userDriver: supersededDriver, delegate: supersededDelegate)
+        let supersededUpdater = SPUUpdater(
+            hostBundle: .main, applicationBundle: .main,
+            userDriver: supersededDriver, delegate: supersededDelegate)
         supersededUpdater.automaticallyChecksForUpdates = true
         var supersededChecks: [SPUUpdateCheck] = []
         supersededDelegate.onCheckRequested = { supersededChecks.append($0) }
@@ -193,8 +210,9 @@ struct UpdaterTests {
         expect(!allowsCheck(supersededDelegate, supersededUpdater, .updates), "new manual check waits for expired country lookup")
         supersededDelegate.updater(supersededUpdater, didFinishUpdateCycleFor: .updates, error: nil)
         try await waitUntil { supersededLookup.continuations.count == 1 }
-        expect(!allowsCheck(supersededDelegate, supersededUpdater, .updatesInBackground),
-               "superseded background fallback cannot bypass a pending manual country lookup")
+        expect(
+            !allowsCheck(supersededDelegate, supersededUpdater, .updatesInBackground),
+            "superseded background fallback cannot bypass a pending manual country lookup")
         supersededDelegate.updater(supersededUpdater, didFinishUpdateCycleFor: .updatesInBackground, error: nil)
         supersededLookup.continuations.removeFirst().resume(returning: "US")
         try await waitUntil { supersededChecks.count == 1 }
@@ -207,8 +225,9 @@ struct UpdaterTests {
         expect(supersededChecks == [.updatesInBackground], "scheduled failure requests fallback before checks are disabled")
         supersededUpdater.automaticallyChecksForUpdates = false
         supersededDelegate.cancelAutomaticCheck()
-        expect(supersededDelegate.feedURLString(for: supersededUpdater) == configuration.fallback.absoluteString,
-               "disabling automatic checks clears the queued fallback mirror")
+        expect(
+            supersededDelegate.feedURLString(for: supersededUpdater) == configuration.fallback.absoluteString,
+            "disabling automatic checks clears the queued fallback mirror")
         expect(!allowsCheck(supersededDelegate, supersededUpdater, .updatesInBackground), "canceled background fallback cannot start")
         supersededDelegate.updater(supersededUpdater, didFinishUpdateCycleFor: .updatesInBackground, error: nil)
         expect(supersededChecks.count == 1, "canceled background fallback cannot schedule another check")
@@ -216,10 +235,12 @@ struct UpdaterTests {
         expect(allowsCheck(supersededDelegate, supersededUpdater, .updates), "manual check still works with scheduled checks disabled")
         supersededDelegate.updater(supersededUpdater, didFinishUpdateCycleFor: .updates, error: failure)
         supersededDelegate.cancelAutomaticCheck()
-        expect(supersededChecks == [.updates] && allowsCheck(supersededDelegate, supersededUpdater, .updates),
-               "disabling scheduled checks preserves a requested manual fallback")
-        expect(supersededDelegate.feedURLString(for: supersededUpdater) == configuration.primary.absoluteString,
-               "manual fallback keeps the second mirror while automatic checks are disabled")
+        expect(
+            supersededChecks == [.updates] && allowsCheck(supersededDelegate, supersededUpdater, .updates),
+            "disabling scheduled checks preserves a requested manual fallback")
+        expect(
+            supersededDelegate.feedURLString(for: supersededUpdater) == configuration.primary.absoluteString,
+            "manual fallback keeps the second mirror while automatic checks are disabled")
         supersededDelegate.updater(supersededUpdater, didFinishUpdateCycleFor: .updates, error: failure)
         expect(supersededChecks.count == 1, "manual fallback remains bounded when automatic checks are disabled")
 
@@ -227,12 +248,14 @@ struct UpdaterTests {
         let deferredResolver = UpdateFeedResolver(loadCountryCode: { await deferredLookup.load() }, systemRegionCode: { "CN" })
         let deferredDelegate = UpdateFeedDelegate(configuration: configuration, resolver: deferredResolver)
         let deferredDriver = UpdateUserDriver { deferredDelegate.shouldSuppressUpdaterError }
-        let deferredUpdater = SPUUpdater(hostBundle: .main, applicationBundle: .main, userDriver: deferredDriver, delegate: deferredDelegate)
+        let deferredUpdater = SPUUpdater(
+            hostBundle: .main, applicationBundle: .main, userDriver: deferredDriver, delegate: deferredDelegate)
         deferredUpdater.automaticallyChecksForUpdates = false
         var requestedChecks: [SPUUpdateCheck] = []
         deferredDelegate.onCheckRequested = { requestedChecks.append($0) }
-        expect(!allowsCheck(deferredDelegate, deferredUpdater, .updatesInBackground),
-               "disabled scheduled checks are rejected before region lookup")
+        expect(
+            !allowsCheck(deferredDelegate, deferredUpdater, .updatesInBackground),
+            "disabled scheduled checks are rejected before region lookup")
         deferredDelegate.updater(deferredUpdater, didFinishUpdateCycleFor: .updatesInBackground, error: nil)
         await Task.yield()
         expect(deferredLookup.continuations.isEmpty, "disabled automatic checking makes no country request")
@@ -241,9 +264,10 @@ struct UpdaterTests {
             preconditionFailure("manual check must wait for region when automatic checks are off")
         } catch {
             let deferredError = error as NSError
-            expect(deferredError.domain == SUSparkleErrorDomain
-                   && deferredError.code == Int(SUError.installationCanceledError.rawValue),
-                   "region deferral uses Sparkle's silent cancellation error")
+            expect(
+                deferredError.domain == SUSparkleErrorDomain
+                    && deferredError.code == Int(SUError.installationCanceledError.rawValue),
+                "region deferral uses Sparkle's silent cancellation error")
             deferredDelegate.updater(deferredUpdater, didFinishUpdateCycleFor: .updates, error: deferredError)
         }
         try await waitUntil { deferredLookup.continuations.count == 1 }
@@ -251,16 +275,21 @@ struct UpdaterTests {
         try await waitUntil { requestedChecks.count == 1 }
         expect(requestedChecks == [.updates], "region resolution resumes exactly one manual check")
         expect(allowsCheck(deferredDelegate, deferredUpdater, .updates), "resolved manual check proceeds")
-        expect(deferredDelegate.feedURLString(for: deferredUpdater) == configuration.fallback.absoluteString, "resolved overseas check uses GitHub first")
+        expect(
+            deferredDelegate.feedURLString(for: deferredUpdater) == configuration.fallback.absoluteString,
+            "resolved overseas check uses GitHub first")
 
         let installDelegate = UpdateFeedDelegate(configuration: configuration)
         let installDriver = UpdateUserDriver { false }
-        let installUpdater = SPUUpdater(hostBundle: .main, applicationBundle: .main,
-                                        userDriver: installDriver, delegate: installDelegate)
-        let updateItem = SUAppcastItem(dictionary: ["enclosure": [
-            "url": "https://example.com/update.zip", "sparkle:version": "2",
-            "sparkle:shortVersionString": "2.0"
-        ]])!
+        let installUpdater = SPUUpdater(
+            hostBundle: .main, applicationBundle: .main,
+            userDriver: installDriver, delegate: installDelegate)
+        let updateItem = SUAppcastItem(dictionary: [
+            "enclosure": [
+                "url": "https://example.com/update.zip", "sparkle:version": "2",
+                "sparkle:shortVersionString": "2.0",
+            ]
+        ])!
         var availableVersion: String?
         installDelegate.onAvailableUpdateChanged = { availableVersion = $0 }
         installDelegate.updater(installUpdater, didFindValidUpdate: updateItem)
@@ -271,47 +300,62 @@ struct UpdaterTests {
         let install = { installations += 1 }
         installUpdater.automaticallyChecksForUpdates = true
         installUpdater.automaticallyDownloadsUpdates = false
-        expect(!installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
-                                        immediateInstallationBlock: install), "auto restart requires opt-in")
+        expect(
+            !installDelegate.updater(
+                installUpdater, willInstallUpdateOnQuit: updateItem,
+                immediateInstallationBlock: install), "auto restart requires opt-in")
         expect(installations == 0, "opt-out must not invoke the installation handler")
         installUpdater.automaticallyDownloadsUpdates = true
-        expect(!installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
-                                        immediateInstallationBlock: install), "downloads alone retain install-on-quit behavior")
+        expect(
+            !installDelegate.updater(
+                installUpdater, willInstallUpdateOnQuit: updateItem,
+                immediateInstallationBlock: install), "downloads alone retain install-on-quit behavior")
         expect(installations == 0, "downloads alone must not restart the app")
         var autoInstall = true
         installDelegate.shouldAutomaticallyInstall = { autoInstall }
-        expect(installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
-                                       immediateInstallationBlock: install), "opt-in takes ownership of installation")
+        expect(
+            installDelegate.updater(
+                installUpdater, willInstallUpdateOnQuit: updateItem,
+                immediateInstallationBlock: install), "opt-in takes ownership of installation")
         expect(installations == 1, "prepared update installs and relaunches immediately")
         installDelegate.installAndRelaunch?()
         expect(installations == 2, "a canceled termination can be retried from the sidebar")
         installDelegate.updater(installUpdater, didFinishUpdateCycleFor: .updatesInBackground, error: nil)
         expect(installDelegate.installAndRelaunch == nil, "completed cycles release the installation handler")
         autoInstall = false
-        expect(!installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
-                                        immediateInstallationBlock: install), "disabling installation before preparation prevents restart")
+        expect(
+            !installDelegate.updater(
+                installUpdater, willInstallUpdateOnQuit: updateItem,
+                immediateInstallationBlock: install), "disabling installation before preparation prevents restart")
         expect(installations == 2, "installation opt-out must not invoke the handler")
         autoInstall = true
         installUpdater.automaticallyChecksForUpdates = false
-        expect(!installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
-                                        immediateInstallationBlock: install), "disabled checks prevent auto restart")
+        expect(
+            !installDelegate.updater(
+                installUpdater, willInstallUpdateOnQuit: updateItem,
+                immediateInstallationBlock: install), "disabled checks prevent auto restart")
         expect(installations == 2, "disabling checks during download must not restart the app")
 
         let integrationLookup = PendingCountryLookup()
         var integrationClock = Date()
-        let integrationResolver = UpdateFeedResolver(loadCountryCode: { await integrationLookup.load() },
-                                                    systemRegionCode: { "US" }, now: { integrationClock })
+        let integrationResolver = UpdateFeedResolver(
+            loadCountryCode: { await integrationLookup.load() },
+            systemRegionCode: { "US" }, now: { integrationClock })
         let integrationDelegate = UpdateFeedDelegate(configuration: configuration, resolver: integrationResolver)
-        for selector in ["updater:mayPerformUpdateCheck:error:", "feedURLStringForUpdater:",
-                         "updater:didFinishLoadingAppcast:", "updater:failedToDownloadUpdate:error:",
-                         "updater:didFinishUpdateCycleForUpdateCheck:error:", "updater:didFindValidUpdate:",
-                         "updaterDidNotFindUpdate:error:", "updater:userDidMakeChoice:forUpdate:state:",
-                         "updater:willInstallUpdateOnQuit:immediateInstallationBlock:"] {
-            expect(integrationDelegate.responds(to: NSSelectorFromString(selector)),
-                   "Swift delegate implements Sparkle's Objective-C callback \(selector)")
+        for selector in [
+            "updater:mayPerformUpdateCheck:error:", "feedURLStringForUpdater:",
+            "updater:didFinishLoadingAppcast:", "updater:failedToDownloadUpdate:error:",
+            "updater:didFinishUpdateCycleForUpdateCheck:error:", "updater:didFindValidUpdate:",
+            "updaterDidNotFindUpdate:error:", "updater:userDidMakeChoice:forUpdate:state:",
+            "updater:willInstallUpdateOnQuit:immediateInstallationBlock:",
+        ] {
+            expect(
+                integrationDelegate.responds(to: NSSelectorFromString(selector)),
+                "Swift delegate implements Sparkle's Objective-C callback \(selector)")
         }
         let integrationDriver = RecordingUserDriver(hostBundle: .main, delegate: nil)
-        let integrationUpdater = SPUUpdater(hostBundle: .main, applicationBundle: .main, userDriver: integrationDriver, delegate: integrationDelegate)
+        let integrationUpdater = SPUUpdater(
+            hostBundle: .main, applicationBundle: .main, userDriver: integrationDriver, delegate: integrationDelegate)
         integrationUpdater.automaticallyChecksForUpdates = false
         var integrationChecks: [SPUUpdateCheck] = []
         integrationDelegate.onCheckRequested = { integrationChecks.append($0) }
@@ -323,8 +367,9 @@ struct UpdaterTests {
         try await waitUntil { !integrationUpdater.sessionInProgress }
         integrationLookup.continuations.removeFirst().resume(returning: "US")
         try await waitUntil { integrationChecks.count == 1 }
-        expect(integrationChecks == [.updates] && integrationUpdater.canCheckForUpdates,
-               "real Sparkle completes deferral and requests exactly one resumable manual check")
+        expect(
+            integrationChecks == [.updates] && integrationUpdater.canCheckForUpdates,
+            "real Sparkle completes deferral and requests exactly one resumable manual check")
         integrationClock += UpdateFeedResolver.cacheLifetime
         integrationChecks.removeAll()
         integrationUpdater.automaticallyChecksForUpdates = true
@@ -333,8 +378,9 @@ struct UpdaterTests {
         try await waitUntil { !integrationUpdater.sessionInProgress }
         integrationLookup.continuations.removeFirst().resume(returning: "CN")
         try await waitUntil { integrationChecks.count == 1 }
-        expect(integrationChecks == [.updatesInBackground] && integrationUpdater.canCheckForUpdates,
-               "real Sparkle reschedules its timer and requests one background continuation")
+        expect(
+            integrationChecks == [.updatesInBackground] && integrationUpdater.canCheckForUpdates,
+            "real Sparkle reschedules its timer and requests one background continuation")
         integrationClock += UpdateFeedResolver.cacheLifetime
         integrationChecks.removeAll()
         integrationUpdater.checkForUpdatesInBackground()
@@ -350,22 +396,24 @@ struct UpdaterTests {
         integrationUpdater.automaticallyChecksForUpdates = false
 
         #if DEBUG
-        let debugCountry = await UpdateFeedResolver.countryCodeForCurrentIP()
-        expect(debugCountry == nil, "Debug country lookup is disabled")
+            let debugCountry = await UpdateFeedResolver.countryCodeForCurrentIP()
+            expect(debugCountry == nil, "Debug country lookup is disabled")
         #endif
         print("Updater tests: \(passed) passed, 0 failed")
     }
 
     @MainActor static func waitUntil(_ condition: () -> Bool, line: UInt = #line) async throws {
-        for _ in 0..<1200 {
+        for _ in 0 ..< 1200 {
             if condition() { return }
             try await Task.sleep(for: .milliseconds(10))
         }
         preconditionFailure("Timed out waiting for asynchronous updater behavior at line \(line)")
     }
 
-    @MainActor static func allowsCheck(_ delegate: UpdateFeedDelegate, _ updater: SPUUpdater,
-                                      _ check: SPUUpdateCheck) -> Bool {
+    @MainActor static func allowsCheck(
+        _ delegate: UpdateFeedDelegate, _ updater: SPUUpdater,
+        _ check: SPUUpdateCheck
+    ) -> Bool {
         do {
             try delegate.updater(updater, mayPerform: check)
             return true

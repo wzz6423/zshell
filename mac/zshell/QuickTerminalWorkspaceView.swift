@@ -7,7 +7,10 @@ enum QuickTerminalMode: String, CaseIterable {
     case fresh
 
     static var explanation: String {
-        String(localized: "Reuse keeps panes and tasks. New workspaces end when hidden. Mode changes apply on next show; the reusable workspace stays available when switching back. Shell history follows your shell configuration.")
+        String(
+            localized:
+                "Reuse keeps panes and tasks. New workspaces end when hidden. Mode changes apply on next show; the reusable workspace stays available when switching back. Shell history follows your shell configuration."
+        )
     }
 
     var title: String {
@@ -24,20 +27,25 @@ enum QuickTerminalWorkspaceSnapshot {
     typealias Layout = SessionSnapshot.ProjectSnapshot.LayoutSnapshot
 
     static func capture(_ tab: PaneTab) -> Snapshot {
-        Snapshot(layout: capture(tab.layout), focusedPaneIndex: tab.allPanes.firstIndex {
-            $0.id == tab.focusedPaneID
-        } ?? 0)
+        Snapshot(
+            layout: capture(tab.layout),
+            focusedPaneIndex: tab.allPanes.firstIndex {
+                $0.id == tab.focusedPaneID
+            } ?? 0)
     }
 
     private static func capture(_ node: PaneNode) -> Layout {
         switch node {
         case .pane(let pane):
             guard case .session(let session) = pane.content else { preconditionFailure("Quick terminal contains only terminals") }
-            return .pane(.init(content: .session(workingDirectory: session.currentDirectoryPath),
-                               weight: 1, terminalID: session.id))
+            return .pane(
+                .init(
+                    content: .session(workingDirectory: session.currentDirectoryPath),
+                    weight: 1, terminalID: session.id))
         case .split(let split):
-            return .split(axis: split.axis, fraction: Double(split.fraction),
-                          first: capture(split.first), second: capture(split.second))
+            return .split(
+                axis: split.axis, fraction: Double(split.fraction),
+                first: capture(split.first), second: capture(split.second))
         }
     }
 
@@ -52,12 +60,17 @@ enum QuickTerminalWorkspaceSnapshot {
         case .pane(let pane):
             let directory: String?
             if case .session(let saved) = pane.content { directory = saved } else { directory = nil }
-            return .pane(Pane(content: .session(TerminalSession(
-                initialDirectory: directory, restoredSessionID: pane.terminalID, isRestoredSession: true
-            ))))
+            return .pane(
+                Pane(
+                    content: .session(
+                        TerminalSession(
+                            initialDirectory: directory, restoredSessionID: pane.terminalID, isRestoredSession: true
+                        ))))
         case .split(let axis, let fraction, let first, let second):
-            return .split(PaneSplit(axis: axis, fraction: CGFloat(fraction.isFinite ? min(max(fraction, 0.1), 0.9) : 0.5),
-                                    first: restore(first), second: restore(second)))
+            return .split(
+                PaneSplit(
+                    axis: axis, fraction: CGFloat(fraction.isFinite ? min(max(fraction, 0.1), 0.9) : 0.5),
+                    first: restore(first), second: restore(second)))
         }
     }
 }
@@ -121,8 +134,11 @@ final class QuickTerminalWorkspaceView: NSView {
         let character = event.charactersIgnoringModifiers?.lowercased()
         if character == "m", flags == [.command, .shift] {
             guard case .session(let session)? = tab.focusedContent else { return false }
-            if AppSettings.shared.promptQueueEnabled { session.promptQueue.togglePresentation() }
-            else { SettingsWindowController.shared.show(category: .terminal, section: String(localized: "Prompt Queue")) }
+            if AppSettings.shared.promptQueueEnabled {
+                session.promptQueue.togglePresentation()
+            } else {
+                SettingsWindowController.shared.show(category: .terminal, section: String(localized: "Prompt Queue"))
+            }
         } else if character == "d", flags == .command || flags == [.command, .shift] {
             splitAction(flags.contains(.shift) ? .bottom : .right)
         } else if CommandShortcut(event: event) == AppSettings.shared.commandShortcut(for: .closePane) {
@@ -139,7 +155,9 @@ final class QuickTerminalWorkspaceView: NSView {
             }
         } else if flags == [.command, .control], character == "=" {
             tab.equalize()
-        } else { return false }
+        } else {
+            return false
+        }
         return true
     }
 
@@ -218,13 +236,15 @@ final class QuickTerminalWorkspaceView: NSView {
             if let container = containers[pane.id] {
                 container.wantsLayer = true
                 container.layer?.borderWidth = tab.hasMultiplePanes && selected && AppSettings.shared.showPaneFocusRing ? 1 : 0
-                container.layer?.borderColor = NSColor.controlAccentColor.withAlphaComponent(CGFloat(AppSettings.shared.paneFocusRingOpacity)).cgColor
+                container.layer?.borderColor =
+                    NSColor.controlAccentColor.withAlphaComponent(CGFloat(AppSettings.shared.paneFocusRingOpacity)).cgColor
             }
             if selected, case .session(let session) = pane.content {
                 DispatchQueue.main.async { [weak self, weak session] in
                     guard let self, let session, let window = self.window, window.isKeyWindow,
-                          self.tab.focusedPaneID == paneID,
-                          session.surface.window === window else { return }
+                        self.tab.focusedPaneID == paneID,
+                        session.surface.window === window
+                    else { return }
                     window.makeFirstResponder(session.surface)
                 }
             }

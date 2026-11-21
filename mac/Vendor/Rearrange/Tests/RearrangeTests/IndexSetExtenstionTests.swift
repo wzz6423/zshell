@@ -9,15 +9,15 @@
 import XCTest
 
 final class IndexSetExtenstionTests: XCTestCase {
-	func testInitialization() {
-		let setA = IndexSet(integersIn: NSRange(0..<5))
-		let setB = IndexSet(NSRange(0..<5))
-		let setC = IndexSet(arrayLiteral: 0, 1, 2, 3, 4)
+    func testInitialization() {
+        let setA = IndexSet(integersIn: NSRange(0 ..< 5))
+        let setB = IndexSet(NSRange(0 ..< 5))
+        let setC = IndexSet(arrayLiteral: 0, 1, 2, 3, 4)
 
-		XCTAssertEqual(setA, setB)
-		XCTAssertEqual(setA, setC)
-		XCTAssertEqual(setB, setC)
-	}
+        XCTAssertEqual(setA, setB)
+        XCTAssertEqual(setA, setC)
+        XCTAssertEqual(setB, setC)
+    }
 
     func testSpanningRange() {
         var set = IndexSet()
@@ -36,7 +36,7 @@ final class IndexSetExtenstionTests: XCTestCase {
     func testLimitSpanningRangeWithMultipleIndices() {
         let set = IndexSet([1, 7, 3])
 
-        XCTAssertEqual(set.limitSpanningRange, NSRange(1...7))
+        XCTAssertEqual(set.limitSpanningRange, NSRange(1 ... 7))
     }
 
     func testLimitSpanningRangeWithEmptySet() {
@@ -53,12 +53,12 @@ final class IndexSetExtenstionTests: XCTestCase {
         XCTAssertEqual(set, IndexSet(integersIn: NSRange(location: 0, length: 5)))
     }
 
-	func testRangesInitializer() {
-		let ranges = [NSRange(0..<5), NSRange(5..<10)]
-		let set = IndexSet(ranges: ranges)
+    func testRangesInitializer() {
+        let ranges = [NSRange(0 ..< 5), NSRange(5 ..< 10)]
+        let set = IndexSet(ranges: ranges)
 
-		XCTAssertEqual(set, IndexSet(integersIn: 0..<10))
-	}
+        XCTAssertEqual(set, IndexSet(integersIn: 0 ..< 10))
+    }
 
     func testIntersets() {
         var set = IndexSet()
@@ -68,12 +68,12 @@ final class IndexSetExtenstionTests: XCTestCase {
 
         set.insert(range: NSRange(location: 1, length: 4))
 
-        XCTAssertTrue(set.intersects(integersIn: NSRange(1..<2)))
-        XCTAssertTrue(set.intersects(integersIn: NSRange(0..<5)))
-        XCTAssertTrue(set.intersects(integersIn: NSRange(4..<5)))
+        XCTAssertTrue(set.intersects(integersIn: NSRange(1 ..< 2)))
+        XCTAssertTrue(set.intersects(integersIn: NSRange(0 ..< 5)))
+        XCTAssertTrue(set.intersects(integersIn: NSRange(4 ..< 5)))
 
-        XCTAssertFalse(set.intersects(integersIn: NSRange(0..<1)))
-        XCTAssertFalse(set.intersects(integersIn: NSRange(5..<5)))
-        XCTAssertFalse(set.intersects(integersIn: NSRange(5..<6)))
+        XCTAssertFalse(set.intersects(integersIn: NSRange(0 ..< 1)))
+        XCTAssertFalse(set.intersects(integersIn: NSRange(5 ..< 5)))
+        XCTAssertFalse(set.intersects(integersIn: NSRange(5 ..< 6)))
     }
 }

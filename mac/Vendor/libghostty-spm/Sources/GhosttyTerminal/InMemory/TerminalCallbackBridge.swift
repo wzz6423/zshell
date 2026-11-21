@@ -72,7 +72,8 @@ final class TerminalCallbackBridge {
         case GHOSTTY_ACTION_COLOR_CHANGE:
             let color = action.action.color_change
             guard color.kind == GHOSTTY_ACTION_COLOR_KIND_BACKGROUND,
-                  let delegate = delegate as? any TerminalSurfaceBackgroundColorDelegate else { return false }
+                let delegate = delegate as? any TerminalSurfaceBackgroundColorDelegate
+            else { return false }
             delegate.terminalDidChangeBackgroundColor(red: color.r, green: color.g, blue: color.b)
             onRenderRequest?()
             return true
@@ -103,7 +104,8 @@ final class TerminalCallbackBridge {
             // until the native callback returns before acquiring those locks.
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.commandCallbackGeneration == generation,
-                      self.rawSurface != nil else { return }
+                    self.rawSurface != nil
+                else { return }
                 (self.delegate as? any TerminalSurfaceCommandFinishedDelegate)?
                     .terminalDidFinishCommand(exitCode: exit, durationNanos: duration)
             }
@@ -125,12 +127,13 @@ final class TerminalCallbackBridge {
             }
             let payload = action.action.open_url
             let kind = TerminalOpenURLKind(payload.kind)
-            let url: String = payload.url.map { ptr in
-                // Ghostty provides a length-prefixed string; respect the
-                // documented length rather than trusting a NUL terminator.
-                let buf = UnsafeBufferPointer(start: ptr, count: Int(payload.len))
-                return String(decoding: buf.map(UInt8.init), as: UTF8.self)
-            } ?? ""
+            let url: String =
+                payload.url.map { ptr in
+                    // Ghostty provides a length-prefixed string; respect the
+                    // documented length rather than trusting a NUL terminator.
+                    let buf = UnsafeBufferPointer(start: ptr, count: Int(payload.len))
+                    return String(decoding: buf.map(UInt8.init), as: UTF8.self)
+                } ?? ""
             TerminalDebugLog.log(
                 .actions,
                 "callback action=open_url kind=\(kind) url=\(TerminalDebugLog.describe(url))"
@@ -194,7 +197,8 @@ final class TerminalCallbackBridge {
             }
             // Empty for a bare `start_search`; a resolved needle when the
             // action carried terms of its own (e.g. `search_selection`).
-            let needle = action.action.start_search.needle
+            let needle =
+                action.action.start_search.needle
                 .map { String(cString: $0) } ?? ""
             TerminalDebugLog.log(
                 .actions,

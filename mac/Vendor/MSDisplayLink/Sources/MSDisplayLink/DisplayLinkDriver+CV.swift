@@ -48,21 +48,23 @@ import Foundation
             CVDisplayLinkCreateWithActiveCGDisplays(&displayLink)
             guard let displayLink else { return }
 
-            CVDisplayLinkSetOutputCallback(displayLink, { _, inNow, inOutputTime, _, _, _ in
-                let clockFrequency = CVGetHostClockFrequency()
-                let context = DisplayLinkCallbackContext(
-                    duration: TimeInterval(inNow.pointee.videoRefreshPeriod) / TimeInterval(inNow.pointee.videoTimeScale),
-                    timestamp: TimeInterval(inNow.pointee.hostTime) / clockFrequency,
-                    targetTimestamp: TimeInterval(inOutputTime.pointee.hostTime) / clockFrequency
-                )
-                assert(!Thread.isMainThread)
-                DispatchQueue.main.async {
-                    autoreleasepool {
-                        CVDisplayLinkDriverHelper.shared.dispatchUpdate(context: context)
+            CVDisplayLinkSetOutputCallback(
+                displayLink,
+                { _, inNow, inOutputTime, _, _, _ in
+                    let clockFrequency = CVGetHostClockFrequency()
+                    let context = DisplayLinkCallbackContext(
+                        duration: TimeInterval(inNow.pointee.videoRefreshPeriod) / TimeInterval(inNow.pointee.videoTimeScale),
+                        timestamp: TimeInterval(inNow.pointee.hostTime) / clockFrequency,
+                        targetTimestamp: TimeInterval(inOutputTime.pointee.hostTime) / clockFrequency
+                    )
+                    assert(!Thread.isMainThread)
+                    DispatchQueue.main.async {
+                        autoreleasepool {
+                            CVDisplayLinkDriverHelper.shared.dispatchUpdate(context: context)
+                        }
                     }
-                }
-                return kCVReturnSuccess
-            }, nil)
+                    return kCVReturnSuccess
+                }, nil)
             CVDisplayLinkStart(displayLink)
         }
 

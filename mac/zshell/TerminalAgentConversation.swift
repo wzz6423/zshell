@@ -10,17 +10,20 @@ extension TerminalSession {
             if let fork = agentConversationForkProcess {
                 if !fork.isAlive { agentConversationForkSource = nil; agentConversationForkProcess = nil }
             } else if ZshellAgentKind(rawValue: source.provider.rawValue).map(isAutomationAgentRunning(kind:)) == true,
-                      let foreground = surface.foregroundPid {
+                let foreground = surface.foregroundPid
+            {
                 agentConversationForkProcess = ZshellAgentProcessIdentity(pid: foreground)
             }
         }
         if let owner = agentConversationOwner,
-           !owner.isAlive || ZshellAgentKind.recognizeBuiltin(processID: owner.pid)?.rawValue != agentResume?.provider.rawValue {
+            !owner.isAlive || ZshellAgentKind.recognizeBuiltin(processID: owner.pid)?.rawValue != agentResume?.provider.rawValue
+        {
             recordAgentConversation(nil, processID: nil)
         } else if let deadline = agentConversationResumeDeadline,
-                  Date() >= deadline, let identity = agentResume,
-                  ZshellAgentKind(rawValue: identity.provider.rawValue)
-                    .map(isAutomationAgentRunning(kind:)) != true {
+            Date() >= deadline, let identity = agentResume,
+            ZshellAgentKind(rawValue: identity.provider.rawValue)
+                .map(isAutomationAgentRunning(kind:)) != true
+        {
             recordAgentConversation(nil, processID: nil)
         }
     }
@@ -29,24 +32,28 @@ extension TerminalSession {
         guard !hasExited, let current = agentResume, current.matchesConversation(identity) else { return false }
         if remoteConnection != nil { return remoteStatus?.state == .connected }
         if let owner = agentConversationOwner, owner.isAlive,
-           ZshellAgentKind.recognizeBuiltin(processID: owner.pid)?.rawValue == identity.provider.rawValue { return true }
+            ZshellAgentKind.recognizeBuiltin(processID: owner.pid)?.rawValue == identity.provider.rawValue
+        {
+            return true
+        }
         guard let deadline = agentConversationResumeDeadline else { return false }
-        return Date() < deadline || ZshellAgentKind(rawValue: identity.provider.rawValue)
-            .map(isAutomationAgentRunning(kind:)) == true
+        return Date() < deadline
+            || ZshellAgentKind(rawValue: identity.provider.rawValue)
+                .map(isAutomationAgentRunning(kind:)) == true
     }
 
     func acceptAgentConversation(_ event: AgentConversationSessionEvent, peerProcessID: pid_t?) -> Bool {
         guard AppSettings.shared.aiEnabled, !hasExited,
-              let shellPID = shellPid,
-              let foregroundPID = surface.foregroundPid,
-              let agentPID = AgentConversationBinding.reportingRootAgentPID(
+            let shellPID = shellPid,
+            let foregroundPID = surface.foregroundPid,
+            let agentPID = AgentConversationBinding.reportingRootAgentPID(
                 peerPID: peerProcessID,
                 reporterPID: event.reporterPID,
                 shellPID: shellPID,
                 foregroundPID: foregroundPID,
                 provider: event.identity.provider,
                 process: Self.conversationProcessEvidence
-              )
+            )
         else { return false }
 
         let identity = AgentConversationIdentity(
@@ -59,7 +66,7 @@ extension TerminalSession {
             configurationEnvironment: event.identity.configurationEnvironment
         )
         guard let identity,
-              identity.provider != .opencode || !Self.openCodeIsAttached(agentPID)
+            identity.provider != .opencode || !Self.openCodeIsAttached(agentPID)
         else { return false }
         return recordAgentConversation(identity, processID: agentPID)
     }
@@ -68,18 +75,18 @@ extension TerminalSession {
         provider: AgentConversationIdentity.Provider, reporterPID: Int32, peerProcessID: pid_t?
     ) -> Bool {
         guard AppSettings.shared.aiEnabled, !hasExited,
-              let shellPID = shellPid,
-              let foregroundPID = surface.foregroundPid,
-              let agentPID = AgentConversationBinding.reportingRootAgentPID(
+            let shellPID = shellPid,
+            let foregroundPID = surface.foregroundPid,
+            let agentPID = AgentConversationBinding.reportingRootAgentPID(
                 peerPID: peerProcessID,
                 reporterPID: reporterPID,
                 shellPID: shellPID,
                 foregroundPID: foregroundPID,
                 provider: provider,
                 process: Self.conversationProcessEvidence
-              ),
-              agentResume == nil || agentResume?.provider == provider,
-              agentConversationProcessID == nil || agentConversationProcessID == agentPID
+            ),
+            agentResume == nil || agentResume?.provider == provider,
+            agentConversationProcessID == nil || agentConversationProcessID == agentPID
         else { return false }
         recordAgentConversation(nil, processID: nil)
         return true
@@ -92,17 +99,18 @@ extension TerminalSession {
             return !hasExited && (remoteStatus?.state == .connected || remoteStatus?.state == .failed) ? agentResume : nil
         }
         guard !hasExited, let identity = agentResume,
-              let processID = agentConversationProcessID,
-              let shellPID = shellPid,
-              let foregroundPID = surface.foregroundPid,
-              (identity.provider != .opencode || !Self.openCodeIsAttached(processID)),
-              AgentConversationBinding.rootAgentPID(
+            let processID = agentConversationProcessID,
+            let shellPID = shellPid,
+            let foregroundPID = surface.foregroundPid,
+            (identity.provider != .opencode || !Self.openCodeIsAttached(processID)),
+            AgentConversationBinding.rootAgentPID(
                 reporterPID: processID,
                 shellPID: shellPID,
                 foregroundPID: foregroundPID,
                 provider: identity.provider,
                 process: Self.conversationProcessEvidence
-              ) == processID else { return nil }
+            ) == processID
+        else { return nil }
         return identity
     }
 
@@ -119,13 +127,15 @@ extension TerminalSession {
             parentPID: parent,
             groupID: getpgid(pid),
             provider: kind.flatMap { AgentConversationIdentity.Provider(rawValue: $0.rawValue) },
-            isProviderLauncher: kind == .codex && AgentConversationBinding.isCodexLauncher(
-                executablePath: processExecutablePath(pid: pid),
-                arguments: processArguments(pid: pid) ?? []
-            ),
-            isSharedService: kind == .codex && AgentConversationBinding.isSharedCodexService(
-                arguments: processArguments(pid: pid) ?? []
-            )
+            isProviderLauncher: kind == .codex
+                && AgentConversationBinding.isCodexLauncher(
+                    executablePath: processExecutablePath(pid: pid),
+                    arguments: processArguments(pid: pid) ?? []
+                ),
+            isSharedService: kind == .codex
+                && AgentConversationBinding.isSharedCodexService(
+                    arguments: processArguments(pid: pid) ?? []
+                )
         )
     }
 }

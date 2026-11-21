@@ -7,10 +7,10 @@ let parser = Parser()
 try parser.setLanguage(language)
 
 let source = """
-func example() {
-	SomeType.method()
-	variable.method()
-}
-"""
+    func example() {
+    \tSomeType.method()
+    \tvariable.method()
+    }
+    """
 
 let tree = parser.parse(source)!

@@ -44,8 +44,8 @@ private final class MetalFixture {
 
     init() {
         guard let device = MTLCreateSystemDefaultDevice(),
-              let renderer = TerminalMetalRenderer(device: device),
-              let event = device.makeSharedEvent()
+            let renderer = TerminalMetalRenderer(device: device),
+            let event = device.makeSharedEvent()
         else { preconditionFailure("A working Metal device is required") }
         self.device = device
         self.renderer = renderer
@@ -60,8 +60,9 @@ private final class MetalFixture {
         let result = device.makeBuffer(length: lease.buffer.length, options: .storageModeShared)!
         commands.encodeWaitForEvent(event, value: value)
         let blit = commands.makeBlitCommandEncoder()!
-        blit.copy(from: lease.buffer, sourceOffset: 0, to: result,
-                  destinationOffset: 0, size: lease.buffer.length)
+        blit.copy(
+            from: lease.buffer, sourceOffset: 0, to: result,
+            destinationOffset: 0, size: lease.buffer.length)
         blit.endEncoding()
         lease.releaseWhenCompleted(by: commands)
         commands.commit()
@@ -172,8 +173,9 @@ struct TerminalMetalBufferTests {
                     let channel: Float = ratio == 1 ? Float(0x18) / 255 : 1
                     let expected = SIMD4<Float>(channel, channel, channel, 1)
                     precondition(prepared.glyphs > 0 && prepared.colors.count >= 3)
-                    precondition(prepared.colors.allSatisfy { $0 == expected },
-                                 "Contrast changes must refresh shaped glyphs, overhangs, and decorations without VT damage")
+                    precondition(
+                        prepared.colors.allSatisfy { $0 == expected },
+                        "Contrast changes must refresh shaped glyphs, overhangs, and decorations without VT damage")
                 }
             }
         }
@@ -189,7 +191,7 @@ struct TerminalMetalBufferTests {
         precondition(first.buffer !== second.buffer, "In-flight frames shared one buffer")
 
         let wakeups = CompletionCount()
-        for _ in 0..<10 {
+        for _ in 0 ..< 10 {
             precondition(fixture.renderer.testUploadOrigins([99], onAvailable: { wakeups.increment() }) == nil)
         }
         precondition(wakeups.value == 0)
@@ -262,7 +264,7 @@ struct TerminalMetalBufferTests {
         precondition(completed.wait(timeout: .now() + 2) == .success)
         precondition(result.lease?.buffer.length ?? 0 >= 128)
 
-        for _ in 0..<100 {
+        for _ in 0 ..< 100 {
             let racePool = TerminalInstanceBufferPool(device: fixture.device, maximumBufferCount: 1)
             let returned = DispatchSemaphore(value: 0)
             let release = DispatchSemaphore(value: 0)
@@ -291,7 +293,7 @@ struct TerminalMetalBufferTests {
         let fixture = MetalFixture()
         let layer = fixture.layer()
         guard let first = layer.nextDrawable(), let second = layer.nextDrawable(),
-              let third = layer.nextDrawable()
+            let third = layer.nextDrawable()
         else { preconditionFailure("Metal drawables are required") }
         let firstTexture = first.texture
         let secondTexture = second.texture
@@ -321,14 +323,15 @@ struct TerminalMetalBufferTests {
             var snapshot = ZshellSnapshot()
             snapshot.cursor_line = -1
             snapshot.cursor_column = -1
-            precondition(renderer.render(
-                snapshot: snapshot, markedText: nil, kittyPlacements: [],
-                metrics: AlacrittyMetrics(
-                    family: "", fallbackFamily: "", size: 13, fontThicken: false,
-                    fontThickenStrength: 0, lineHeight: 1
-                ), padding: .zero, scale: 1, backgroundOpacity: 1, dirtyRows: nil,
-                in: empty, viewportSize: CGSize(width: 64, height: 64), waitUntilCompleted: true
-            ), "An empty frame must render even when all buffers are leased")
+            precondition(
+                renderer.render(
+                    snapshot: snapshot, markedText: nil, kittyPlacements: [],
+                    metrics: AlacrittyMetrics(
+                        family: "", fallbackFamily: "", size: 13, fontThicken: false,
+                        fontThickenStrength: 0, lineHeight: 1
+                    ), padding: .zero, scale: 1, backgroundOpacity: 1, dirtyRows: nil,
+                    in: empty, viewportSize: CGSize(width: 64, height: 64), waitUntilCompleted: true
+                ), "An empty frame must render even when all buffers are leased")
             withExtendedLifetime((firstLease, secondLease)) {}
         }
         print("PASS: production render keeps separate pixels and synchronous/empty frames work")
@@ -352,8 +355,9 @@ struct TerminalMetalBufferTests {
             command.encodeWaitForEvent(event, value: 1)
             let readback = device.makeBuffer(length: first.buffer.length, options: .storageModeShared)!
             let blit = command.makeBlitCommandEncoder()!
-            blit.copy(from: first.buffer, sourceOffset: 0, to: readback,
-                      destinationOffset: 0, size: first.buffer.length)
+            blit.copy(
+                from: first.buffer, sourceOffset: 0, to: readback,
+                destinationOffset: 0, size: first.buffer.length)
             blit.endEncoding()
             first.releaseWhenCompleted(by: command)
             command.addCompletedHandler { _ in done.signal() }
@@ -374,7 +378,7 @@ struct TerminalMetalBufferTests {
         let fixture = MetalFixture()
         let layer = fixture.layer()
         guard let first = layer.nextDrawable(), let second = layer.nextDrawable(),
-              let frozen = layer.nextDrawable()
+            let frozen = layer.nextDrawable()
         else { preconditionFailure("Metal drawables are required") }
         let frozenTexture = frozen.texture
         let blocker = fixture.renderer.testQueue.makeCommandBuffer()!

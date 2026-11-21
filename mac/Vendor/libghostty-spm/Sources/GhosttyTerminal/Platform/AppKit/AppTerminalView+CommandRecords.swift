@@ -35,8 +35,9 @@
             func position(_ value: ghostty_command_position_s) -> TerminalSemanticCommandPosition {
                 .init(row: value.row, column: value.column)
             }
-            return .init(prompt: position(result.prompt), input: position(result.input),
-                         output: position(result.output), end: position(result.end))
+            return .init(
+                prompt: position(result.prompt), input: position(result.input),
+                output: position(result.output), end: position(result.end))
         }
 
         public func semanticCommandText(id: UInt64, part: UInt8) -> String? {

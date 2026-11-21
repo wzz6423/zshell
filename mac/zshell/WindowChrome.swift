@@ -83,13 +83,14 @@ struct WindowChromeAccessor: NSViewRepresentable {
                 NSWindow.didExitFullScreenNotification,
             ]
             for name in names {
-                observers.append(NotificationCenter.default.addObserver(
-                    forName: name, object: window, queue: .main
-                ) { [weak self] _ in
-                    MainActor.assumeIsolated {
-                        self?.reposition()
-                    }
-                })
+                observers.append(
+                    NotificationCenter.default.addObserver(
+                        forName: name, object: window, queue: .main
+                    ) { [weak self] _ in
+                        MainActor.assumeIsolated {
+                            self?.reposition()
+                        }
+                    })
             }
         }
 
@@ -120,7 +121,7 @@ struct WindowChromeAccessor: NSViewRepresentable {
             let types: [NSWindow.ButtonType] = [.closeButton, .miniaturizeButton, .zoomButton]
             for (index, type) in types.enumerated() {
                 guard let button = window.standardWindowButton(type),
-                      let superview = button.superview
+                    let superview = button.superview
                 else { continue }
                 let centerInWindow = NSPoint(
                     x: WindowChromeAccessor.buttonLeading + CGFloat(index) * WindowChromeAccessor.buttonSpacing + button.frame.width / 2,
@@ -158,9 +159,11 @@ struct WindowDragArea: View {
         Color.clear
             .contentShape(Rectangle())
             .gesture(WindowDragGesture())
-            .simultaneousGesture(TapGesture(count: 2).onEnded {
-                NSApp.keyWindow?.performTitlebarDoubleClickAction()
-            })
+            .simultaneousGesture(
+                TapGesture(count: 2).onEnded {
+                    NSApp.keyWindow?.performTitlebarDoubleClickAction()
+                }
+            )
             .allowsWindowActivationEvents()
     }
 }

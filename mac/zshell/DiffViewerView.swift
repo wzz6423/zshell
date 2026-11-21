@@ -43,7 +43,8 @@ private final class DiffViewPreferences: ObservableObject {
     private init() {
         let defaults = UserDefaults.standard
         if let rawValue = defaults.string(forKey: Self.layoutKey),
-           let style = DiffStyle(rawValue: rawValue) {
+            let style = DiffStyle(rawValue: rawValue)
+        {
             diffStyle = style
         } else {
             diffStyle = .unified
@@ -209,26 +210,31 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         reviewActionObservation = NotificationCenter.default.publisher(for: Self.pullRequestReviewDidChange)
             .sink { [weak self] notification in
                 guard let self, let url = notification.object as? String,
-                      self.currentPullRequestIdentity?.url == url else { return }
+                    self.currentPullRequestIdentity?.url == url
+                else { return }
                 self.pullRequestReviewController?.discussionDidChange()
                 if self.showsPullRequestComments || self.pullRequestReviewController?.window?.isVisible == true {
                     self.showPullRequestComments(force: true, preserveVisibility: true)
-                }
-                else {
+                } else {
                     self.pullRequestGeneration &+= 1
                     self.pullRequestReviewState = .idle
                 }
             }
         pullRequestWeb.onAnnotationClick = { [weak self] id in
             guard let self, case .ready(let file) = self.pullRequestReviewState,
-                  file.identity == self.currentPullRequestIdentity,
-                  let thread = file.threads.first(where: { $0.comments.nodes.contains { $0.id == id } }) else { return }
+                file.identity == self.currentPullRequestIdentity,
+                let thread = file.threads.first(where: { $0.comments.nodes.contains { $0.id == id } })
+            else { return }
             self.showPullRequestReview(threadID: thread.id)
         }
         self.draftID = EditorDraftStore.shared.register(draftID, owner: id) { [weak self] in self?.draftSnapshot() }
         if recoveringDraft, AppSettings.shared.recoverEditorDrafts, !staged,
-           commitHash == nil, treeComparison == nil { recoverDraft(id: draftID) }
-        else { reload() }
+            commitHash == nil, treeComparison == nil
+        {
+            recoverDraft(id: draftID)
+        } else {
+            reload()
+        }
     }
 
     var name: String {
@@ -277,7 +283,8 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             let result = await Task.detached(priority: .userInitiated) {
                 var failureVar: String?
                 var baseline: FileSaveSnapshot?
-                let unmerged = commitHash == nil && treeComparison == nil && !staged
+                let unmerged =
+                    commitHash == nil && treeComparison == nil && !staged
                     && Self.isUnmerged(path: path, in: root)
                 let old: GitContent
                 let new: GitContent
@@ -297,13 +304,15 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                         // An unmerged index has no stage-0 `:path`. Prefer our
                         // side, then the merge base, so conflict rows show a
                         // meaningful before-side instead of the whole file as new.
-                        old = Self.firstGitContent([
-                            ":\(oldPath)", ":2:\(oldPath)", ":1:\(oldPath)", "HEAD:\(oldPath)",
-                        ], in: root)
+                        old = Self.firstGitContent(
+                            [
+                                ":\(oldPath)", ":2:\(oldPath)", ":1:\(oldPath)", "HEAD:\(oldPath)",
+                            ], in: root)
                     }
                     new = Self.readWorktreeContent(root: root, path: path, baseline: &baseline, error: &failureVar)
                 }
-                let editable = commitHash == nil && treeComparison == nil && !staged
+                let editable =
+                    commitHash == nil && treeComparison == nil && !staged
                     && Self.isEditableWorktreeFile(root: root, path: path)
                 let reviewKey = DiffReviewKey(
                     repositoryRoot: root,
@@ -384,7 +393,8 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             if draft != nil { self.discardDraftBackup() }
             self.saveError = nil
             if self.commitHash == nil, self.treeComparison == nil, result.failure == nil,
-               failure == nil, hasChanges, let fingerprint = result.fingerprint {
+                failure == nil, hasChanges, let fingerprint = result.fingerprint
+            {
                 let snapshot = DiffReviewSnapshot(
                     key: result.reviewKey,
                     fingerprint: fingerprint
@@ -435,7 +445,8 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             return ProjectPullRequestReviewIdentity(pr, context: context)
         }
         if case .loading = pullRequest.state, let identity = pullRequestIdentity,
-           pullRequest.context == identity.context {
+            pullRequest.context == identity.context
+        {
             return identity
         }
         return nil
@@ -462,7 +473,8 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             let verified = await Task.detached(priority: .utility) { GitStatusModel.branchSnapshot(in: root) }.value
             guard let self, self.pullRequestGeneration == generation, self.currentPullRequestIdentity == identity else { return }
             guard case .repository(let snapshot) = verified,
-                  case .context(let current) = ProjectPullRequestContext.resolve(snapshot), current == identity.context else {
+                case .context(let current) = ProjectPullRequestContext.resolve(snapshot), current == identity.context
+            else {
                 self.pullRequestReviewState = .failed(.changed)
                 self.pullRequest.refresh()
                 return
@@ -470,7 +482,8 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             self.pullRequestReviewState = result
             if case .ready(let file) = result {
                 if self.pullRequestWeb.fileID != file.path || self.pullRequestWeb.oldContent != file.oldContents
-                    || self.pullRequestWeb.newContent != file.newContents || self.pullRequestWeb.annotations != file.annotations {
+                    || self.pullRequestWeb.newContent != file.newContents || self.pullRequestWeb.annotations != file.annotations
+                {
                     self.pullRequestWeb.isReady = false
                 }
                 self.pullRequestWeb.fileID = file.path
@@ -494,9 +507,13 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     func showPullRequestReview(threadID: String? = nil) {
         guard case .ready(let file) = pullRequestReviewState,
-              file.identity == currentPullRequestIdentity else { return }
-        if let controller = pullRequestReviewController { controller.select(file: file, threadID: threadID) }
-        else { pullRequestReviewController = ProjectPullRequestReviewController(diff: self, file: file, threadID: threadID) }
+            file.identity == currentPullRequestIdentity
+        else { return }
+        if let controller = pullRequestReviewController {
+            controller.select(file: file, threadID: threadID)
+        } else {
+            pullRequestReviewController = ProjectPullRequestReviewController(diff: self, file: file, threadID: threadID)
+        }
         pullRequestReviewController?.present(from: pullRequestWebHostView?.window)
     }
 
@@ -512,8 +529,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             reloadGeneration &+= 1
             isLoading = false
         }
-        if isDirty { EditorDraftStore.shared.schedule(draftID) }
-        else { EditorDraftStore.shared.remove(draftID) }
+        if isDirty { EditorDraftStore.shared.schedule(draftID) } else { EditorDraftStore.shared.remove(draftID) }
     }
 
     /// Once Pierre has torn down its editor, publish the final buffer so the
@@ -562,8 +578,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                 saveBaseline = snapshot
                 savedNewContent = draft
                 isDirty = editedNewContent != draft
-                if isDirty { EditorDraftStore.shared.schedule(draftID) }
-                else { EditorDraftStore.shared.remove(draftID) }
+                if isDirty { EditorDraftStore.shared.schedule(draftID) } else { EditorDraftStore.shared.remove(draftID) }
                 saveError = nil
                 return !isDirty
             case .reload:
@@ -600,17 +615,21 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     func draftSnapshot() -> EditorDraftRecord? {
         guard isEditable, isDirty, editedNewContent != discardedDraftText, let saveBaseline,
-              commitHash == nil, treeComparison == nil, !staged else { return nil }
-        return EditorDraftRecord(id: draftID,
+            commitHash == nil, treeComparison == nil, !staged
+        else { return nil }
+        return EditorDraftRecord(
+            id: draftID,
             source: .diff(repoRoot: repoRoot, path: path, untracked: untracked, originalPath: origPath),
             text: editedNewContent, baseline: saveBaseline,
-            diffState: .init(oldText: web.oldContent, style: diffStyle.rawValue,
-                             editing: isEditing, editor: editorState))
+            diffState: .init(
+                oldText: web.oldContent, style: diffStyle.rawValue,
+                editing: isEditing, editor: editorState))
     }
 
     func restoreDraft(_ record: EditorDraftRecord) {
         guard record.isValid, case .diff(let root, let path, _, _) = record.source,
-              root == repoRoot, path == self.path, let state = record.diffState else { return }
+            root == repoRoot, path == self.path, let state = record.diffState
+        else { return }
         if let style = DiffStyle(rawValue: state.style) { DiffViewPreferences.shared.diffStyle = style }
         DiffViewPreferences.shared.prefersEditing = state.editing
         web.oldContent = state.oldText
@@ -634,8 +653,12 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             self.isRestoringDraft = false
             guard AppSettings.shared.recoverEditorDrafts else { self.reload(); return }
             if let record, case .diff(let root, let path, _, _) = record.source,
-               root == self.repoRoot, path == self.path { self.restoreDraft(record) }
-            else { self.reload() }
+                root == self.repoRoot, path == self.path
+            {
+                self.restoreDraft(record)
+            } else {
+                self.reload()
+            }
         }
     }
 
@@ -686,7 +709,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     private nonisolated static func isImagePath(_ path: String) -> Bool {
         let pathExtension = URL(fileURLWithPath: path).pathExtension
         guard !pathExtension.isEmpty,
-              let type = UTType(filenameExtension: pathExtension)
+            let type = UTType(filenameExtension: pathExtension)
         else { return false }
         return type.conforms(to: .image)
     }
@@ -730,7 +753,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         guard run.status == 0 else { return .missing }
         guard run.stdout.count <= maxBytes else { return .tooLarge }
         guard !run.stdout.contains(0),
-              let content = String(data: run.stdout, encoding: .utf8)
+            let content = String(data: run.stdout, encoding: .utf8)
         else {
             return .binary(run.stdout)
         }
@@ -777,7 +800,8 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                 let chunk: Data
                 do {
                     guard let next = try stdout.fileHandleForReading.read(upToCount: 64 * 1024),
-                          !next.isEmpty else { break }
+                        !next.isEmpty
+                    else { break }
                     chunk = next
                 } catch {
                     break
@@ -819,8 +843,8 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     private nonisolated static func isEditableWorktreeFile(root: String, path: String) -> Bool {
         let url = URL(fileURLWithPath: root, isDirectory: true).appendingPathComponent(path)
         guard (try? FileManager.default.destinationOfSymbolicLink(atPath: url.path)) == nil,
-              let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
-              (attributes[.type] as? FileAttributeType) == .typeRegular
+            let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+            (attributes[.type] as? FileAttributeType) == .typeRegular
         else { return false }
         return true
     }
@@ -845,13 +869,14 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             }
             guard let data = snapshot.data else { return .tooLarge }
             guard !data.contains(0),
-                  let text = String(data: data, encoding: .utf8)
+                let text = String(data: data, encoding: .utf8)
             else {
                 return .binary(data)
             }
             return .content(text)
         } catch let readError as CocoaError
-            where readError.code == .fileNoSuchFile || readError.code == .fileReadNoSuchFile {
+            where readError.code == .fileNoSuchFile || readError.code == .fileReadNoSuchFile
+        {
             // Deleted from the worktree: an empty "after" side is the diff.
             return .missing
         } catch let fileError {
@@ -966,9 +991,13 @@ private final class DiffWebHostingView: NSView {
 
     private func updateRenderer() {
         let preferences = DiffViewPreferences.shared, settings = AppSettings.shared
-        renderer.update(files: [PierreDiffFile(id: model.fileID, name: model.fileName,
-            oldName: model.oldFileName, oldContents: model.oldContent, newContents: model.newContent,
-            isEditable: model.canEdit && preferences.prefersEditing, annotations: model.annotations)],
+        renderer.update(
+            files: [
+                PierreDiffFile(
+                    id: model.fileID, name: model.fileName,
+                    oldName: model.oldFileName, oldContents: model.oldContent, newContents: model.newContent,
+                    isEditable: model.canEdit && preferences.prefersEditing, annotations: model.annotations)
+            ],
             diffStyle: preferences.diffStyle, overflowMode: model.overflowMode,
             renderOptions: DiffFont.renderOptions(family: settings.fontFamily, size: settings.fontSize),
             usesDarkAppearance: model.usesDarkAppearance)
@@ -1221,7 +1250,8 @@ final class DiffViewerNSView: NSView {
                 .sink { [weak self] _ in self?.scheduleUpdate() },
             Timer.publish(every: 60, on: .main, in: .common).autoconnect().sink { [weak self] _ in
                 guard let self, self.selected, self.window != nil,
-                      self.diff.commitHash == nil, self.diff.treeComparison == nil else { return }
+                    self.diff.commitHash == nil, self.diff.treeComparison == nil
+                else { return }
                 self.diff.pullRequest.sync(directory: self.diff.repoRoot)
             },
         ]
@@ -1243,7 +1273,8 @@ final class DiffViewerNSView: NSView {
         super.layout()
         var top: CGFloat = 0
         for banner in [conflict, saveError, notice] where !banner.isHidden {
-            let height = banner === notice ? max(28, banner.sizeThatFits(NSSize(width: max(0, bounds.width - 20), height: 200)).height + 12) : 28
+            let height =
+                banner === notice ? max(28, banner.sizeThatFits(NSSize(width: max(0, bounds.width - 20), height: 200)).height + 12) : 28
             banner.frame = NSRect(x: 10, y: top + 6, width: max(0, bounds.width - 20), height: height - 12)
             top += height
         }
@@ -1252,9 +1283,12 @@ final class DiffViewerNSView: NSView {
         content.frame = NSRect(x: 0, y: top, width: bounds.width, height: max(0, bounds.height - top))
         if shownContent === placeholder {
             let size = placeholder.sizeThatFits(NSSize(width: max(0, content.bounds.width - 48), height: 300))
-            placeholder.frame = NSRect(x: 24, y: (content.bounds.height - size.height) / 2,
+            placeholder.frame = NSRect(
+                x: 24, y: (content.bounds.height - size.height) / 2,
                 width: max(0, content.bounds.width - 48), height: size.height)
-        } else { shownContent?.frame = content.bounds }
+        } else {
+            shownContent?.frame = content.bounds
+        }
         skeleton.frame = content.bounds
     }
 
@@ -1276,7 +1310,8 @@ final class DiffViewerNSView: NSView {
     private func updateContent() {
         let prMode = diff.showsPullRequestComments
         let snapshot = prMode ? nil : diff.reviewSnapshot
-        controls.update(diffStyle: diff.diffStyle,
+        controls.update(
+            diffStyle: diff.diffStyle,
             wrapsLines: AppSettings.shared.diffWrapLines,
             isEditing: diff.isEditable && DiffViewPreferences.shared.prefersEditing,
             canEdit: diff.isEditable && !prMode,
@@ -1295,17 +1330,17 @@ final class DiffViewerNSView: NSView {
             },
             onComments: { [weak diff] in
                 guard let diff else { return }
-                if diff.showsPullRequestComments { diff.hidePullRequestComments() }
-                else { diff.showPullRequestComments() }
+                if diff.showsPullRequestComments { diff.hidePullRequestComments() } else { diff.showPullRequestComments() }
             },
             onRefreshComments: { [weak diff] in diff?.showPullRequestComments(force: true) },
             onPullRequestReview: { [weak diff] in diff?.showPullRequestReview() })
         conflict.isHidden = prMode || !diff.isUnmerged
         conflict.stringValue = String(localized: "Unresolved merge conflict")
         saveError.isHidden = diff.saveError == nil
-        saveError.stringValue = diff.saveError.map {
-            String(localized: "Could not save: \($0)", comment: "Diff save error with system details.")
-        } ?? ""
+        saveError.stringValue =
+            diff.saveError.map {
+                String(localized: "Could not save: \($0)", comment: "Diff save error with system details.")
+            } ?? ""
         notice.isHidden = true
         if prMode {
             switch diff.pullRequestReviewState {
@@ -1325,8 +1360,11 @@ final class DiffViewerNSView: NSView {
                 if file.annotations.isEmpty { messages.append(String(localized: "No PR comments for this file")) }
                 notice.stringValue = messages.joined(separator: " · ")
                 notice.isHidden = false
-                if let host = diff.pullRequestWebHostView { show(host, ready: diff.pullRequestWeb.isReady) }
-                else { show(skeleton, ready: true) }
+                if let host = diff.pullRequestWebHostView {
+                    show(host, ready: diff.pullRequestWeb.isReady)
+                } else {
+                    show(skeleton, ready: true)
+                }
             }
         } else if let error = diff.error {
             showPlaceholder(error)
@@ -1368,8 +1406,7 @@ final class DiffViewerNSView: NSView {
             view.autoresizingMask = [.width, .height]
             content.addSubview(view)
         }
-        if ready || view === skeleton { if view !== skeleton { skeleton.removeFromSuperview() } }
-        else { content.addSubview(skeleton) }
+        if ready || view === skeleton { if view !== skeleton { skeleton.removeFromSuperview() } } else { content.addSubview(skeleton) }
     }
 
     private func updateColors() {
@@ -1385,10 +1422,13 @@ private final class DiffSkeletonNSView: NSView {
         dirtyRect.fill()
         NSColor.labelColor.withAlphaComponent(0.05).setFill()
         let widths: [CGFloat] = [0.42, 0.62, 0.30, 0.55, 0.38, 0.50, 0.24, 0.16]
-        for row in 0..<24 {
+        for row in 0 ..< 24 {
             let y = CGFloat(row) * 18 + 16
-            NSBezierPath(roundedRect: NSRect(x: row % 8 == 0 ? 16 : 34, y: y,
-                width: bounds.width * widths[row % 8] * 0.55, height: 9), xRadius: 3, yRadius: 3).fill()
+            NSBezierPath(
+                roundedRect: NSRect(
+                    x: row % 8 == 0 ? 16 : 34, y: y,
+                    width: bounds.width * widths[row % 8] * 0.55, height: 9), xRadius: 3, yRadius: 3
+            ).fill()
         }
     }
 }
@@ -1584,11 +1624,13 @@ private final class DiffControlsNSView: NSView {
             (modeControl, [String(localized: "Review"), String(localized: "Edit")], ["eye", "pencil"]),
             (layoutControl, [String(localized: "Unified"), String(localized: "Split")], ["rectangle", "rectangle.split.2x1"]),
         ]
-        let trailingWidth = segments.reduce(CGFloat(0)) { total, entry in
-            let available = entry.0 === modeControl ? canEdit : showsLayout
-            return total + (available ? entry.1.reduce(CGFloat(0)) { $0 + width($1, hidden: false) } + 8 : 0)
-        } + (wrapLinesButton.isHidden ? 0 : 32)
-        let expandedWidth = width(reviewTitle, hidden: reviewButton.isHidden)
+        let trailingWidth =
+            segments.reduce(CGFloat(0)) { total, entry in
+                let available = entry.0 === modeControl ? canEdit : showsLayout
+                return total + (available ? entry.1.reduce(CGFloat(0)) { $0 + width($1, hidden: false) } + 8 : 0)
+            } + (wrapLinesButton.isHidden ? 0 : 32)
+        let expandedWidth =
+            width(reviewTitle, hidden: reviewButton.isHidden)
             + width(commentsTitle, hidden: commentsButton.isHidden)
             + (refreshButton.isHidden ? 0 : 32) + (pullRequestReviewButton.isHidden ? 0 : 32)
             + trailingWidth + 36
@@ -1596,20 +1638,23 @@ private final class DiffControlsNSView: NSView {
         let review = compact ? "" : reviewTitle, comments = compact ? "" : commentsTitle
         if reviewButton.title != review { reviewButton.title = review }
         if commentsButton.title != comments { commentsButton.title = comments }
-        let compactLeadingWidth: CGFloat = (reviewButton.isHidden ? 0 : 32) + (commentsButton.isHidden ? 0 : 32)
+        let compactLeadingWidth: CGFloat =
+            (reviewButton.isHidden ? 0 : 32) + (commentsButton.isHidden ? 0 : 32)
             + (refreshButton.isHidden ? 0 : 32) + (pullRequestReviewButton.isHidden ? 0 : 32)
         let compactSegments = bounds.width < compactLeadingWidth + trailingWidth + 36
         for (control, titles, symbols) in segments {
             for index in titles.indices {
                 let title = compactSegments ? "" : titles[index]
                 if control.label(forSegment: index) != title { control.setLabel(title, forSegment: index) }
-                control.setImage(compactSegments ? NSImage(systemSymbolName: symbols[index], accessibilityDescription: titles[index]) : nil,
+                control.setImage(
+                    compactSegments ? NSImage(systemSymbolName: symbols[index], accessibilityDescription: titles[index]) : nil,
                     forSegment: index)
                 control.setWidth(compactSegments ? 24 : 0, forSegment: index)
                 control.setToolTip(titles[index], forSegment: index)
             }
         }
-        let minimumWidth = compactLeadingWidth + (canEdit ? 68 : 0) + (showsLayout ? 68 : 0)
+        let minimumWidth =
+            compactLeadingWidth + (canEdit ? 68 : 0) + (showsLayout ? 68 : 0)
             + (wrapLinesButton.isHidden ? 0 : 32) + 36
         let usesMenu = bounds.width < minimumWidth
         leadingControls.isHidden = usesMenu
@@ -1659,10 +1704,14 @@ private final class DiffControlsNSView: NSView {
             item.isEnabled = enabled
             menu.addItem(item)
         }
-        if !reviewButton.isHidden { item(reviewTitle, tag: 0, checked: reviewButton.accessibilityValue() as? String == String(localized: "Reviewed")) }
+        if !reviewButton.isHidden {
+            item(reviewTitle, tag: 0, checked: reviewButton.accessibilityValue() as? String == String(localized: "Reviewed"))
+        }
         if !commentsButton.isHidden { item(commentsTitle, tag: 1) }
         if !refreshButton.isHidden { item(String(localized: "Refresh PR Comments"), tag: 2) }
-        if !pullRequestReviewButton.isHidden { item(String(localized: "Review Pull Request…"), tag: 3, enabled: pullRequestReviewButton.isEnabled) }
+        if !pullRequestReviewButton.isHidden {
+            item(String(localized: "Review Pull Request…"), tag: 3, enabled: pullRequestReviewButton.isEnabled)
+        }
         if !menu.items.isEmpty && (canEdit || showsLayout) { menu.addItem(.separator()) }
         if canEdit {
             item(String(localized: "Review"), tag: 4, checked: modeControl.selectedSegment == 0)

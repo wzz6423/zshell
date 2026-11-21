@@ -232,7 +232,7 @@ import Testing
 }
 
 @Test func lowercaseASCIIDigitsUnchanged() {
-    for digit: UInt8 in 0x30...0x39 { // '0' to '9'
+    for digit: UInt8 in 0x30 ... 0x39 { // '0' to '9'
         #expect(lowercaseASCII(digit) == digit)
     }
 }

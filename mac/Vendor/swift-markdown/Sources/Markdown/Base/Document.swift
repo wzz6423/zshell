@@ -43,8 +43,9 @@ public extension Document {
     ///   This need not be a file URL.
     init(parsing string: String, source: URL? = nil, options: ParseOptions = []) {
         if options.contains(.parseBlockDirectives) {
-            self = BlockDirectiveParser.parse(string, source: source,
-                                              options: options)
+            self = BlockDirectiveParser.parse(
+                string, source: source,
+                options: options)
         } else {
             self = MarkupParser.parseString(string, source: source, options: options)
         }
@@ -57,8 +58,9 @@ public extension Document {
     init(parsing file: URL, options: ParseOptions = []) throws {
         let string = try String(contentsOf: file)
         if options.contains(.parseBlockDirectives) {
-            self = BlockDirectiveParser.parse(string, source: file,
-                                              options: options)
+            self = BlockDirectiveParser.parse(
+                string, source: file,
+                options: options)
         } else {
             self = MarkupParser.parseString(string, source: file, options: options)
         }

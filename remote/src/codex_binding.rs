@@ -16,30 +16,62 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TitleEvidence { pub prefix: String }
+pub struct TitleEvidence {
+    pub prefix: String,
+}
 
 impl TitleEvidence {
     pub fn parse(title: &str) -> Option<Self> {
-        if !valid_text(title, 4096) { return None; }
+        if !valid_text(title, 4096) {
+            return None;
+        }
         let bytes = title.as_bytes();
         let mut prefixes = Vec::new();
         let token_char = |byte: u8| byte.is_ascii_hexdigit() || byte == b'-' || byte == b'.';
         for start in 0..bytes.len() {
-            if start > 0 && (bytes[start - 1].is_ascii_hexdigit() || bytes[start - 1] == b'-') { continue; }
+            if start > 0 && (bytes[start - 1].is_ascii_hexdigit() || bytes[start - 1] == b'-') {
+                continue;
+            }
             for length in [36, 32] {
-                if start + length > bytes.len() { continue; }
+                if start + length > bytes.len() {
+                    continue;
+                }
                 let token = &bytes[start..start + length];
-                if start + length < bytes.len() && token_char(bytes[start + length]) { continue; }
+                if start + length < bytes.len() && token_char(bytes[start + length]) {
+                    continue;
+                }
                 let count = if length == 32 { 29 } else { 36 };
-                if length == 32 && &token[29..] != b"..." { continue; }
-                if !(0..count).all(|index| if [8, 13, 18, 23].contains(&index) { token[index] == b'-' } else { token[index].is_ascii_hexdigit() }) { continue; }
-                prefixes.push(String::from_utf8(token[..count].to_vec()).ok()?.to_ascii_lowercase());
+                if length == 32 && &token[29..] != b"..." {
+                    continue;
+                }
+                if !(0..count).all(|index| {
+                    if [8, 13, 18, 23].contains(&index) {
+                        token[index] == b'-'
+                    } else {
+                        token[index].is_ascii_hexdigit()
+                    }
+                }) {
+                    continue;
+                }
+                prefixes.push(
+                    String::from_utf8(token[..count].to_vec())
+                        .ok()?
+                        .to_ascii_lowercase(),
+                );
                 break;
             }
         }
-        if prefixes.len() == 1 { Some(Self { prefix: prefixes.remove(0) }) } else { None }
+        if prefixes.len() == 1 {
+            Some(Self {
+                prefix: prefixes.remove(0),
+            })
+        } else {
+            None
+        }
     }
-    pub fn matches(&self, full_id: &str) -> bool { is_uuid(full_id) && full_id.to_ascii_lowercase().starts_with(&self.prefix) }
+    pub fn matches(&self, full_id: &str) -> bool {
+        is_uuid(full_id) && full_id.to_ascii_lowercase().starts_with(&self.prefix)
+    }
 }
 
 struct Entry {
@@ -52,15 +84,28 @@ struct Entry {
 }
 
 #[derive(Default)]
-struct State { entries: Vec<Entry>, next_revision: u64 }
+struct State {
+    entries: Vec<Entry>,
+    next_revision: u64,
+}
 
 #[derive(Default)]
-pub struct Bindings { state: Mutex<State> }
+pub struct Bindings {
+    state: Mutex<State>,
+}
 
 impl Bindings {
-    pub fn accept(&self, hook: &Hook, peer: Option<i32>, sessions: &[Arc<Session>]) -> io::Result<()> {
-        if hook.provider != "codex" { return Err(invalid("Only Codex has a shared native hook service")); }
-        let service = peer.and_then(|peer| agent_process::shared_codex_service(peer, hook.reporter_pid))
+    pub fn accept(
+        &self,
+        hook: &Hook,
+        peer: Option<i32>,
+        sessions: &[Arc<Session>],
+    ) -> io::Result<()> {
+        if hook.provider != "codex" {
+            return Err(invalid("Only Codex has a shared native hook service"));
+        }
+        let service = peer
+            .and_then(|peer| agent_process::shared_codex_service(peer, hook.reporter_pid))
             .ok_or_else(|| invalid("Shared hook requires the native Codex service process"))?;
         let mut state = self.state.lock().unwrap();
         Self::prune(&mut state.entries, sessions);
@@ -69,26 +114,63 @@ impl Bindings {
         let entries = &mut state.entries;
         if let Some(identity) = &hook.identity {
             identity.validate()?;
-            if identity.provider != "codex" || hook.event != "SessionStart" || hook.task_id.is_some()
-                || !is_uuid(&identity.session_id) { return Err(invalid("Shared binding requires a root Codex SessionStart")); }
+            if identity.provider != "codex"
+                || hook.event != "SessionStart"
+                || hook.task_id.is_some()
+                || !is_uuid(&identity.session_id)
+            {
+                return Err(invalid("Shared binding requires a root Codex SessionStart"));
+            }
             let record = hook.record("idle")?;
-            if let Some(entry) = entries.iter_mut().find(|entry| entry.identity == *identity && entry.service == service) {
+            if let Some(entry) = entries
+                .iter_mut()
+                .find(|entry| entry.identity == *identity && entry.service == service)
+            {
                 entry.updated = Instant::now();
-                entry.records.apply(record); entry.revision = revision; entry.ending = false;
+                entry.records.apply(record);
+                entry.revision = revision;
+                entry.ending = false;
             } else {
-                if entries.len() == 200 { entries.remove(0); }
-                let mut records = Records::default(); records.apply(record);
-                entries.push(Entry { identity: identity.clone(), service, updated: Instant::now(), records, revision, ending: false });
+                if entries.len() == 200 {
+                    entries.remove(0);
+                }
+                let mut records = Records::default();
+                records.apply(record);
+                entries.push(Entry {
+                    identity: identity.clone(),
+                    service,
+                    updated: Instant::now(),
+                    records,
+                    revision,
+                    ending: false,
+                });
             }
             Self::reconcile_entries(entries, sessions);
             return Ok(());
         }
-        let id = hook.conversation_id.as_deref().filter(|id| is_uuid(id)).ok_or_else(|| invalid("Shared lifecycle requires the full provider conversation ID"))?;
-        let candidates: Vec<_> = entries.iter().enumerate().filter(|(_, entry)| entry.service == service && entry.identity.session_id == id).map(|(index, _)| index).collect();
-        if candidates.len() != 1 { return Err(invalid("Shared conversation is ambiguous or no longer bound")); }
+        let id = hook
+            .conversation_id
+            .as_deref()
+            .filter(|id| is_uuid(id))
+            .ok_or_else(|| {
+                invalid("Shared lifecycle requires the full provider conversation ID")
+            })?;
+        let candidates: Vec<_> = entries
+            .iter()
+            .enumerate()
+            .filter(|(_, entry)| entry.service == service && entry.identity.session_id == id)
+            .map(|(index, _)| index)
+            .collect();
+        if candidates.len() != 1 {
+            return Err(invalid(
+                "Shared conversation is ambiguous or no longer bound",
+            ));
+        }
         let entry = &mut entries[candidates[0]];
         let record = hook.record(&entry.records.status().phase)?;
-        entry.records.apply(record); entry.updated = Instant::now(); entry.revision = revision;
+        entry.records.apply(record);
+        entry.updated = Instant::now();
+        entry.revision = revision;
         entry.ending = hook.event == "SessionEnd" && hook.task_id.is_none();
         Self::reconcile_entries(entries, sessions);
         entries.retain(|entry| !entry.ending);
@@ -104,28 +186,58 @@ impl Bindings {
 
     fn reconcile_entries(entries: &[Entry], sessions: &[Arc<Session>]) {
         // Take process evidence once per pane, rather than once per ID/pane pair.
-        let evidence: Vec<_> = sessions.iter().map(|session| session.codex_title_evidence()).collect();
+        let evidence: Vec<_> = sessions
+            .iter()
+            .map(|session| session.codex_title_evidence())
+            .collect();
         for (index, session) in sessions.iter().enumerate() {
-            let Some(title) = &evidence[index] else { session.clear_shared_codex(); continue; };
-            let matches: Vec<_> = entries.iter().filter(|entry| title.matches(&entry.identity.session_id)).collect();
+            let Some(title) = &evidence[index] else {
+                session.clear_shared_codex();
+                continue;
+            };
+            let matches: Vec<_> = entries
+                .iter()
+                .filter(|entry| title.matches(&entry.identity.session_id))
+                .collect();
             if matches.len() != 1 {
                 session.clear_shared_codex();
                 continue;
             }
             let entry = matches[0];
-            if evidence.iter().flatten().filter(|other| other.matches(&entry.identity.session_id)).count() != 1 {
-                session.clear_shared_codex(); continue;
+            if evidence
+                .iter()
+                .flatten()
+                .filter(|other| other.matches(&entry.identity.session_id))
+                .count()
+                != 1
+            {
+                session.clear_shared_codex();
+                continue;
             }
-            if session.sync_shared_codex(&entry.identity, entry.service, &entry.records, entry.revision, entry.ending).is_err() {
+            if session
+                .sync_shared_codex(
+                    &entry.identity,
+                    entry.service,
+                    &entry.records,
+                    entry.revision,
+                    entry.ending,
+                )
+                .is_err()
+            {
                 session.clear_shared_codex();
             }
         }
     }
 
     fn prune(entries: &mut Vec<Entry>, sessions: &[Arc<Session>]) {
-        entries.retain(|entry| agent_process::process(entry.service.0).is_some_and(|process| process.started == entry.service.1)
-            && (entry.updated.elapsed() < Duration::from_secs(30)
-                || sessions.iter().any(|session| session.info().conversation.as_ref() == Some(&entry.identity))));
+        entries.retain(|entry| {
+            agent_process::process(entry.service.0)
+                .is_some_and(|process| process.started == entry.service.1)
+                && (entry.updated.elapsed() < Duration::from_secs(30)
+                    || sessions.iter().any(|session| {
+                        session.info().conversation.as_ref() == Some(&entry.identity)
+                    }))
+        });
     }
 }
 
@@ -145,24 +257,50 @@ pub fn install_title(root: &Path) -> io::Result<()> {
     };
     let items = configuration.pointer("/config/tui/terminal_title");
     let mut items = match items {
-        None | Some(Value::Null) => vec!["activity".to_string(), "thread-name".into(), "project-name".into()],
-        Some(Value::Array(items)) if items.len() <= 64 && items.iter().all(Value::is_string) =>
-            items.iter().map(|item| item.as_str().unwrap().to_owned()).collect(),
+        None | Some(Value::Null) => vec![
+            "activity".to_string(),
+            "thread-name".into(),
+            "project-name".into(),
+        ],
+        Some(Value::Array(items)) if items.len() <= 64 && items.iter().all(Value::is_string) => {
+            items
+                .iter()
+                .map(|item| item.as_str().unwrap().to_owned())
+                .collect()
+        }
         _ => return Err(invalid("Codex terminal title items must be a string array")),
     };
-    if items.iter().any(|item| item == "session-id") { return Ok(()); }
+    if items.iter().any(|item| item == "session-id") {
+        return Ok(());
+    }
     items.push("session-id".into());
-    let scratch = std::env::temp_dir().join(format!("zshell-codex-title-{}", crate::protocol::new_id()?));
+    let scratch =
+        std::env::temp_dir().join(format!("zshell-codex-title-{}", crate::protocol::new_id()?));
     fs::create_dir(&scratch)?;
     let result = (|| {
         #[cfg(unix)]
-        { use std::os::unix::fs::PermissionsExt; fs::set_permissions(&scratch, fs::Permissions::from_mode(0o700))?; }
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&scratch, fs::Permissions::from_mode(0o700))?;
+        }
         let path = scratch.join("config.toml");
-        if let Some(original) = &original { fs::write(&path, original)?; }
-        config_request("config/value/write", json!({"filePath": path, "keyPath": "tui.terminal_title", "mergeStrategy": "replace", "value": items}), &scratch)?;
+        if let Some(original) = &original {
+            fs::write(&path, original)?;
+        }
+        config_request(
+            "config/value/write",
+            json!({"filePath": path, "keyPath": "tui.terminal_title", "mergeStrategy": "replace", "value": items}),
+            &scratch,
+        )?;
         let updated = fs::read(&path)?;
-        if updated.len() > 1024 * 1024 { return Err(invalid("Updated Codex configuration exceeds 1 MiB")); }
-        if fs::read(&config).ok() != original { return Err(invalid("Codex configuration changed during hook installation")); }
+        if updated.len() > 1024 * 1024 {
+            return Err(invalid("Updated Codex configuration exceeds 1 MiB"));
+        }
+        if fs::read(&config).ok() != original {
+            return Err(invalid(
+                "Codex configuration changed during hook installation",
+            ));
+        }
         crate::agent_hooks::write_settings(&config, &updated)
     })();
     let _ = fs::remove_dir_all(scratch);
@@ -170,9 +308,15 @@ pub fn install_title(root: &Path) -> io::Result<()> {
 }
 
 fn config_request(method: &str, params: Value, root: &Path) -> io::Result<Value> {
-    let mut child = Command::new("codex").args(["app-server", "--listen", "stdio://"])
-        .env("CODEX_HOME", root).env_remove("CODEX_THREAD_ID")
-        .current_dir(root).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn()?;
+    let mut child = Command::new("codex")
+        .args(["app-server", "--listen", "stdio://"])
+        .env("CODEX_HOME", root)
+        .env_remove("CODEX_THREAD_ID")
+        .current_dir(root)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()?;
     let mut input = child.stdin.take().unwrap();
     let stdout = child.stdout.take().unwrap();
     let (sender, receiver) = mpsc::channel();
@@ -182,32 +326,53 @@ fn config_request(method: &str, params: Value, root: &Path) -> io::Result<Value>
             let mut line = Vec::new();
             match reader.read_until(b'\n', &mut line) {
                 Ok(0) => break,
-                Ok(_) if line.len() <= 1024 * 1024 => { if sender.send(serde_json::from_slice::<Value>(&line).map_err(invalid)).is_err() { break; } }
+                Ok(_) if line.len() <= 1024 * 1024 => {
+                    if sender
+                        .send(serde_json::from_slice::<Value>(&line).map_err(invalid))
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
                 _ => break,
             }
         }
     });
     let result = (|| {
         serde_json::to_writer(&mut input, &json!({"id": 1, "method": "initialize", "params": {"clientInfo": {"name": "zshell", "version": "1"}}})).map_err(invalid)?;
-        input.write_all(b"\n")?; input.flush()?;
+        input.write_all(b"\n")?;
+        input.flush()?;
         let deadline = Instant::now() + Duration::from_secs(5);
         for id in [1, 2] {
             loop {
-                let response = receiver.recv_timeout(deadline.saturating_duration_since(Instant::now()))
+                let response = receiver
+                    .recv_timeout(deadline.saturating_duration_since(Instant::now()))
                     .map_err(|_| invalid("Codex terminal title configuration timed out"))??;
-                if response.get("id").and_then(Value::as_u64) != Some(id) { continue; }
-                let result = response.get("result").ok_or_else(|| invalid("Codex rejected terminal title configuration"))?;
-                if id == 2 { return Ok(result.clone()); }
+                if response.get("id").and_then(Value::as_u64) != Some(id) {
+                    continue;
+                }
+                let result = response
+                    .get("result")
+                    .ok_or_else(|| invalid("Codex rejected terminal title configuration"))?;
+                if id == 2 {
+                    return Ok(result.clone());
+                }
                 input.write_all(b"{\"method\":\"initialized\",\"params\":{}}\n")?;
-                serde_json::to_writer(&mut input, &json!({"id": 2, "method": method, "params": params})).map_err(invalid)?;
-                input.write_all(b"\n")?; input.flush()?;
+                serde_json::to_writer(
+                    &mut input,
+                    &json!({"id": 2, "method": method, "params": params}),
+                )
+                .map_err(invalid)?;
+                input.write_all(b"\n")?;
+                input.flush()?;
                 break;
             }
         }
         Err(invalid("Codex did not return terminal title configuration"))
     })();
     drop(input);
-    let _ = child.kill(); let _ = child.wait();
+    let _ = child.kill();
+    let _ = child.wait();
     result
 }
 

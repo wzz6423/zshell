@@ -87,26 +87,26 @@ internal func prefixEditDistance(
     // the best complete match (row[queryLen]) at each position.
 
     // Initialize first row (cost to transform empty string to query prefix)
-    for j in 0...queryLen {
+    for j in 0 ... queryLen {
         state.row[j] = j
         state.prevRow[j] = j
         state.prevPrevRow[j] = j
     }
 
-    var bestDistance = queryLen  // Start with worst case (all insertions)
+    var bestDistance = queryLen // Start with worst case (all insertions)
 
     // Process each character in candidate (but only up to a reasonable prefix)
     let prefixLimit = min(candidateLength, queryLen + maxEditDistance)
 
-    for i in 0..<prefixLimit {
+    for i in 0 ..< prefixLimit {
         // Rotate rows (O(1) pointer exchange, no COW copies)
         state.rotateRows()
 
-        state.row[0] = i + 1  // Cost to delete i+1 characters from candidate
+        state.row[0] = i + 1 // Cost to delete i+1 characters from candidate
 
         let candidateChar = candidate[i]
 
-        for j in 1...queryLen {
+        for j in 1 ... queryLen {
             let queryChar = query[j - 1]
 
             let substitutionCost = queryChar == candidateChar ? 0 : 1
@@ -149,7 +149,7 @@ internal func prefixEditDistance(
         if remaining > 0 {
             var rowMin = state.row[1]
             if queryLen >= 2 {
-                for j in 2...queryLen {
+                for j in 2 ... queryLen {
                     if state.row[j] < rowMin { rowMin = state.row[j] }
                 }
             }
@@ -211,7 +211,7 @@ internal func substringEditDistance(
     // This is achieved by setting row[0] = 0 at each position (free start)
 
     // Initialize
-    for j in 0...queryLen {
+    for j in 0 ... queryLen {
         state.row[j] = j
         state.prevRow[j] = j
         state.prevPrevRow[j] = j
@@ -219,15 +219,15 @@ internal func substringEditDistance(
 
     var bestDistance = Int.max
 
-    for i in 0..<candidateLength {
+    for i in 0 ..< candidateLength {
         // Rotate rows (O(1) pointer exchange, no COW copies)
         state.rotateRows()
 
-        state.row[0] = 0  // Free to start matching at any position
+        state.row[0] = 0 // Free to start matching at any position
 
         let candidateChar = candidate[i]
 
-        for j in 1...queryLen {
+        for j in 1 ... queryLen {
             let queryChar = query[j - 1]
 
             let substitutionCost = queryChar == candidateChar ? 0 : 1

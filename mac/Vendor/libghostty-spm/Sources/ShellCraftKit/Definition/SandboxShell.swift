@@ -23,20 +23,20 @@ public let defaultSandboxShell = ShellDefinition(
         .output(context.username + "\r\n")
     }
     ShellCommand("env", summary: "Show environment variables") { context in
-        .output("""
-        TERM=xterm-ghostty\r
-        SHELL=/bin/zsh\r
-        USER=\(context.username)\r
-        HOME=/Users/\(context.username)\r
-        LANG=en_US.UTF-8\r
-        TERM_PROGRAM=GhosttyKit\r\n
-        """)
+        .output(
+            """
+            TERM=xterm-ghostty\r
+            SHELL=/bin/zsh\r
+            USER=\(context.username)\r
+            HOME=/Users/\(context.username)\r
+            LANG=en_US.UTF-8\r
+            TERM_PROGRAM=GhosttyKit\r\n
+            """)
     }
     ShellCommand("size", summary: "Show terminal size") { context in
         let size = context.terminalSize
         return .output(
-            "columns: \(size.columns), rows: \(size.rows), " +
-                "pixels: \(size.widthPixels)x\(size.heightPixels)\r\n"
+            "columns: \(size.columns), rows: \(size.rows), " + "pixels: \(size.widthPixels)x\(size.heightPixels)\r\n"
         )
     }
     ShellCommand("clear", summary: "Clear the screen") { _ in
@@ -62,9 +62,9 @@ private enum SandboxShellStyle {
     static let prompt = "\(accent)sandbox\(reset)@\(highlight)ghostty\(reset) % "
 
     static let welcomeMessage = """
-    \r\n  \(emphasis)\(accent)GhosttyKit Sandbox Demo\(reset)\r
-    \r\n  This terminal runs inside App Sandbox.\r
-      \(accent)No subprocesses are spawned.\(reset)\r
-      Type '\(highlight)help\(reset)' for available commands.\r\n\r\n
-    """
+        \r\n  \(emphasis)\(accent)GhosttyKit Sandbox Demo\(reset)\r
+        \r\n  This terminal runs inside App Sandbox.\r
+          \(accent)No subprocesses are spawned.\(reset)\r
+          Type '\(highlight)help\(reset)' for available commands.\r\n\r\n
+        """
 }

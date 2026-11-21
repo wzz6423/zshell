@@ -16,8 +16,10 @@ struct TerminalCommandHistorySurfaceTests {
         let root = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         let backend = CommandLine.arguments[2]
         let home = FileManager.default.homeDirectoryForCurrentUser
-        guard ["/tmp/zshell-command-history-tests-", "/private/tmp/zshell-command-history-tests-"]
-            .contains(where: home.path.hasPrefix) else {
+        guard
+            ["/tmp/zshell-command-history-tests-", "/private/tmp/zshell-command-history-tests-"]
+                .contains(where: home.path.hasPrefix)
+        else {
             throw HistorySurfaceFailure.failed("surface acceptance requires a disposable HOME")
         }
         let draft = root.appendingPathComponent("draft.txt")
@@ -52,8 +54,9 @@ struct TerminalCommandHistorySurfaceTests {
         project.customDirectory = root.path
         manager.projects.append(project)
         manager.selectedProjectID = project.id
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 860, height: 520),
-                              styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 860, height: 520),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
         window.identifier = NSUserInterfaceItemIdentifier("main-command-history-surface-fixture")
         window.isReleasedWhenClosed = false
         manager.attach(to: window)
@@ -97,7 +100,9 @@ struct TerminalCommandHistorySurfaceTests {
                         && session.terminalPromptQueueIsReady
                 }
             } catch {
-                print("DIAGNOSTIC lifecycle=\(session.commandLifecycle) ready=\(session.terminalPromptQueueIsReady) records=\(session.commandRecords) history=\(store.entries)")
+                print(
+                    "DIAGNOSTIC lifecycle=\(session.commandLifecycle) ready=\(session.terminalPromptQueueIsReady) records=\(session.commandRecords) history=\(store.entries)"
+                )
                 print("DIAGNOSTIC visible output:\n\(text())")
                 throw error
             }
@@ -108,10 +113,12 @@ struct TerminalCommandHistorySurfaceTests {
                 print("DIAGNOSTIC expected=\(String(reflecting: command)) actual=\(String(reflecting: entry.command))")
             }
             try check(entry.command == command, "\(backend) preserves exact executed command text")
-            try check(entry.startedAt >= before.addingTimeInterval(-1) && entry.startedAt <= Date(),
-                      "\(backend) records the actual start time")
+            try check(
+                entry.startedAt >= before.addingTimeInterval(-1) && entry.startedAt <= Date(),
+                "\(backend) records the actual start time")
             try check(entry.finishedAt.map { $0 >= entry.startedAt } == true, "\(backend) records completion after start")
-            try check(session.commandRecords.contains { $0.id == entry.id }, "\(backend) history reuses the command block's stable identity")
+            try check(
+                session.commandRecords.contains { $0.id == entry.id }, "\(backend) history reuses the command block's stable identity")
             return entry
         }
 
@@ -122,8 +129,9 @@ struct TerminalCommandHistorySurfaceTests {
         let failure = try run("/bin/sh -c 'exit 7'")
         try check(failure.exitCode == 7, "\(backend) captures the actual failing exit status")
         let slow = try run("/bin/sleep 0.3")
-        try check((slow.durationNanos ?? 0) >= 250_000_000 && (slow.durationNanos ?? .max) < 10_000_000_000,
-                  "\(backend) elapsed duration includes the real foreground sleep")
+        try check(
+            (slow.durationNanos ?? 0) >= 250_000_000 && (slow.durationNanos ?? .max) < 10_000_000_000,
+            "\(backend) elapsed duration includes the real foreground sleep")
         let changed = root.appendingPathComponent("目录 café", isDirectory: true)
         try FileManager.default.createDirectory(at: changed, withIntermediateDirectories: false)
         let cd = try run("cd -- " + quote(changed.path))
@@ -132,23 +140,28 @@ struct TerminalCommandHistorySurfaceTests {
         try check(sameDirectory(afterCD.workingDirectory, changed.path), "\(backend) the next command uses the new directory")
         let multilineCommand = "printf 'MULTILINE_你好 👩🏽‍💻\\n'\nprintf 'SECOND_LINE_終わり\\n'"
         let multiline = try run(multilineCommand)
-        try check(multiline.command.contains("\n") && multiline.command.contains("👩🏽‍💻"),
-                  "\(backend) multiline Unicode survives PTY capture")
+        try check(
+            multiline.command.contains("\n") && multiline.command.contains("👩🏽‍💻"),
+            "\(backend) multiline Unicode survives PTY capture")
         guard let multilineLocation = session.commandRecords.first(where: { $0.id == multiline.id })?.outputLocation else {
             throw HistorySurfaceFailure.failed("multiline output token missing")
         }
         let originalOutput = session.surface.commandText(at: multilineLocation, part: .output) ?? ""
-        print("DIAGNOSTIC \(backend) multiline region=\(String(describing: session.surface.commandRegion(at: multilineLocation))) output=\(String(reflecting: originalOutput))")
-        try check(originalOutput.contains("MULTILINE_你好 👩🏽‍💻") && originalOutput.contains("SECOND_LINE_終わり"),
-                  "\(backend) the history ID resolves both lines of its actual command output")
+        print(
+            "DIAGNOSTIC \(backend) multiline region=\(String(describing: session.surface.commandRegion(at: multilineLocation))) output=\(String(reflecting: originalOutput))"
+        )
+        try check(
+            originalOutput.contains("MULTILINE_你好 👩🏽‍💻") && originalOutput.contains("SECOND_LINE_終わり"),
+            "\(backend) the history ID resolves both lines of its actual command output")
         let repeated = try run(successCommand)
         try check(repeated.id != success.id, "\(backend) identical commands retain separate execution IDs")
         store.flush()
         let historyURL = home.appendingPathComponent("Library/Application Support/zshell-dev/command-history/records.json")
         let reloaded = TerminalCommandHistoryStore(url: historyURL)
         try wait("real PTY history reloads") { !reloaded.isLoading }
-        try check(reloaded.entries.first(where: { $0.id == multiline.id }) == multiline,
-                  "\(backend) real command metadata persists without output coordinates")
+        try check(
+            reloaded.entries.first(where: { $0.id == multiline.id }) == multiline,
+            "\(backend) real command metadata persists without output coordinates")
 
         _ = try run("for item in {1..100}; do printf 'HISTORY_FILL_%s\\n' \"$item\"; done")
         try check(TerminalCommandHistoryActions.canReveal(multiline), "\(backend) original output has a live navigation token")
@@ -165,16 +178,18 @@ struct TerminalCommandHistorySurfaceTests {
         guard let other = project.newSession(directory: root.path) else {
             throw HistorySurfaceFailure.failed("second pane creation failed")
         }
-        let otherWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 700, height: 460),
-                                   styleMask: [.titled], backing: .buffered, defer: false)
+        let otherWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 700, height: 460),
+            styleMask: [.titled], backing: .buffered, defer: false)
         otherWindow.isReleasedWhenClosed = false
         mount(other, in: otherWindow)
         defer { otherWindow.contentView = nil; otherWindow.close() }
         try check(project.selectedSession?.id == other.id, "\(backend) navigation starts from a different pane")
         try check(TerminalCommandHistoryActions.reveal(multiline), "\(backend) navigation selects the original pane")
         pump(0.1)
-        try check(project.selectedSession?.id == session.id && window.firstResponder === session.surface,
-                  "\(backend) original pane and terminal responder regain focus")
+        try check(
+            project.selectedSession?.id == session.id && window.firstResponder === session.surface,
+            "\(backend) original pane and terminal responder regain focus")
         session.surface.scroll(toFraction: 1)
         try wait("empty prompt can receive history input") { TerminalCommandHistoryActions.canInsert(multiline) }
         let count = store.entries.count
@@ -182,28 +197,35 @@ struct TerminalCommandHistorySurfaceTests {
         pump(0.25)
         control("\u{14}", in: session)
         try wait("zsh exposes the inserted draft") { (try? String(contentsOf: draft, encoding: .utf8)) == multilineCommand }
-        try check(store.entries.count == count && session.commandLifecycle.phase != .executing,
-                  "\(backend) insertion preserves multiple lines without executing")
+        try check(
+            store.entries.count == count && session.commandLifecycle.phase != .executing,
+            "\(backend) insertion preserves multiple lines without executing")
         try check(!TerminalCommandHistoryActions.canInsert(multiline), "\(backend) an existing draft disables reinsertion")
         controller.show(for: manager)
         guard let panel = window.childWindows?.first(where: { $0.identifier?.rawValue == "terminal-command-history" }),
-              let content = panel.contentView,
-              let search = view("command-history-search", in: content) as? NSSearchField,
-              let table = view("command-history-list", in: content) as? NSTableView else {
+            let content = panel.contentView,
+            let search = view("command-history-search", in: content) as? NSSearchField,
+            let table = view("command-history-list", in: content) as? NSTableView
+        else {
             throw HistorySurfaceFailure.failed("history panel missing")
         }
         search.stringValue = "MULTILINE_你好"
         controller.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: search))
         try check(table.numberOfRows == 1, "\(backend) the real command is searchable in AppKit")
-        try check((view("command-history-insert", in: content) as? NSButton)?.isEnabled == false,
-                  "\(backend) the panel refuses to overwrite a live draft")
+        try check(
+            (view("command-history-insert", in: content) as? NSButton)?.isEnabled == false,
+            "\(backend) the panel refuses to overwrite a live draft")
         controller.close()
         pump(0.1)
-        print("DIAGNOSTIC reset responder=\(String(describing: window.firstResponder)) phase=\(session.commandLifecycle.phase) ready=\(session.terminalPromptQueueIsReady)")
+        print(
+            "DIAGNOSTIC reset responder=\(String(describing: window.firstResponder)) phase=\(session.commandLifecycle.phase) ready=\(session.terminalPromptQueueIsReady)"
+        )
         control("\u{12}", in: session)
         control("\u{14}", in: session)
         pump(0.3)
-        print("DIAGNOSTIC reset buffer=\(String(reflecting: (try? String(contentsOf: draft, encoding: .utf8)) ?? "<missing>")) phase=\(session.commandLifecycle.phase) ready=\(session.terminalPromptQueueIsReady) available=\(session.isShellAvailableForAutomation)")
+        print(
+            "DIAGNOSTIC reset buffer=\(String(reflecting: (try? String(contentsOf: draft, encoding: .utf8)) ?? "<missing>")) phase=\(session.commandLifecycle.phase) ready=\(session.terminalPromptQueueIsReady) available=\(session.isShellAvailableForAutomation)"
+        )
         try wait("draft reset restores insertion eligibility") { TerminalCommandHistoryActions.canInsert(multiline) }
         session.promptQueue.enqueue("echo queued")
         try check(!TerminalCommandHistoryActions.canInsert(multiline), "\(backend) history does not race queued commands")
@@ -236,8 +258,9 @@ struct TerminalCommandHistorySurfaceTests {
         try check(store.entries.map(\.id) == [remaining.id], "\(backend) new executions appear after clear")
         session.clear()
         pump(0.2)
-        try check(!TerminalCommandHistoryActions.canReveal(remaining) && !TerminalCommandHistoryActions.reveal(remaining),
-                  "\(backend) cleared output cannot jump to another command")
+        try check(
+            !TerminalCommandHistoryActions.canReveal(remaining) && !TerminalCommandHistoryActions.reveal(remaining),
+            "\(backend) cleared output cannot jump to another command")
         try check(store.entries.map(\.id) == [remaining.id], "\(backend) clearing output retains saved command text")
 
         guard let originTab = project.tabs.first(where: { $0.sessions.contains(where: { $0.id == session.id }) }) else {
@@ -245,13 +268,16 @@ struct TerminalCommandHistorySurfaceTests {
         }
         project.close(originTab)
         try wait("original pane closes") { session.hasExited }
-        try check(!TerminalCommandHistoryActions.canReveal(remaining) && !TerminalCommandHistoryActions.canInsert(remaining)
-                  && !TerminalCommandHistoryActions.isRunning(remaining), "\(backend) closed panes are unavailable and never reported running")
+        try check(
+            !TerminalCommandHistoryActions.canReveal(remaining) && !TerminalCommandHistoryActions.canInsert(remaining)
+                && !TerminalCommandHistoryActions.isRunning(remaining), "\(backend) closed panes are unavailable and never reported running"
+        )
         controller.show(for: manager)
         search.stringValue = "HISTORY_AFTER_CLEAR"
         controller.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: search))
-        try check(table.numberOfRows == 1 && (view("command-history-copy", in: content) as? NSButton)?.isEnabled == true,
-                  "\(backend) closed-pane history remains searchable and copyable")
+        try check(
+            table.numberOfRows == 1 && (view("command-history-copy", in: content) as? NSButton)?.isEnabled == true,
+            "\(backend) closed-pane history remains searchable and copyable")
         store.flush()
         print("Command history \(backend) surfaces: \(checks) checks passed")
     }
@@ -272,7 +298,9 @@ struct TerminalCommandHistorySurfaceTests {
     private static func control(_ text: String, in session: TerminalSession) {
         if let ghostty = session.surface as? ZshellTerminalView {
             ghostty.performBindingAction("text:" + text.utf8.map { String(format: "\\x%02x", $0) }.joined())
-        } else { session.surface.sendText(text) }
+        } else {
+            session.surface.sendText(text)
+        }
     }
 
     private static func sameDirectory(_ left: String, _ right: String) -> Bool {

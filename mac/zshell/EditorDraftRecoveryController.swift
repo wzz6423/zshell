@@ -25,8 +25,10 @@ final class EditorDraftRecoveryController: NSObject, NSWindowDelegate, NSTableVi
         self.manager = manager
         self.host = host
         localize()
-        panel.setFrameOrigin(NSPoint(x: host.frame.midX - panel.frame.width / 2,
-                                    y: host.frame.midY - panel.frame.height / 2))
+        panel.setFrameOrigin(
+            NSPoint(
+                x: host.frame.midX - panel.frame.width / 2,
+                y: host.frame.midY - panel.frame.height / 2))
         host.addChildWindow(panel, ordered: .above)
         panel.makeKeyAndOrderFront(nil)
         refresh()
@@ -45,8 +47,9 @@ final class EditorDraftRecoveryController: NSObject, NSWindowDelegate, NSTableVi
     func windowWillClose(_ notification: Notification) { close() }
 
     private func configure() {
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 720, height: 530),
-                            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 530),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
         panel.minSize = NSSize(width: 480, height: 350)
         panel.identifier = NSUserInterfaceItemIdentifier("editor-draft-recovery")
@@ -109,7 +112,9 @@ final class EditorDraftRecoveryController: NSObject, NSWindowDelegate, NSTableVi
             actions.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -16),
         ])
         languageObservation = NotificationCenter.default.publisher(for: AppLocalization.didChange)
-            .sink { [weak self] _ in self?.localize(); self?.table.reloadData() }
+            .sink { [weak self] _ in
+                self?.localize(); self?.table.reloadData()
+            }
     }
 
     private func localize() {
@@ -181,9 +186,13 @@ final class EditorDraftRecoveryController: NSObject, NSWindowDelegate, NSTableVi
         restore.isEnabled = !loading && selected != nil && manager != nil
         delete.isEnabled = !loading && selected != nil
         preview.string = selected?.text ?? ""
-        if loading { status.stringValue = String(localized: "Loading drafts…") }
-        else if records.isEmpty { status.stringValue = String(localized: "No editor drafts to recover.") }
-        else { status.stringValue = String(localized: "Restoring opens an unsaved editor. Files on disk are unchanged until you save.") }
+        if loading {
+            status.stringValue = String(localized: "Loading drafts…")
+        } else if records.isEmpty {
+            status.stringValue = String(localized: "No editor drafts to recover.")
+        } else {
+            status.stringValue = String(localized: "Restoring opens an unsaved editor. Files on disk are unchanged until you save.")
+        }
     }
 
     @objc func restoreSelected() {
@@ -259,8 +268,9 @@ extension TerminalManager {
             if let state = record.sanitizedEditorState() { file.editorState = state }
             content = .file(file)
         case .diff(let root, let path, let untracked, let original):
-            let diff = DiffTab(repoRoot: root, path: path, staged: false, untracked: untracked,
-                               origPath: original, draftID: record.id)
+            let diff = DiffTab(
+                repoRoot: root, path: path, staged: false, untracked: untracked,
+                origPath: original, draftID: record.id)
             diff.restoreDraft(record)
             content = .diff(diff)
         }

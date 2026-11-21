@@ -107,14 +107,15 @@ struct DamageCursor {
 
 fn damage_cursor_state<T: EventListener>(term: &Term<T>) -> Option<DamageCursor> {
     let content = term.renderable_content();
-    (content.display_offset == 0 && term.mode().contains(TermMode::SHOW_CURSOR)
+    (content.display_offset == 0
+        && term.mode().contains(TermMode::SHOW_CURSOR)
         && !matches!(content.cursor.shape, CursorShape::Hidden))
-        .then_some(DamageCursor {
-            point: content.cursor.point,
-            shape: content.cursor.shape,
-            blinking: term.cursor_style().blinking,
-            color: content.colors[NamedColor::Cursor as usize],
-        })
+    .then_some(DamageCursor {
+        point: content.cursor.point,
+        shape: content.cursor.shape,
+        blinking: term.cursor_style().blinking,
+        color: content.colors[NamedColor::Cursor as usize],
+    })
 }
 
 fn snapshot_cursor_positions(
@@ -562,9 +563,13 @@ impl StreamScanner {
                 } else {
                     SyncUpdateEvent::End
                 })),
-                b"9" | b"1000" | b"1002" | b"1003" => events.push(ScanEvent::MouseShape(
-                    if enabled { "default" } else { "text" },
-                )),
+                b"9" | b"1000" | b"1002" | b"1003" => {
+                    events.push(ScanEvent::MouseShape(if enabled {
+                        "default"
+                    } else {
+                        "text"
+                    }))
+                }
                 _ => {}
             }
         }
@@ -1339,7 +1344,10 @@ pub unsafe extern "C" fn zshell_alacritty_scroll(handle: *mut ZshellTerminal, de
 /// # Safety
 /// `handle` must be live.
 #[no_mangle]
-pub unsafe extern "C" fn zshell_alacritty_scroll_to_offset(handle: *mut ZshellTerminal, offset: usize) {
+pub unsafe extern "C" fn zshell_alacritty_scroll_to_offset(
+    handle: *mut ZshellTerminal,
+    offset: usize,
+) {
     if handle.is_null() {
         return;
     }
@@ -1601,7 +1609,9 @@ pub unsafe extern "C" fn zshell_alacritty_reveal_log_match(
     };
     let terminal = &mut *handle;
     let mut term = terminal.term.lock();
-    let Some((start, end)) = log_match(&term, &needle, occurrence, expected_total) else { return false };
+    let Some((start, end)) = log_match(&term, &needle, occurrence, expected_total) else {
+        return false;
+    };
     let mut selection = Selection::new(SelectionType::Simple, start, Side::Left);
     selection.update(end, Side::Right);
     term.selection = Some(selection);
@@ -1610,9 +1620,14 @@ pub unsafe extern "C" fn zshell_alacritty_reveal_log_match(
 }
 
 fn log_match<T: EventListener>(
-    term: &Term<T>, needle: &str, occurrence: usize, expected_total: usize,
+    term: &Term<T>,
+    needle: &str,
+    occurrence: usize,
+    expected_total: usize,
 ) -> Option<(Point, Point)> {
-    if needle.is_empty() || needle.contains(['\r', '\n']) { return None; }
+    if needle.is_empty() || needle.contains(['\r', '\n']) {
+        return None;
+    }
     let needle = needle.to_ascii_lowercase();
     let mut line = String::new();
     let mut positions: Vec<(usize, Point)> = Vec::new();
@@ -1620,28 +1635,48 @@ fn log_match<T: EventListener>(
     let mut total = 0;
     for line_number in term.topmost_line().0..=term.bottommost_line().0 {
         let row = &term.grid()[Line(line_number)];
-        let wrapped = row[Column(term.columns() - 1)].flags.contains(Flags::WRAPLINE);
-        let length = if wrapped { term.columns() } else {
-            row[..].iter().rposition(cell_has_visible_content).map_or(0, |column| column + 1)
+        let wrapped = row[Column(term.columns() - 1)]
+            .flags
+            .contains(Flags::WRAPLINE);
+        let length = if wrapped {
+            term.columns()
+        } else {
+            row[..]
+                .iter()
+                .rposition(cell_has_visible_content)
+                .map_or(0, |column| column + 1)
         };
         for column in 0..length {
             let cell = &row[Column(column)];
-            if cell.flags.intersects(Flags::WIDE_CHAR_SPACER | Flags::LEADING_WIDE_CHAR_SPACER) { continue; }
+            if cell
+                .flags
+                .intersects(Flags::WIDE_CHAR_SPACER | Flags::LEADING_WIDE_CHAR_SPACER)
+            {
+                continue;
+            }
             positions.push((line.len(), Point::new(Line(line_number), Column(column))));
             // Matches the log index, which reads a tab cell as the blank it draws.
             line.push(if cell.c == '\t' { ' ' } else { cell.c });
-            for mark in cell.zerowidth().into_iter().flatten() { line.push(*mark); }
+            for mark in cell.zerowidth().into_iter().flatten() {
+                line.push(*mark);
+            }
         }
         if !wrapped || line_number == term.bottommost_line().0 {
             let folded = line.to_ascii_lowercase();
             for (offset, _) in folded.match_indices(&needle) {
                 if total == occurrence {
-                    let first = positions.partition_point(|(start, _)| *start <= offset).checked_sub(1)?;
-                    let last = positions.partition_point(|(start, _)| *start < offset + needle.len()).checked_sub(1)?;
+                    let first = positions
+                        .partition_point(|(start, _)| *start <= offset)
+                        .checked_sub(1)?;
+                    let last = positions
+                        .partition_point(|(start, _)| *start < offset + needle.len())
+                        .checked_sub(1)?;
                     selected = Some((positions[first].1, positions[last].1));
                 }
                 total += 1;
-                if total > expected_total { return None; }
+                if total > expected_total {
+                    return None;
+                }
             }
             line.clear();
             positions.clear();
@@ -1750,8 +1785,22 @@ fn post_process_url_match<T: EventListener>(term: &Term<T>, regex_match: &Match)
         // Japanese prose the same way ASCII punctuation does in English.
         if !matches!(
             c,
-            '.' | ',' | ':' | ';' | '?' | '!' | '(' | '[' | '\''
-                | '。' | '，' | '、' | '；' | '：' | '？' | '！' | '）'
+            '.' | ','
+                | ':'
+                | ';'
+                | '?'
+                | '!'
+                | '('
+                | '['
+                | '\''
+                | '。'
+                | '，'
+                | '、'
+                | '；'
+                | '：'
+                | '？'
+                | '！'
+                | '）'
         ) {
             break;
         }
@@ -1999,9 +2048,8 @@ mod tests {
                 background: 0,
                 cursor: 0xffffff,
             };
-            let handle = unsafe {
-                zshell_alacritty_new(&config, &theme, on_event, std::ptr::null_mut())
-            };
+            let handle =
+                unsafe { zshell_alacritty_new(&config, &theme, on_event, std::ptr::null_mut()) };
             assert!(!handle.is_null());
             Self(handle)
         }
@@ -2094,7 +2142,11 @@ mod tests {
             b"\x1b]12;#ff0000\x07",
         ] {
             terminal.feed(bytes);
-            assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_PARTIAL, vec![0]), "{bytes:?}");
+            assert_eq!(
+                terminal.damage(),
+                (ZSHELL_DAMAGE_PARTIAL, vec![0]),
+                "{bytes:?}"
+            );
             assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_NONE, vec![]));
         }
     }
@@ -2388,7 +2440,10 @@ mod tests {
         let first = log_match(&term, "FOO", 0, 3).unwrap();
         let second = log_match(&term, "FOO", 1, 3).unwrap();
         let third = log_match(&term, "FOO", 2, 3).unwrap();
-        assert_eq!((first.0.column.0, second.0.column.0, third.0.column.0), (0, 4, 8));
+        assert_eq!(
+            (first.0.column.0, second.0.column.0, third.0.column.0),
+            (0, 4, 8)
+        );
     }
 
     #[test]
@@ -2470,10 +2525,26 @@ mod tests {
     #[test]
     fn plain_url_lookup_matches_bare_web_addresses() {
         for (text, needle, expected) in [
-            ("clone from www.baidu.com today", "www.baidu", "www.baidu.com"),
-            ("visit baidu.com/s?wd=zshell today", "baidu", "baidu.com/s?wd=zshell"),
-            ("dev server on localhost:3000/health", "localhost", "localhost:3000/health"),
-            ("mirror at mirror.example.com:8080 ok", "mirror.example", "mirror.example.com:8080"),
+            (
+                "clone from www.baidu.com today",
+                "www.baidu",
+                "www.baidu.com",
+            ),
+            (
+                "visit baidu.com/s?wd=zshell today",
+                "baidu",
+                "baidu.com/s?wd=zshell",
+            ),
+            (
+                "dev server on localhost:3000/health",
+                "localhost",
+                "localhost:3000/health",
+            ),
+            (
+                "mirror at mirror.example.com:8080 ok",
+                "mirror.example",
+                "mirror.example.com:8080",
+            ),
         ] {
             let term = parse(text.as_bytes());
             assert_eq!(
@@ -2499,7 +2570,10 @@ mod tests {
 
     #[test]
     fn plain_url_lookup_does_not_match_dotted_non_urls() {
-        for (text, needle) in [("config.yaml loads", "config"), ("version 1.2.3 released", "1")] {
+        for (text, needle) in [
+            ("config.yaml loads", "config"),
+            ("version 1.2.3 released", "1"),
+        ] {
             let term = parse(text.as_bytes());
 
             assert_eq!(url_in(&term, ascii_point(text, needle)), None, "{text}");
@@ -2557,10 +2631,14 @@ mod tests {
         );
         let (output, events) = intercept(&mut interceptor, input.as_bytes());
 
-        assert_eq!(output, concat!(
-            "before\x1b]7;file://host/Users/wzz6423/My%20Project\x07",
-            "\x1b]133;A\x07\x1b]133;B\x07\x1b]133;C\x07\x1b]133;D;0\x07after"
-        ).as_bytes());
+        assert_eq!(
+            output,
+            concat!(
+                "before\x1b]7;file://host/Users/wzz6423/My%20Project\x07",
+                "\x1b]133;A\x07\x1b]133;B\x07\x1b]133;C\x07\x1b]133;D;0\x07after"
+            )
+            .as_bytes()
+        );
         assert_eq!(
             events,
             vec![
@@ -2715,7 +2793,10 @@ mod tests {
     fn native_command_records_receive_intercepted_osc_in_grid_order() {
         let input = b"\x1b]7;file://host/tmp/original\x07\x1b]133;A\x07> \x1b]133;B\x07false\r\n\x1b]133;C;cmdline_url=false\x07result\r\n\x1b]133;D;7\x07";
         for split in 0..=input.len() {
-            let size = TermSize { columns: 40, screen_lines: 4 };
+            let size = TermSize {
+                columns: 40,
+                screen_lines: 4,
+            };
             let mut term = Term::new(Config::default(), &size, VoidListener);
             let mut parser = Processor::new();
             let mut tracker = KittyGraphicsCursorTracker::default();
@@ -2812,7 +2893,8 @@ pub unsafe extern "C" fn zshell_alacritty_take_damage(
     if kind != ZSHELL_DAMAGE_FULL && previous_cursor != cursor {
         for state in [previous_cursor, cursor].into_iter().flatten() {
             let row = state.point.line.0;
-            if row >= 0 && (row as usize) < term.screen_lines()
+            if row >= 0
+                && (row as usize) < term.screen_lines()
                 && !terminal.dirty_rows.contains(&(row as usize))
             {
                 terminal.dirty_rows.push(row as usize);

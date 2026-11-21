@@ -22,16 +22,18 @@ struct GitWorktreeSectionView: NSViewRepresentable {
     }
 
     func updateNSView(_ view: GitRepositorySectionNSView, context: Context) {
-        view.apply(worktrees: worktrees, isCollapsed: isCollapsed, fontScale: fontScale,
-                   openWorktree: openWorktree, createWorktree: createWorktree,
-                   removeWorktree: removeWorktree, deleteBranch: deleteBranch,
-                   toggleCollapsed: { isCollapsed.toggle() }, isBusy: isBusy)
+        view.apply(
+            worktrees: worktrees, isCollapsed: isCollapsed, fontScale: fontScale,
+            openWorktree: openWorktree, createWorktree: createWorktree,
+            removeWorktree: removeWorktree, deleteBranch: deleteBranch,
+            toggleCollapsed: { isCollapsed.toggle() }, isBusy: isBusy)
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: GitRepositorySectionNSView, context: Context) -> CGSize? {
         let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? 240
-        return CGSize(width: width,
-               height: GitRepositorySectionMetrics(fontScale: fontScale)
+        return CGSize(
+            width: width,
+            height: GitRepositorySectionMetrics(fontScale: fontScale)
                 .height(count: worktrees.count, collapsed: isCollapsed))
     }
 }
@@ -52,16 +54,19 @@ struct GitBranchesSectionView: NSViewRepresentable {
     }
 
     func updateNSView(_ view: GitRepositorySectionNSView, context: Context) {
-        view.apply(branches: branches, isCollapsed: isCollapsed, fontScale: fontScale,
-                   repositoryID: repositoryID, isBusy: isBusy, switchBranch: switchBranch,
-                   createBranch: { [weak view] in createBranch(view?.window) }, createWorktree: createWorktree,
-                   deleteBranch: deleteBranch, toggleCollapsed: { isCollapsed.toggle() })
+        view.apply(
+            branches: branches, isCollapsed: isCollapsed, fontScale: fontScale,
+            repositoryID: repositoryID, isBusy: isBusy, switchBranch: switchBranch,
+            createBranch: { [weak view] in createBranch(view?.window) }, createWorktree: createWorktree,
+            deleteBranch: deleteBranch, toggleCollapsed: { isCollapsed.toggle() })
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: GitRepositorySectionNSView, context: Context) -> CGSize? {
         let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? 240
-        return CGSize(width: width, height: GitRepositorySectionMetrics(fontScale: fontScale)
-            .height(count: branches.count, collapsed: isCollapsed, branchRows: true))
+        return CGSize(
+            width: width,
+            height: GitRepositorySectionMetrics(fontScale: fontScale)
+                .height(count: branches.count, collapsed: isCollapsed, branchRows: true))
     }
 }
 
@@ -121,7 +126,8 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
     private var createWorktreeForBranch: ((String) -> Void)?
     override var isFlipped: Bool { true }
     override var intrinsicContentSize: NSSize {
-        NSSize(width: NSView.noIntrinsicMetric, height: metrics.height(count: rows.count, collapsed: isCollapsed, branchRows: rows.isBranches))
+        NSSize(
+            width: NSView.noIntrinsicMetric, height: metrics.height(count: rows.count, collapsed: isCollapsed, branchRows: rows.isBranches))
     }
 
     override init(frame frameRect: NSRect) {
@@ -180,13 +186,13 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
         switchBranch = nil
         createWorktreeForBranch = nil
         let previousPaths: Set<String>
-        if case .worktrees(let previous) = rows { previousPaths = Set(previous.map(\.path)) }
-        else { previousPaths = [] }
+        if case .worktrees(let previous) = rows { previousPaths = Set(previous.map(\.path)) } else { previousPaths = [] }
         let changedRepository = !previousPaths.isEmpty && previousPaths.isDisjoint(with: worktrees.map(\.path))
-        apply(rows: .worktrees(worktrees), isCollapsed: isCollapsed, fontScale: fontScale,
-              isBusy: isBusy, title: String(localized: "WORKTREES"),
-              createTitle: String(localized: "Create Worktree"), create: createWorktree,
-              toggleCollapsed: toggleCollapsed, changedRepository: changedRepository)
+        apply(
+            rows: .worktrees(worktrees), isCollapsed: isCollapsed, fontScale: fontScale,
+            isBusy: isBusy, title: String(localized: "WORKTREES"),
+            createTitle: String(localized: "Create Worktree"), create: createWorktree,
+            toggleCollapsed: toggleCollapsed, changedRepository: changedRepository)
     }
 
     func apply(
@@ -202,10 +208,11 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
         self.deleteBranch = deleteBranch
         let changedRepository = self.repositoryID != repositoryID
         self.repositoryID = repositoryID
-        apply(rows: .branches(branches), isCollapsed: isCollapsed, fontScale: fontScale,
-              isBusy: isBusy, title: String(localized: "Branches"),
-              createTitle: String(localized: "Create New Branch…"), create: createBranch,
-              toggleCollapsed: toggleCollapsed, changedRepository: changedRepository)
+        apply(
+            rows: .branches(branches), isCollapsed: isCollapsed, fontScale: fontScale,
+            isBusy: isBusy, title: String(localized: "Branches"),
+            createTitle: String(localized: "Create New Branch…"), create: createBranch,
+            toggleCollapsed: toggleCollapsed, changedRepository: changedRepository)
     }
 
     private func apply(
@@ -240,8 +247,7 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
         countLabel.stringValue = String(rows.count)
         tableView.isHidden = isCollapsed || rows.count == 0
         tableView.rowHeight = rows.isBranches ? metrics.branchRowHeight : metrics.rowHeight
-        if changed { tableView.reloadData() }
-        else { updateVisibleRows() }
+        if changed { tableView.reloadData() } else { updateVisibleRows() }
         if changedRepository { tableView.deselectAll(nil) }
         invalidateIntrinsicContentSize()
         needsLayout = true
@@ -256,15 +262,17 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
         let countHeight = ceil(countSize.height)
         let labelHeight = max(metrics.headerHeight - 11, ceil(header.fittingSize.height))
         let centerY = metrics.headerHeight / 2
-        countLabel.frame = NSRect(x: trailing - countWidth, y: centerY - countHeight / 2,
-                                 width: countWidth, height: countHeight)
+        countLabel.frame = NSRect(
+            x: trailing - countWidth, y: centerY - countHeight / 2,
+            width: countWidth, height: countHeight)
         let actionWidth = min(metrics.sidebar.slotSize(18), max(0, countLabel.frame.minX - leading - 5))
         addButton.frame = NSRect(
             x: countLabel.frame.minX - actionWidth - 5, y: centerY - labelHeight / 2,
             width: actionWidth, height: labelHeight
         )
-        header.frame = NSRect(x: leading, y: centerY - labelHeight / 2,
-                              width: max(0, addButton.frame.minX - leading - 7), height: labelHeight)
+        header.frame = NSRect(
+            x: leading, y: centerY - labelHeight / 2,
+            width: max(0, addButton.frame.minX - leading - 7), height: labelHeight)
         let listHeight = isCollapsed ? 0 : metrics.listHeight(count: rows.count, branchRows: rows.isBranches)
         tableView.frame = NSRect(x: 0, y: metrics.headerHeight, width: bounds.width, height: listHeight)
         tableView.tableColumns.first?.width = bounds.width
@@ -278,7 +286,8 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         let identifier = NSUserInterfaceItemIdentifier("worktreeRow")
-        let cell = tableView.makeView(withIdentifier: identifier, owner: self) as? GitRepositoryRowButton
+        let cell =
+            tableView.makeView(withIdentifier: identifier, owner: self) as? GitRepositoryRowButton
             ?? GitRepositoryRowButton(frame: .zero)
         cell.identifier = identifier
         configure(cell, row: row)
@@ -290,29 +299,37 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
         switch rows {
         case .worktrees(let worktrees):
             let worktree = worktrees[row]
-            cell.apply(worktree: worktree, metrics: metrics, open: { [weak self] in
-                self?.openWorktree?(worktree.path)
-            }, remove: { [weak self] in
-                self?.removeWorktree?(worktree)
-            }, deleteBranch: { [weak self] branch in
-                self?.deleteBranch?(branch)
-            }, isBusy: isBusy)
+            cell.apply(
+                worktree: worktree, metrics: metrics,
+                open: { [weak self] in
+                    self?.openWorktree?(worktree.path)
+                },
+                remove: { [weak self] in
+                    self?.removeWorktree?(worktree)
+                },
+                deleteBranch: { [weak self] branch in
+                    self?.deleteBranch?(branch)
+                }, isBusy: isBusy)
         case .branches(let branches):
             let branch = branches[row]
-            cell.apply(branch: branch, metrics: metrics, isBusy: isBusy, switchBranch: { [weak self] in
-                self?.switchBranch?(branch)
-            }, createWorktree: { [weak self] in
-                self?.createWorktreeForBranch?(branch)
-            }, deleteBranch: { [weak self] branch in
-                self?.deleteBranch?(branch)
-            })
+            cell.apply(
+                branch: branch, metrics: metrics, isBusy: isBusy,
+                switchBranch: { [weak self] in
+                    self?.switchBranch?(branch)
+                },
+                createWorktree: { [weak self] in
+                    self?.createWorktreeForBranch?(branch)
+                },
+                deleteBranch: { [weak self] branch in
+                    self?.deleteBranch?(branch)
+                })
         }
     }
 
     private func updateVisibleRows() {
         let range = tableView.rows(in: tableView.visibleRect)
         guard range.location != NSNotFound else { return }
-        for index in range.location..<NSMaxRange(range) where index >= 0 && index < rows.count {
+        for index in range.location ..< NSMaxRange(range) where index >= 0 && index < rows.count {
             if let cell = tableView.view(atColumn: 0, row: index, makeIfNecessary: false) as? GitRepositoryRowButton {
                 configure(cell, row: index)
             }
@@ -325,8 +342,7 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
     }
 
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 36 || event.keyCode == 49 { activateSelectedRow() }
-        else { super.keyDown(with: event) }
+        if event.keyCode == 36 || event.keyCode == 49 { activateSelectedRow() } else { super.keyDown(with: event) }
     }
 
     @objc private func toggleSection() { toggleCollapsed?() }
@@ -427,13 +443,18 @@ private final class GitRepositoryRowButton: NSButton {
         openIcon.contentTintColor = .tertiaryLabelColor
         isEnabled = !worktree.isBare
         alphaValue = worktree.isBare ? 0.55 : 1
-        toolTip = worktree.isBare ? String(localized: "Bare repositories do not have a working directory")
+        toolTip =
+            worktree.isBare
+            ? String(localized: "Bare repositories do not have a working directory")
             : String(localized: "Open Worktree in New Tab") + "\n" + worktree.path
-        setAccessibilityLabel(branchLabel.stringValue + ", " + worktree.path
-            + (worktree.isCurrent ? ", " + String(localized: "Current") : ""))
+        setAccessibilityLabel(
+            branchLabel.stringValue + ", " + worktree.path
+                + (worktree.isCurrent ? ", " + String(localized: "Current") : ""))
         setAccessibilityIdentifier("worktreeRow")
-        setAccessibilityHelp(worktree.isBare ? String(localized: "Bare repositories cannot be opened in a terminal tab")
-            : String(localized: "Opens a new terminal tab in this worktree"))
+        setAccessibilityHelp(
+            worktree.isBare
+                ? String(localized: "Bare repositories cannot be opened in a terminal tab")
+                : String(localized: "Opens a new terminal tab in this worktree"))
         let menu = NSMenu()
         menu.autoenablesItems = false
         let removeItem = NSMenuItem(
@@ -490,13 +511,15 @@ private final class GitRepositoryRowButton: NSButton {
         setAccessibilityIdentifier("branchRow")
         let menu = NSMenu()
         menu.autoenablesItems = false
-        let createItem = NSMenuItem(title: String(localized: "Create Worktree…"),
-                                   action: #selector(createWorktreeClicked), keyEquivalent: "")
+        let createItem = NSMenuItem(
+            title: String(localized: "Create Worktree…"),
+            action: #selector(createWorktreeClicked), keyEquivalent: "")
         createItem.target = self
         createItem.isEnabled = !isBusy
         menu.addItem(createItem)
-        let deleteItem = NSMenuItem(title: String(localized: "Delete Branch…"),
-                                   action: #selector(deleteBranchClicked), keyEquivalent: "")
+        let deleteItem = NSMenuItem(
+            title: String(localized: "Delete Branch…"),
+            action: #selector(deleteBranchClicked), keyEquivalent: "")
         deleteItem.target = self
         deleteItem.isEnabled = canDeleteBranch
         menu.addItem(deleteItem)
@@ -519,8 +542,9 @@ private final class GitRepositoryRowButton: NSButton {
         branchLabel.frame = NSRect(x: leading, y: top, width: branchWidth, height: titleHeight)
         currentLabel.frame = NSRect(x: leading + available - currentWidth, y: top, width: currentWidth, height: titleHeight)
         pathLabel.frame = NSRect(x: leading, y: top + titleHeight + 1, width: available, height: pathHeight)
-        openIcon.frame = NSRect(x: bounds.width - iconSize - metrics.trailingInset, y: (bounds.height - iconSize) / 2,
-                               width: iconSize, height: iconSize)
+        openIcon.frame = NSRect(
+            x: bounds.width - iconSize - metrics.trailingInset, y: (bounds.height - iconSize) / 2,
+            width: iconSize, height: iconSize)
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? { super.hitTest(point) == nil ? nil : self }
@@ -528,8 +552,10 @@ private final class GitRepositoryRowButton: NSButton {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(rect: NSIntersectionRect(bounds, visibleRect),
-            options: [.activeInKeyWindow, .mouseEnteredAndExited], owner: self))
+        addTrackingArea(
+            NSTrackingArea(
+                rect: NSIntersectionRect(bounds, visibleRect),
+                options: [.activeInKeyWindow, .mouseEnteredAndExited], owner: self))
         synchronizeHoverWithMouse()
     }
 

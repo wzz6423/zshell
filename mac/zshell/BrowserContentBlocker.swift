@@ -21,9 +21,10 @@ nonisolated struct BrowserFilterSource: Equatable, Sendable {
         var seen: Set<URL> = []
         return try lines.compactMap { line in
             guard line.utf8.count <= 2_048, let url = URL(string: line),
-                  ["https", "http"].contains(url.scheme?.lowercased() ?? ""),
-                  let host = url.host, !host.isEmpty, url.user == nil, url.password == nil,
-                  url.fragment == nil else { throw SourceError.invalid }
+                ["https", "http"].contains(url.scheme?.lowercased() ?? ""),
+                let host = url.host, !host.isEmpty, url.user == nil, url.password == nil,
+                url.fragment == nil
+            else { throw SourceError.invalid }
             guard seen.insert(url).inserted else { return nil }
             return catalog.first { $0.url == url } ?? BrowserFilterSource(name: host, url: url)
         }
@@ -51,7 +52,10 @@ final class BrowserContentBlocker: ObservableObject {
             case .empty: String(localized: "No filter lists selected.")
             case let .active(converted, skipped, cached):
                 if cached {
-                    String(localized: "Using cached rules: \(converted) filters converted; \(skipped) unsupported filters skipped. The update failed.")
+                    String(
+                        localized:
+                            "Using cached rules: \(converted) filters converted; \(skipped) unsupported filters skipped. The update failed."
+                    )
                 } else {
                     String(localized: "Content blocking is active: \(converted) filters converted; \(skipped) unsupported filters skipped.")
                 }
@@ -83,7 +87,9 @@ final class BrowserContentBlocker: ObservableObject {
 
     init(settings: AppSettings? = nil, cacheDirectory: URL? = nil, store: WKContentRuleListStore? = nil) {
         let settings = settings ?? .shared
-        self.cacheDirectory = cacheDirectory ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        self.cacheDirectory =
+            cacheDirectory
+            ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(Bundle.main.bundleIdentifier ?? "zshell")
             .appendingPathComponent("BrowserContentBlocking", isDirectory: true)
         self.store = store ?? .default()
@@ -140,7 +146,10 @@ final class BrowserContentBlocker: ObservableObject {
                         if let cached = try? await self.store.contentRuleList(forIdentifier: identifier) {
                             compiled.append(cached)
                         } else {
-                            guard let rule = try await self.store.compileContentRuleList(forIdentifier: identifier, encodedContentRuleList: json) else { throw BrowserFilterSource.SourceError.format }
+                            guard
+                                let rule = try await self.store.compileContentRuleList(
+                                    forIdentifier: identifier, encodedContentRuleList: json)
+                            else { throw BrowserFilterSource.SourceError.format }
                             compiled.append(rule)
                         }
                         try Task.checkCancellation()
@@ -152,7 +161,9 @@ final class BrowserContentBlocker: ObservableObject {
             } catch is CancellationError {
                 // A newer revision owns both the rules and the displayed state.
             } catch {
-                if current == self.revision { self.lastError = String(describing: error); self.status = .failed(usingPreviousRules: !self.ruleLists.isEmpty) }
+                if current == self.revision {
+                    self.lastError = String(describing: error); self.status = .failed(usingPreviousRules: !self.ruleLists.isEmpty)
+                }
             }
             await self.removeUnusedCompiledRules(keeping: Set(self.ruleLists.map(\.identifier)))
             self.worker = nil
@@ -203,8 +214,7 @@ nonisolated private enum BrowserFilterDownload {
                 try Task.checkCancellation()
                 try text.write(to: path, atomically: true, encoding: .utf8)
                 texts.append(text)
-            } catch is CancellationError { throw CancellationError() }
-            catch {
+            } catch is CancellationError { throw CancellationError() } catch {
                 guard let cached else { throw error }
                 stale = true
                 texts.append(cached)
@@ -221,7 +231,9 @@ nonisolated private enum BrowserFilterDownload {
         let session = URLSession(configuration: configuration, delegate: Redirects(), delegateQueue: nil)
         defer { session.invalidateAndCancel() }
         let (bytes, response) = try await session.bytes(from: url)
-        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else { throw BrowserFilterSource.SourceError.response }
+        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
+            throw BrowserFilterSource.SourceError.response
+        }
         guard response.expectedContentLength <= BrowserFilterSource.maximumBytes else { throw BrowserFilterSource.SourceError.size }
         var data = Data()
         for try await byte in bytes {
@@ -230,17 +242,22 @@ nonisolated private enum BrowserFilterDownload {
             if data.count % 65_536 == 0 { try Task.checkCancellation() }
         }
         guard let text = String(data: data, encoding: .utf8), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !text.prefix(512).lowercased().contains("<html"), !text.prefix(512).lowercased().contains("<!doctype") else { throw BrowserFilterSource.SourceError.format }
+            !text.prefix(512).lowercased().contains("<html"), !text.prefix(512).lowercased().contains("<!doctype")
+        else { throw BrowserFilterSource.SourceError.format }
         return text
     }
 
     private final class Redirects: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
         private var remaining = 5
-        func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        func urlSession(
+            _ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+            newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void
+        ) {
             remaining -= 1
             guard remaining >= 0,
-                  let url = request.url, ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
-                  url.user == nil, url.password == nil else { completionHandler(nil); return }
+                let url = request.url, ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
+                url.user == nil, url.password == nil
+            else { completionHandler(nil); return }
             completionHandler(request)
         }
     }
@@ -248,6 +265,10 @@ nonisolated private enum BrowserFilterDownload {
 
 nonisolated private extension Task where Failure == Error {
     func valueWithCancellation() async throws -> Success {
-        try await withTaskCancellationHandler { try await value } onCancel: { cancel() }
+        try await withTaskCancellationHandler {
+            try await value
+        } onCancel: {
+            cancel()
+        }
     }
 }

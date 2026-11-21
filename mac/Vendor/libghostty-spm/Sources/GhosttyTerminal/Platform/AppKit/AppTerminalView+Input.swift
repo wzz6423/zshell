@@ -34,7 +34,7 @@
 
             case "/":
                 guard event.modifierFlags.contains(.control),
-                      event.modifierFlags.isDisjoint(with: [.shift, .command, .option])
+                    event.modifierFlags.isDisjoint(with: [.shift, .command, .option])
                 else {
                     return false
                 }
@@ -46,14 +46,14 @@
                 }
 
                 if !event.modifierFlags.contains(.command),
-                   !event.modifierFlags.contains(.control)
+                    !event.modifierFlags.contains(.control)
                 {
                     lastPerformKeyEvent = nil
                     return false
                 }
 
                 if let lastPerformKeyEvent,
-                   lastPerformKeyEvent == event.timestamp
+                    lastPerformKeyEvent == event.timestamp
                 {
                     self.lastPerformKeyEvent = nil
                     equivalent = event.characters ?? ""
@@ -64,18 +64,20 @@
                 return false
             }
 
-            guard let translatedEvent = NSEvent.keyEvent(
-                with: .keyDown,
-                location: event.locationInWindow,
-                modifierFlags: event.modifierFlags,
-                timestamp: event.timestamp,
-                windowNumber: event.windowNumber,
-                context: nil,
-                characters: equivalent,
-                charactersIgnoringModifiers: equivalent,
-                isARepeat: event.isARepeat,
-                keyCode: event.keyCode
-            ) else {
+            guard
+                let translatedEvent = NSEvent.keyEvent(
+                    with: .keyDown,
+                    location: event.locationInWindow,
+                    modifierFlags: event.modifierFlags,
+                    timestamp: event.timestamp,
+                    windowNumber: event.windowNumber,
+                    context: nil,
+                    characters: equivalent,
+                    charactersIgnoringModifiers: equivalent,
+                    isARepeat: event.isARepeat,
+                    keyCode: event.keyCode
+                )
+            else {
                 return false
             }
 
@@ -93,8 +95,8 @@
 
         override open func doCommand(by selector: Selector) {
             if let lastPerformKeyEvent,
-               let current = NSApp.currentEvent,
-               lastPerformKeyEvent == current.timestamp
+                let current = NSApp.currentEvent,
+                lastPerformKeyEvent == current.timestamp
             {
                 NSApp.sendEvent(current)
                 return
@@ -138,18 +140,20 @@
                 (NSEvent.EventType.keyDown, 0.0),
                 (.keyUp, 0.001),
             ] {
-                guard let event = NSEvent.keyEvent(
-                    with: type,
-                    location: .zero,
-                    modifierFlags: .control,
-                    timestamp: timestamp + offset,
-                    windowNumber: window?.windowNumber ?? 0,
-                    context: nil,
-                    characters: "\u{16}",
-                    charactersIgnoringModifiers: "v",
-                    isARepeat: false,
-                    keyCode: 0x09
-                ) else { continue }
+                guard
+                    let event = NSEvent.keyEvent(
+                        with: type,
+                        location: .zero,
+                        modifierFlags: .control,
+                        timestamp: timestamp + offset,
+                        windowNumber: window?.windowNumber ?? 0,
+                        context: nil,
+                        characters: "\u{16}",
+                        charactersIgnoringModifiers: "v",
+                        isARepeat: false,
+                        keyCode: 0x09
+                    )
+                else { continue }
 
                 if type == .keyDown {
                     keyDown(with: event)

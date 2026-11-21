@@ -25,9 +25,9 @@ struct QuickTerminalShortcut: Equatable {
         guard let persistedValue else { return nil }
         let components = persistedValue.split(separator: ":", omittingEmptySubsequences: false)
         guard components.count == 2,
-              let keyCode = UInt32(components[0]),
-              let modifiers = UInt32(components[1]),
-              Self.isValid(modifiers: modifiers)
+            let keyCode = UInt32(components[0]),
+            let modifiers = UInt32(components[1]),
+            Self.isValid(modifiers: modifiers)
         else { return nil }
         self.init(keyCode: keyCode, modifiers: modifiers)
     }
@@ -117,8 +117,8 @@ final class GlobalTerminalOverlay: NSObject {
             &receivedIdentifier
         )
         guard status == noErr,
-              receivedIdentifier.signature == hotkeySignature,
-              receivedIdentifier.id == hotkeyIdentifier
+            receivedIdentifier.signature == hotkeySignature,
+            receivedIdentifier.id == hotkeyIdentifier
         else {
             return noErr
         }
@@ -149,7 +149,8 @@ final class GlobalTerminalOverlay: NSObject {
 
     var focusedPromptQueueSession: TerminalSession? {
         guard terminalWindow != nil, terminalWindow === NSApp.keyWindow,
-              case .session(let session)? = workspace?.focusedContent else { return nil }
+            case .session(let session)? = workspace?.focusedContent
+        else { return nil }
         return session
     }
 
@@ -220,12 +221,15 @@ final class GlobalTerminalOverlay: NSObject {
             switch layout {
             case .pane(let pane):
                 guard case .session = pane.content, let id = pane.terminalID,
-                      id != sessionID, seen.insert(id).inserted,
-                      let pty = PersistentPTY.reconnect(id: id) else { return false }
+                    id != sessionID, seen.insert(id).inserted,
+                    let pty = PersistentPTY.reconnect(id: id)
+                else { return false }
                 // A saved PTY can stay live before its renderer is restored.
                 // Persisted directories may be stale, so only kernel paths count.
-                return [processWorkingDirectory(pid: pty.shellPID),
-                        pty.foregroundPID.flatMap(processWorkingDirectory(pid:))].compactMap { $0 }.contains {
+                return [
+                    processWorkingDirectory(pid: pty.shellPID),
+                    pty.foregroundPID.flatMap(processWorkingDirectory(pid:)),
+                ].compactMap { $0 }.contains {
                     SessionWorktreeService.contains($0, in: path)
                 }
             case .split(_, _, let first, let second):
@@ -286,10 +290,10 @@ final class GlobalTerminalOverlay: NSObject {
         // Carbon hotkeys are consumed before AppKit's local event monitors.
         // Unregister while the focused pane blocks commands so the original
         // key-down, repeats, and key-up reach its terminal input path.
-        if !AppSettings.shared.quickTerminalEnabled || isRecordingHotkey || (
-            NSApp.keyWindow?.isKeyWindow == true
-                && TerminalCommandRouting.isBlockingCommands(in: NSApp.keyWindow)
-        ) {
+        if !AppSettings.shared.quickTerminalEnabled || isRecordingHotkey
+            || (NSApp.keyWindow?.isKeyWindow == true
+                && TerminalCommandRouting.isBlockingCommands(in: NSApp.keyWindow))
+        {
             unregisterHotkey()
         } else {
             _ = registerHotkey(AppSettings.shared.quickTerminalShortcut)
@@ -349,7 +353,8 @@ final class GlobalTerminalOverlay: NSObject {
         for tab in [workspace, reusableWorkspace].compactMap({ $0 }) {
             for pane in tab.allPanes {
                 guard case .session(let session) = pane.content,
-                      session.id == sessionID, !session.hasExited else { continue }
+                    session.id == sessionID, !session.hasExited
+                else { continue }
                 return (tab, pane, session)
             }
         }
@@ -358,14 +363,16 @@ final class GlobalTerminalOverlay: NSObject {
 
     func canRevealNotification(sessionID: UUID) -> Bool {
         guard AppSettings.shared.quickTerminalEnabled,
-              let match = notificationPane(for: sessionID) else { return false }
+            let match = notificationPane(for: sessionID)
+        else { return false }
         return terminalWindow?.isVisible != true || workspace === match.tab
     }
 
     @discardableResult
     func revealNotification(sessionID: UUID) -> Bool {
         guard let match = notificationPane(for: sessionID),
-              canRevealNotification(sessionID: sessionID) else { return false }
+            canRevealNotification(sessionID: sessionID)
+        else { return false }
         match.tab.focusedPaneID = match.pane.id
         if terminalWindow?.isVisible != true {
             show(modeOverride: match.tab === reusableWorkspace ? .reuse : workspaceMode)
@@ -379,7 +386,8 @@ final class GlobalTerminalOverlay: NSObject {
 
     private func show(modeOverride: QuickTerminalMode? = nil) {
         guard AppSettings.shared.quickTerminalEnabled, !isQuitting,
-              let screen = screenAtPointer() else { return }
+            let screen = screenAtPointer()
+        else { return }
         let mode = modeOverride ?? AppSettings.shared.quickTerminalMode
         if mode != workspaceMode {
             if workspaceMode == .fresh {
@@ -393,8 +401,10 @@ final class GlobalTerminalOverlay: NSObject {
         if workspace == nil {
             if mode == .reuse {
                 if reusableWorkspace == nil {
-                    guard let tab = pendingSnapshot.map(QuickTerminalWorkspaceSnapshot.restore)
-                        ?? newWorkspace(allowsPersistence: true) else { return }
+                    guard
+                        let tab = pendingSnapshot.map(QuickTerminalWorkspaceSnapshot.restore)
+                            ?? newWorkspace(allowsPersistence: true)
+                    else { return }
                     pendingSnapshot = nil
                     reusableWorkspace = tab
                     workspaceObservation = Publishers.CombineLatest(tab.$layout, tab.$focusedPaneID)
@@ -432,8 +442,9 @@ final class GlobalTerminalOverlay: NSObject {
         isPinned = terminalWindow.isPinned
 
         let frontmostApplication = NSWorkspace.shared.frontmostApplication
-        previousApplication = frontmostApplication?.processIdentifier
-            == ProcessInfo.processInfo.processIdentifier
+        previousApplication =
+            frontmostApplication?.processIdentifier
+                == ProcessInfo.processInfo.processIdentifier
             ? nil
             : frontmostApplication
 
@@ -471,9 +482,9 @@ final class GlobalTerminalOverlay: NSObject {
             isPinned = false
         }
         guard restorePreviousApplication,
-              NSApp.isActive,
-              let application,
-              !application.isTerminated
+            NSApp.isActive,
+            let application,
+            !application.isTerminated
         else { return }
         DispatchQueue.main.async {
             application.activate(options: [])
@@ -493,8 +504,7 @@ final class GlobalTerminalOverlay: NSObject {
     func split(toward edge: PaneDropEdge) {
         guard let workspace, terminalWindow?.isVisible == true else { return }
         let directory: String?
-        if case .session(let session)? = workspace.focusedContent { directory = session.currentDirectoryPath }
-        else { directory = nil }
+        if case .session(let session)? = workspace.focusedContent { directory = session.currentDirectoryPath } else { directory = nil }
         let session = TerminalSession(initialDirectory: directory, allowsPersistence: workspaceMode == .reuse)
         workspace.split(Pane(content: .session(session)), toward: edge)
         configureSessions(in: workspace)
@@ -502,7 +512,8 @@ final class GlobalTerminalOverlay: NSObject {
 
     func closeFocusedPane() {
         guard let workspace, let pane = workspace.focusedPane,
-              case .session(let session) = pane.content else { return }
+            case .session(let session) = pane.content
+        else { return }
         session.terminate()
         removeSession(session, from: workspace)
     }
@@ -517,10 +528,12 @@ final class GlobalTerminalOverlay: NSObject {
     }
 
     private func removeSession(_ session: TerminalSession, from tab: PaneTab) {
-        guard let pane = tab.allPanes.first(where: {
-            if case .session(let current) = $0.content { return current === session }
-            return false
-        }) else { return }
+        guard
+            let pane = tab.allPanes.first(where: {
+                if case .session(let current) = $0.content { return current === session }
+                return false
+            })
+        else { return }
         if tab.removePane(pane.id) { return }
         if workspace === tab {
             dismiss()
@@ -543,10 +556,12 @@ final class GlobalTerminalOverlay: NSObject {
             switch node {
             case .pane(var pane):
                 if case .session(let session) = pane.content, session.hasExited {
-                    pane.content = .session(TerminalSession(initialDirectory: session.currentDirectoryPath,
-                                                           restoredSessionID: session.persistentSessionID,
-                                                           isRestoredSession: true,
-                                                           allowsPersistence: workspaceMode == .reuse))
+                    pane.content = .session(
+                        TerminalSession(
+                            initialDirectory: session.currentDirectoryPath,
+                            restoredSessionID: session.persistentSessionID,
+                            isRestoredSession: true,
+                            allowsPersistence: workspaceMode == .reuse))
                 }
                 return .pane(pane)
             case .split(var split):
@@ -564,7 +579,7 @@ final class GlobalTerminalOverlay: NSObject {
     private func setPinned(_ pinned: Bool) {
         isPinned = pinned
         guard let terminalWindow, terminalWindow.isVisible,
-              let screen = screenForWindow(terminalWindow)
+            let screen = screenForWindow(terminalWindow)
         else { return }
         updateBackdrop(on: screen)
     }
@@ -603,14 +618,15 @@ final class GlobalTerminalOverlay: NSObject {
 extension GlobalTerminalOverlay: NSWindowDelegate {
     func windowDidResignKey(_ notification: Notification) {
         guard !isPinned, let resignedWindow = notification.object as? NSWindow,
-              resignedWindow === terminalWindow else { return }
+            resignedWindow === terminalWindow
+        else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self,
-                  let window = self.terminalWindow,
-                  window === resignedWindow,
-                  window.isVisible,
-                  !window.isKeyWindow,
-                  !window.isShowingSettings
+                let window = self.terminalWindow,
+                window === resignedWindow,
+                window.isVisible,
+                !window.isKeyWindow,
+                !window.isShowingSettings
             else { return }
             self.dismiss()
         }
@@ -618,8 +634,8 @@ extension GlobalTerminalOverlay: NSWindowDelegate {
 
     func windowDidMove(_ notification: Notification) {
         guard let terminalWindow,
-              terminalWindow.isVisible,
-              let screen = screenForWindow(terminalWindow)
+            terminalWindow.isVisible,
+            let screen = screenForWindow(terminalWindow)
         else { return }
         updateBackdrop(on: screen)
     }
@@ -704,8 +720,9 @@ private final class GlobalTerminalOverlayWindow: NSPanel {
     override func sendEvent(_ event: NSEvent) {
         if event.type == .keyDown, content.handleKeyEquivalent(event) { return }
         if event.type == .keyDown, event.keyCode == UInt16(kVK_Escape),
-           !TerminalCommandRouting.isBlockingCommands(in: self),
-           !TerminalHintMode.isPresented(in: self) {
+            !TerminalCommandRouting.isBlockingCommands(in: self),
+            !TerminalHintMode.isPresented(in: self)
+        {
             GlobalTerminalOverlay.shared.dismissFromWindow()
             return
         }
@@ -738,10 +755,11 @@ private final class GlobalTerminalOverlayWindow: NSPanel {
             hasConfiguredFrame = true
         } else if !screen.frame.contains(NSPoint(x: frame.midX, y: frame.midY)) {
             let visibleFrame = screen.visibleFrame
-            setFrameOrigin(NSPoint(
-                x: visibleFrame.midX - frame.width / 2,
-                y: visibleFrame.midY - frame.height / 2
-            ))
+            setFrameOrigin(
+                NSPoint(
+                    x: visibleFrame.midX - frame.width / 2,
+                    y: visibleFrame.midY - frame.height / 2
+                ))
             resizeForAreaFraction(areaFraction)
         }
     }
@@ -781,7 +799,8 @@ private final class GlobalTerminalOverlayWindow: NSPanel {
         }
         let visible = screen.visibleFrame
         return min(
-            max((frame.width * frame.height) / (visible.width * visible.height),
+            max(
+                (frame.width * frame.height) / (visible.width * visible.height),
                 CGFloat(AppSettings.quickTerminalSizeRange.lowerBound)),
             CGFloat(AppSettings.quickTerminalSizeRange.upperBound)
         )
@@ -822,11 +841,12 @@ private final class GlobalTerminalOverlayWindow: NSPanel {
 
     private func resize(with event: NSEvent) {
         guard let startFrame = resizeStartFrame,
-              let startMouse = resizeStartMouse,
-              let screen = screenContaining(center: NSPoint(
-                  x: startFrame.midX,
-                  y: startFrame.midY
-              ))
+            let startMouse = resizeStartMouse,
+            let screen = screenContaining(
+                center: NSPoint(
+                    x: startFrame.midX,
+                    y: startFrame.midY
+                ))
         else { return }
         let mouse = NSEvent.mouseLocation
         let visible = screen.visibleFrame
@@ -989,19 +1009,19 @@ private final class GlobalTerminalContentView: NSView {
     override func layout() {
         super.layout()
         guard shouldActivateTerminal,
-              let window,
-              terminal.window === window,
-              terminal.bounds.width > 0,
-              terminal.bounds.height > 0
+            let window,
+            terminal.window === window,
+            terminal.bounds.width > 0,
+            terminal.bounds.height > 0
         else { return }
 
         shouldActivateTerminal = false
         terminal.reveal()
         DispatchQueue.main.async { [weak self] in
             guard let self,
-                  let window = self.window,
-                  window.isKeyWindow,
-                  self.terminal.window === window
+                let window = self.window,
+                window.isKeyWindow,
+                self.terminal.window === window
             else { return }
             self.terminal.reveal()
         }

@@ -6,8 +6,7 @@ private func check(_ condition: Bool, _ message: String) {
 }
 
 private func rejects(_ operation: () throws -> Void) {
-    do { try operation(); preconditionFailure("Invalid report was accepted") }
-    catch {}
+    do { try operation(); preconditionFailure("Invalid report was accepted") } catch {}
 }
 
 private final class ObservedRequest: @unchecked Sendable {
@@ -49,18 +48,22 @@ struct AgentStatusReportingTests {
         var params: [String: ZshellJSONValue] = [
             "name": .string("Build"), "state": .string("blocked"),
             "attention": .string("approval"), "progress": .number(42),
-            "tasks": .array([.object([
-                "id": .string("tests"), "title": .string("Tests"), "state": .string("working"),
-            ])]),
+            "tasks": .array([
+                .object([
+                    "id": .string("tests"), "title": .string("Tests"), "state": .string("working"),
+                ])
+            ]),
         ]
         let report = try ZshellAgentReport(params: params)
         check(report.progress == 42 && report.attention == .approval && report.tasks.count == 1, "Valid report lost data")
         var childWait = params
         childWait["state"] = .string("working")
         childWait.removeValue(forKey: "attention")
-        childWait["tasks"] = .array([.object([
-            "id": .string("child"), "title": .string("Publish"), "state": .string("blocked"), "attention": .string("approval"),
-        ])])
+        childWait["tasks"] = .array([
+            .object([
+                "id": .string("child"), "title": .string("Publish"), "state": .string("blocked"), "attention": .string("approval"),
+            ])
+        ])
         let waiting = try ZshellAgentReport(params: childWait)
         check(waiting.activityPhase == .blocked && waiting.activityAttention == .approval, "Waiting child was hidden by parent progress")
         var unfinished = params
@@ -88,16 +91,20 @@ struct AgentStatusReportingTests {
         let task = params["tasks"]!.arrayValue!.first!
         params["tasks"] = .array([task, task])
         rejects { _ = try ZshellAgentReport(params: params) }
-        params["tasks"] = .array((0..<33).map { .object([
-            "id": .string(String($0)), "title": .string("Task"), "state": .string("working"),
-        ]) })
+        params["tasks"] = .array(
+            (0 ..< 33).map {
+                .object([
+                    "id": .string(String($0)), "title": .string("Task"), "state": .string("working"),
+                ])
+            })
         rejects { _ = try ZshellAgentReport(params: params) }
     }
 
     private static func lifecycle() {
         for provider in [ZshellAgentKind.codex, .claude] {
             func event(_ name: String, _ values: [String: ZshellJSONValue] = [:]) -> ZshellAgentLifecycleEvent? {
-                ZshellAgentLifecycleEvent.parse(provider: provider, payload: values.merging(["hook_event_name": .string(name)]) { _, new in new })
+                ZshellAgentLifecycleEvent.parse(
+                    provider: provider, payload: values.merging(["hook_event_name": .string(name)]) { _, new in new })
             }
             check(event("UserPromptSubmit")?.phase == .working, "Prompt did not start work")
             check(event("PermissionRequest")?.attention == .approval, "Approval was lost")
@@ -105,56 +112,80 @@ struct AgentStatusReportingTests {
             check(event("SessionEnd")?.endsSession == true, "Session did not end")
             check(event("SessionEnd", ["agent_id": .string("child")])?.endsSession == false, "Child ended its parent session")
             check(event("arbitrary terminal text") == nil, "Unknown event was trusted")
-            check(event("SubagentStop", ["agent_id": .string("child"), "agent_type": .string("Explore")])?.task?.phase == .done, "Child completion was lost")
+            check(
+                event("SubagentStop", ["agent_id": .string("child"), "agent_type": .string("Explore")])?.task?.phase == .done,
+                "Child completion was lost")
             check(event("Stop", ["agent_id": .string("child")])?.task != nil, "Child Stop became parent completion")
             check(event("SubagentStart", ["agent_id": .string(String(repeating: "x", count: 129))]) == nil, "Unbounded child id accepted")
             let currentID = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"
             let staleID = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"
-            let identity = AgentConversationIdentity(provider: .init(rawValue: provider.rawValue)!,
+            let identity = AgentConversationIdentity(
+                provider: .init(rawValue: provider.rawValue)!,
                 sessionID: currentID, workingDirectory: "/tmp/project")!
             for name in ["UserPromptSubmit", "Stop", "SessionEnd", "PermissionRequest"] {
-                check(event(name, ["session_id": .string(currentID)])?.belongs(to: identity, provider: provider) == true,
-                      "Current conversation lifecycle was rejected")
-                check(event(name, ["session_id": .string(staleID)])?.belongs(to: identity, provider: provider) == false,
-                      "Stale conversation changed the current lifecycle")
+                check(
+                    event(name, ["session_id": .string(currentID)])?.belongs(to: identity, provider: provider) == true,
+                    "Current conversation lifecycle was rejected")
+                check(
+                    event(name, ["session_id": .string(staleID)])?.belongs(to: identity, provider: provider) == false,
+                    "Stale conversation changed the current lifecycle")
                 check(event(name)?.belongs(to: identity, provider: provider) == true, "Legacy lifecycle lost process-based compatibility")
-                let other = AgentConversationIdentity(provider: provider == .claude ? .codex : .claude,
+                let other = AgentConversationIdentity(
+                    provider: provider == .claude ? .codex : .claude,
                     sessionID: currentID, workingDirectory: "/tmp/project")!
-                check(event(name, ["session_id": .string(currentID)])?.belongs(to: other, provider: provider) == false,
-                      "Another provider borrowed the current conversation")
+                check(
+                    event(name, ["session_id": .string(currentID)])?.belongs(to: other, provider: provider) == false,
+                    "Another provider borrowed the current conversation")
             }
-            check(event("SessionStart", ["session_id": .string(staleID)])?.belongs(to: identity, provider: provider) == true,
-                  "A root SessionStart could not establish its new identity")
-            check(event("SessionStart", ["session_id": .string(currentID)])?.belongs(to: nil, provider: provider) == true,
-                  "Initial SessionStart required an existing identity")
+            check(
+                event("SessionStart", ["session_id": .string(staleID)])?.belongs(to: identity, provider: provider) == true,
+                "A root SessionStart could not establish its new identity")
+            check(
+                event("SessionStart", ["session_id": .string(currentID)])?.belongs(to: nil, provider: provider) == true,
+                "Initial SessionStart required an existing identity")
             for value in [ZshellJSONValue.string(""), .string("invalid"), .number(1), .null] {
                 check(event("Stop", ["session_id": value]) == nil, "Malformed conversation ID bypassed lifecycle ownership")
-                check(event("SubagentStop", ["agent_id": .string("child"), "parent_session_id": value]) == nil,
-                      "Malformed parent ID bypassed child ownership")
+                check(
+                    event("SubagentStop", ["agent_id": .string("child"), "parent_session_id": value]) == nil,
+                    "Malformed parent ID bypassed child ownership")
             }
-            let child: [String: ZshellJSONValue] = ["agent_id": .string("child"), "session_id": .string(staleID),
-                                                  "parent_session_id": .string(currentID)]
-            check(event("SubagentStop", child)?.belongs(to: identity, provider: provider) == true,
-                  "Child lifecycle did not use its explicit parent identity")
+            let child: [String: ZshellJSONValue] = [
+                "agent_id": .string("child"), "session_id": .string(staleID),
+                "parent_session_id": .string(currentID),
+            ]
+            check(
+                event("SubagentStop", child)?.belongs(to: identity, provider: provider) == true,
+                "Child lifecycle did not use its explicit parent identity")
             var staleChild = child
             staleChild["parent_session_id"] = .string(staleID)
-            check(event("SubagentStop", staleChild)?.belongs(to: identity, provider: provider) == false,
-                  "Child lifecycle updated a different parent conversation")
-            check(event("Stop", ["agent_id": .string("child"), "session_id": .string(staleID)])?
-                .belongs(to: identity, provider: provider) == true, "Child without a parent ID lost task-based compatibility")
+            check(
+                event("SubagentStop", staleChild)?.belongs(to: identity, provider: provider) == false,
+                "Child lifecycle updated a different parent conversation")
+            check(
+                event("Stop", ["agent_id": .string("child"), "session_id": .string(staleID)])?
+                    .belongs(to: identity, provider: provider) == true, "Child without a parent ID lost task-based compatibility")
         }
-        check(ZshellAgentLifecycleEvent.parse(provider: .claude, payload: [
-            "hook_event_name": .string("StopFailure"), "error": .string("authentication_failed"),
-        ])?.attention == .login, "Authentication failure did not require login")
-        check(ZshellAgentLifecycleEvent.parse(provider: .gemini, payload: ["hook_event_name": .string("Stop")]) == nil, "Unsupported native hook accepted")
+        check(
+            ZshellAgentLifecycleEvent.parse(
+                provider: .claude,
+                payload: [
+                    "hook_event_name": .string("StopFailure"), "error": .string("authentication_failed"),
+                ])?.attention == .login, "Authentication failure did not require login")
+        check(
+            ZshellAgentLifecycleEvent.parse(provider: .gemini, payload: ["hook_event_name": .string("Stop")]) == nil,
+            "Unsupported native hook accepted")
     }
 
     private static func screens() {
         let approval = "Would you like to run the following command?\n› 1. Yes\n2. No\nPress enter to confirm"
         check(ZshellAgentScreenEvidence.detect(kind: .codex, text: approval)?.attention == .approval, "Codex approval not recognized")
         check(ZshellAgentScreenEvidence.detect(kind: .aider, text: approval) == nil, "Another process borrowed Codex's screen rules")
-        check(ZshellAgentScreenEvidence.detect(kind: .codex, text: "Would you like to run the following command?") == nil, "Quoted heading became approval")
-        check(ZshellAgentScreenEvidence.detect(kind: .claude, text: "Do you want to proceed?\nEsc to cancel")?.phase == .blocked, "Claude prompt not recognized")
+        check(
+            ZshellAgentScreenEvidence.detect(kind: .codex, text: "Would you like to run the following command?") == nil,
+            "Quoted heading became approval")
+        check(
+            ZshellAgentScreenEvidence.detect(kind: .claude, text: "Do you want to proceed?\nEsc to cancel")?.phase == .blocked,
+            "Claude prompt not recognized")
         for text in ["Done", "Task completed successfully", "error: test failed", String(repeating: "x", count: 32_769)] {
             check(ZshellAgentScreenEvidence.detect(kind: .codex, text: text) == nil, "Ordinary output changed lifecycle")
         }
@@ -175,13 +206,19 @@ struct AgentStatusReportingTests {
         check(!evidence.confirmsClaudeIdle(idle + "\nEsc to cancel", at: now), "Dialog cancellation settled the turn")
         check(!evidence.confirmsClaudeIdle("❯ quoted prompt", at: now), "Quoted prompt became idle")
         check(!evidence.confirmsClaudeIdle(idle, at: now), "Invalid screen retained a previous sample")
-        check(!evidence.confirmsClaudeIdle(idle.replacingOccurrences(of: "restored", with: "changed"), at: now), "Changed input reused idle evidence")
-        check(ZshellAgentLifecycleEvent.parse(provider: .codex, payload: ["hook_event_name": .string("Interrupt")])?.interrupted == true,
-              "Native Codex interrupt lost cancellation semantics")
-        check(ZshellAgentLifecycleEvent.parse(provider: .codex, payload: ["hook_event_name": .string("Interrupt"), "agent_id": .string("child")])?.interrupted == false,
-              "Child interrupt cancelled its parent")
-        check(ZshellAgentLifecycleEvent.parse(provider: .claude, payload: ["hook_event_name": .string("Interrupt")]) == nil,
-              "An unsupported Claude hook became the interrupt signal")
+        check(
+            !evidence.confirmsClaudeIdle(idle.replacingOccurrences(of: "restored", with: "changed"), at: now),
+            "Changed input reused idle evidence")
+        check(
+            ZshellAgentLifecycleEvent.parse(provider: .codex, payload: ["hook_event_name": .string("Interrupt")])?.interrupted == true,
+            "Native Codex interrupt lost cancellation semantics")
+        check(
+            ZshellAgentLifecycleEvent.parse(
+                provider: .codex, payload: ["hook_event_name": .string("Interrupt"), "agent_id": .string("child")])?.interrupted == false,
+            "Child interrupt cancelled its parent")
+        check(
+            ZshellAgentLifecycleEvent.parse(provider: .claude, payload: ["hook_event_name": .string("Interrupt")]) == nil,
+            "An unsupported Claude hook became the interrupt signal")
     }
 
     private static func processes() throws {
@@ -204,10 +241,17 @@ struct AgentStatusReportingTests {
     private static func hooks(bundle: Bundle, root: URL) throws {
         let home = root.appendingPathComponent("hooks-home")
         let original: [String: Any] = [
-            "theme": "keep", "hooks": ["SessionStart": [["hooks": [
-                ["type": "command", "command": "user-hook"],
-                ["type": "command", "command": "/bin/sh /saved/zshell-session-hook.sh claude _session-start", "timeout": 5],
-            ]]]],
+            "theme": "keep",
+            "hooks": [
+                "SessionStart": [
+                    [
+                        "hooks": [
+                            ["type": "command", "command": "user-hook"],
+                            ["type": "command", "command": "/bin/sh /saved/zshell-session-hook.sh claude _session-start", "timeout": 5],
+                        ]
+                    ]
+                ]
+            ],
         ]
         for provider in [".claude", ".codex"] {
             let directory = home.appendingPathComponent(provider)
@@ -238,13 +282,17 @@ struct AgentStatusReportingTests {
         let observed = ObservedRequest()
         let server = try ZshellAutomationSocketServer(path: socketPath) { request, reply in
             observed.record(request)
-            reply(.success(id: request.id, result: .object([
-                "method": .string(request.method), "params": .object(request.params),
-                "peer_pid": request.peerProcessID.map { .number(Double($0)) } ?? .null,
-            ])))
+            reply(
+                .success(
+                    id: request.id,
+                    result: .object([
+                        "method": .string(request.method), "params": .object(request.params),
+                        "peer_pid": request.peerProcessID.map { .number(Double($0)) } ?? .null,
+                    ])))
         }
         defer { withExtendedLifetime(server) {} }
-        var request = ZshellAutomationRequest(version: 1, id: "wire", method: "agent.report", token: "test", terminalID: UUID().uuidString, params: [:])
+        var request = ZshellAutomationRequest(
+            version: 1, id: "wire", method: "agent.report", token: "test", terminalID: UUID().uuidString, params: [:])
         request.peerProcessID = 1
         let encoded = try JSONEncoder().encode(request)
         check(!String(decoding: encoded, as: UTF8.self).contains("peerProcessID"), "Peer credential leaked onto wire")
@@ -284,8 +332,11 @@ struct AgentStatusReportingTests {
         check(try cli(["report", "working", "--pane", UUID().uuidString]).0 != 0, "CLI accepted another pane target")
         check(try cli(["report", "--json"], input: String(repeating: "x", count: 32_769)).0 != 0, "CLI accepted oversized JSON")
         check(try cli(["clear"]).0 == 0, "CLI clear failed")
-        check(try cli(["_lifecycle", "codex"], input: "{\"hook_event_name\":\"Stop\"}").1.trimmingCharacters(in: .whitespacesAndNewlines) == "{}", "Codex Stop hook emitted a decision")
-        let status = try cli(["_lifecycle", "claude"], input: "{\"hook_event_name\":\"PermissionRequest\",\"tool_input\":{\"secret\":\"never forward\"}}")
+        check(
+            try cli(["_lifecycle", "codex"], input: "{\"hook_event_name\":\"Stop\"}").1.trimmingCharacters(in: .whitespacesAndNewlines)
+                == "{}", "Codex Stop hook emitted a decision")
+        let status = try cli(
+            ["_lifecycle", "claude"], input: "{\"hook_event_name\":\"PermissionRequest\",\"tool_input\":{\"secret\":\"never forward\"}}")
         check(status.0 == 0 && status.1.isEmpty, "Claude hook affected its provider stdout")
         let forwarded = observed.latest()?.params["event"]?.objectValue
         check(forwarded?["hook_event_name"]?.stringValue == "PermissionRequest", "Native adapter did not reach socket")

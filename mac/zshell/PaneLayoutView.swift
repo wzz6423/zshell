@@ -189,8 +189,9 @@ struct PaneLayoutView: View {
                 // moves. The compact label follows the pointer only while it
                 // is over a valid destination pane.
                 if let tabDrag = tabSplitDrag.drag,
-                   tabDrag.targetTabID == tab.id,
-                   tabDrag.targetPaneID != nil {
+                    tabDrag.targetTabID == tab.id,
+                    tabDrag.targetPaneID != nil
+                {
                     let origin = geo.frame(in: .global).origin
                     draggedTabLabel(tabDrag)
                         .offset(
@@ -243,7 +244,8 @@ struct PaneLayoutView: View {
             return paneDrag?.edge
         }
         guard tabSplitDrag.drag?.targetTabID == tab.id,
-              tabSplitDrag.drag?.targetPaneID == paneID else { return nil }
+            tabSplitDrag.drag?.targetPaneID == paneID
+        else { return nil }
         return tabSplitDrag.drag?.edge
     }
 
@@ -278,7 +280,8 @@ struct PaneLayoutView: View {
     private func commitPaneMove() {
         let committedExternally = tabSplitDrag.commitPaneDrag()
         if !committedExternally,
-           let paneDrag, let target = paneDrag.targetID, let edge = paneDrag.edge {
+            let paneDrag, let target = paneDrag.targetID, let edge = paneDrag.edge
+        {
             tab.movePane(paneDrag.sourceID, edge, of: target)
         }
         paneDrag = nil
@@ -548,14 +551,14 @@ private struct PaneView: View {
                 onNewFileTab: newFileTabFromMenu,
                 onNewFilePane: newFilePaneFromMenu
             )
-                .background(
-                    settings.isTerminalBackgroundBlurActive
-                        ? Color.clear
-                        : Color(nsColor: Theme.background)
-                )
-                .overlay(alignment: .topTrailing) {
-                    TerminalFindOverlay(find: session.find)
-                }
+            .background(
+                settings.isTerminalBackgroundBlurActive
+                    ? Color.clear
+                    : Color(nsColor: Theme.background)
+            )
+            .overlay(alignment: .topTrailing) {
+                TerminalFindOverlay(find: session.find)
+            }
         case .file(let file):
             FileViewerView(
                 file: file,
@@ -563,7 +566,7 @@ private struct PaneView: View {
                 onFocused: focus,
                 onSplit: splitFromMenu
             )
-                .background(Color(nsColor: Theme.background))
+            .background(Color(nsColor: Theme.background))
         case .browser(let browser):
             BrowserView(
                 manager: manager,
@@ -573,7 +576,7 @@ private struct PaneView: View {
                 onNewBrowserTab: newBrowserTabFromMenu,
                 onNewBrowserPane: newBrowserPaneFromMenu
             )
-                .background(Color(nsColor: Theme.background))
+            .background(Color(nsColor: Theme.background))
         case .diff(let diff):
             DiffPaneAnchorView(diff: diff, manager: manager)
                 .allowsHitTesting(false)
@@ -601,9 +604,9 @@ private struct PaneView: View {
     /// The half of the pane that previews where the dragged pane will land.
     private func highlightRect(for edge: PaneDropEdge, in size: CGSize) -> CGRect {
         switch edge {
-        case .left:   return CGRect(x: 0, y: 0, width: size.width / 2, height: size.height)
-        case .right:  return CGRect(x: size.width / 2, y: 0, width: size.width / 2, height: size.height)
-        case .top:    return CGRect(x: 0, y: 0, width: size.width, height: size.height / 2)
+        case .left: return CGRect(x: 0, y: 0, width: size.width / 2, height: size.height)
+        case .right: return CGRect(x: size.width / 2, y: 0, width: size.width / 2, height: size.height)
+        case .top: return CGRect(x: 0, y: 0, width: size.width, height: size.height / 2)
         case .bottom: return CGRect(x: 0, y: size.height / 2, width: size.width, height: size.height / 2)
         }
     }
@@ -644,7 +647,8 @@ private extension NSView {
     /// A bitmap of the view's current rendering, used as the drag thumbnail.
     func paneSnapshot() -> NSImage? {
         guard bounds.width > 0, bounds.height > 0,
-              let rep = bitmapImageRepForCachingDisplay(in: bounds) else { return nil }
+            let rep = bitmapImageRepForCachingDisplay(in: bounds)
+        else { return nil }
         cacheDisplay(in: bounds, to: rep)
         let image = NSImage(size: bounds.size)
         image.addRepresentation(rep)

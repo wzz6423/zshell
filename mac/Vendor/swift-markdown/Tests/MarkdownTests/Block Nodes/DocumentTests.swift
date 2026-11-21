@@ -37,26 +37,28 @@ final class DocumentTests: XCTestCase {
             .appendingPathComponent("..") // Project
             .appendingPathComponent("README.md")
         XCTAssertNoThrow(try Document(parsing: readmeURL))
-        XCTAssertThrowsError(try Document(parsing: URL(fileURLWithPath: #file)
-            .appendingPathComponent("doesntexist")))
+        XCTAssertThrowsError(
+            try Document(
+                parsing: URL(fileURLWithPath: #file)
+                    .appendingPathComponent("doesntexist")))
     }
- 
+
     func testParseNewlineCharacters() {
         let inputParagraphString = """
-        # First\n
-        ## Second\r
-        ### Third\r\n
-        """
+            # First\n
+            ## Second\r
+            ### Third\r\n
+            """
         let document = Document(parsing: inputParagraphString, options: [.parseBlockDirectives, .parseSymbolLinks])
         let expectedDump = """
-                Document
-                ├─ Heading level: 1
-                │  └─ Text "First"
-                ├─ Heading level: 2
-                │  └─ Text "Second"
-                └─ Heading level: 3
-                   └─ Text "Third"
-                """
+            Document
+            ├─ Heading level: 1
+            │  └─ Text "First"
+            ├─ Heading level: 2
+            │  └─ Text "Second"
+            └─ Heading level: 3
+               └─ Text "Third"
+            """
         XCTAssertEqual(expectedDump, document.debugDescription())
     }
 }

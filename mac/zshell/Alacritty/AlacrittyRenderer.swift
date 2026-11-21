@@ -44,10 +44,11 @@ struct AlacrittyMetrics {
         self.regular = fontFeatures.applying(to: regular)
         bold = fontFeatures.applying(to: manager.convert(regular, toHaveTrait: .boldFontMask))
         italic = fontFeatures.applying(to: manager.convert(regular, toHaveTrait: .italicFontMask))
-        boldItalic = fontFeatures.applying(to: manager.convert(
-            manager.convert(regular, toHaveTrait: .boldFontMask),
-            toHaveTrait: .italicFontMask
-        ))
+        boldItalic = fontFeatures.applying(
+            to: manager.convert(
+                manager.convert(regular, toHaveTrait: .boldFontMask),
+                toHaveTrait: .italicFontMask
+            ))
 
         let advance = TerminalFont.cellAdvance(of: regular)
         // Round to whole points so column positions stay on pixel boundaries
@@ -113,7 +114,7 @@ struct AlacrittyRenderer {
         let columns = snapshot.columns
         let rows = snapshot.rows
 
-        for row in 0..<rows {
+        for row in 0 ..< rows {
             drawBackgrounds(
                 cells: cells, row: row, columns: columns,
                 defaultBackground: snapshot.background, in: context, bounds: bounds
@@ -122,7 +123,7 @@ struct AlacrittyRenderer {
 
         drawCursor(snapshot: snapshot, in: context, bounds: bounds)
 
-        for row in 0..<rows {
+        for row in 0 ..< rows {
             drawGlyphs(
                 cells: cells, row: row, columns: columns,
                 cursor: snapshot.cursor_line == row ? snapshot.cursor_column : -1,
@@ -185,7 +186,7 @@ struct AlacrittyRenderer {
     ) {
         let y = bounds.maxY - origin.y - CGFloat(row) * metrics.cellHeight - metrics.baseline
 
-        for column in 0..<columns {
+        for column in 0 ..< columns {
             let cell = cells[row * columns + column]
             guard cell.flags & UInt16(ZSHELL_CELL_HIDDEN) == 0 else { continue }
             // A wide char's trailing spacer carries no glyph of its own.
@@ -234,7 +235,8 @@ struct AlacrittyRenderer {
         var glyphs = [CGGlyph](repeating: 0, count: utf16.count)
 
         if CTFontGetGlyphsForCharacters(ctFont, &utf16, &glyphs, utf16.count),
-           glyphs.allSatisfy({ $0 != 0 }) {
+            glyphs.allSatisfy({ $0 != 0 })
+        {
             var position = point
             CTFontDrawGlyphs(ctFont, glyphs, &position, 1, context)
             return
@@ -246,10 +248,11 @@ struct AlacrittyRenderer {
             string: String(scalar),
             attributes: [
                 .font: font,
-                .foregroundColor: NSColor(srgbRed: CGFloat((color >> 16) & 0xff) / 255,
-                                          green: CGFloat((color >> 8) & 0xff) / 255,
-                                          blue: CGFloat(color & 0xff) / 255,
-                                          alpha: 1),
+                .foregroundColor: NSColor(
+                    srgbRed: CGFloat((color >> 16) & 0xff) / 255,
+                    green: CGFloat((color >> 8) & 0xff) / 255,
+                    blue: CGFloat(color & 0xff) / 255,
+                    alpha: 1),
             ]
         )
         context.textPosition = point
@@ -307,10 +310,11 @@ struct AlacrittyRenderer {
         let width = CTLineGetTypographicBounds(ctLine, nil, nil, nil)
 
         context.setFillColor(NSColor.textBackgroundColor.cgColor)
-        context.fill(CGRect(
-            x: x, y: y - metrics.cellHeight * 0.25,
-            width: CGFloat(width), height: metrics.cellHeight
-        ))
+        context.fill(
+            CGRect(
+                x: x, y: y - metrics.cellHeight * 0.25,
+                width: CGFloat(width), height: metrics.cellHeight
+            ))
         context.textPosition = CGPoint(x: x, y: y)
         CTLineDraw(ctLine, context)
     }
@@ -345,7 +349,8 @@ struct AlacrittyRenderer {
         }
         let resolvedBackground = Self.background(of: cell, default: background)
         // Turning ANSI adjustment off must keep selection text readable.
-        let ratio = cell.flags & UInt16(ZSHELL_CELL_SELECTED) != 0
+        let ratio =
+            cell.flags & UInt16(ZSHELL_CELL_SELECTED) != 0
             ? max(minimumContrast, TerminalContrast.defaultMinimumRatio) : minimumContrast
         return contrastedColor(color, against: resolvedBackground, minimumRatio: ratio)
     }
@@ -363,9 +368,11 @@ struct AlacrittyRenderer {
     static func selectionColors() -> (foreground: UInt32, background: UInt32) {
         let dark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         let theme = Theme.terminal(dark: dark)
-        let background = packed(hex: theme.selectionBackground)
+        let background =
+            packed(hex: theme.selectionBackground)
             ?? packed(color: theme.accentNSColor)
-        let foreground = packed(hex: theme.selectionForeground)
+        let foreground =
+            packed(hex: theme.selectionForeground)
             ?? contrastingColor(for: background)
         return (foreground, background)
     }
@@ -389,7 +396,8 @@ struct AlacrittyRenderer {
                 return AlacrittyRenderer.foreground(of: cell, default: background, minimumContrast: minimumRatio)
             }
             let flags = cell.flags & UInt16(ZSHELL_CELL_INVERSE | ZSHELL_CELL_DIM)
-            let key = (UInt64(cell.fg & 0xffffff) << 40)
+            let key =
+                (UInt64(cell.fg & 0xffffff) << 40)
                 | (UInt64(cell.bg & 0xffffff) << 16) | UInt64(flags)
             if let color = colors[key] { return color }
             let color = AlacrittyRenderer.foreground(of: cell, default: background, minimumContrast: minimumRatio)

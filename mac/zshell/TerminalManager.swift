@@ -77,7 +77,8 @@ final class TerminalManager: nonisolated ObservableObject {
         didSet {
             ZshellAutomationEventHub.shared.topologyChanged()
             guard !isRestoringProjects, let project = selectedProject,
-                  var group = projectGroup(id: project.groupID), group.isCollapsed else { return }
+                var group = projectGroup(id: project.groupID), group.isCollapsed
+            else { return }
             group.isCollapsed = false
             ProjectGroupStore.shared.update(group)
         }
@@ -318,20 +319,20 @@ final class TerminalManager: nonisolated ObservableObject {
                 AppSettings.shared.$cursorBlinking.removeDuplicates()
             )
         )
-            .dropFirst()
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.refreshAppearance()
-            }
+        .dropFirst()
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _ in
+            self?.refreshAppearance()
+        }
         translucencyObservation = Publishers.CombineLatest(
             AppSettings.shared.$terminalBackgroundOpacity.removeDuplicates(),
             AppSettings.shared.$terminalBackgroundBlur.removeDuplicates()
         )
-            .dropFirst()
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.refreshTranslucency()
-            }
+        .dropFirst()
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _ in
+            self?.refreshTranslucency()
+        }
         accessibilityDisplayObserver =
             NSWorkspace.shared.notificationCenter.addObserver(
                 forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification,
@@ -347,7 +348,8 @@ final class TerminalManager: nonisolated ObservableObject {
         // Every project/tab/selection change re-publishes through the manager,
         // so a debounced sink snapshots layout after mutations settle without
         // reading live terminal contents.
-        autosaveObservation = objectWillChange
+        autosaveObservation =
+            objectWillChange
             .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
             .sink { _ in
                 TerminalManager.saveAll(captureTerminalHistory: false)
@@ -405,7 +407,8 @@ final class TerminalManager: nonisolated ObservableObject {
         for tab in resolved.tabs {
             for content in WorkspaceTemplate.contents(in: tab.layout) {
                 if case .session(let directory) = content,
-                   Self.isRemovingWorktree(containing: directory) {
+                    Self.isRemovingWorktree(containing: directory)
+                {
                     throw WorkspaceTemplateError.missingDirectory(directory)
                 }
             }
@@ -430,14 +433,15 @@ final class TerminalManager: nonisolated ObservableObject {
         recipe.remote?.directory = directory.trimmingCharacters(in: .whitespacesAndNewlines)
         try recipe.validate()
         guard let remote = recipe.remote,
-              let (tabIndex, terminal) = recipe.tabs.enumerated().lazy
-                  .compactMap({ index, tab in tab.terminals.min { $0.paneIndex < $1.paneIndex }.map { (index, $0) } }).first
+            let (tabIndex, terminal) = recipe.tabs.enumerated().lazy
+                .compactMap({ index, tab in tab.terminals.min { $0.paneIndex < $1.paneIndex }.map { (index, $0) } }).first
         else { throw WorkspaceTemplateError.invalidRemote }
         let sessionID = UUID()
         let directory = remote.directory, command = terminal.argv, initializationCommand = terminal.initializationCommand
         let info = try await Task.detached(priority: .userInitiated) {
-            try RemoteHostClient.create(host: host, directory: directory, sessionID: sessionID,
-                                        command: command, initializationCommand: initializationCommand)
+            try RemoteHostClient.create(
+                host: host, directory: directory, sessionID: sessionID,
+                command: command, initializationCommand: initializationCommand)
         }.value
         let project = makeProject(location: .shared(host: host, directory: info.project), createInitialSession: false)
         project.customName = recipe.name
@@ -474,7 +478,8 @@ final class TerminalManager: nonisolated ObservableObject {
     /// the destination group only supplies the default for future sessions.
     func moveProject(_ project: Project, to group: ProjectGroup?) {
         guard projects.contains(where: { $0 === project }),
-              group == nil || projectGroup(id: group?.id) != nil else { return }
+            group == nil || projectGroup(id: group?.id) != nil
+        else { return }
         let previousGroupID = project.groupID
         project.groupID = group?.id
         if var group, group.isCollapsed {
@@ -604,10 +609,11 @@ final class TerminalManager: nonisolated ObservableObject {
     /// launched there. Used by Zshell's Finder service.
     private func newProject(directory: String, worktree: SessionWorktree? = nil) {
         let project = makeProject(createInitialSession: false)
-        project.customName = URL(
-            fileURLWithPath: directory,
-            isDirectory: true
-        ).lastPathComponent
+        project.customName =
+            URL(
+                fileURLWithPath: directory,
+                isDirectory: true
+            ).lastPathComponent
         project.customDirectory = directory
         project.newSession(directory: directory, worktree: worktree)
         insert(project)
@@ -630,8 +636,9 @@ final class TerminalManager: nonisolated ObservableObject {
         // New projects are unpinned. Keep the existing adjacent insertion within
         // that section; a pinned selection starts the regular section instead.
         if let selectedProjectID,
-           let index = projects.firstIndex(where: { $0.id == selectedProjectID }),
-           !projects[index].isPinned {
+            let index = projects.firstIndex(where: { $0.id == selectedProjectID }),
+            !projects[index].isPinned
+        {
             projects.insert(project, at: index + 1)
         } else {
             let destination = projects.firstIndex(where: { !$0.isPinned }) ?? projects.endIndex
@@ -691,10 +698,10 @@ final class TerminalManager: nonisolated ObservableObject {
             agentPaletteKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) {
                 [weak self, weak window] event in
                 guard let self, let window,
-                      event.window === window,
-                      !TerminalCommandRouting.isBlockingCommands(in: window),
-                      event.charactersIgnoringModifiers?.lowercased() == "a",
-                      event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                    event.window === window,
+                    !TerminalCommandRouting.isBlockingCommands(in: window),
+                    event.charactersIgnoringModifiers?.lowercased() == "a",
+                    event.modifierFlags.intersection(.deviceIndependentFlagsMask)
                         == [.command, .option]
                 else { return event }
                 self.toggleAgentPalette()
@@ -704,7 +711,8 @@ final class TerminalManager: nonisolated ObservableObject {
         Self.isOpeningWindow = false
         let directories = Self.takePendingDirectories()
         if !directories.isEmpty, let startupProjectID,
-           let startupProject = projects.first(where: { $0.id == startupProjectID }) {
+            let startupProject = projects.first(where: { $0.id == startupProjectID })
+        {
             startupProject.terminateAll()
             remove(startupProject)
         }
@@ -727,12 +735,14 @@ final class TerminalManager: nonisolated ObservableObject {
         directory: String,
         path: String?
     ) {
-        let manager = registry.first { $0.window === NSApp.keyWindow }
+        let manager =
+            registry.first { $0.window === NSApp.keyWindow }
             ?? registry.first { $0.window === NSApp.mainWindow }
             ?? registry.last { $0.window != nil }
         guard let manager else { return }
         if arguments.count == 1,
-           let entry = QuickLaunchStore.shared.entries.first(where: { $0.name == arguments[0] }) {
+            let entry = QuickLaunchStore.shared.entries.first(where: { $0.name == arguments[0] })
+        {
             manager.runQuickLaunchEntry(entry)
             manager.window?.makeKeyAndOrderFront(nil)
             return
@@ -767,9 +777,9 @@ final class TerminalManager: nonisolated ObservableObject {
 
     private static func requestWindowForPendingDirectories() {
         guard !pendingDirectories.isEmpty,
-              !registry.contains(where: { $0.window != nil }),
-              !windowRequestScheduled,
-              !isOpeningWindow
+            !registry.contains(where: { $0.window != nil }),
+            !windowRequestScheduled,
+            !isOpeningWindow
         else { return }
 
         windowRequestScheduled = true
@@ -777,8 +787,8 @@ final class TerminalManager: nonisolated ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             windowRequestScheduled = false
             guard !pendingDirectories.isEmpty,
-                  !registry.contains(where: { $0.window != nil }),
-                  !isOpeningWindow
+                !registry.contains(where: { $0.window != nil }),
+                !isOpeningWindow
             else { return }
 
             isOpeningWindow = true
@@ -830,8 +840,9 @@ final class TerminalManager: nonisolated ObservableObject {
 
     func close(_ project: Project) {
         guard projects.contains(where: { $0 === project }), !Self.isQuitting,
-              !Self.isConfirmingApplicationQuit, !isConfirmingWindowClose,
-              !UnsavedChangesConfirmation.isPending else { return }
+            !Self.isConfirmingApplicationQuit, !isConfirmingWindowClose,
+            !UnsavedChangesConfirmation.isPending
+        else { return }
         let worktreeSessions = project.sessions.filter { $0.worktree != nil }
         guard project.hasUnsavedChanges || !worktreeSessions.isEmpty else {
             project.terminateAll()
@@ -844,20 +855,26 @@ final class TerminalManager: nonisolated ObservableObject {
             // Edits and new worktree sessions can arrive while a sheet is open.
             while true {
                 guard projects.contains(where: { $0 === project }),
-                      await project.confirmUnsavedChanges(using: confirmation, in: window) else { return }
-                guard let session = project.sessions.first(where: { session in
-                    session.worktree != nil && !choices.contains(where: { $0.session === session })
-                }) else { break }
-                let closing = choices.map(\.session) + project.sessions.filter { candidate in
-                    !choices.contains(where: { $0.session === candidate })
-                }
+                    await project.confirmUnsavedChanges(using: confirmation, in: window)
+                else { return }
+                guard
+                    let session = project.sessions.first(where: { session in
+                        session.worktree != nil && !choices.contains(where: { $0.session === session })
+                    })
+                else { break }
+                let closing =
+                    choices.map(\.session)
+                    + project.sessions.filter { candidate in
+                        !choices.contains(where: { $0.session === candidate })
+                    }
                 guard let remove = await confirmCloseWorktreeSession(session, in: project, closingSessions: closing) else { return }
                 choices.append((session, remove))
             }
             confirmation.commitDiscards()
             project.closeApprovedContents(project.tabs.flatMap(\.allContents), preserving: choices.map(\.session))
-            do { try await closeApprovedWorktreeSessions(choices, in: project) }
-            catch { await showWorktreeError(error, in: window); return }
+            do { try await closeApprovedWorktreeSessions(choices, in: project) } catch {
+                await showWorktreeError(error, in: window); return
+            }
             // Content opened during cleanup has not been approved for closing.
             if project.tabs.isEmpty { remove(project) }
         }
@@ -881,7 +898,7 @@ final class TerminalManager: nonisolated ObservableObject {
 
     func setPinned(_ pinned: Bool, for project: Project) {
         guard project.isPinned != pinned,
-              let index = projects.firstIndex(where: { $0.id == project.id })
+            let index = projects.firstIndex(where: { $0.id == project.id })
         else { return }
 
         projects.remove(at: index)
@@ -894,9 +911,9 @@ final class TerminalManager: nonisolated ObservableObject {
     /// section. Selection continues to follow its project ID.
     func moveProject(_ draggedID: UUID, to targetID: UUID) {
         guard draggedID != targetID,
-              let draggedIndex = projects.firstIndex(where: { $0.id == draggedID }),
-              let targetIndex = projects.firstIndex(where: { $0.id == targetID }),
-              projects[draggedIndex].isPinned == projects[targetIndex].isPinned
+            let draggedIndex = projects.firstIndex(where: { $0.id == draggedID }),
+            let targetIndex = projects.firstIndex(where: { $0.id == targetID }),
+            projects[draggedIndex].isPinned == projects[targetIndex].isPinned
         else { return }
 
         var reorderedProjects = projects
@@ -961,7 +978,7 @@ final class TerminalManager: nonisolated ObservableObject {
     private func shiftProjectSelection(by offset: Int) {
         let ordered = sidebarOrderedProjects
         guard !ordered.isEmpty,
-              let current = ordered.firstIndex(where: { $0.id == selectedProjectID })
+            let current = ordered.firstIndex(where: { $0.id == selectedProjectID })
         else { return }
         let next = (current + offset + ordered.count) % ordered.count
         selectedProjectID = ordered[next].id
@@ -1003,8 +1020,9 @@ final class TerminalManager: nonisolated ObservableObject {
         let project = makeProject(createInitialSession: false)
         project.customName = entry.name
         project.customDirectory = directory
-        project.newSession(directory: directory, directoryContext: selectedProject?.newSessionDirectoryContext,
-                           commandArguments: arguments)
+        project.newSession(
+            directory: directory, directoryContext: selectedProject?.newSessionDirectoryContext,
+            commandArguments: arguments)
         insert(project)
     }
 
@@ -1021,7 +1039,8 @@ final class TerminalManager: nonisolated ObservableObject {
     func reopenClosedSession() {
         guard let record = closedSessionRecords.popLast() else { return }
         let worktree = record.worktree.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
-        let directory = record.worktree != nil && worktree == nil
+        let directory =
+            record.worktree != nil && worktree == nil
             ? record.worktree!.repositoryRoot : record.workingDirectory
         if let project = record.projectID.flatMap({ projectID in
             projects.first { $0.id == projectID }
@@ -1080,7 +1099,7 @@ final class TerminalManager: nonisolated ObservableObject {
     /// content-scope constraints checked again by `moveTab`.
     func tabMoveDestinations(for tabID: UUID, in sourceProjectID: UUID) -> [TabMoveDestination] {
         guard let source = projects.first(where: { $0.id == sourceProjectID }),
-              let tab = source.tabs.first(where: { $0.id == tabID })
+            let tab = source.tabs.first(where: { $0.id == tabID })
         else { return [] }
 
         let aliases = Set(tab.sessions.compactMap { $0.agentStatus?.alias })
@@ -1111,14 +1130,14 @@ final class TerminalManager: nonisolated ObservableObject {
         in destinationManagerID: ObjectIdentifier
     ) -> TabMoveResult {
         guard let source = projects.first(where: { $0.id == sourceProjectID }),
-              let tab = source.tabs.first(where: { $0.id == tabID }),
-              let destinationManager = Self.registry.first(where: {
-                  ObjectIdentifier($0) == destinationManagerID
-              }),
-              let destination = destinationManager.projects.first(where: {
-                  $0.id == destinationProjectID
-              }),
-              source !== destination
+            let tab = source.tabs.first(where: { $0.id == tabID }),
+            let destinationManager = Self.registry.first(where: {
+                ObjectIdentifier($0) == destinationManagerID
+            }),
+            let destination = destinationManager.projects.first(where: {
+                $0.id == destinationProjectID
+            }),
+            source !== destination
         else { return TabMoveResult(failure: .unavailable) }
 
         guard tab.diffs.isEmpty else {
@@ -1129,7 +1148,8 @@ final class TerminalManager: nonisolated ObservableObject {
         }
         let destinationAliases = Set(destination.sessions.compactMap { $0.agentStatus?.alias })
         if let conflict = tab.sessions.compactMap({ $0.agentStatus?.alias })
-            .first(where: destinationAliases.contains) {
+            .first(where: destinationAliases.contains)
+        {
             return TabMoveResult(failure: .agentAliasConflict(conflict))
         }
 
@@ -1154,7 +1174,7 @@ final class TerminalManager: nonisolated ObservableObject {
         in group: ProjectGroup?
     ) -> TabMoveResult {
         guard let source = projects.first(where: { $0.id == sourceProjectID }),
-              let tab = source.tabs.first(where: { $0.id == tabID })
+            let tab = source.tabs.first(where: { $0.id == tabID })
         else { return TabMoveResult(failure: .unavailable) }
 
         guard tab.diffs.isEmpty else {
@@ -1184,9 +1204,9 @@ final class TerminalManager: nonisolated ObservableObject {
         to destinationProjectID: UUID
     ) -> ProjectMoveResult {
         guard sourceProjectID != destinationProjectID,
-              let source = projects.first(where: { $0.id == sourceProjectID }),
-              let destination = projects.first(where: { $0.id == destinationProjectID }),
-              !source.tabs.isEmpty
+            let source = projects.first(where: { $0.id == sourceProjectID }),
+            let destination = projects.first(where: { $0.id == destinationProjectID }),
+            !source.tabs.isEmpty
         else { return ProjectMoveResult(failure: .unavailable) }
 
         guard source.tabs.allSatisfy({ $0.diffs.isEmpty }) else {
@@ -1197,16 +1217,19 @@ final class TerminalManager: nonisolated ObservableObject {
         }
         let destinationAliases = Set(destination.sessions.compactMap { $0.agentStatus?.alias })
         if let conflict = source.sessions.compactMap({ $0.agentStatus?.alias })
-            .first(where: destinationAliases.contains) {
+            .first(where: destinationAliases.contains)
+        {
             return ProjectMoveResult(failure: .agentAliasConflict(conflict))
         }
 
         let sourceName = source.name
         let sourceSelection = source.selectedTabID
         let tabIDs = source.tabs.map(\.id)
-        let shouldCreateGroup = tabIDs.count > 1
+        let shouldCreateGroup =
+            tabIDs.count > 1
             && source.tabs.contains(where: { !$0.isPinned })
-        let group = shouldCreateGroup
+        let group =
+            shouldCreateGroup
             ? destination.createTabGroup(named: sourceName)
             : nil
         for tabID in tabIDs {
@@ -1217,7 +1240,8 @@ final class TerminalManager: nonisolated ObservableObject {
             }
         }
         if let sourceSelection,
-           destination.tabs.contains(where: { $0.id == sourceSelection }) {
+            destination.tabs.contains(where: { $0.id == sourceSelection })
+        {
             destination.selectedTabID = sourceSelection
         }
         remove(source)
@@ -1234,7 +1258,7 @@ final class TerminalManager: nonisolated ObservableObject {
         to destinationProjectID: UUID
     ) -> ProjectMoveResult {
         guard ProjectGroupStore.shared.group(id: sourceGroupID) != nil,
-              let destination = projects.first(where: { $0.id == destinationProjectID })
+            let destination = projects.first(where: { $0.id == destinationProjectID })
         else { return ProjectMoveResult(failure: .unavailable) }
 
         let sources = projects.filter {
@@ -1242,10 +1266,12 @@ final class TerminalManager: nonisolated ObservableObject {
         }
         guard !sources.isEmpty else { return ProjectMoveResult(failure: .unavailable) }
 
-        guard sources.allSatisfy({ source in
-            source.location == destination.location
-                && source.tabs.allSatisfy { $0.diffs.isEmpty }
-        }) else {
+        guard
+            sources.allSatisfy({ source in
+                source.location == destination.location
+                    && source.tabs.allSatisfy { $0.diffs.isEmpty }
+            })
+        else {
             if sources.contains(where: { $0.location != destination.location }) {
                 return ProjectMoveResult(failure: .incompatibleLocation)
             }
@@ -1255,7 +1281,8 @@ final class TerminalManager: nonisolated ObservableObject {
         var aliases = Set(destination.sessions.compactMap { $0.agentStatus?.alias })
         for source in sources {
             if let conflict = source.sessions.compactMap({ $0.agentStatus?.alias })
-                .first(where: aliases.contains) {
+                .first(where: aliases.contains)
+            {
                 return ProjectMoveResult(failure: .agentAliasConflict(conflict))
             }
             aliases.formUnion(source.sessions.compactMap { $0.agentStatus?.alias })
@@ -1273,7 +1300,8 @@ final class TerminalManager: nonisolated ObservableObject {
         }
         for plan in plans {
             guard let source = projects.first(where: { $0.id == plan.projectID }) else { continue }
-            let group = plan.shouldCreateGroup
+            let group =
+                plan.shouldCreateGroup
                 ? destination.createTabGroup(named: plan.sourceName)
                 : nil
             for tabID in plan.tabIDs {
@@ -1284,7 +1312,8 @@ final class TerminalManager: nonisolated ObservableObject {
                 }
             }
             if let selectedTabID = plan.selectedTabID,
-               destination.tabs.contains(where: { $0.id == selectedTabID }) {
+                destination.tabs.contains(where: { $0.id == selectedTabID })
+            {
                 destination.selectedTabID = selectedTabID
             }
             remove(source)
@@ -1339,7 +1368,9 @@ final class TerminalManager: nonisolated ObservableObject {
                             if session.id == target.terminalID { return context }
                             if remoteFallback == nil { remoteFallback = context }
                         }
-                    } else if session.id == target.terminalID { return context }
+                    } else if session.id == target.terminalID {
+                        return context
+                    }
                 }
             }
         }
@@ -1354,9 +1385,10 @@ final class TerminalManager: nonisolated ObservableObject {
             for project in manager.projects {
                 for context in ZshellAutomationRouter.projectContexts(project, manager: manager) {
                     guard let session = context.session, session.id != excludedID, !session.hasExited,
-                          session.remoteConnection?.host.id == hostID,
-                          session.remoteConnection?.sessionID == remoteID,
-                          session.remoteStatus?.state == .connected else { continue }
+                        session.remoteConnection?.host.id == hostID,
+                        session.remoteConnection?.sessionID == remoteID,
+                        session.remoteStatus?.state == .connected
+                    else { continue }
                     return session
                 }
             }
@@ -1396,9 +1428,10 @@ final class TerminalManager: nonisolated ObservableObject {
         // Recheck focus so a second click cannot be undone by this deferred work.
         DispatchQueue.main.async { [weak window, weak session] in
             guard let session, let current = notificationContext(for: target),
-                  current.project.selectedTabID == current.tab.id,
-                  current.manager.selectedProjectID == current.project.id,
-                  current.tab.focusedPaneID == current.pane.id else { return }
+                current.project.selectedTabID == current.tab.id,
+                current.manager.selectedProjectID == current.project.id,
+                current.tab.focusedPaneID == current.pane.id
+            else { return }
             window?.makeFirstResponder(session.surface)
         }
         session.markAutomationAgentSeen()
@@ -1412,9 +1445,9 @@ final class TerminalManager: nonisolated ObservableObject {
         guard NSApp.isActive else { return nil }
         for manager in registry where manager.window?.isKeyWindow == true {
             guard let project = manager.selectedProject,
-                  let tab = project.selectedTab,
-                  let pane = tab.focusedPane,
-                  case .session(let session) = pane.content
+                let tab = project.selectedTab,
+                let pane = tab.focusedPane,
+                case .session(let session) = pane.content
             else { continue }
             return session.id
         }
@@ -1455,18 +1488,21 @@ final class TerminalManager: nonisolated ObservableObject {
         let ordered = projects.flatMap { project in
             project.tabs.flatMap(\.sessions)
         }
-        let attention = ordered.filter { $0.agentStatus?.phase == .blocked }
+        let attention =
+            ordered.filter { $0.agentStatus?.phase == .blocked }
             + ordered.filter { $0.agentStatus?.phase == .done }
         guard !attention.isEmpty else { return }
 
         let currentID: UUID? = {
             guard let pane = selectedProject?.selectedTab?.focusedPane,
-                  case .session(let session) = pane.content else { return nil }
+                case .session(let session) = pane.content
+            else { return nil }
             return session.id
         }()
         let next: TerminalSession
         if let currentID,
-           let index = attention.firstIndex(where: { $0.id == currentID }) {
+            let index = attention.firstIndex(where: { $0.id == currentID })
+        {
             next = attention[(index + 1) % attention.count]
         } else {
             next = attention[0]
@@ -1689,12 +1725,16 @@ final class TerminalManager: nonisolated ObservableObject {
         if project.isRemote {
             if case .remote(let source) = project.fileSource {
                 fileTree.configureRemote(source.endpoint, authentication: source.authentication, credentialID: source.credentialID)
-            } else { fileTree.configureRemote(nil) }
+            } else {
+                fileTree.configureRemote(nil)
+            }
             fileTree.sync(root: project.remoteEndpoint == nil ? "" : project.remoteDirectory ?? "~")
         } else {
             fileTree.configureRemote(nil)
-            let root = project.panelRoot(followingSessionAt: session.currentDirectoryPath,
-                                         foregroundAt: session.foregroundDirectoryPath).root
+            let root = project.panelRoot(
+                followingSessionAt: session.currentDirectoryPath,
+                foregroundAt: session.foregroundDirectoryPath
+            ).root
             fileTree.sync(root: root)
         }
         if oldRoot != fileTree.rootPath { fileTreeImportDirectory = nil }
@@ -1705,7 +1745,8 @@ final class TerminalManager: nonisolated ObservableObject {
         syncFileTree()
         guard !fileTree.rootPath.isEmpty else { return }
         if let saved = fileTreeImportDirectory,
-           (try? FileTreeImportService.destination(root: fileTree.rootPath, directory: saved)) == nil {
+            (try? FileTreeImportService.destination(root: fileTree.rootPath, directory: saved)) == nil
+        {
             fileTreeImportDirectory = nil
         }
         let destination = directory ?? fileTreeImportDirectory ?? fileTree.rootPath
@@ -1772,7 +1813,8 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     func toggleCommandPalette() {
-        let displacedResponder = agentPalette.isPresented
+        let displacedResponder =
+            agentPalette.isPresented
             ? agentPalette.dismissForHandoff()
             : nil
         if isCommandPaletteVisible {
@@ -1782,7 +1824,8 @@ final class TerminalManager: nonisolated ObservableObject {
             if let displacedResponder {
                 commandPalettePreviousResponder = displacedResponder
             } else if let responder = commandPaletteWindow?.firstResponder,
-                      Self.isStableWorkspaceResponder(responder) {
+                Self.isStableWorkspaceResponder(responder)
+            {
                 commandPalettePreviousResponder = responder
             } else {
                 commandPalettePreviousResponder = nil
@@ -1828,8 +1871,9 @@ final class TerminalManager: nonisolated ObservableObject {
             // A palette command may already have focused a new terminal or
             // editor. Never let restoration race that newer focus and win.
             if let current = window.firstResponder,
-               current !== responder,
-               Self.isStableWorkspaceResponder(current) {
+                current !== responder,
+                Self.isStableWorkspaceResponder(current)
+            {
                 return
             }
             window.makeFirstResponder(responder)
@@ -1869,7 +1913,8 @@ final class TerminalManager: nonisolated ObservableObject {
         let settings = AppSettings.shared
         window?.alphaValue = CGFloat(settings.effectiveTerminalBackgroundOpacity)
         window?.isOpaque = !settings.isTerminalBackgroundTranslucent
-        window?.backgroundColor = settings.isTerminalBackgroundTranslucent
+        window?.backgroundColor =
+            settings.isTerminalBackgroundTranslucent
             ? .clear
             : .windowBackgroundColor
         for project in projects {
@@ -1906,7 +1951,7 @@ final class TerminalManager: nonisolated ObservableObject {
         guard !didReopenWindows else { return }
         didReopenWindows = true
         DispatchQueue.main.async {
-            for _ in 0..<pendingRestores.count {
+            for _ in 0 ..< pendingRestores.count {
                 open()
             }
         }
@@ -1926,14 +1971,16 @@ final class TerminalManager: nonisolated ObservableObject {
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         if windowCloseIsApproved || Self.isQuitting { return true }
         guard !isConfirmingWindowClose, !Self.isConfirmingApplicationQuit,
-              !UnsavedChangesConfirmation.isPending else { return false }
+            !UnsavedChangesConfirmation.isPending
+        else { return false }
         guard hasUnsavedChanges else { return true }
         guard let confirmation = UnsavedChangesConfirmation() else { return false }
         isConfirmingWindowClose = true
         Task { @MainActor in
             defer { isConfirmingWindowClose = false }
             guard await confirmUnsavedChanges(using: confirmation),
-                  Self.registry.contains(where: { $0 === self }), !Self.isQuitting else { return }
+                Self.registry.contains(where: { $0 === self }), !Self.isQuitting
+            else { return }
             confirmation.commitDiscards()
             windowCloseIsApproved = true
             defer { windowCloseIsApproved = false }
@@ -2026,7 +2073,8 @@ final class TerminalManager: nonisolated ObservableObject {
     static func prepareForApplicationQuit(endAll: Bool = false) {
         guard !isQuitting else { return }
         isQuitting = true
-        quittingSessions = registry.flatMap { $0.projects.flatMap(\.sessions) }
+        quittingSessions =
+            registry.flatMap { $0.projects.flatMap(\.sessions) }
             + GlobalTerminalOverlay.shared.allSessions
         saveAll(captureTerminalHistory: true)
         let endAll = endAll || quitEndsAllSessions
@@ -2047,7 +2095,8 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     static func waitForApplicationQuitTeardown() async {
-        let sessions = quittingSessions + registry.flatMap { $0.projects.flatMap(\.sessions) }
+        let sessions =
+            quittingSessions + registry.flatMap { $0.projects.flatMap(\.sessions) }
             + GlobalTerminalOverlay.shared.allSessions
         quittingSessions.removeAll()
         for session in sessions { await session.waitForTeardown() }
@@ -2071,9 +2120,10 @@ final class TerminalManager: nonisolated ObservableObject {
                         captureTerminalHistory: captureTerminalHistory,
                         histories: &histories
                     )
-                    let focusedPaneIndex = tab.allPanes.firstIndex {
-                        $0.id == tab.focusedPaneID
-                    } ?? 0
+                    let focusedPaneIndex =
+                        tab.allPanes.firstIndex {
+                            $0.id == tab.focusedPaneID
+                        } ?? 0
                     return ProjectSnapshot.TabSnapshot(
                         layout: layout,
                         focusedPaneIndex: focusedPaneIndex,
@@ -2138,23 +2188,25 @@ final class TerminalManager: nonisolated ObservableObject {
                 worktree = session.worktree
             }
             if case .session(let session) = pane.content,
-               let history = session.serializedHistory(
-                   captureLive: captureTerminalHistory
-               ), !history.isEmpty {
+                let history = session.serializedHistory(
+                    captureLive: captureTerminalHistory
+                ), !history.isEmpty
+            {
                 let key = session.id.uuidString
                 histories[key] = history
                 historyKey = key
             }
-            return .pane(ProjectSnapshot.PaneSnapshot(
-                content: contentSnapshot(pane.content),
-                weight: 1,
-                historyKey: historyKey,
-                agentResume: agentResume,
-                terminalID: terminalID,
-                remoteSessionID: remoteSessionID,
-                worktree: worktree,
-                draftID: pane.content.draftID
-            ))
+            return .pane(
+                ProjectSnapshot.PaneSnapshot(
+                    content: contentSnapshot(pane.content),
+                    weight: 1,
+                    historyKey: historyKey,
+                    agentResume: agentResume,
+                    terminalID: terminalID,
+                    remoteSessionID: remoteSessionID,
+                    worktree: worktree,
+                    draftID: pane.content.draftID
+                ))
         case .split(let split):
             return .split(
                 axis: split.axis,
@@ -2224,16 +2276,19 @@ final class TerminalManager: nonisolated ObservableObject {
             // A group may have been deleted while this window was closed or
             // by another live window. Treat an orphaned id as ungrouped so the
             // restored project never disappears from the sidebar.
-            project.groupID = ProjectGroupStore.shared.group(id: saved.groupID) == nil
+            project.groupID =
+                ProjectGroupStore.shared.group(id: saved.groupID) == nil
                 ? nil
                 : saved.groupID
             project.launchSettings = saved.launchSettings
             project.beginRestoringTabGroups(saved.tabGroups)
             var restoredContexts: [(tab: PaneTab, sessionIndex: Int)] = []
             for savedTab in saved.tabs {
-                guard let tab = project.restoreTab(
-                    from: savedTab, histories: Self.pendingHistories
-                ) else { continue }
+                guard
+                    let tab = project.restoreTab(
+                        from: savedTab, histories: Self.pendingHistories
+                    )
+                else { continue }
                 if let sessionIndex = savedTab.contextSessionIndex {
                     restoredContexts.append((tab, sessionIndex))
                 }
@@ -2250,14 +2305,15 @@ final class TerminalManager: nonisolated ObservableObject {
             project.resetRecency()
             projects.append(project)
         }
-        preferredSidebarOrder = snapshot.sidebarOrder?.compactMap { item in
-            switch item {
-            case .project(let index):
-                return projects.indices.contains(index) ? .project(projects[index].id) : nil
-            case .group(let id):
-                return .group(id)
-            }
-        } ?? []
+        preferredSidebarOrder =
+            snapshot.sidebarOrder?.compactMap { item in
+                switch item {
+                case .project(let index):
+                    return projects.indices.contains(index) ? .project(projects[index].id) : nil
+                case .group(let id):
+                    return .group(id)
+                }
+            } ?? []
         guard !projects.isEmpty else { return false }
         if let index = snapshot.selectedProjectIndex, projects.indices.contains(index) {
             selectedProjectID = projects[index].id

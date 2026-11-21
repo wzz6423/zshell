@@ -71,7 +71,33 @@ final class ProbePane: SettingsPaneViewController {
         control: SettingsSwitch { _ in }
     )
     let editorRow = SettingsRow(title: String(localized: "External editor"), control: SettingsSwitch { _ in })
+    let presence = SettingsRow(
+        title: String(localized: "Show Zshell in"),
+        description: String(localized: "With a menu bar icon, closing the last workspace window keeps its terminals running."),
+        control: SettingsPopUpButton<Int>(items: [.value(String(localized: "Dock Only"), 0)], onChange: { _ in }),
+        symbolName: "menubar.rectangle"
+    )
+    let gitProxy = SettingsRow(
+        title: String(localized: "Use proxy for Git"),
+        description: String(localized: "Applies to Git panel actions, pull request status, and Git in terminals opened afterwards."),
+        control: SettingsSwitch { _ in }, symbolName: "network"
+    )
+    lazy var proxyAddress: SettingsRow = {
+        let field = NSTextField(string: "http://127.0.0.1:7897")
+        field.controlSize = .small
+        field.widthAnchor.constraint(equalToConstant: 200).isActive = true
+        return SettingsRow(
+            title: String(localized: "Proxy address"),
+            description: String(localized: "HTTP, HTTPS, or SOCKS proxy URL. Changes apply to terminals opened afterwards."),
+            control: field, symbolName: "link"
+        )
+    }()
     let backend = SettingsBackendPicker { _ in }
+    lazy var backendRow = SettingsRow(
+        title: String(localized: "Backend"),
+        description: String(localized: "Changes apply only to new terminals. Open shells keep their current backend."),
+        control: backend
+    )
     let ordinarySlider = SettingsSliderRow(
         title: String(localized: "Line height"), range: 0.75...2, format: .percent,
         step: 0.05, showsStepper: true, onChange: { _ in }
@@ -86,7 +112,8 @@ final class ProbePane: SettingsPaneViewController {
     )
     override func makeGroups() -> [NSView] {
         [card, SettingsGroup(rows: [cellWidth, contrast, ordinarySlider]),
-         SettingsGroup(rows: [wrappedTitle, editorRow, SettingsCustomRow(cursorShape), SettingsCustomRow(cursorBlinking), SettingsCustomRow(backend)])]
+         SettingsGroup(rows: [wrappedTitle, editorRow, SettingsCustomRow(cursorShape), SettingsCustomRow(cursorBlinking), backendRow]),
+         SettingsGroup(rows: [presence, gitProxy, proxyAddress])]
     }
 }
 
@@ -95,7 +122,7 @@ final class ProbePane: SettingsPaneViewController {
         [view] + view.subviews.flatMap(descendants)
     }
 
-    @MainActor static func iconMatchesTitle(in row: NSView, size: CGFloat = 32) -> Bool {
+    @MainActor static func iconMatchesTitle(in row: NSView, size: CGFloat = 32, topAligned: Bool = false) -> Bool {
         guard let icon = descendants(row).compactMap({ $0 as? SettingsIconView }).first,
               let title = descendants(row).compactMap({ $0 as? NSTextField }).first(where: {
                   $0.font?.pointSize == NSFont.systemFontSize
@@ -105,7 +132,9 @@ final class ProbePane: SettingsPaneViewController {
         let titleCenter = titleBounds.maxY - title.firstBaselineOffsetFromTop + (font.ascender + font.descender) / 2
         return abs(bounds.width - size) < 0.5
             && abs(bounds.width - bounds.height) < 0.5
-            && abs(bounds.midY - titleCenter) <= 1
+            && (topAligned ? abs(bounds.maxY - titleBounds.maxY) <= 1
+                && bounds.minY >= 0 && bounds.maxY <= row.bounds.maxY + 1
+                : abs(bounds.midY - titleCenter) <= 1)
             && bounds.maxX < titleBounds.minX && bounds.minX >= 0
     }
 
@@ -282,6 +311,10 @@ final class ProbePane: SettingsPaneViewController {
                     let downloadRect = toolRow.convert(
                         downloadButton.alignmentRect(forFrame: downloadButton.frame), from: toolActions
                     )
+                    let backendStack = pane.backendRow.subviews.first as! NSStackView
+                    let backendRect = pane.backendRow.convert(pane.backend.bounds, from: pane.backend)
+                    let backendLabels = backendStack.arrangedSubviews.first!
+                    let backendLabelRect = pane.backendRow.convert(backendLabels.bounds, from: backendLabels)
                     precondition(contrastSlider.doubleValue == expectedRatio && contrastStepper.doubleValue == expectedRatio)
                     precondition(contrastSlider.accessibilityLabel() == String(localized: "Minimum contrast"))
                     samples.append([
@@ -296,16 +329,40 @@ final class ProbePane: SettingsPaneViewController {
                             abs($0.frame.width - $0.fittingSize.width) <= 2 && $0.frame.minX >= 0
                                 && $0.frame.maxX <= toolActions.bounds.maxX + 2
                         },
-                        "cellWidthIconSquare": iconMatchesTitle(in: pane.cellWidth),
+                        "cellWidthIconSquare": iconMatchesTitle(in: pane.cellWidth, topAligned: true),
                         "cellWidthSliderFits": slider.frame.width > 40 && slider.frame.maxX <= pane.cellWidth.bounds.maxX,
                         "cellWidthLabelsFit": descendants(sliderStack).compactMap { $0 as? NSTextField }.allSatisfy {
                             $0.frame.height + 1 >= $0.cell!.cellSize(forBounds: NSRect(
                                 x: 0, y: 0, width: $0.frame.width, height: 10000
                             )).height
                         },
-                        "contrastIconSquare": iconMatchesTitle(in: pane.contrast),
-                        "sharedAndCustomIconsMatchTitles": [pane.support, pane.wrappedTitle, pane.editorRow,
-                            pane.ordinarySlider, pane.cursorShape, pane.cursorBlinking].allSatisfy { iconMatchesTitle(in: $0) },
+                        "contrastIconSquare": iconMatchesTitle(in: pane.contrast, topAligned: true),
+                        "sharedIconsMatchTitleTops": [pane.wrappedTitle, pane.editorRow,
+                            pane.ordinarySlider, pane.presence, pane.gitProxy, pane.proxyAddress, pane.backendRow].allSatisfy {
+                                iconMatchesTitle(in: $0, topAligned: true)
+                            },
+                        "generalLabelsFit": [pane.presence, pane.gitProxy, pane.proxyAddress].allSatisfy { row in
+                            let stack = row.subviews.first as! NSStackView
+                            return descendants(stack.arrangedSubviews.first!).compactMap { $0 as? NSTextField }.allSatisfy {
+                                $0.frame.height + 1 >= $0.cell!.cellSize(forBounds: NSRect(
+                                    x: 0, y: 0, width: $0.frame.width, height: 10000
+                                )).height
+                            }
+                        },
+                        "generalControlsCentered": [pane.presence, pane.gitProxy, pane.proxyAddress].allSatisfy { row in
+                            let stack = row.subviews.first as! NSStackView
+                            let control = stack.arrangedSubviews.last!
+                            let rect = row.convert(control.alignmentRect(forFrame: control.frame), from: stack)
+                            return abs(rect.midY - row.bounds.midY) <= 1
+                                && rect.minX >= 0 && rect.maxX <= row.bounds.maxX + 1
+                        },
+                        "compoundLayoutFits": backendRect.minX >= 0 && backendRect.maxX <= pane.backendRow.bounds.maxX + 1
+                            && (backendStack.orientation == .vertical
+                                ? backendRect.maxY <= backendLabelRect.minY
+                                    && abs(backendRect.width - pane.backendRow.bounds.width) <= 1
+                                : backendRect.minX >= backendLabelRect.maxX),
+                        "customIconsMatchTitles": [pane.support, pane.cursorShape, pane.cursorBlinking]
+                            .allSatisfy { iconMatchesTitle(in: $0) },
                         "externalEditorIconVisible": iconRendersGlyph(in: pane.editorRow),
                         "sidebarIconMatchesTitle": iconMatchesTitle(in: sidebar, size: 24),
                         "backendIconsMatchTitles": backendHeaders.filter { $0.arrangedSubviews.count == 2
@@ -440,7 +497,11 @@ class SettingsLayoutTests(unittest.TestCase):
                     self.assertTrue(sample["cellWidthSliderFits"], sample)
                     self.assertTrue(sample["cellWidthLabelsFit"], sample)
                     self.assertTrue(sample["contrastIconSquare"], sample)
-                    self.assertTrue(sample["sharedAndCustomIconsMatchTitles"], sample)
+                    self.assertTrue(sample["sharedIconsMatchTitleTops"], sample)
+                    self.assertTrue(sample["generalLabelsFit"], sample)
+                    self.assertTrue(sample["generalControlsCentered"], sample)
+                    self.assertTrue(sample["compoundLayoutFits"], sample)
+                    self.assertTrue(sample["customIconsMatchTitles"], sample)
                     self.assertTrue(sample["externalEditorIconVisible"], sample)
                     self.assertTrue(sample["wrappedTitleFits"], sample)
                     self.assertTrue(sample["sidebarIconMatchesTitle"], sample)

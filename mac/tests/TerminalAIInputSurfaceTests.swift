@@ -24,8 +24,7 @@ private func pump(_ duration: TimeInterval) {
 @main
 struct TerminalAIInputSurfaceTests {
     @MainActor static func main() {
-        do { try run() }
-        catch {
+        do { try run() } catch {
             fputs("\(error)\n", stderr)
             exit(1)
         }
@@ -42,7 +41,8 @@ struct TerminalAIInputSurfaceTests {
             interactiveShell: nil, workingDirectory: NSTemporaryDirectory(),
             environment: ["TERM": "xterm-256color", "LC_ALL": "en_US.UTF-8"]
         )
-        let view: any TerminalBackendSurface = backend == "ghostty"
+        let view: any TerminalBackendSurface =
+            backend == "ghostty"
             ? ZshellTerminalView(launch: launch) : AlacrittyTerminalView(launch: launch)
         let window = InputTestWindow(contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.contentView = view
@@ -154,18 +154,20 @@ struct TerminalAIInputSurfaceTests {
             defer { app.textInputEvent = nil }
             let client = view as! any NSTextInputClient
             if composing {
-                client.setMarkedText("zi", selectedRange: NSRange(location: 2, length: 0),
-                                     replacementRange: NSRange(location: NSNotFound, length: 0))
+                client.setMarkedText(
+                    "zi", selectedRange: NSRange(location: 2, length: 0),
+                    replacementRange: NSRange(location: NSNotFound, length: 0))
             }
             client.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
         }
 
         func key(_ text: String = "x", code: UInt16 = 7) {
-            view.keyDown(with: NSEvent.keyEvent(
-                with: .keyDown, location: .zero, modifierFlags: [],
-                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
-                context: nil, characters: text, charactersIgnoringModifiers: text, isARepeat: false, keyCode: code
-            )!)
+            view.keyDown(
+                with: NSEvent.keyEvent(
+                    with: .keyDown, location: .zero, modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                    context: nil, characters: text, charactersIgnoringModifiers: text, isARepeat: false, keyCode: code
+                )!)
         }
 
         func redraw() {
@@ -209,19 +211,21 @@ struct TerminalAIInputSurfaceTests {
 
         func verifyEarlyInput(captured: Bool) {
             let pasteboard = NSPasteboard.general
-            let previousClipboard = pasteboard.pasteboardItems?.map { item in
-                item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
-            } ?? []
+            let previousClipboard =
+                pasteboard.pasteboardItems?.map { item in
+                    item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+                } ?? []
             let copyOnSelect = AppSettings.shared.copyOnSelect
             AppSettings.shared.copyOnSelect = true
             defer {
                 AppSettings.shared.copyOnSelect = copyOnSelect
                 pasteboard.clearContents()
-                pasteboard.writeObjects(previousClipboard.map { values in
-                    let item = NSPasteboardItem()
-                    for (type, data) in values { item.setData(data, forType: type) }
-                    return item
-                })
+                pasteboard.writeObjects(
+                    previousClipboard.map { values in
+                        let item = NSPasteboardItem()
+                        for (type, data) in values { item.setData(data, forType: type) }
+                        return item
+                    })
             }
             for reverse in [false, true] {
                 for action in ["key", "Backspace", "Delete", "insertText", "IME", "paste", "accessibility"] {
@@ -260,7 +264,7 @@ struct TerminalAIInputSurfaceTests {
                     let clipboardPreserved = pasteboard.string(forType: .string) == "paste"
                     if !clipboardPreserved { failures += 1 }
                     print("\(clipboardPreserved ? "PASS" : "FAIL"): \(backend) \(label) preserves clipboard")
-                    if captured { verifyMouseReports(0..<1, "\(label) stays local", inputOnly: true) }
+                    if captured { verifyMouseReports(0 ..< 1, "\(label) stays local", inputOnly: true) }
                 }
             }
         }
@@ -390,7 +394,7 @@ struct TerminalAIInputSurfaceTests {
         select()
         key()
         verify("01x89abcdefghij", "Claude mouse-reporting input replacement")
-        verifyMouseReports(0..<1, "AI drag does not also send native mouse input", inputOnly: true)
+        verifyMouseReports(0 ..< 1, "AI drag does not also send native mouse input", inputOnly: true)
 
         verifyEarlyInput(captured: true)
 
@@ -399,46 +403,48 @@ struct TerminalAIInputSurfaceTests {
         select()
         key("\u{7f}", code: 51)
         verify("0189abcdefghij", "Claude mouse-reporting Backspace removes selection")
-        verifyMouseReports(0..<1, "AI Backspace drag stays local", inputOnly: true)
+        verifyMouseReports(0 ..< 1, "AI Backspace drag stays local", inputOnly: true)
 
         control("\u{15}")
         pump(0.1)
         select()
         key("\u{f728}", code: 117)
         verify("0189abcdefghij", "Claude mouse-reporting Delete removes selection")
-        verifyMouseReports(0..<1, "AI Delete drag stays local", inputOnly: true)
+        verifyMouseReports(0 ..< 1, "AI Delete drag stays local", inputOnly: true)
 
         control("\u{15}")
         pump(0.1)
         select()
         let pasteboard = NSPasteboard.general
-        let previousClipboard = pasteboard.pasteboardItems?.map { item in
-            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
-        } ?? []
+        let previousClipboard =
+            pasteboard.pasteboardItems?.map { item in
+                item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+            } ?? []
         pasteboard.clearContents()
         pasteboard.setString("paste", forType: .string)
         paste(fromContextMenu: true)
         pasteboard.clearContents()
-        pasteboard.writeObjects(previousClipboard.map { values in
-            let item = NSPasteboardItem()
-            for (type, data) in values { item.setData(data, forType: type) }
-            return item
-        })
+        pasteboard.writeObjects(
+            previousClipboard.map { values in
+                let item = NSPasteboardItem()
+                for (type, data) in values { item.setData(data, forType: type) }
+                return item
+            })
         verify("01paste89abcdefghij", "Claude mouse-reporting paste replaces selection")
-        verifyMouseReports(0..<1, "AI paste drag stays local", inputOnly: true)
+        verifyMouseReports(0 ..< 1, "AI paste drag stays local", inputOnly: true)
 
         control("\u{15}")
         pump(0.1)
         click(5)
         key()
         verify("01234x56789abcdefghij", "Claude mouse-reporting click and type")
-        verifyMouseReports(0..<1, "AI click does not also send native mouse input", inputOnly: true)
+        verifyMouseReports(0 ..< 1, "AI click does not also send native mouse input", inputOnly: true)
 
         mouse(.leftMouseDown, 2, row: -1)
         mouse(.leftMouseDragged, 8, row: -1)
         mouse(.leftMouseUp, 8, row: -1)
-        verifyMouseReports(1..<Int.max, "mouse reporting remains enabled outside the AI input")
-        verifyMouseReports(1..<Int.max, "native mouse input remains enabled outside the AI input", inputOnly: true)
+        verifyMouseReports(1 ..< Int.max, "mouse reporting remains enabled outside the AI input")
+        verifyMouseReports(1 ..< Int.max, "native mouse input remains enabled outside the AI input", inputOnly: true)
 
         if failures > 0 { throw NSError(domain: "TerminalInputFailures", code: failures) }
     }

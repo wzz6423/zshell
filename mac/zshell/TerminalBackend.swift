@@ -100,8 +100,8 @@ enum TerminalBackend: String, CaseIterable, Identifiable, Sendable {
     /// backend this build cannot create.
     init(persisted name: String?) {
         guard let name,
-              let backend = TerminalBackend(rawValue: name),
-              backend.isAvailable
+            let backend = TerminalBackend(rawValue: name),
+            backend.isAvailable
         else {
             self = .fallback
             return
@@ -349,8 +349,8 @@ final class TerminalCommandRouting: NSObject {
                 // window. Honor that destination just as its menus would.
                 let window = event.window ?? NSApp.keyWindow
                 guard !event.modifierFlags.intersection([.command, .control, .option]).isEmpty,
-                      let surface = window?.firstResponder as? any TerminalBackendSurface,
-                      surface.commandRouting.blocksCommands
+                    let surface = window?.firstResponder as? any TerminalBackendSurface,
+                    surface.commandRouting.blocksCommands
                 else { return event }
 
                 // Copy, paste, and selecting terminal text remain editing
@@ -358,12 +358,13 @@ final class TerminalCommandRouting: NSObject {
                 let flags = event.modifierFlags.intersection([.command, .control, .option, .shift])
                 var action: Selector?
                 if flags == .command {
-                    action = switch event.charactersIgnoringModifiers?.lowercased() {
-                    case "c": #selector(NSText.copy(_:))
-                    case "v": #selector(NSText.paste(_:))
-                    case "a": #selector(NSText.selectAll(_:))
-                    default: nil
-                    }
+                    action =
+                        switch event.charactersIgnoringModifiers?.lowercased() {
+                        case "c": #selector(NSText.copy(_:))
+                        case "v": #selector(NSText.paste(_:))
+                        case "a": #selector(NSText.selectAll(_:))
+                        default: nil
+                        }
                 }
                 if let action {
                     if event.type == .keyDown {

@@ -22,8 +22,7 @@ struct AgentRecognitionAppKitTests {
     static func main() {
         signal(SIGPIPE, SIG_IGN)
         setbuf(stdout, nil)
-        do { try run() }
-        catch { fputs("Agent recognition AppKit failed after \(checks): \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("Agent recognition AppKit failed after \(checks): \(error)\n", stderr); exit(1) }
     }
 
     static func pump(_ duration: TimeInterval) {
@@ -39,8 +38,9 @@ struct AgentRecognitionAppKitTests {
         let app = RecognitionTestApplication.shared as! RecognitionTestApplication
         app.setActivationPolicy(.prohibited)
         QuickTerminalOffscreen.install()
-        let host = RecognitionTestHost(contentRect: NSRect(x: -100000, y: -100000, width: 1100, height: 800),
-                                       styleMask: [.titled], backing: .buffered, defer: false)
+        let host = RecognitionTestHost(
+            contentRect: NSRect(x: -100000, y: -100000, width: 1100, height: 800),
+            styleMask: [.titled], backing: .buffered, defer: false)
         host.isReleasedWhenClosed = false
         host.identifier = .init("main-agent-recognition-probe")
         QuickTerminalOffscreen.prepare(host)
@@ -65,14 +65,16 @@ struct AgentRecognitionAppKitTests {
         }
         func button(_ title: String, in window: NSWindow) throws -> NSButton {
             guard let content = window.contentView,
-                  let button = descendants(content).compactMap({ $0 as? NSButton }).first(where: { $0.title == title }) else {
+                let button = descendants(content).compactMap({ $0 as? NSButton }).first(where: { $0.title == title })
+            else {
                 throw NSError(domain: "missing button \(title)", code: 1)
             }
             return button
         }
         func table(_ window: NSWindow) throws -> NSTableView {
             guard let content = window.contentView,
-                  let table = descendants(content).compactMap({ $0 as? NSTableView }).first else {
+                let table = descendants(content).compactMap({ $0 as? NSTableView }).first
+            else {
                 throw NSError(domain: "missing rules table", code: 1)
             }
             return table
@@ -80,7 +82,8 @@ struct AgentRecognitionAppKitTests {
         func editor(_ window: NSWindow) throws -> (NSWindow, NSTextView) {
             try wait("agent editor sheet opens") { window.attachedSheet != nil }
             guard let sheet = window.attachedSheet, let content = sheet.contentView,
-                  let text = descendants(content).compactMap({ $0 as? NSTextView }).first else {
+                let text = descendants(content).compactMap({ $0 as? NSTextView }).first
+            else {
                 throw NSError(domain: "missing TOML editor", code: 1)
             }
             return (sheet, text)
@@ -88,7 +91,9 @@ struct AgentRecognitionAppKitTests {
         func save(_ values: [AgentRecognitionManifest]) throws {
             var complete = false
             var error: String?
-            rules.save(values) { error = $0; complete = true }
+            rules.save(values) {
+                error = $0; complete = true
+            }
             try wait("fixture rules save finishes") { complete }
             try check(error == nil, "fixture rules save succeeds")
         }
@@ -100,8 +105,9 @@ struct AgentRecognitionAppKitTests {
             let buttons = descendants(content).compactMap { $0 as? NSButton }
             for button in buttons where !button.isHidden && button.enclosingScrollView == nil {
                 let frame = button.convert(button.bounds, to: content)
-                try check(bounds.contains(frame) && frame.width + 1 >= button.intrinsicContentSize.width,
-                          "\(label) button \(button.title) fits")
+                try check(
+                    bounds.contains(frame) && frame.width + 1 >= button.intrinsicContentSize.width,
+                    "\(label) button \(button.title) fits")
             }
         }
         try save([])
@@ -132,8 +138,9 @@ struct AgentRecognitionAppKitTests {
             for control in switches {
                 guard let row = control.superview?.superview else { throw NSError(domain: "missing settings row", code: 1) }
                 let frame = control.convert(control.bounds, to: row)
-                try check(row.bounds.insetBy(dx: -1, dy: -1).contains(frame) && frame.width > 0,
-                          "\(language.rawValue) narrow settings switch fits")
+                try check(
+                    row.bounds.insetBy(dx: -1, dy: -1).contains(frame) && frame.width > 0,
+                    "\(language.rawValue) narrow settings switch fits")
             }
             host.contentView = nil
             controller.close()
@@ -144,14 +151,14 @@ struct AgentRecognitionAppKitTests {
         guard let panel = controller.window else { throw NSError(domain: "manager missing", code: 1) }
         panel.setContentSize(NSSize(width: 680, height: 570))
         let list = try table(panel)
-        let scrollingEntries = (0..<60).map {
+        let scrollingEntries = (0 ..< 60).map {
             AgentRecognitionManifest(id: "scroll-agent-\($0)", name: "Tool \($0)", executables: [], rules: [])
         }
         try save(scrollingEntries)
         pump(0.1)
         list.layoutSubtreeIfNeeded()
         let firstVisible = list.rows(in: list.visibleRect)
-        let firstRows = (firstVisible.location..<(firstVisible.location + firstVisible.length)).compactMap {
+        let firstRows = (firstVisible.location ..< (firstVisible.location + firstVisible.length)).compactMap {
             list.view(atColumn: 0, row: $0, makeIfNecessary: true)
         }
         let firstIDs = Set(firstRows.map(ObjectIdentifier.init))
@@ -162,7 +169,7 @@ struct AgentRecognitionAppKitTests {
         pump(0.05)
         list.layoutSubtreeIfNeeded()
         let visible = list.rows(in: list.visibleRect)
-        let reloadedRows = (visible.location..<(visible.location + visible.length)).compactMap {
+        let reloadedRows = (visible.location ..< (visible.location + visible.length)).compactMap {
             list.view(atColumn: 0, row: $0, makeIfNecessary: true)
         }
         try check(reloadedRows.contains { firstIDs.contains(ObjectIdentifier($0)) }, "table reuses AppKit row views while scrolling")
@@ -176,15 +183,18 @@ struct AgentRecognitionAppKitTests {
         for language in AppLanguage.allCases where language != .system {
             AppLocalization.apply(language)
             pump(0.05)
-            let live = AgentRecognitionManifest(id: "live-reload", name: "Live \(language.rawValue)", executables: ["live-reload"], rules: [])
+            let live = AgentRecognitionManifest(
+                id: "live-reload", name: "Live \(language.rawValue)", executables: ["live-reload"], rules: [])
             let revision = rules.revision
             try AgentRecognitionManifest.serialize([live]).write(to: rules.url, atomically: true, encoding: .utf8)
             try wait("\(language.rawValue) external rules reload while editing") { rules.revision > revision && rules.manifests == [live] }
             pump(0.05)
-            try check(controller.window === panel && panel.attachedSheet === sheet && text.string == draft,
-                      "\(language.rawValue) preserves the manager, editor sheet, and unsaved TOML")
-            try check(sheet.title == String(localized: "Edit Agent Rules")
-                      && panel.title == String(localized: "Agent Recognition Rules"), "\(language.rawValue) updates open windows in place")
+            try check(
+                controller.window === panel && panel.attachedSheet === sheet && text.string == draft,
+                "\(language.rawValue) preserves the manager, editor sheet, and unsaved TOML")
+            try check(
+                sheet.title == String(localized: "Edit Agent Rules")
+                    && panel.title == String(localized: "Agent Recognition Rules"), "\(language.rawValue) updates open windows in place")
             try check(text.selectedRange().location == (draft as NSString).length, "\(language.rawValue) preserves editor selection")
         }
         try save([])
@@ -197,8 +207,9 @@ struct AgentRecognitionAppKitTests {
         try check(!saveButton.isEnabled && !cancelButton.isEnabled, "saving disables duplicate save and cancellation")
         AppLocalization.apply(.german)
         NotificationCenter.default.post(name: AppLocalization.didChange, object: nil)
-        try check(controller.window === panel && panel.attachedSheet === sheet && !saveButton.isEnabled,
-                  "language change preserves a pending save and its sheet")
+        try check(
+            controller.window === panel && panel.attachedSheet === sheet && !saveButton.isEnabled,
+            "language change preserves a pending save and its sheet")
         cancelButton.performClick(nil)
         try check(panel.attachedSheet === sheet, "cancel cannot close a pending save")
         try wait("invalid editor recovers for retry") { saveButton.isEnabled }
@@ -210,8 +221,9 @@ struct AgentRecognitionAppKitTests {
         sheet.contentView?.layoutSubtreeIfNeeded()
         text.layoutManager?.ensureLayout(for: text.textContainer!)
         text.scrollRangeToVisible(NSRange(location: (text.string as NSString).length, length: 0))
-        try check(text.isVerticallyResizable && text.enclosingScrollView!.contentView.bounds.minY > 0,
-                  "long TOML editor scrolls to its final line")
+        try check(
+            text.isVerticallyResizable && text.enclosingScrollView!.contentView.bounds.minY > 0,
+            "long TOML editor scrolls to its final line")
         NSApp.sendAction(saveButton.action!, to: saveButton.target, from: saveButton)
         AppLocalization.apply(.japanese)
         NotificationCenter.default.post(name: AppLocalization.didChange, object: nil)

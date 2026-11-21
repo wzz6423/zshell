@@ -19,12 +19,14 @@ final class FileTreeImportController: ObservableObject {
 
     func chooseFiles(manager: TerminalManager, directory: String) {
         guard !isImporting, manager.canImportFiles,
-              let window = manager.presentationWindow else { return }
+            let window = manager.presentationWindow
+        else { return }
         let root = manager.fileTree.rootPath
         let projectID = manager.selectedProjectID
         let destination: FileTreeImportService.Destination
-        do { destination = try FileTreeImportService.destination(root: root, directory: directory) }
-        catch { showError(error, in: window); return }
+        do { destination = try FileTreeImportService.destination(root: root, directory: directory) } catch {
+            showError(error, in: window); return
+        }
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
@@ -43,10 +45,13 @@ final class FileTreeImportController: ObservableObject {
         }
     }
 
-    func importFiles(_ urls: [URL], manager: TerminalManager, directory: String,
-                     destination: FileTreeImportService.Destination? = nil) {
+    func importFiles(
+        _ urls: [URL], manager: TerminalManager, directory: String,
+        destination: FileTreeImportService.Destination? = nil
+    ) {
         guard !isImporting, manager.canImportFiles, !urls.isEmpty,
-              let window = manager.presentationWindow else { return }
+            let window = manager.presentationWindow
+        else { return }
         self.manager = manager
         projectID = manager.selectedProjectID
         root = manager.fileTree.rootPath
@@ -65,8 +70,9 @@ final class FileTreeImportController: ObservableObject {
         task = Task { [weak self] in
             do {
                 let plan = try await Task.detached(priority: .userInitiated) {
-                    try FileTreeImportService.prepare(sources: urls, root: root, directory: directory,
-                                                      operation: operation, destination: destination)
+                    try FileTreeImportService.prepare(
+                        sources: urls, root: root, directory: directory,
+                        operation: operation, destination: destination)
                 }.value
                 guard let self else { operation.cancel(); return }
                 try self.validateSelection()
@@ -110,7 +116,8 @@ final class FileTreeImportController: ObservableObject {
 
     private func validateSelection() throws {
         guard let manager, manager.selectedProjectID == projectID,
-              manager.selectedProject?.isRemote == false else { throw CancellationError() }
+            manager.selectedProject?.isRemote == false
+        else { throw CancellationError() }
         manager.syncFileTree()
         guard manager.fileTree.rootPath == root else { throw CancellationError() }
     }
@@ -122,7 +129,10 @@ final class FileTreeImportController: ObservableObject {
     private func confirmReplacement(_ name: String, in window: NSWindow) async throws -> FileTreeImportService.Decision {
         let alert = NSAlert()
         alert.messageText = String(localized: "Replace “\(name)”?", comment: "The placeholder is an existing file or folder name.")
-        alert.informativeText = String(localized: "An item with this name already exists in “\(directory)”. Replace it with the imported copy, skip this item, or cancel the entire import.")
+        alert.informativeText = String(
+            localized:
+                "An item with this name already exists in “\(directory)”. Replace it with the imported copy, skip this item, or cancel the entire import."
+        )
         alert.alertStyle = .warning
         alert.addButton(withTitle: String(localized: "Replace"))
         alert.addButton(withTitle: String(localized: "Skip"))
@@ -167,8 +177,9 @@ final class FileTreeImportController: ObservableObject {
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 420, height: 180),
-                            styleMask: [.titled], backing: .buffered, defer: false)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 180),
+            styleMask: [.titled], backing: .buffered, defer: false)
         panel.title = String(localized: "Import Files…")
         panel.isReleasedWhenClosed = false
         let content = NSView()

@@ -77,7 +77,7 @@ nonisolated enum ZshellJSONValue: Codable, Equatable, Sendable {
     }
 }
 
-struct ZshellAutomationRequest: Codable, Sendable {
+nonisolated struct ZshellAutomationRequest: Codable, Sendable {
     let version: Int
     let id: String
     let method: String
@@ -92,12 +92,12 @@ struct ZshellAutomationRequest: Codable, Sendable {
     }
 }
 
-struct ZshellAutomationErrorPayload: Codable, Sendable {
+nonisolated struct ZshellAutomationErrorPayload: Codable, Sendable {
     let code: String
     let message: String
 }
 
-struct ZshellAutomationResponse: Codable, Sendable {
+nonisolated struct ZshellAutomationResponse: Codable, Sendable {
     let version: Int
     let id: String
     let ok: Bool
@@ -133,14 +133,15 @@ enum ZshellAutomationWireError: Error, CustomStringConvertible {
 /// socket. Requests normally carry one response; events.subscribe upgrades to
 /// a bounded nonblocking stream after the same capability check.
 final class ZshellAutomationSocketServer: @unchecked Sendable {
-    typealias Handler = @Sendable (
-        ZshellAutomationRequest,
-        @escaping @Sendable (ZshellAutomationResponse) -> Void
-    ) -> Void
+    typealias Handler =
+        @Sendable (
+            ZshellAutomationRequest,
+            @escaping @Sendable (ZshellAutomationResponse) -> Void
+        ) -> Void
 
     typealias StreamHandler = @Sendable (ZshellAutomationRequest, ZshellAutomationEventConnection) -> Void
 
-    private static let maximumMessageBytes = 1_048_576
+    nonisolated private static let maximumMessageBytes = 1_048_576
 
     let path: String
     private let listener: Int32
@@ -235,7 +236,7 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
                 // and can close a healthy connection with EAGAIN.
                 let flags = fcntl(client, F_GETFL, 0)
                 guard flags >= 0,
-                      fcntl(client, F_SETFL, flags & ~O_NONBLOCK) == 0
+                    fcntl(client, F_SETFL, flags & ~O_NONBLOCK) == 0
                 else {
                     throw ZshellAutomationWireError.message(
                         "fcntl: \(String(cString: strerror(errno)))"
@@ -248,7 +249,8 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
             var peerUser: uid_t = 0
             var peerGroup: gid_t = 0
             guard getpeereid(client, &peerUser, &peerGroup) == 0,
-                  peerUser == geteuid() else {
+                peerUser == geteuid()
+            else {
                 Darwin.close(client)
                 continue
             }
@@ -339,10 +341,13 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
             let admitted = streams.count < ZshellAutomationEventConnection.maximumSubscriptions
             if admitted { streams[id] = connection }
             clientsLock.unlock()
-            if admitted { streamHandler(request, connection) }
-            else {
-                connection.finish(.failure(id: request.id, code: "subscription_limit",
-                                           message: "Zshell already has 32 event subscriptions."))
+            if admitted {
+                streamHandler(request, connection)
+            } else {
+                connection.finish(
+                    .failure(
+                        id: request.id, code: "subscription_limit",
+                        message: "Zshell already has 32 event subscriptions."))
             }
             return
         }
@@ -356,11 +361,12 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
         }
     }
 
-    private static func peerProcessID(_ descriptor: Int32) -> pid_t? {
+    nonisolated private static func peerProcessID(_ descriptor: Int32) -> pid_t? {
         var pid: pid_t = 0
         var length = socklen_t(MemoryLayout<pid_t>.size)
         guard getsockopt(descriptor, SOL_LOCAL, LOCAL_PEERPID, &pid, &length) == 0,
-              length == MemoryLayout<pid_t>.size, pid > 1 else { return nil }
+            length == MemoryLayout<pid_t>.size, pid > 1
+        else { return nil }
         return pid
     }
 
@@ -387,7 +393,7 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
         }
     }
 
-    static func exchange(
+    nonisolated static func exchange(
         path: String,
         request: ZshellAutomationRequest,
         timeout: TimeInterval = 5,
@@ -418,7 +424,8 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
             var peerUser: uid_t = 0
             var peerGroup: gid_t = 0
             guard getpeereid(descriptor, &peerUser, &peerGroup) == 0,
-                  peerUser == geteuid(), Self.peerProcessID(descriptor) == expectedPeerProcessID else {
+                peerUser == geteuid(), Self.peerProcessID(descriptor) == expectedPeerProcessID
+            else {
                 throw ZshellAutomationWireError.message("The history control socket has an unexpected owner or process.")
             }
         }
@@ -475,7 +482,7 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
         return try JSONDecoder().decode(ZshellAutomationResponse.self, from: responseData)
     }
 
-    fileprivate static func configureSocket(
+    nonisolated fileprivate static func configureSocket(
         _ descriptor: Int32,
         timeout: TimeInterval = 2
     ) throws {
@@ -484,10 +491,12 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
             throw ZshellAutomationWireError.message("fcntl: \(String(cString: strerror(errno)))")
         }
         var enabled: Int32 = 1
-        guard setsockopt(
-            descriptor, SOL_SOCKET, SO_NOSIGPIPE,
-            &enabled, socklen_t(MemoryLayout<Int32>.size)
-        ) == 0 else {
+        guard
+            setsockopt(
+                descriptor, SOL_SOCKET, SO_NOSIGPIPE,
+                &enabled, socklen_t(MemoryLayout<Int32>.size)
+            ) == 0
+        else {
             throw ZshellAutomationWireError.message(
                 "setsockopt: \(String(cString: strerror(errno)))"
             )
@@ -498,25 +507,29 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
             tv_sec: Int(wholeSeconds),
             tv_usec: Int32((timeout - wholeSeconds) * 1_000_000)
         )
-        guard setsockopt(
-            descriptor, SOL_SOCKET, SO_RCVTIMEO,
-            &value, socklen_t(MemoryLayout<timeval>.size)
-        ) == 0 else {
+        guard
+            setsockopt(
+                descriptor, SOL_SOCKET, SO_RCVTIMEO,
+                &value, socklen_t(MemoryLayout<timeval>.size)
+            ) == 0
+        else {
             throw ZshellAutomationWireError.message(
                 "setsockopt: \(String(cString: strerror(errno)))"
             )
         }
-        guard setsockopt(
-            descriptor, SOL_SOCKET, SO_SNDTIMEO,
-            &value, socklen_t(MemoryLayout<timeval>.size)
-        ) == 0 else {
+        guard
+            setsockopt(
+                descriptor, SOL_SOCKET, SO_SNDTIMEO,
+                &value, socklen_t(MemoryLayout<timeval>.size)
+            ) == 0
+        else {
             throw ZshellAutomationWireError.message(
                 "setsockopt: \(String(cString: strerror(errno)))"
             )
         }
     }
 
-    fileprivate static func address(
+    nonisolated fileprivate static func address(
         for path: String
     ) throws -> (value: sockaddr_un, length: socklen_t) {
         let bytes = Array(path.utf8CString)
@@ -543,7 +556,7 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
 }
 
 extension JSONEncoder {
-    fileprivate static var zshellAutomation: JSONEncoder {
+    nonisolated fileprivate static var zshellAutomation: JSONEncoder {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         return encoder
@@ -619,7 +632,8 @@ final class ZshellAutomationEventConnection: @unchecked Sendable {
         guard !closed, !ending else { return }
         guard let data else { closeLocked(); return }
         if data.count > Self.maximumFrameBytes || frames.count >= Self.maximumQueuedFrames
-            || queuedBytes + data.count > Self.maximumQueuedBytes {
+            || queuedBytes + data.count > Self.maximumQueuedBytes
+        {
             // Keep a partially written line intact; the terminal control frame
             // explains that everything after it requires a fresh subscription.
             let partial = offset > 0 ? frames.first : nil
@@ -693,8 +707,9 @@ final class ZshellAutomationEventConnection: @unchecked Sendable {
                     queuedBytes -= frame.count
                     offset = 0
                 }
-            } else if written < 0, errno == EINTR { continue }
-            else if written < 0, errno == EAGAIN || errno == EWOULDBLOCK {
+            } else if written < 0, errno == EINTR {
+                continue
+            } else if written < 0, errno == EAGAIN || errno == EWOULDBLOCK {
                 if writeSource == nil {
                     let source = DispatchSource.makeWriteSource(fileDescriptor: descriptor, queue: queue)
                     source.setEventHandler { [weak self] in self?.drain() }
@@ -707,7 +722,9 @@ final class ZshellAutomationEventConnection: @unchecked Sendable {
                     queue.asyncAfter(deadline: .now() + 2, execute: item)
                 }
                 return
-            } else { closeLocked(); return }
+            } else {
+                closeLocked(); return
+            }
         }
         deadline?.cancel()
         deadline = nil
@@ -740,9 +757,13 @@ extension ZshellAutomationSocketServer {
             var offset = 0
             while offset < raw.count {
                 let count = Darwin.write(descriptor, raw.baseAddress!.advanced(by: offset), raw.count - offset)
-                if count > 0 { offset += count }
-                else if count < 0, errno == EINTR { continue }
-                else { throw ZshellAutomationWireError.message("Could not send the event subscription.") }
+                if count > 0 {
+                    offset += count
+                } else if count < 0, errno == EINTR {
+                    continue
+                } else {
+                    throw ZshellAutomationWireError.message("Could not send the event subscription.")
+                }
             }
         }
         let started = DispatchTime.now().uptimeNanoseconds
@@ -785,7 +806,8 @@ extension ZshellAutomationSocketServer {
                         throw ZshellAutomationWireError.message("Zshell returned a mismatched event subscription.")
                     }
                     guard response.ok, let result = response.result else {
-                        throw ZshellAutomationWireError.message("\(response.error?.code ?? "automation_error"): \(response.error?.message ?? "Event subscription rejected.")")
+                        throw ZshellAutomationWireError.message(
+                            "\(response.error?.code ?? "automation_error"): \(response.error?.message ?? "Event subscription rejected.")")
                     }
                     value = result
                     streamID = value.objectValue?["stream_id"]?.stringValue
@@ -793,11 +815,14 @@ extension ZshellAutomationSocketServer {
                         throw ZshellAutomationWireError.message("Zshell returned an invalid event subscription.")
                     }
                     ready = true
-                } else { value = try JSONDecoder().decode(ZshellJSONValue.self, from: line) }
+                } else {
+                    value = try JSONDecoder().decode(ZshellJSONValue.self, from: line)
+                }
                 guard let object = value.objectValue, object["version"]?.intValue == 1,
-                      object["stream_id"]?.stringValue == streamID,
-                      object["sequence"]?.intValue == sequence
-                        || object["event"]?.stringValue == "stream.lagged" && (object["sequence"]?.intValue ?? -1) >= sequence else {
+                    object["stream_id"]?.stringValue == streamID,
+                    object["sequence"]?.intValue == sequence
+                        || object["event"]?.stringValue == "stream.lagged" && (object["sequence"]?.intValue ?? -1) >= sequence
+                else {
                     throw ZshellAutomationWireError.message("The event stream lost its sequence. Subscribe again to continue.")
                 }
                 if try receive(value) { return true }

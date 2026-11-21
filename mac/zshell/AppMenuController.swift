@@ -49,10 +49,15 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         mainMenu = menu
         let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Zshell"
         let application = addMenu(to: menu, identifier: .application, title: { appName })
-        standard(application, title: { String(localized: "About \(appName)") }, action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)))
-        command(application, title: { Updater.shared.updateActionTitle }, enabled: {
-            Updater.shared.canCheckForUpdates && !Updater.shared.isUpdating
-        }) { Updater.shared.checkForUpdates() }
+        standard(
+            application, title: { String(localized: "About \(appName)") }, action: #selector(NSApplication.orderFrontStandardAboutPanel(_:))
+        )
+        command(
+            application, title: { Updater.shared.updateActionTitle },
+            enabled: {
+                Updater.shared.canCheckForUpdates && !Updater.shared.isUpdating
+            }
+        ) { Updater.shared.checkForUpdates() }
         application.addItem(.separator())
         command(application, title: { String(localized: "Settings…") }, key: ",") { SettingsWindowController.shared.show() }
         let keepAwake = addMenu(to: application, title: { String(localized: "Keep computer awake") })
@@ -70,7 +75,9 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         NSApp.servicesMenu = addMenu(to: application, title: { String(localized: "Services") })
         application.addItem(.separator())
         standard(application, title: { String(localized: "Hide \(appName)") }, action: #selector(NSApplication.hide(_:)), key: "h")
-        standard(application, title: { String(localized: "Hide Others") }, action: #selector(NSApplication.hideOtherApplications(_:)), key: "h", modifiers: [.command, .option])
+        standard(
+            application, title: { String(localized: "Hide Others") }, action: #selector(NSApplication.hideOtherApplications(_:)), key: "h",
+            modifiers: [.command, .option])
         standard(application, title: { String(localized: "Show All") }, action: #selector(NSApplication.unhideAllApplications(_:)))
         application.addItem(.separator())
         standard(application, title: { String(localized: "Quit \(appName)") }, action: #selector(NSApplication.terminate(_:)), key: "q")
@@ -79,14 +86,25 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         managed(file, .newProject) { $0.newProject() }
         managed(file, title: { String(localized: "New SSH Project…") }) { $0.promptForSSHProject() }
         managed(file, .newSession) { $0.newSession() }
-        managed(file, title: { String(localized: "Reopen Closed Session") }, key: "t", modifiers: [.command, .shift], enabled: { $0.canReopenClosedSession }) { $0.reopenClosedSession() }
-        command(file, title: { String(localized: "Toggle Prompt Queue") }, key: "m", modifiers: [.command, .shift], enabled: { [weak self] in
-            GlobalTerminalOverlay.shared.focusedPromptQueueSession != nil || self?.manager?.canTogglePromptQueue == true
-        }) { [weak self] in
+        managed(
+            file, title: { String(localized: "Reopen Closed Session") }, key: "t", modifiers: [.command, .shift],
+            enabled: { $0.canReopenClosedSession }
+        ) { $0.reopenClosedSession() }
+        command(
+            file, title: { String(localized: "Toggle Prompt Queue") }, key: "m", modifiers: [.command, .shift],
+            enabled: { [weak self] in
+                GlobalTerminalOverlay.shared.focusedPromptQueueSession != nil || self?.manager?.canTogglePromptQueue == true
+            }
+        ) { [weak self] in
             if let session = GlobalTerminalOverlay.shared.focusedPromptQueueSession {
-                if AppSettings.shared.promptQueueEnabled { session.promptQueue.togglePresentation() }
-                else { SettingsWindowController.shared.show(category: .terminal, section: String(localized: "Prompt Queue")) }
-            } else { self?.manager?.togglePromptQueue() }
+                if AppSettings.shared.promptQueueEnabled {
+                    session.promptQueue.togglePresentation()
+                } else {
+                    SettingsWindowController.shared.show(category: .terminal, section: String(localized: "Prompt Queue"))
+                }
+            } else {
+                self?.manager?.togglePromptQueue()
+            }
         }
         managed(file, title: { String(localized: "New Browser Tab") }) { $0.newBrowserTab() }
         let newWindow = command(file, title: { AppCommand.newWindow.title }) { [weak self] in self?.openWindow?() }
@@ -94,9 +112,12 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         let close = command(file, title: { AppCommand.closePane.title }, enabled: { NSApp.keyWindow != nil }) { [weak self] in
             // 面板关闭仅归主工作区，设置等独立窗口保留 AppKit 的标准关闭行为。
             if let manager = self?.manager, manager.selectedProject != nil,
-               NSApp.keyWindow?.identifier?.rawValue.hasPrefix("main") == true {
+                NSApp.keyWindow?.identifier?.rawValue.hasPrefix("main") == true
+            {
                 manager.closeSelectedTab()
-            } else { NSApp.keyWindow?.performClose(nil) }
+            } else {
+                NSApp.keyWindow?.performClose(nil)
+            }
         }
         shortcutUpdates.append { close.apply(AppSettings.shared.commandShortcut(for: .closePane)) }
         file.addItem(.separator())
@@ -106,20 +127,27 @@ final class AppMenuController: NSObject, NSMenuDelegate {
 
         let edit = addMenu(to: menu, identifier: .edit, title: { String(localized: "Edit") })
         standard(edit, title: { String(localized: "Undo") }, action: NSSelectorFromString("undo:"), key: "z")
-        standard(edit, title: { String(localized: "Redo") }, action: NSSelectorFromString("redo:"), key: "z", modifiers: [.command, .shift])
+        standard(
+            edit, title: { String(localized: "Redo") }, action: NSSelectorFromString("redo:"), key: "z", modifiers: [.command, .shift])
         edit.addItem(.separator())
         standard(edit, title: { String(localized: "Cut") }, action: #selector(NSText.cut(_:)), key: "x")
         standard(edit, title: { String(localized: "Copy") }, action: #selector(NSText.copy(_:)), key: "c")
         standard(edit, title: { String(localized: "Paste") }, action: #selector(NSText.paste(_:)), key: "v")
         standard(edit, title: { String(localized: "Delete") }, action: #selector(NSText.delete(_:)))
         standard(edit, title: { String(localized: "Select All") }, action: #selector(NSText.selectAll(_:)), key: "a")
-        standard(edit, title: { String(localized: "Show Terminal Context Menu") }, action: NSSelectorFromString("showTerminalContextMenu:"), key: "\u{f70d}", modifiers: .shift)
+        standard(
+            edit, title: { String(localized: "Show Terminal Context Menu") }, action: NSSelectorFromString("showTerminalContextMenu:"),
+            key: "\u{f70d}", modifiers: .shift)
         let find = addMenu(to: edit, title: { String(localized: "Find") })
         managed(find, title: { String(localized: "Find…") }, key: "f", enabled: { $0.canFind }) { $0.performFindAction(.show) }
-        managed(find, title: { String(localized: "Find and Replace…") }, key: "f", modifiers: [.command, .option], enabled: { $0.canReplace }) { $0.performFindAction(.replace) }
+        managed(
+            find, title: { String(localized: "Find and Replace…") }, key: "f", modifiers: [.command, .option], enabled: { $0.canReplace }
+        ) { $0.performFindAction(.replace) }
         managed(find, title: { String(localized: "Find Next") }, key: "g", enabled: { $0.canFind }) { $0.performFindAction(.next) }
         managed(find, title: { String(localized: "Find Previous") }, enabled: { $0.canFind }) { $0.performFindAction(.previous) }
-        managed(find, title: { String(localized: "Use Selection for Find") }, key: "e", enabled: { $0.canFind }) { $0.performFindAction(.useSelection) }
+        managed(find, title: { String(localized: "Use Selection for Find") }, key: "e", enabled: { $0.canFind }) {
+            $0.performFindAction(.useSelection)
+        }
         edit.addItem(.separator())
         managed(edit, .clearTerminal, enabled: { $0.canClearActiveTerminal }) { $0.clearActiveTerminal() }
 
@@ -131,33 +159,50 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         managed(view, .toggleRightSidebar, enabled: { $0.selectedProject != nil }) { $0.toggleSidebar() }
         managed(view, .toggleFilesPanel, enabled: { $0.selectedProject != nil }) { $0.togglePanel(.files) }
         managed(view, .toggleGitPanel, enabled: { $0.selectedProject != nil }) { $0.togglePanel(.git) }
-        managed(view, title: { String(localized: "Toggle Info Panel") }, key: "i", modifiers: [.command, .shift], enabled: { $0.selectedProject != nil }) { $0.togglePanel(.info) }
+        managed(
+            view, title: { String(localized: "Toggle Info Panel") }, key: "i", modifiers: [.command, .shift],
+            enabled: { $0.selectedProject != nil }
+        ) { $0.togglePanel(.info) }
         view.addItem(.separator())
-        managed(view, title: { String(localized: "Toggle Markdown Preview") }, key: "v", modifiers: [.command, .shift], enabled: { $0.canToggleMarkdownPreview }) { $0.toggleMarkdownPreview() }
+        managed(
+            view, title: { String(localized: "Toggle Markdown Preview") }, key: "v", modifiers: [.command, .shift],
+            enabled: { $0.canToggleMarkdownPreview }
+        ) { $0.toggleMarkdownPreview() }
         let diffWrap = command(view, title: { String(localized: "Wrap lines to diff width") }) {
             AppSettings.shared.diffWrapLines.toggle()
         }
         titleUpdates.append { diffWrap.state = AppSettings.shared.diffWrapLines ? .on : .off }
         view.addItem(.separator())
         let browser = addMenu(to: view, identifier: .browser, title: { String(localized: "Browser") })
-        managed(browser, title: { String(localized: "Focus Address Bar") }, key: "l", enabled: { $0.hasSelectedBrowser }) { $0.focusBrowserAddressBar() }
-        managed(browser, title: { String(localized: "Reload Page") }, key: "r", enabled: { $0.hasSelectedBrowser }) { $0.reloadSelectedBrowser() }
+        managed(browser, title: { String(localized: "Focus Address Bar") }, key: "l", enabled: { $0.hasSelectedBrowser }) {
+            $0.focusBrowserAddressBar()
+        }
+        managed(browser, title: { String(localized: "Reload Page") }, key: "r", enabled: { $0.hasSelectedBrowser }) {
+            $0.reloadSelectedBrowser()
+        }
         managed(browser, title: { String(localized: "Stop Loading") }, enabled: { $0.hasSelectedBrowser }) { $0.stopSelectedBrowser() }
         browser.addItem(.separator())
-        managed(browser, title: { String(localized: "Open in Default Browser") }, enabled: { $0.hasSelectedBrowser }) { $0.openSelectedPageInDefaultBrowser() }
+        managed(browser, title: { String(localized: "Open in Default Browser") }, enabled: { $0.hasSelectedBrowser }) {
+            $0.openSelectedPageInDefaultBrowser()
+        }
         view.addItem(.separator())
-        standard(view, title: {
-            NSApp.keyWindow?.styleMask.contains(.fullScreen) == true
-                ? String(localized: "Exit Full Screen") : String(localized: "Enter Full Screen")
-        }, action: #selector(NSWindow.toggleFullScreen(_:)), key: "f", modifiers: [.command, .control])
+        standard(
+            view,
+            title: {
+                NSApp.keyWindow?.styleMask.contains(.fullScreen) == true
+                    ? String(localized: "Exit Full Screen") : String(localized: "Enter Full Screen")
+            }, action: #selector(NSWindow.toggleFullScreen(_:)), key: "f", modifiers: [.command, .control])
 
         let terminal = addMenu(to: menu, identifier: .terminal, title: { String(localized: "Terminal") })
         let readOnly = TerminalReadOnlyController.shared.menuItem()
         terminal.addItem(readOnly)
         titleUpdates.append { readOnly.title = String(localized: "Read Only") }
-        command(terminal, title: { String(localized: "Save Terminal Output…") }, enabled: {
-            TerminalOutputExportController.shared.canSave()
-        }) { TerminalOutputExportController.shared.save() }
+        command(
+            terminal, title: { String(localized: "Save Terminal Output…") },
+            enabled: {
+                TerminalOutputExportController.shared.canSave()
+            }
+        ) { TerminalOutputExportController.shared.save() }
         terminal.addItem(.separator())
         _ = addMenu(to: terminal, identifier: .agents, title: { String(localized: "Agents") })
         _ = addMenu(to: terminal, identifier: .notifications, title: { String(localized: "Notifications") })
@@ -173,24 +218,44 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         let tabs = addMenu(to: windows, identifier: .tabs, title: { String(localized: "Tabs") })
         tabsMenu = tabs
         managed(tabs, title: { String(localized: "Split Right") }, key: "d", enabled: { $0.canSplit }) { $0.splitRight() }
-        managed(tabs, title: { String(localized: "Split Down") }, key: "d", modifiers: [.command, .shift], enabled: { $0.canSplit }) { $0.splitDown() }
+        managed(tabs, title: { String(localized: "Split Down") }, key: "d", modifiers: [.command, .shift], enabled: { $0.canSplit }) {
+            $0.splitDown()
+        }
         managed(tabs, title: { String(localized: "Split Left") }, enabled: { $0.canSplit }) { $0.splitLeft() }
         managed(tabs, title: { String(localized: "Split Up") }, enabled: { $0.canSplit }) { $0.splitUp() }
         tabs.addItem(.separator())
-        managed(tabs, title: { String(localized: "Focus Pane Left") }, key: "\u{f702}", modifiers: [.command, .option]) { $0.focusPaneLeft() }
-        managed(tabs, title: { String(localized: "Focus Pane Right") }, key: "\u{f703}", modifiers: [.command, .option]) { $0.focusPaneRight() }
+        managed(tabs, title: { String(localized: "Focus Pane Left") }, key: "\u{f702}", modifiers: [.command, .option]) {
+            $0.focusPaneLeft()
+        }
+        managed(tabs, title: { String(localized: "Focus Pane Right") }, key: "\u{f703}", modifiers: [.command, .option]) {
+            $0.focusPaneRight()
+        }
         managed(tabs, title: { String(localized: "Focus Pane Up") }, key: "\u{f700}", modifiers: [.command, .option]) { $0.focusPaneUp() }
-        managed(tabs, title: { String(localized: "Focus Pane Down") }, key: "\u{f701}", modifiers: [.command, .option]) { $0.focusPaneDown() }
+        managed(tabs, title: { String(localized: "Focus Pane Down") }, key: "\u{f701}", modifiers: [.command, .option]) {
+            $0.focusPaneDown()
+        }
         managed(tabs, title: { String(localized: "Focus Previous Pane") }, key: "[") { $0.focusPreviousPane() }
         managed(tabs, title: { String(localized: "Focus Next Pane") }, key: "]") { $0.focusNextPane() }
         tabs.addItem(.separator())
-        managed(tabs, title: { String(localized: "Toggle Pane Zoom") }, key: "\r", modifiers: [.command, .shift], enabled: { $0.hasSplitPanes }) { $0.togglePaneZoom() }
-        managed(tabs, title: { String(localized: "Equalize Panes") }, key: "=", modifiers: [.command, .control], enabled: { $0.hasSplitPanes }) { $0.equalizePanes() }
+        managed(
+            tabs, title: { String(localized: "Toggle Pane Zoom") }, key: "\r", modifiers: [.command, .shift], enabled: { $0.hasSplitPanes }
+        ) { $0.togglePaneZoom() }
+        managed(
+            tabs, title: { String(localized: "Equalize Panes") }, key: "=", modifiers: [.command, .control], enabled: { $0.hasSplitPanes }
+        ) { $0.equalizePanes() }
         let resize = addMenu(to: tabs, title: { String(localized: "Resize Pane") })
-        managed(resize, title: { String(localized: "Up") }, key: "\u{f700}", modifiers: [.command, .control], enabled: { $0.hasSplitPanes }) { $0.resizePaneUp() }
-        managed(resize, title: { String(localized: "Down") }, key: "\u{f701}", modifiers: [.command, .control], enabled: { $0.hasSplitPanes }) { $0.resizePaneDown() }
-        managed(resize, title: { String(localized: "Left") }, key: "\u{f702}", modifiers: [.command, .control], enabled: { $0.hasSplitPanes }) { $0.resizePaneLeft() }
-        managed(resize, title: { String(localized: "Right") }, key: "\u{f703}", modifiers: [.command, .control], enabled: { $0.hasSplitPanes }) { $0.resizePaneRight() }
+        managed(
+            resize, title: { String(localized: "Up") }, key: "\u{f700}", modifiers: [.command, .control], enabled: { $0.hasSplitPanes }
+        ) { $0.resizePaneUp() }
+        managed(
+            resize, title: { String(localized: "Down") }, key: "\u{f701}", modifiers: [.command, .control], enabled: { $0.hasSplitPanes }
+        ) { $0.resizePaneDown() }
+        managed(
+            resize, title: { String(localized: "Left") }, key: "\u{f702}", modifiers: [.command, .control], enabled: { $0.hasSplitPanes }
+        ) { $0.resizePaneLeft() }
+        managed(
+            resize, title: { String(localized: "Right") }, key: "\u{f703}", modifiers: [.command, .control], enabled: { $0.hasSplitPanes }
+        ) { $0.resizePaneRight() }
         tabs.addItem(.separator())
         managed(tabs, title: { String(localized: "Next Tab") }, key: "]", modifiers: [.command, .shift]) { $0.selectNextTab() }
         managed(tabs, title: { String(localized: "Previous Tab") }, key: "[", modifiers: [.command, .shift]) { $0.selectPreviousTab() }
@@ -210,11 +275,14 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         updaterObservation = Updater.shared.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] _ in
             self?.refresh()
         }
-        for name in [NSWindow.didBecomeKeyNotification, NSWindow.didBecomeMainNotification, NSWindow.didResignKeyNotification,
-                     NSWindow.didEnterFullScreenNotification, NSWindow.didExitFullScreenNotification] {
-            windowObservations.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.refresh() }
-            })
+        for name in [
+            NSWindow.didBecomeKeyNotification, NSWindow.didBecomeMainNotification, NSWindow.didResignKeyNotification,
+            NSWindow.didEnterFullScreenNotification, NSWindow.didExitFullScreenNotification,
+        ] {
+            windowObservations.append(
+                NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                    MainActor.assumeIsolated { self?.refresh() }
+                })
         }
         refresh()
     }
@@ -243,13 +311,19 @@ final class AppMenuController: NSObject, NSMenuDelegate {
             }
             for (index, project) in projects.enumerated() {
                 let id = project.id
-                let item = projectItems[id] ?? AppCommandMenuItem(title: project.name, enabled: { [weak self] in
-                    self?.manager?.visibleSidebarProjects.contains { $0.id == id } == true
-                }) { [weak self] in
-                    guard let manager = self?.manager,
-                          let index = manager.visibleSidebarProjects.firstIndex(where: { $0.id == id }) else { return }
-                    manager.selectProject(index: index)
-                }
+                let item =
+                    projectItems[id]
+                    ?? AppCommandMenuItem(
+                        title: project.name,
+                        enabled: { [weak self] in
+                            self?.manager?.visibleSidebarProjects.contains { $0.id == id } == true
+                        }
+                    ) { [weak self] in
+                        guard let manager = self?.manager,
+                            let index = manager.visibleSidebarProjects.firstIndex(where: { $0.id == id })
+                        else { return }
+                        manager.selectProject(index: index)
+                    }
                 projectItems[id] = item
                 if item.title != project.name { item.title = project.name }
                 let state: NSControl.StateValue = manager?.selectedProjectID == id ? .on : .off
@@ -268,13 +342,19 @@ final class AppMenuController: NSObject, NSMenuDelegate {
             for (index, tab) in tabs.enumerated() {
                 let id = tab.id
                 let title = tab.displayTitle ?? String(localized: "Tab \(index + 1)")
-                let item = tabItems[id] ?? AppCommandMenuItem(title: title, enabled: { [weak self] in
-                    self?.manager?.selectedProject?.tabs.contains { $0.id == id } == true
-                }) { [weak self] in
-                    guard let manager = self?.manager,
-                          let index = manager.selectedProject?.tabs.firstIndex(where: { $0.id == id }) else { return }
-                    manager.selectTab(index: index)
-                }
+                let item =
+                    tabItems[id]
+                    ?? AppCommandMenuItem(
+                        title: title,
+                        enabled: { [weak self] in
+                            self?.manager?.selectedProject?.tabs.contains { $0.id == id } == true
+                        }
+                    ) { [weak self] in
+                        guard let manager = self?.manager,
+                            let index = manager.selectedProject?.tabs.firstIndex(where: { $0.id == id })
+                        else { return }
+                        manager.selectTab(index: index)
+                    }
                 tabItems[id] = item
                 if item.title != title { item.title = title }
                 let state: NSControl.StateValue = manager?.selectedProject?.selectedTabID == id ? .on : .off
@@ -315,41 +395,56 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         return menu
     }
 
-    private func standard(_ menu: NSMenu, title: @escaping () -> String, action: Selector,
-                          key: String = "", modifiers: NSEvent.ModifierFlags = .command) {
+    private func standard(
+        _ menu: NSMenu, title: @escaping () -> String, action: Selector,
+        key: String = "", modifiers: NSEvent.ModifierFlags = .command
+    ) {
         let item = NSMenuItem(title: title(), action: action, keyEquivalent: key)
         item.keyEquivalentModifierMask = key.isEmpty ? [] : modifiers
         menu.addItem(item)
-        titleUpdates.append { let value = title(); if item.title != value { item.title = value } }
+        titleUpdates.append {
+            let value = title(); if item.title != value { item.title = value }
+        }
     }
 
     @discardableResult
-    private func command(_ menu: NSMenu, title: @escaping () -> String, key: String = "",
-                         modifiers: NSEvent.ModifierFlags = .command,
-                         enabled: @escaping () -> Bool = { true }, action: @escaping () -> Void) -> AppCommandMenuItem {
+    private func command(
+        _ menu: NSMenu, title: @escaping () -> String, key: String = "",
+        modifiers: NSEvent.ModifierFlags = .command,
+        enabled: @escaping () -> Bool = { true }, action: @escaping () -> Void
+    ) -> AppCommandMenuItem {
         let item = AppCommandMenuItem(title: title(), enabled: enabled, action: action)
         item.keyEquivalent = key
         item.keyEquivalentModifierMask = key.isEmpty ? [] : modifiers
         menu.addItem(item)
-        titleUpdates.append { let value = title(); if item.title != value { item.title = value } }
+        titleUpdates.append {
+            let value = title(); if item.title != value { item.title = value }
+        }
         return item
     }
 
-    private func managed(_ menu: NSMenu, _ appCommand: AppCommand,
-                         enabled: @escaping (TerminalManager) -> Bool = { _ in true },
-                         action: @escaping (TerminalManager) -> Void) {
+    private func managed(
+        _ menu: NSMenu, _ appCommand: AppCommand,
+        enabled: @escaping (TerminalManager) -> Bool = { _ in true },
+        action: @escaping (TerminalManager) -> Void
+    ) {
         let item = managed(menu, title: { appCommand.title }, enabled: enabled, action: action)
         shortcutUpdates.append { item.apply(AppSettings.shared.commandShortcut(for: appCommand)) }
     }
 
     @discardableResult
-    private func managed(_ menu: NSMenu, title: @escaping () -> String, key: String = "",
-                         modifiers: NSEvent.ModifierFlags = .command,
-                         enabled: @escaping (TerminalManager) -> Bool = { _ in true },
-                         action: @escaping (TerminalManager) -> Void) -> AppCommandMenuItem {
-        command(menu, title: title, key: key, modifiers: modifiers, enabled: { [weak self] in
-            self?.manager.map(enabled) ?? false
-        }) { [weak self] in if let manager = self?.manager { action(manager) } }
+    private func managed(
+        _ menu: NSMenu, title: @escaping () -> String, key: String = "",
+        modifiers: NSEvent.ModifierFlags = .command,
+        enabled: @escaping (TerminalManager) -> Bool = { _ in true },
+        action: @escaping (TerminalManager) -> Void
+    ) -> AppCommandMenuItem {
+        command(
+            menu, title: title, key: key, modifiers: modifiers,
+            enabled: { [weak self] in
+                self?.manager.map(enabled) ?? false
+            }
+        ) { [weak self] in if let manager = self?.manager { action(manager) } }
     }
 }
 

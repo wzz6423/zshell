@@ -29,8 +29,9 @@ final class UnsavedChangesConfirmation {
     func confirm(_ content: PaneContent, in window: NSWindow?) async -> Bool {
         guard let text = content.unsavedText, requiresConfirmation(content) else { return true }
         guard let host = AppWindowPresentation.hostWindow(relativeTo: window),
-              window == nil || host === window,
-              host.attachedSheet == nil else { return false }
+            window == nil || host === window,
+            host.attachedSheet == nil
+        else { return false }
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = String(

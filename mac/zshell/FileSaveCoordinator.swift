@@ -76,7 +76,8 @@ nonisolated enum FileSaveCoordinator {
             throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
         }
         guard before.st_mode & S_IFMT == S_IFREG,
-              before.st_dev == entry.st_dev, before.st_ino == entry.st_ino else {
+            before.st_dev == entry.st_dev, before.st_ino == entry.st_ino
+        else {
             throw CocoaError(.fileReadUnknown, userInfo: [NSFilePathErrorKey: path])
         }
         guard before.st_size <= maxBytes else {
@@ -87,7 +88,8 @@ nonisolated enum FileSaveCoordinator {
         data.reserveCapacity(Int(max(0, before.st_size)))
         while data.count <= maxBytes {
             guard let chunk = try handle.read(upToCount: min(64 * 1024, maxBytes + 1 - data.count)),
-                  !chunk.isEmpty else { break }
+                !chunk.isEmpty
+            else { break }
             data.append(chunk)
         }
         var after = stat()
@@ -96,14 +98,16 @@ nonisolated enum FileSaveCoordinator {
         }
         // An in-place agent write during the read must not become a mixed baseline.
         guard before.st_size == after.st_size,
-              before.st_mtimespec.tv_sec == after.st_mtimespec.tv_sec,
-              before.st_mtimespec.tv_nsec == after.st_mtimespec.tv_nsec,
-              before.st_ctimespec.tv_sec == after.st_ctimespec.tv_sec,
-              before.st_ctimespec.tv_nsec == after.st_ctimespec.tv_nsec else {
+            before.st_mtimespec.tv_sec == after.st_mtimespec.tv_sec,
+            before.st_mtimespec.tv_nsec == after.st_mtimespec.tv_nsec,
+            before.st_ctimespec.tv_sec == after.st_ctimespec.tv_sec,
+            before.st_ctimespec.tv_nsec == after.st_ctimespec.tv_nsec
+        else {
             throw CocoaError(.fileReadUnknown, userInfo: [NSFilePathErrorKey: path])
         }
-        return snapshot(path: destination.path, entry: after,
-                        data: data.count <= maxBytes ? data : nil)
+        return snapshot(
+            path: destination.path, entry: after,
+            data: data.count <= maxBytes ? data : nil)
     }
 
     static func save(
@@ -150,8 +154,11 @@ nonisolated enum FileSaveCoordinator {
     private static func snapshot(path: String, entry: stat?, data: Data?) -> FileSaveSnapshot {
         FileSaveSnapshot(
             destinationPath: path,
-            identity: entry.map { .init(device: $0.st_dev, inode: $0.st_ino,
-                                       type: UInt32($0.st_mode & S_IFMT)) },
+            identity: entry.map {
+                .init(
+                    device: $0.st_dev, inode: $0.st_ino,
+                    type: UInt32($0.st_mode & S_IFMT))
+            },
             data: data,
             size: entry?.st_size ?? 0,
             modificationSeconds: Int64(entry?.st_mtimespec.tv_sec ?? 0),

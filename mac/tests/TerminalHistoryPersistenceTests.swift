@@ -2,7 +2,7 @@ import AppKit
 import Darwin
 import Foundation
 #if !TERMINAL_HISTORY_STORE_PROBE
-@testable import zshell
+    @testable import zshell
 #endif
 
 private struct HistoryPersistenceFailure: Error { let message: String }
@@ -15,32 +15,32 @@ struct TerminalHistoryPersistenceTests {
 
     static func main() {
         #if !TERMINAL_HISTORY_STORE_PROBE
-        if PTYMuxCommandLine.shouldRunChild { PTYMuxCommandLine.runChild() }
-        if PTYMuxCommandLine.shouldRunRelay { PTYMuxRelay.run() }
-        if PTYMuxCommandLine.shouldRunDaemon { PTYMuxCommandLine.runDaemon() }
+            if PTYMuxCommandLine.shouldRunChild { PTYMuxCommandLine.runChild() }
+            if PTYMuxCommandLine.shouldRunRelay { PTYMuxRelay.run() }
+            if PTYMuxCommandLine.shouldRunDaemon { PTYMuxCommandLine.runDaemon() }
         #endif
         setbuf(stdout, nil)
         let root = URL(fileURLWithPath: CommandLine.arguments[2]).resolvingSymlinksInPath()
         do {
             try check(fileURL.path.hasPrefix(root.path + "/"), "history uses the disposable application support directory")
             #if TERMINAL_HISTORY_STORE_PROBE
-            try stores()
-            try finishedCommandKeepsPrimaryHistory()
-            print("Terminal history storage: \(checks) checks passed")
+                try stores()
+                try finishedCommandKeepsPrimaryHistory()
+                print("Terminal history storage: \(checks) checks passed")
             #else
-            let app = NSApplication.shared
-            app.setActivationPolicy(.prohibited)
-            QuickTerminalOffscreen.install()
-            Timer.scheduledTimer(withTimeInterval: 0.01, repeats: false) { _ in
-                MainActor.assumeIsolated {
-                    do {
-                        try surfaces(root: root, backend: CommandLine.arguments[1])
-                        print("Terminal history \(CommandLine.arguments[1]): \(checks) checks passed")
-                        exit(0)
-                    } catch { fail(error) }
+                let app = NSApplication.shared
+                app.setActivationPolicy(.prohibited)
+                QuickTerminalOffscreen.install()
+                Timer.scheduledTimer(withTimeInterval: 0.01, repeats: false) { _ in
+                    MainActor.assumeIsolated {
+                        do {
+                            try surfaces(root: root, backend: CommandLine.arguments[1])
+                            print("Terminal history \(CommandLine.arguments[1]): \(checks) checks passed")
+                            exit(0)
+                        } catch { fail(error) }
+                    }
                 }
-            }
-            app.run()
+                app.run()
             #endif
         } catch { fail(error) }
     }
@@ -84,7 +84,7 @@ struct TerminalHistoryPersistenceTests {
         TerminalHistoryStore.save(histories)
         try check(try read() == histories, "styled Unicode history round trips")
         let originalInode = try inode()
-        for _ in 0..<100 {
+        for _ in 0 ..< 100 {
             TerminalHistoryStore.save(Dictionary(uniqueKeysWithValues: histories.map { ($0.key, $0.value) }))
         }
         try check(try inode() == originalInode, "layout autosaves do not replace unchanged history")
@@ -142,130 +142,131 @@ struct TerminalHistoryPersistenceTests {
     }
 
     #if TERMINAL_HISTORY_STORE_PROBE
-    /// Screen and scrollback exports that satisfy the serializer's temp-file
-    /// contract. Nil means the backend produced no file, which is how a TUI
-    /// reports the hidden primary scrollback.
-    private final class HistoryExportSurface: TerminalBackendSurface {
-        var screenText: String?
-        var scrollbackText: String?
-        private var createdDirectories: [URL] = []
+        /// Screen and scrollback exports that satisfy the serializer's temp-file
+        /// contract. Nil means the backend produced no file, which is how a TUI
+        /// reports the hidden primary scrollback.
+        private final class HistoryExportSurface: TerminalBackendSurface {
+            var screenText: String?
+            var scrollbackText: String?
+            private var createdDirectories: [URL] = []
 
-        func exportScreenFile() -> String? { export(screenText) }
+            func exportScreenFile() -> String? { export(screenText) }
 
-        func exportScrollbackFile() -> String? { export(scrollbackText) }
+            func exportScrollbackFile() -> String? { export(scrollbackText) }
 
-        func cleanup() {
-            for directory in createdDirectories {
-                try? FileManager.default.removeItem(at: directory)
+            func cleanup() {
+                for directory in createdDirectories {
+                    try? FileManager.default.removeItem(at: directory)
+                }
+            }
+
+            private func export(_ text: String?) -> String? {
+                guard let text else { return nil }
+                let directory = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("zshell-history-\(UUID().uuidString)", isDirectory: true)
+                let file = directory.appendingPathComponent("screen")
+                do {
+                    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                    try Data(text.utf8).write(to: file)
+                    createdDirectories.append(directory)
+                    return file.path
+                } catch {
+                    return nil
+                }
             }
         }
 
-        private func export(_ text: String?) -> String? {
-            guard let text else { return nil }
-            let directory = FileManager.default.temporaryDirectory
-                .appendingPathComponent("zshell-history-\(UUID().uuidString)", isDirectory: true)
-            let file = directory.appendingPathComponent("screen")
-            do {
-                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-                try Data(text.utf8).write(to: file)
-                createdDirectories.append(directory)
-                return file.path
-            } catch {
-                return nil
-            }
+        private static func finishedCommandKeepsPrimaryHistory() throws {
+            let surface = HistoryExportSurface()
+            defer { surface.cleanup() }
+            let shell: pid_t = 4242
+            let editor: pid_t = 5151
+            var snapshot: String? = "PREVIOUS_LAUNCH_HISTORY"
+            surface.screenText = "SHELL_COMMAND_OUTPUT\n"
+            surface.scrollbackText = nil
+
+            TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
+                &snapshot,
+                from: surface,
+                shellPID: shell,
+                foregroundPID: shell,
+                maxLines: 500
+            )
+            try check(
+                snapshot == "SHELL_COMMAND_OUTPUT",
+                "command finished while the shell is foreground captures and replaces the cache"
+            )
+
+            surface.screenText = "ALTERNATE_SCREEN_TUI\n"
+            TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
+                &snapshot,
+                from: surface,
+                shellPID: shell,
+                foregroundPID: editor,
+                maxLines: 500
+            )
+            try check(
+                snapshot == "SHELL_COMMAND_OUTPUT",
+                "command finished while another pid is foreground keeps the previous snapshot"
+            )
+
+            let quit = TerminalHistorySerializer.liveHistorySnapshot(
+                &snapshot,
+                from: surface,
+                shellPID: shell,
+                foregroundPID: editor,
+                maxLines: 500
+            )
+            try check(
+                quit == "SHELL_COMMAND_OUTPUT"
+                    && quit != "ALTERNATE_SCREEN_TUI"
+                    && quit?.isEmpty == false,
+                "quit with no scrollback export and a non-shell foreground returns that cached snapshot rather than an empty or alternate-screen capture"
+            )
+
+            surface.screenText = "LIVE_SHELL_OUTPUT\n"
+            let completedCapture = TerminalHistorySerializer.capture(from: surface, maxLines: 500)
+            surface.screenText = "ALTERNATE_SCREEN_TUI\n"
+            TerminalHistorySerializer.storeFinishedCommandCapture(
+                completedCapture, into: &snapshot,
+                shellPID: shell, foregroundPID: shell
+            )
+            try check(
+                snapshot == "LIVE_SHELL_OUTPUT",
+                "a delayed root-shell pid stores the completed command rather than the later TUI"
+            )
+
+            TerminalHistorySerializer.storeFinishedCommandCapture(
+                completedCapture, into: &snapshot,
+                shellPID: shell, foregroundPID: editor
+            )
+            try check(
+                snapshot == "LIVE_SHELL_OUTPUT",
+                "a non-shell foreground pid leaves the cached history unchanged"
+            )
+
+            TerminalHistorySerializer.storeFinishedCommandCapture(
+                .captured("UNCONFIRMED_CAPTURE"), into: &snapshot,
+                shellPID: shell, foregroundPID: nil
+            )
+            try check(
+                snapshot == "LIVE_SHELL_OUTPUT",
+                "a failed foreground query leaves the cached history unchanged"
+            )
         }
-    }
-
-    private static func finishedCommandKeepsPrimaryHistory() throws {
-        let surface = HistoryExportSurface()
-        defer { surface.cleanup() }
-        let shell: pid_t = 4242
-        let editor: pid_t = 5151
-        var snapshot: String? = "PREVIOUS_LAUNCH_HISTORY"
-        surface.screenText = "SHELL_COMMAND_OUTPUT\n"
-        surface.scrollbackText = nil
-
-        TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
-            &snapshot,
-            from: surface,
-            shellPID: shell,
-            foregroundPID: shell,
-            maxLines: 500
-        )
-        try check(
-            snapshot == "SHELL_COMMAND_OUTPUT",
-            "command finished while the shell is foreground captures and replaces the cache"
-        )
-
-        surface.screenText = "ALTERNATE_SCREEN_TUI\n"
-        TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
-            &snapshot,
-            from: surface,
-            shellPID: shell,
-            foregroundPID: editor,
-            maxLines: 500
-        )
-        try check(
-            snapshot == "SHELL_COMMAND_OUTPUT",
-            "command finished while another pid is foreground keeps the previous snapshot"
-        )
-
-        let quit = TerminalHistorySerializer.liveHistorySnapshot(
-            &snapshot,
-            from: surface,
-            shellPID: shell,
-            foregroundPID: editor,
-            maxLines: 500
-        )
-        try check(
-            quit == "SHELL_COMMAND_OUTPUT"
-                && quit != "ALTERNATE_SCREEN_TUI"
-                && quit?.isEmpty == false,
-            "quit with no scrollback export and a non-shell foreground returns that cached snapshot rather than an empty or alternate-screen capture"
-        )
-
-        surface.screenText = "LIVE_SHELL_OUTPUT\n"
-        let completedCapture = TerminalHistorySerializer.capture(from: surface, maxLines: 500)
-        surface.screenText = "ALTERNATE_SCREEN_TUI\n"
-        TerminalHistorySerializer.storeFinishedCommandCapture(
-            completedCapture, into: &snapshot,
-            shellPID: shell, foregroundPID: shell
-        )
-        try check(
-            snapshot == "LIVE_SHELL_OUTPUT",
-            "a delayed root-shell pid stores the completed command rather than the later TUI"
-        )
-
-        TerminalHistorySerializer.storeFinishedCommandCapture(
-            completedCapture, into: &snapshot,
-            shellPID: shell, foregroundPID: editor
-        )
-        try check(
-            snapshot == "LIVE_SHELL_OUTPUT",
-            "a non-shell foreground pid leaves the cached history unchanged"
-        )
-
-        TerminalHistorySerializer.storeFinishedCommandCapture(
-            .captured("UNCONFIRMED_CAPTURE"), into: &snapshot,
-            shellPID: shell, foregroundPID: nil
-        )
-        try check(
-            snapshot == "LIVE_SHELL_OUTPUT",
-            "a failed foreground query leaves the cached history unchanged"
-        )
-    }
     #endif
 
     private static func repeatedSaves() throws {
         let row = "\u{1b}[38;2;92;140;185m" + String(repeating: "x", count: 120) + "\u{1b}[0m\r\n"
         for panes in [32, 100] {
-            let histories = Dictionary(uniqueKeysWithValues: (0..<panes).map { index in
-                (UUID().uuidString, String(repeating: row + String(index), count: 500))
-            })
+            let histories = Dictionary(
+                uniqueKeysWithValues: (0 ..< panes).map { index in
+                    (UUID().uuidString, String(repeating: row + String(index), count: 500))
+                })
             TerminalHistoryStore.save(histories)
             let firstInode = try inode()
             let start = DispatchTime.now().uptimeNanoseconds
-            for _ in 0..<100 {
+            for _ in 0 ..< 100 {
                 TerminalHistoryStore.save(Dictionary(uniqueKeysWithValues: histories.map { ($0.key, $0.value) }))
             }
             let meanMS = Double(DispatchTime.now().uptimeNanoseconds - start) / 100_000_000
@@ -280,185 +281,213 @@ struct TerminalHistoryPersistenceTests {
     }
 
     #if !TERMINAL_HISTORY_STORE_PROBE
-    private static func surfaces(root: URL, backend: String) throws {
-        let settings = AppSettings.shared
-        settings.terminalBackend = backend == "alacritty" ? .alacritty : .libghostty
-        try check(!settings.aiEnabled, "the fixture disables AI integration before launch")
-        settings.preserveTerminalSessions = false
-        settings.restoreTerminalHistory = true
-        settings.quickTerminalEnabled = false
-        let ids = [UUID(), UUID()]
-        let oldKeys = [UUID().uuidString, UUID().uuidString]
-        let text = "\u{1b}[32mHISTORY_中文_Café\u{1b}[0m\r\n"
-        let histories = [oldKeys[0]: text, oldKeys[1]: "SECOND_HISTORY\r\n"]
-        TerminalHistoryStore.save(histories)
-        let tabs = ids.enumerated().map { index, id in
-            SessionSnapshot.ProjectSnapshot.TabSnapshot(
-                layout: .pane(.init(content: .session(workingDirectory: root.path), weight: 1,
-                                    historyKey: oldKeys[index], terminalID: id)), focusedPaneIndex: 0)
-        }
-        SessionStore.save([.init(projects: [.init(customName: nil, customDirectory: root.path,
-                                                 tabs: tabs, selectedTabIndex: 0)], selectedProjectIndex: 0)])
+        private static func surfaces(root: URL, backend: String) throws {
+            let settings = AppSettings.shared
+            settings.terminalBackend = backend == "alacritty" ? .alacritty : .libghostty
+            try check(!settings.aiEnabled, "the fixture disables AI integration before launch")
+            settings.preserveTerminalSessions = false
+            settings.restoreTerminalHistory = true
+            settings.quickTerminalEnabled = false
+            let ids = [UUID(), UUID()]
+            let oldKeys = [UUID().uuidString, UUID().uuidString]
+            let text = "\u{1b}[32mHISTORY_中文_Café\u{1b}[0m\r\n"
+            let histories = [oldKeys[0]: text, oldKeys[1]: "SECOND_HISTORY\r\n"]
+            TerminalHistoryStore.save(histories)
+            let tabs = ids.enumerated().map { index, id in
+                SessionSnapshot.ProjectSnapshot.TabSnapshot(
+                    layout: .pane(
+                        .init(
+                            content: .session(workingDirectory: root.path), weight: 1,
+                            historyKey: oldKeys[index], terminalID: id)), focusedPaneIndex: 0)
+            }
+            SessionStore.save([
+                .init(
+                    projects: [
+                        .init(
+                            customName: nil, customDirectory: root.path,
+                            tabs: tabs, selectedTabIndex: 0)
+                    ], selectedProjectIndex: 0)
+            ])
 
-        var windows: [NSWindow] = []
-        var activeManager: TerminalManager?
-        func mount(_ value: TerminalManager) {
-            activeManager = value
-            let host = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 440),
-                                styleMask: [.titled], backing: .buffered, defer: false)
-            host.isReleasedWhenClosed = false
-            windows.append(host)
-            value.attach(to: host)
-            for session in value.projects.flatMap(\.sessions) {
-                let window = NSWindow(contentRect: host.frame, styleMask: [.titled], backing: .buffered, defer: false)
+            var windows: [NSWindow] = []
+            var activeManager: TerminalManager?
+            func mount(_ value: TerminalManager) {
+                activeManager = value
+                let host = NSWindow(
+                    contentRect: NSRect(x: 0, y: 0, width: 800, height: 440),
+                    styleMask: [.titled], backing: .buffered, defer: false)
+                host.isReleasedWhenClosed = false
+                windows.append(host)
+                value.attach(to: host)
+                for session in value.projects.flatMap(\.sessions) {
+                    let window = NSWindow(contentRect: host.frame, styleMask: [.titled], backing: .buffered, defer: false)
+                    window.isReleasedWhenClosed = false
+                    window.contentView = session.surface
+                    session.surface.frame = NSRect(x: 0, y: 0, width: 800, height: 440)
+                    session.surface.setSurfaceVisible(true)
+                    window.orderFront(nil)
+                    windows.append(window)
+                }
+            }
+            defer {
+                TerminalManager.prepareForApplicationQuit(endAll: true)
+                activeManager?.projects.forEach { $0.terminateAll() }
+                pump(0.2)
+                windows.forEach {
+                    $0.contentView = nil; $0.close()
+                }
+                NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: NSApp)
+            }
+            let workspace = TerminalManager()
+            mount(workspace)
+            let project = workspace.projects[0]
+            let sessions = project.sessions
+            do { try wait("both restored shells start") { sessions.allSatisfy { $0.shellPid != nil } } } catch {
+                for session in sessions {
+                    print(
+                        "HISTORY_DIAGNOSTIC id=\(session.id) backend=\(session.backend) exited=\(session.hasExited) shellPID=\(session.shellPid.map(String.init) ?? "nil") foregroundPID=\(session.surface.foregroundPid.map(String.init) ?? "nil") attached=\(session.surface.window != nil) frame=\(session.surface.frame)"
+                    )
+                    print("HISTORY_DIAGNOSTIC visible=\(session.surface.readVisibleText(maxLines: 10, maxColumns: 100) ?? "nil")")
+                }
+                throw error
+            }
+            pump(0.8)
+            let expected = [ids[0].uuidString: histories[oldKeys[0]]!, ids[1].uuidString: histories[oldKeys[1]]!]
+            try check(
+                sessions.map(\.id) == ids && sessions.allSatisfy { $0.backend == settings.terminalBackend },
+                "the requested backend restores both saved terminal identities")
+            try check(try read() == expected, "the production autosave migrates legacy keys and retains history")
+            try check(historyKeys() == Set(expected.keys), "layout references stable terminal history keys")
+            let originalInode = try inode()
+            for index in [1, 0, 1] {
+                project.selectedTabID = project.tabs[index].id
+                try wait("tab selection is autosaved to the layout") {
+                    SessionStore.load().first?.projects.first?.selectedTabIndex == index
+                }
+                try check(
+                    try inode() == originalInode && historyKeys() == Set(expected.keys),
+                    "switching tabs saves layout without replacing terminal history")
+            }
+            project.closeContent(.session(sessions[1]))
+            pump(0.8)
+            try check(
+                try read() == [ids[0].uuidString: expected[ids[0].uuidString]!],
+                "closing a live pane prunes its history through autosave")
+
+            workspace.windowClosed()
+            let closedHistory = try read()
+            try check(
+                Set(closedHistory.keys) == [ids[0].uuidString] && !SessionStore.load().isEmpty,
+                "closing the last window retains its final history and layout")
+            let closedInode = try inode()
+            let reopened = TerminalManager()
+            mount(reopened)
+            try wait("the last window reopens") { reopened.projects.flatMap(\.sessions).allSatisfy { $0.shellPid != nil } }
+            pump(0.8)
+            try check(
+                reopened.projects.flatMap(\.sessions).map(\.id) == [ids[0]],
+                "reopening the last window preserves terminal identities")
+            try check(
+                try inode() == closedInode && read() == closedHistory,
+                "reopened cached history does not trigger another write")
+            try completedHistorySurvivesTUI(root: root)
+            settings.restoreTerminalHistory = false
+            reopened.objectWillChange.send()
+            pump(0.8)
+            try check(
+                !manager.fileExists(atPath: fileURL.path) && historyKeys().isEmpty,
+                "disabling history removes the sidecar and layout references")
+            try check(QuickTerminalOffscreen.isSafe(), "backend acceptance remains offscreen without taking input")
+        }
+
+        private static func completedHistorySurvivesTUI(root: URL) throws {
+            let settings = AppSettings.shared
+            let previousPreservation = settings.preserveTerminalSessions
+            defer { settings.preserveTerminalSessions = previousPreservation }
+            for persistent in [false, true] {
+                settings.preserveTerminalSessions = persistent
+                let marker = "COMPLETED_OUTPUT_\(UUID().uuidString.replacingOccurrences(of: "-", with: ""))"
+                let session = TerminalSession(
+                    initialDirectory: root.path, restoredHistory: "PREVIOUS_LAUNCH_HISTORY",
+                    usesConfiguredStartupCommand: false, usesConfiguredInitializationCommand: false
+                )
+                let window = NSWindow(
+                    contentRect: NSRect(x: 0, y: 0, width: 800, height: 440),
+                    styleMask: [.titled], backing: .buffered, defer: false)
                 window.isReleasedWhenClosed = false
                 window.contentView = session.surface
                 session.surface.frame = NSRect(x: 0, y: 0, width: 800, height: 440)
                 session.surface.setSurfaceVisible(true)
                 window.orderFront(nil)
-                windows.append(window)
-            }
-        }
-        defer {
-            TerminalManager.prepareForApplicationQuit(endAll: true)
-            activeManager?.projects.forEach { $0.terminateAll() }
-            pump(0.2)
-            windows.forEach { $0.contentView = nil; $0.close() }
-            NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: NSApp)
-        }
-        let workspace = TerminalManager()
-        mount(workspace)
-        let project = workspace.projects[0]
-        let sessions = project.sessions
-        do { try wait("both restored shells start") { sessions.allSatisfy { $0.shellPid != nil } } }
-        catch {
-            for session in sessions {
-                print("HISTORY_DIAGNOSTIC id=\(session.id) backend=\(session.backend) exited=\(session.hasExited) shellPID=\(session.shellPid.map(String.init) ?? "nil") foregroundPID=\(session.surface.foregroundPid.map(String.init) ?? "nil") attached=\(session.surface.window != nil) frame=\(session.surface.frame)")
-                print("HISTORY_DIAGNOSTIC visible=\(session.surface.readVisibleText(maxLines: 10, maxColumns: 100) ?? "nil")")
-            }
-            throw error
-        }
-        pump(0.8)
-        let expected = [ids[0].uuidString: histories[oldKeys[0]]!, ids[1].uuidString: histories[oldKeys[1]]!]
-        try check(sessions.map(\.id) == ids && sessions.allSatisfy { $0.backend == settings.terminalBackend },
-                  "the requested backend restores both saved terminal identities")
-        try check(try read() == expected, "the production autosave migrates legacy keys and retains history")
-        try check(historyKeys() == Set(expected.keys), "layout references stable terminal history keys")
-        let originalInode = try inode()
-        for index in [1, 0, 1] {
-            project.selectedTabID = project.tabs[index].id
-            try wait("tab selection is autosaved to the layout") {
-                SessionStore.load().first?.projects.first?.selectedTabIndex == index
-            }
-            try check(try inode() == originalInode && historyKeys() == Set(expected.keys),
-                      "switching tabs saves layout without replacing terminal history")
-        }
-        project.closeContent(.session(sessions[1]))
-        pump(0.8)
-        try check(try read() == [ids[0].uuidString: expected[ids[0].uuidString]!],
-                  "closing a live pane prunes its history through autosave")
-
-        workspace.windowClosed()
-        let closedHistory = try read()
-        try check(Set(closedHistory.keys) == [ids[0].uuidString] && !SessionStore.load().isEmpty,
-                  "closing the last window retains its final history and layout")
-        let closedInode = try inode()
-        let reopened = TerminalManager()
-        mount(reopened)
-        try wait("the last window reopens") { reopened.projects.flatMap(\.sessions).allSatisfy { $0.shellPid != nil } }
-        pump(0.8)
-        try check(reopened.projects.flatMap(\.sessions).map(\.id) == [ids[0]],
-                  "reopening the last window preserves terminal identities")
-        try check(try inode() == closedInode && read() == closedHistory,
-                  "reopened cached history does not trigger another write")
-        try completedHistorySurvivesTUI(root: root)
-        settings.restoreTerminalHistory = false
-        reopened.objectWillChange.send()
-        pump(0.8)
-        try check(!manager.fileExists(atPath: fileURL.path) && historyKeys().isEmpty,
-                  "disabling history removes the sidecar and layout references")
-        try check(QuickTerminalOffscreen.isSafe(), "backend acceptance remains offscreen without taking input")
-    }
-
-    private static func completedHistorySurvivesTUI(root: URL) throws {
-        let settings = AppSettings.shared
-        let previousPreservation = settings.preserveTerminalSessions
-        defer { settings.preserveTerminalSessions = previousPreservation }
-        for persistent in [false, true] {
-            settings.preserveTerminalSessions = persistent
-            let marker = "COMPLETED_OUTPUT_\(UUID().uuidString.replacingOccurrences(of: "-", with: ""))"
-            let session = TerminalSession(
-                initialDirectory: root.path, restoredHistory: "PREVIOUS_LAUNCH_HISTORY",
-                usesConfiguredStartupCommand: false, usesConfiguredInitializationCommand: false
-            )
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 440),
-                                  styleMask: [.titled], backing: .buffered, defer: false)
-            window.isReleasedWhenClosed = false
-            window.contentView = session.surface
-            session.surface.frame = NSRect(x: 0, y: 0, width: 800, height: 440)
-            session.surface.setSurfaceVisible(true)
-            window.orderFront(nil)
-            defer {
-                session.terminate()
-                pump(0.3)
-                window.contentView = nil
-                window.close()
-            }
-            try wait("\(persistent ? "persistent" : "direct") shell starts") {
-                session.shellPid != nil && session.terminalPromptQueueIsReady
-            }
-            try check((session.persistentSessionID != nil) == persistent,
-                      "the history fixture uses the requested PTY lifecycle")
-            let completion = session.commandLifecycle.completionSequence
-            session.sendCommand("printf '\(marker)\\n'")
-            session.sendEnter()
-            do {
-                try wait("the real shell finishes the history command") {
-                    session.commandLifecycle.completionSequence > completion
+                defer {
+                    session.terminate()
+                    pump(0.3)
+                    window.contentView = nil
+                    window.close()
                 }
-            } catch {
-                print("HISTORY_TUI_DIAGNOSTIC persistent=\(persistent) lifecycle=\(session.commandLifecycle) shell=\(session.shellPid ?? 0) foreground=\(session.surface.foregroundPid ?? 0) visible=\(session.surface.readVisibleText(maxLines: 30, maxColumns: 180) ?? "nil")")
-                throw error
-            }
-            do {
-                try wait("command completion updates the cached screen") {
-                    session.serializedHistory(captureLive: false)?.contains(marker) == true
+                try wait("\(persistent ? "persistent" : "direct") shell starts") {
+                    session.shellPid != nil && session.terminalPromptQueueIsReady
                 }
-            } catch {
-                print("HISTORY_CACHE_DIAGNOSTIC persistent=\(persistent) lifecycle=\(session.commandLifecycle) shell=\(session.shellPid ?? 0) foreground=\(session.surface.foregroundPid ?? 0) cache=\(session.serializedHistory(captureLive: false) ?? "nil") visible=\(session.surface.readVisibleText(maxLines: 30, maxColumns: 180) ?? "nil")")
-                throw error
+                try check(
+                    (session.persistentSessionID != nil) == persistent,
+                    "the history fixture uses the requested PTY lifecycle")
+                let completion = session.commandLifecycle.completionSequence
+                session.sendCommand("printf '\(marker)\\n'")
+                session.sendEnter()
+                do {
+                    try wait("the real shell finishes the history command") {
+                        session.commandLifecycle.completionSequence > completion
+                    }
+                } catch {
+                    print(
+                        "HISTORY_TUI_DIAGNOSTIC persistent=\(persistent) lifecycle=\(session.commandLifecycle) shell=\(session.shellPid ?? 0) foreground=\(session.surface.foregroundPid ?? 0) visible=\(session.surface.readVisibleText(maxLines: 30, maxColumns: 180) ?? "nil")"
+                    )
+                    throw error
+                }
+                do {
+                    try wait("command completion updates the cached screen") {
+                        session.serializedHistory(captureLive: false)?.contains(marker) == true
+                    }
+                } catch {
+                    print(
+                        "HISTORY_CACHE_DIAGNOSTIC persistent=\(persistent) lifecycle=\(session.commandLifecycle) shell=\(session.shellPid ?? 0) foreground=\(session.surface.foregroundPid ?? 0) cache=\(session.serializedHistory(captureLive: false) ?? "nil") visible=\(session.surface.readVisibleText(maxLines: 30, maxColumns: 180) ?? "nil")"
+                    )
+                    throw error
+                }
+                session.sendCommand(
+                    "python3 -c 'import sys,time;sys.stdout.write(\"\\x1b[?1049h\\x1b[2J\\x1b[HREAL_TUI_VISIBLE\");sys.stdout.flush();time.sleep(30)'"
+                )
+                session.sendEnter()
+                try wait("the next real process owns the alternate screen") {
+                    session.surface.readVisibleText(maxLines: 30, maxColumns: 120)?.contains("REAL_TUI_VISIBLE") == true
+                        && session.surface.foregroundPid != session.shellPid
+                }
+                let saved = session.serializedHistory(captureLive: true)
+                try check(
+                    saved?.contains(marker) == true && saved?.contains("REAL_TUI_VISIBLE") == false,
+                    "quit-time capture inside a real TUI retains the completed shell output")
             }
-            session.sendCommand("python3 -c 'import sys,time;sys.stdout.write(\"\\x1b[?1049h\\x1b[2J\\x1b[HREAL_TUI_VISIBLE\");sys.stdout.flush();time.sleep(30)'")
-            session.sendEnter()
-            try wait("the next real process owns the alternate screen") {
-                session.surface.readVisibleText(maxLines: 30, maxColumns: 120)?.contains("REAL_TUI_VISIBLE") == true
-                    && session.surface.foregroundPid != session.shellPid
-            }
-            let saved = session.serializedHistory(captureLive: true)
-            try check(saved?.contains(marker) == true && saved?.contains("REAL_TUI_VISIBLE") == false,
-                      "quit-time capture inside a real TUI retains the completed shell output")
         }
-    }
 
-    private static func historyKeys() -> Set<String> {
-        func keys(_ layout: SessionSnapshot.ProjectSnapshot.LayoutSnapshot) -> [String] {
-            switch layout {
-            case .pane(let pane): return pane.historyKey.map { [$0] } ?? []
-            case .split(_, _, let first, let second): return keys(first) + keys(second)
+        private static func historyKeys() -> Set<String> {
+            func keys(_ layout: SessionSnapshot.ProjectSnapshot.LayoutSnapshot) -> [String] {
+                switch layout {
+                case .pane(let pane): return pane.historyKey.map { [$0] } ?? []
+                case .split(_, _, let first, let second): return keys(first) + keys(second)
+                }
             }
+            return Set(SessionStore.load().flatMap { $0.projects }.flatMap { $0.tabs }.flatMap { keys($0.layout) })
         }
-        return Set(SessionStore.load().flatMap { $0.projects }.flatMap { $0.tabs }.flatMap { keys($0.layout) })
-    }
 
-    private static func pump(_ duration: TimeInterval) {
-        let deadline = Date().addingTimeInterval(duration)
-        while Date() < deadline { _ = RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.005)) }
-    }
+        private static func pump(_ duration: TimeInterval) {
+            let deadline = Date().addingTimeInterval(duration)
+            while Date() < deadline { _ = RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.005)) }
+        }
 
-    private static func wait(_ message: String, until condition: () -> Bool) throws {
-        let deadline = Date().addingTimeInterval(8)
-        while !condition() && Date() < deadline { pump(0.01) }
-        try check(condition(), message)
-    }
+        private static func wait(_ message: String, until condition: () -> Bool) throws {
+            let deadline = Date().addingTimeInterval(8)
+            while !condition() && Date() < deadline { pump(0.01) }
+            try check(condition(), message)
+        }
     #endif
 }

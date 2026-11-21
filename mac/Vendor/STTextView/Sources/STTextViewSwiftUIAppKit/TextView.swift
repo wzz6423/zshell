@@ -121,7 +121,7 @@ private struct TextViewRepresentable: NSViewRepresentable {
 
         return scrollView
     }
-    
+
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: NSScrollView, context: Context) -> CGSize? {
         let width = proposal.width ?? nsView.frame.size.width
         let height = proposal.height ?? nsView.frame.size.height
@@ -226,4 +226,3 @@ private struct TextViewRepresentable: NSViewRepresentable {
 
     }
 }
-

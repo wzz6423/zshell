@@ -3,11 +3,11 @@ import TreeSitter
 
 public class TreeCursor {
     private var internalCursor: TSTreeCursor
-	private let internalTree: Tree
+    private let internalTree: Tree
 
-	init(internalCursor: TSTreeCursor, internalTree: Tree) {
+    init(internalCursor: TSTreeCursor, internalTree: Tree) {
         self.internalCursor = internalCursor
-		self.internalTree = internalTree
+        self.internalTree = internalTree
     }
 
     deinit {
@@ -19,11 +19,11 @@ extension TreeCursor {
     public func gotoParent() -> Bool {
         return ts_tree_cursor_goto_parent(&internalCursor)
     }
-    
+
     public func gotoNextSibling() -> Bool {
         return ts_tree_cursor_goto_next_sibling(&internalCursor)
     }
-    
+
     public func goToFirstChild() -> Bool {
         return ts_tree_cursor_goto_first_child(&internalCursor)
     }
@@ -35,17 +35,17 @@ extension TreeCursor {
 
 extension TreeCursor {
     public var currentNode: Node? {
-		return Node(internalNode: ts_tree_cursor_current_node(&internalCursor), internalTree: internalTree)
+        return Node(internalNode: ts_tree_cursor_current_node(&internalCursor), internalTree: internalTree)
     }
-    
+
     public var currentFieldName: String? {
         guard let str = ts_tree_cursor_current_field_name(&internalCursor) else {
             return nil
         }
-        
+
         return String(cString: str)
     }
-    
+
     public var currentFieldId: Int {
         return Int(ts_tree_cursor_current_field_id(&internalCursor))
     }
@@ -62,7 +62,7 @@ extension TreeCursor {
         }
 
         try enumerateCurrentAndDescendents(block: block)
-        
+
         while gotoNextSibling() {
             try enumerateCurrentAndDescendents(block: block)
         }

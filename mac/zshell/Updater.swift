@@ -19,7 +19,8 @@ enum UpdateFeedPreference {
 
     static func normalizedCountryCode(_ value: String?) -> String? {
         guard let code = value?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(),
-              code.count == 2, Locale.Region.isoRegions.contains(where: { $0.identifier == code }) else { return nil }
+            code.count == 2, Locale.Region.isoRegions.contains(where: { $0.identifier == code })
+        else { return nil }
         return code
     }
 }
@@ -91,25 +92,25 @@ final class UpdateFeedResolver {
 
     static func countryCodeForCurrentIP() async -> String? {
         #if DEBUG
-        return nil
-        #else
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = requestTimeout
-        configuration.timeoutIntervalForResource = requestTimeout
-        configuration.httpShouldSetCookies = false
-        configuration.urlCache = nil
-        let session = URLSession(configuration: configuration)
-        defer { session.invalidateAndCancel() }
-        var request = URLRequest(url: URL(string: "https://ipinfo.io/country")!)
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-        request.timeoutInterval = requestTimeout
-        do {
-            let (data, response) = try await session.data(for: request)
-            guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
-            return UpdateFeedPreference.normalizedCountryCode(String(data: data, encoding: .utf8))
-        } catch {
             return nil
-        }
+        #else
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.timeoutIntervalForRequest = requestTimeout
+            configuration.timeoutIntervalForResource = requestTimeout
+            configuration.httpShouldSetCookies = false
+            configuration.urlCache = nil
+            let session = URLSession(configuration: configuration)
+            defer { session.invalidateAndCancel() }
+            var request = URLRequest(url: URL(string: "https://ipinfo.io/country")!)
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+            request.timeoutInterval = requestTimeout
+            do {
+                let (data, response) = try await session.data(for: request)
+                guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+                return UpdateFeedPreference.normalizedCountryCode(String(data: data, encoding: .utf8))
+            } catch {
+                return nil
+            }
         #endif
     }
 }
@@ -124,16 +125,19 @@ struct UpdateFeedConfiguration {
         installedSliceCount: Int = Bundle.main.executableArchitectures?.count ?? 1
     ) {
         guard let publicKey = infoDictionary["SUPublicEDKey"] as? String,
-              Data(base64Encoded: publicKey)?.count == 32,
-              let primary = Self.feedURL(infoDictionary["SUFeedURL"]),
-              let fallback = Self.feedURL(infoDictionary["ZshellReleaseFallbackAppcastURL"]),
-              ["arm64", "x86_64"].contains(architecture) else { return nil }
+            Data(base64Encoded: publicKey)?.count == 32,
+            let primary = Self.feedURL(infoDictionary["SUFeedURL"]),
+            let fallback = Self.feedURL(infoDictionary["ZshellReleaseFallbackAppcastURL"]),
+            ["arm64", "x86_64"].contains(architecture)
+        else { return nil }
 
         // Universal installs retain their portability; only thin installs follow a slice feed.
-        self.primary = installedSliceCount == 1
+        self.primary =
+            installedSliceCount == 1
             ? primary.deletingLastPathComponent().appendingPathComponent("appcast-\(architecture).xml")
             : primary
-        self.fallback = installedSliceCount == 1
+        self.fallback =
+            installedSliceCount == 1
             ? fallback.deletingLastPathComponent().appendingPathComponent("appcast-\(architecture).xml")
             : fallback
     }
@@ -145,21 +149,23 @@ struct UpdateFeedConfiguration {
 
     private static func feedURL(_ value: Any?) -> URL? {
         guard let value = value as? String,
-              let url = URL(string: value),
-              url.scheme == "https", url.host != nil else { return nil }
+            let url = URL(string: value),
+            url.scheme == "https", url.host != nil
+        else { return nil }
         return url
     }
 
     static var hostArchitecture: String {
         #if arch(arm64)
-        return "arm64"
+            return "arm64"
         #else
-        // A thin Intel install running under Rosetta should migrate to native Apple silicon.
-        var translated: Int32 = 0
-        var size = MemoryLayout<Int32>.size
-        let isTranslated = sysctlbyname("sysctl.proc_translated", &translated, &size, nil, 0) == 0
-            && translated == 1
-        return isTranslated ? "arm64" : "x86_64"
+            // A thin Intel install running under Rosetta should migrate to native Apple silicon.
+            var translated: Int32 = 0
+            var size = MemoryLayout<Int32>.size
+            let isTranslated =
+                sysctlbyname("sysctl.proc_translated", &translated, &size, nil, 0) == 0
+                && translated == 1
+            return isTranslated ? "arm64" : "x86_64"
         #endif
     }
 }
@@ -243,15 +249,20 @@ final class UpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
         onAvailableUpdateChanged?(nil)
     }
 
-    func updater(_ updater: SPUUpdater, userDidMake choice: SPUUserUpdateChoice,
-                 forUpdate item: SUAppcastItem, state: SPUUserUpdateState) {
+    func updater(
+        _ updater: SPUUpdater, userDidMake choice: SPUUserUpdateChoice,
+        forUpdate item: SUAppcastItem, state: SPUUserUpdateState
+    ) {
         if choice == .skip { onAvailableUpdateChanged?(nil) }
     }
 
-    func updater(_ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem,
-                 immediateInstallationBlock immediateInstallHandler: @escaping () -> Void) -> Bool {
+    func updater(
+        _ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem,
+        immediateInstallationBlock immediateInstallHandler: @escaping () -> Void
+    ) -> Bool {
         guard updater.automaticallyChecksForUpdates, updater.automaticallyDownloadsUpdates,
-              shouldAutomaticallyInstall() else { return false }
+            shouldAutomaticallyInstall()
+        else { return false }
         // Keep Sparkle's handler available if the application cancels its first quit request.
         installAndRelaunch = immediateInstallHandler
         immediateInstallHandler()
@@ -262,8 +273,10 @@ final class UpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
         state.downloadFailed()
     }
 
-    func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck,
-                 error: Error?) {
+    func updater(
+        _ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck,
+        error: Error?
+    ) {
         installAndRelaunch = nil
         if isDeferringCheck {
             isDeferringCheck = false
@@ -310,8 +323,10 @@ final class UpdateUserDriver: SPUStandardUserDriver {
         super.init(hostBundle: .main, delegate: nil)
     }
 
-    override func showUpdateFound(with appcastItem: SUAppcastItem, state: SPUUserUpdateState,
-                                  reply: @escaping (SPUUserUpdateChoice) -> Void) {
+    override func showUpdateFound(
+        with appcastItem: SUAppcastItem, state: SPUUserUpdateState,
+        reply: @escaping (SPUUserUpdateChoice) -> Void
+    ) {
         isShowingUpdate = true
         super.showUpdateFound(with: appcastItem, state: state, reply: reply)
     }
@@ -385,8 +400,9 @@ final class Updater: ObservableObject {
             delegate?.shouldSuppressUpdaterError == true
         }
         userDriver = driver
-        updater = SPUUpdater(hostBundle: .main, applicationBundle: .main,
-                             userDriver: driver, delegate: delegate)
+        updater = SPUUpdater(
+            hostBundle: .main, applicationBundle: .main,
+            userDriver: driver, delegate: delegate)
         automaticallyChecksForUpdates = updater.automaticallyChecksForUpdates
         automaticallyDownloadsUpdates = updater.automaticallyDownloadsUpdates
         updater.publisher(for: \.canCheckForUpdates).assign(to: &$canCheckForUpdates)
@@ -418,42 +434,49 @@ final class Updater: ObservableObject {
 
         // Debug must not schedule network checks or display update prompts.
         #if !DEBUG
-        do {
-            try updater.start()
-            if automaticallyChecksForUpdates {
-                updater.checkForUpdatesInBackground()
+            do {
+                try updater.start()
+                if automaticallyChecksForUpdates {
+                    updater.checkForUpdatesInBackground()
+                }
+            } catch {
+                NSLog("Unable to start Sparkle: %@", error.localizedDescription)
             }
-        } catch {
-            NSLog("Unable to start Sparkle: %@", error.localizedDescription)
-        }
         #endif
     }
 
     func showAvailableUpdate() {
         #if !DEBUG
-        if let installAndRelaunch = feedDelegate.installAndRelaunch {
-            installAndRelaunch()
-        } else if updater.sessionInProgress {
-            if userDriver.isShowingUpdate {
-                userDriver.showUpdateInFocus()
+            if let installAndRelaunch = feedDelegate.installAndRelaunch {
+                installAndRelaunch()
+            } else if updater.sessionInProgress {
+                if userDriver.isShowingUpdate {
+                    userDriver.showUpdateInFocus()
+                } else {
+                    let alert = NSAlert()
+                    alert.messageText = String(localized: "Updating Zshell")
+                    alert.informativeText =
+                        automaticallyChecksForUpdates && automaticallyDownloadsUpdates && automaticallyInstallsUpdates
+                        ? String(
+                            localized:
+                                "The update is being downloaded and verified in the background. Zshell will restart automatically when it is ready."
+                        )
+                        : String(
+                            localized:
+                                "The update is being prepared in the background. It will be installed when you quit Zshell, or you can install it manually when it is ready."
+                        )
+                    if let window = NSApp.keyWindow { alert.beginSheetModal(for: window) }
+                }
             } else {
-                let alert = NSAlert()
-                alert.messageText = String(localized: "Updating Zshell")
-                alert.informativeText = automaticallyChecksForUpdates && automaticallyDownloadsUpdates && automaticallyInstallsUpdates
-                    ? String(localized: "The update is being downloaded and verified in the background. Zshell will restart automatically when it is ready.")
-                    : String(localized: "The update is being prepared in the background. It will be installed when you quit Zshell, or you can install it manually when it is ready.")
-                if let window = NSApp.keyWindow { alert.beginSheetModal(for: window) }
+                checkForUpdates()
             }
-        } else {
-            checkForUpdates()
-        }
         #endif
     }
 
     func checkForUpdates() {
         #if !DEBUG
-        pendingCheck = .updates
-        schedulePendingCheck()
+            pendingCheck = .updates
+            schedulePendingCheck()
         #endif
     }
 
@@ -461,7 +484,8 @@ final class Updater: ObservableObject {
         // Sparkle also opens a short session while rescheduling its timer after a cycle.
         DispatchQueue.main.async { [weak self] in
             guard let self, !self.updater.sessionInProgress, self.updater.canCheckForUpdates,
-                  let check = self.pendingCheck else { return }
+                let check = self.pendingCheck
+            else { return }
             self.pendingCheck = nil
             guard check == .updates || self.automaticallyChecksForUpdates else { return }
             self.retryCheck(check)

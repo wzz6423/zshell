@@ -54,4 +54,3 @@ public extension DoxygenAbstract {
         self.init(children: children)
     }
 }
-

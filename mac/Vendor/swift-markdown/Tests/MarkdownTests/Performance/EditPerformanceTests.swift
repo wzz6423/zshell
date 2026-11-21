@@ -12,15 +12,15 @@ import XCTest
 import Markdown
 
 final class EditPerformanceTests: XCTestCase {
-#if os(Windows)
-#if DEBUG
-    static let maxDepth = 625
-#else
-    static let maxDepth = 1250
-#endif
-#else
-    static let maxDepth = 5000
-#endif
+    #if os(Windows)
+        #if DEBUG
+            static let maxDepth = 625
+        #else
+            static let maxDepth = 1250
+        #endif
+    #else
+        static let maxDepth = 5000
+    #endif
     /// Test the performance of changing a leaf in an unrealistically deep markup tree.
     func testChangeTextInDeepTree() {
         func buildDeepListItem(depth: Int) -> ListItem {
@@ -51,7 +51,7 @@ final class EditPerformanceTests: XCTestCase {
 
     /// Test the performance of change an element among unrealistically many siblings.
     func testChangeTextInWideParagraph() {
-        let paragraph = Paragraph((0..<10000).map { _ in Text("OK") })
+        let paragraph = Paragraph((0 ..< 10000).map { _ in Text("OK") })
         var firstText = paragraph.child(at: 0) as! Text
         measure {
             firstText.string = "OK"

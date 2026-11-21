@@ -9,7 +9,7 @@
 */
 
 /// An ordered list.
-public struct OrderedList: ListItemContainer, BlockMarkup {    
+public struct OrderedList: ListItemContainer, BlockMarkup {
     public var _data: _MarkupData
     init(_ raw: RawMarkup) throws {
         guard case .orderedList = raw.data else {

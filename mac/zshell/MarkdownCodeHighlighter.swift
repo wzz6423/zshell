@@ -42,8 +42,8 @@ final class MarkdownCodeHighlighter {
             attributes: [.font: font, .foregroundColor: color]
         )
         guard let language,
-              let syntaxLanguage = SyntaxHighlighting.language(forInjectionName: language),
-              let query = highlightsQuery(for: syntaxLanguage)
+            let syntaxLanguage = SyntaxHighlighting.language(forInjectionName: language),
+            let query = highlightsQuery(for: syntaxLanguage)
         else {
             return result
         }
@@ -64,13 +64,13 @@ final class MarkdownCodeHighlighter {
             // Clamped rather than trusted: a query range that ran past the end
             // of the string would trap on `addAttribute`.
             guard named.range.length > 0,
-                  named.range.location >= 0,
-                  named.range.upperBound <= limit,
-                  !SyntaxHighlightCoordinator.ignoredCaptures.contains(named.name),
-                  let tokenColor = SyntaxHighlightCoordinator.themeColor(
-                      for: named.name,
-                      theme: SyntaxHighlighting.theme
-                  )
+                named.range.location >= 0,
+                named.range.upperBound <= limit,
+                !SyntaxHighlightCoordinator.ignoredCaptures.contains(named.name),
+                let tokenColor = SyntaxHighlightCoordinator.themeColor(
+                    for: named.name,
+                    theme: SyntaxHighlighting.theme
+                )
             else {
                 continue
             }

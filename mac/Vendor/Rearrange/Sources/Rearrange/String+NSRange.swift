@@ -12,7 +12,7 @@ public extension String {
             let start = index(startIndex, offsetBy: range.lowerBound)
             let end = index(start, offsetBy: range.count)
 
-            return self[start..<end]
+            return self[start ..< end]
         }
     }
 

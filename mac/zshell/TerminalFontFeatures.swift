@@ -47,7 +47,7 @@ struct TerminalFontFeatures: Equatable {
                 name = name[..<separator]
             }
             guard name.utf8.count == 4,
-                  name.utf8.allSatisfy({ (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) })
+                name.utf8.allSatisfy({ (48 ... 57).contains($0) || (65 ... 90).contains($0) || (97 ... 122).contains($0) })
             else { return nil }
             let tag = String(name)
             result.removeAll { $0.tag == tag }
@@ -59,8 +59,10 @@ struct TerminalFontFeatures: Equatable {
     func applying(to font: NSFont) -> NSFont {
         guard !features.isEmpty else { return font }
         let settings: [[String: Any]] = features.map {
-            [kCTFontOpenTypeFeatureTag as String: $0.tag,
-             kCTFontOpenTypeFeatureValue as String: NSNumber(value: $0.value)]
+            [
+                kCTFontOpenTypeFeatureTag as String: $0.tag,
+                kCTFontOpenTypeFeatureValue as String: NSNumber(value: $0.value),
+            ]
         }
         var attributes: [NSFontDescriptor.AttributeName: Any] = [.featureSettings: settings]
         if let cascade = font.fontDescriptor.object(forKey: .cascadeList) as? [NSFontDescriptor] {

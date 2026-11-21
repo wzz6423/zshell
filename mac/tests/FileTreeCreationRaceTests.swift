@@ -64,10 +64,13 @@ nonisolated final class CreationRaceFixture: @unchecked Sendable {
         let saved = try Data(contentsOf: destination)
         let preserved = saved == CreationRaceFixture.shared.contents
         let draftCleared = model.draft == nil && !model.items.contains(where: \.isDraft)
-        print("Writer completed after the production existence check: savedBytes=\(saved.count) preserved=\(preserved) returnedNewFile=\(created != nil) draftCleared=\(draftCleared)")
+        print(
+            "Writer completed after the production existence check: savedBytes=\(saved.count) preserved=\(preserved) returnedNewFile=\(created != nil) draftCleared=\(draftCleared)"
+        )
         guard created == nil, preserved, draftCleared else {
-            throw NSError(domain: "FileTreeCreationRaceTests", code: 1,
-                          userInfo: [NSLocalizedDescriptionKey: "Creation must reject the race and preserve the external writer's contents."])
+            throw NSError(
+                domain: "FileTreeCreationRaceTests", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Creation must reject the race and preserve the external writer's contents."])
         }
         print("PASS production file creation rejects a concurrent writer and preserves all \(saved.count) bytes")
     }

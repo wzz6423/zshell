@@ -24,14 +24,14 @@ import Testing
     let count = findMatchPositions(
         query: query,
         candidate: candidate,
-        boundaryMask: 0b1,  // Only position 0 is boundary
+        boundaryMask: 0b1, // Only position 0 is boundary
         positions: &positions
     )
 
     #expect(count == 3)
-    #expect(positions[0] == 0)  // a
-    #expect(positions[1] == 1)  // b
-    #expect(positions[2] == 2)  // c
+    #expect(positions[0] == 0) // a
+    #expect(positions[1] == 1) // b
+    #expect(positions[2] == 2) // c
 }
 
 @Test func findMatchPositionsPrefersBoundaries() {
@@ -57,7 +57,7 @@ import Testing
     // Boundaries in original case would be 0, 3, 7, 9
     // But after lowercasing, camelCase info is lost in the candidate
     // Let's verify the positions make sense
-    #expect(positions[0] == 0)  // g at start
+    #expect(positions[0] == 0) // g at start
 }
 
 @Test func findMatchPositionsSubsequence() {
@@ -69,14 +69,14 @@ import Testing
     let count = findMatchPositions(
         query: query,
         candidate: candidate,
-        boundaryMask: 0b1,  // Only position 0
+        boundaryMask: 0b1, // Only position 0
         positions: &positions
     )
 
     #expect(count == 3)
-    #expect(positions[0] == 0)  // f
-    #expect(positions[1] == 2)  // z
-    #expect(positions[2] == 4)  // y
+    #expect(positions[0] == 0) // f
+    #expect(positions[1] == 2) // z
+    #expect(positions[2] == 4) // y
 }
 
 @Test func findMatchPositionsNoMatch() {
@@ -113,7 +113,7 @@ import Testing
 
 @Test func calculateBonusesAllBoundaries() {
     // All matches at boundaries: bonus = 4 * 0.1 = 0.4
-    let positions = [0, 3, 7, 9]  // All boundary positions
+    let positions = [0, 3, 7, 9] // All boundary positions
     let candidate = Array("getUserById".utf8)
 
     let boundaryMask = computeBoundaryMask(bytes: candidate)
@@ -173,7 +173,7 @@ import Testing
     let positions = [0, 5, 10]
     let candidate = Array("abcdefghijk".utf8)
 
-    let boundaryMask: UInt64 = 0b1  // Only position 0 is boundary
+    let boundaryMask: UInt64 = 0b1 // Only position 0 is boundary
 
     // Use linear gap model without position bonus
     let config = EditDistanceConfig(
@@ -244,10 +244,11 @@ import Testing
     // Test boundary scoring with gap penalty to differentiate by gap size
     // fooBar has smaller gap (2 chars) than file_browser (4 chars)
     let config = MatchConfig(
-        algorithm: .editDistance(EditDistanceConfig(
-            gapPenalty: .linear(perCharacter: 0.02),
-            firstMatchBonus: 0.0
-        ))
+        algorithm: .editDistance(
+            EditDistanceConfig(
+                gapPenalty: .linear(perCharacter: 0.02),
+                firstMatchBonus: 0.0
+            ))
     )
     let matcher = FuzzyMatcher(config: config)
     let query = matcher.prepare("fb")
@@ -268,10 +269,11 @@ import Testing
     // Use config without prefix boost to test that bonuses still help
     // With default bonuses, prefix matches should still rank higher
     let config = MatchConfig(
-        algorithm: .editDistance(EditDistanceConfig(
-            prefixWeight: 1.0,  // No prefix boost
-            substringWeight: 1.0  // Same weight
-        ))
+        algorithm: .editDistance(
+            EditDistanceConfig(
+                prefixWeight: 1.0, // No prefix boost
+                substringWeight: 1.0 // Same weight
+            ))
     )
     let matcher = FuzzyMatcher(config: config)
     let query = matcher.prepare("gat")
@@ -336,12 +338,13 @@ import Testing
 
 @Test func bonusesCanBeDisabled() {
     let noBonusConfig = MatchConfig(
-        algorithm: .editDistance(EditDistanceConfig(
-            wordBoundaryBonus: 0.0,
-            consecutiveBonus: 0.0,
-            gapPenalty: .none,
-            firstMatchBonus: 0.0
-        ))
+        algorithm: .editDistance(
+            EditDistanceConfig(
+                wordBoundaryBonus: 0.0,
+                consecutiveBonus: 0.0,
+                gapPenalty: .none,
+                firstMatchBonus: 0.0
+            ))
     )
     let matcher = FuzzyMatcher(config: noBonusConfig)
     let query = matcher.prepare("gubi")
@@ -354,11 +357,12 @@ import Testing
 
 @Test func customBonusValues() {
     let customConfig = MatchConfig(
-        algorithm: .editDistance(EditDistanceConfig(
-            wordBoundaryBonus: 0.2,  // Stronger boundary bonus
-            consecutiveBonus: 0.1,   // Stronger consecutive bonus
-            gapPenalty: .linear(perCharacter: 0.02)  // Stronger gap penalty
-        ))
+        algorithm: .editDistance(
+            EditDistanceConfig(
+                wordBoundaryBonus: 0.2, // Stronger boundary bonus
+                consecutiveBonus: 0.1, // Stronger consecutive bonus
+                gapPenalty: .linear(perCharacter: 0.02) // Stronger gap penalty
+            ))
     )
     let matcher = FuzzyMatcher(config: customConfig)
     let query = matcher.prepare("gubi")
@@ -480,7 +484,7 @@ import Testing
 
 @Test func affineGapPenaltySingleCharGap() {
     // Gap of 1 character: only open penalty (no extension)
-    let positions = [0, 2]  // Gap of 1 at position 1
+    let positions = [0, 2] // Gap of 1 at position 1
     let candidate = Array("aXb".utf8)
     let boundaryMask: UInt64 = 0b1
 
@@ -505,7 +509,7 @@ import Testing
 
 @Test func affineGapPenaltyMultiCharGap() {
     // Gap of 3 characters
-    let positions = [0, 4]  // Gap of 3 at positions 1, 2, 3
+    let positions = [0, 4] // Gap of 3 at positions 1, 2, 3
     let candidate = Array("aXXXb".utf8)
     let boundaryMask: UInt64 = 0b1
 
@@ -530,7 +534,7 @@ import Testing
 
 @Test func affineGapVsLinearGap() {
     // Compare affine and linear gap models for a gap of 3
-    let positions = [0, 4]  // Gap of 3
+    let positions = [0, 4] // Gap of 3
     let candidate = Array("aXXXb".utf8)
     let boundaryMask: UInt64 = 0b1
 
@@ -607,15 +611,16 @@ import Testing
     // Use candidates where matches are spread out (subsequence matches)
     // so base scores don't cap at 1.0
     let config = MatchConfig(
-        algorithm: .editDistance(EditDistanceConfig(
-            prefixWeight: 1.0,      // Disable prefix weight to isolate position bonus
-            substringWeight: 1.0,
-            wordBoundaryBonus: 0.0, // Disable boundary bonus to isolate position bonus
-            consecutiveBonus: 0.0,  // Disable consecutive bonus to isolate position bonus
-            gapPenalty: .none,
-            firstMatchBonus: 0.15,
-            firstMatchBonusRange: 10
-        ))
+        algorithm: .editDistance(
+            EditDistanceConfig(
+                prefixWeight: 1.0, // Disable prefix weight to isolate position bonus
+                substringWeight: 1.0,
+                wordBoundaryBonus: 0.0, // Disable boundary bonus to isolate position bonus
+                consecutiveBonus: 0.0, // Disable consecutive bonus to isolate position bonus
+                gapPenalty: .none,
+                firstMatchBonus: 0.15,
+                firstMatchBonusRange: 10
+            ))
     )
     let matcher = FuzzyMatcher(config: config)
     let query = matcher.prepare("ace")
@@ -641,10 +646,11 @@ import Testing
     // even more than with linear gaps.
     // Uses 5-char queries to avoid the short-query same-length ED restriction.
     let config = MatchConfig(
-        algorithm: .editDistance(EditDistanceConfig(
-            gapPenalty: .affine(open: 0.05, extend: 0.01),
-            firstMatchBonus: 0.0
-        ))
+        algorithm: .editDistance(
+            EditDistanceConfig(
+                gapPenalty: .affine(open: 0.05, extend: 0.01),
+                firstMatchBonus: 0.0
+            ))
     )
     let matcher = FuzzyMatcher(config: config)
     let query = matcher.prepare("abcde")
@@ -729,7 +735,7 @@ import Testing
 @Test func queryWithSpacesMatchesCandidateWithSpaces() {
     // The space character in query should match space in candidate
     let matcher = FuzzyMatcher()
-    let query = matcher.prepare("a b")  // Query with space
+    let query = matcher.prepare("a b") // Query with space
     var buffer = matcher.makeBuffer()
 
     // "a b" should match well against "Apple Banana" (a at start, space matches, b at start of Banana)

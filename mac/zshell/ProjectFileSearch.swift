@@ -16,7 +16,7 @@ nonisolated struct ProjectFileSearchRoot: Hashable, Sendable {
         let rootURL = Self.canonicalURL(for: root, isDirectory: true)
         let homeURL = Self.canonicalURL(for: homeDirectory, isDirectory: true)
         guard rootURL.path != homeURL.path,
-              FileManager.default.fileExists(atPath: rootURL.path)
+            FileManager.default.fileExists(atPath: rootURL.path)
         else { return nil }
 
         self.projectID = projectID
@@ -108,8 +108,9 @@ nonisolated enum ProjectFileSearch {
             }
             let match = ProjectFileSearchResult(file: file, score: score)
             if best.count == limit,
-               let weakest = best.last,
-               !ranksBefore(match, weakest) {
+                let weakest = best.last,
+                !ranksBefore(match, weakest)
+            {
                 continue
             }
             best.insert(match, at: insertionIndex(for: match, in: best))
@@ -154,8 +155,8 @@ nonisolated enum ProjectFileSearch {
             in: root
         )
         guard !Task.isCancelled,
-              tracked.status == 0,
-              untracked.status == 0
+            tracked.status == 0,
+            untracked.status == 0
         else { return nil }
         return Set(nulSeparatedPaths(tracked.stdout) + nulSeparatedPaths(untracked.stdout))
     }
@@ -174,7 +175,7 @@ nonisolated enum ProjectFileSearch {
             let absolutePath = (root.root as NSString).appendingPathComponent(relativePath)
             var isDirectory: ObjCBool = false
             guard fileManager.fileExists(atPath: absolutePath, isDirectory: &isDirectory),
-                  !isDirectory.boolValue
+                !isDirectory.boolValue
             else { return nil }
             return makeFile(relativePath: relativePath, absolutePath: absolutePath, root: root)
         }
@@ -188,11 +189,13 @@ nonisolated enum ProjectFileSearch {
         let keys: [URLResourceKey] = [.isDirectoryKey, .isRegularFileKey]
         let keySet = Set(keys)
         let rootPrefix = rootURL.path == "/" ? "/" : rootURL.path + "/"
-        guard let enumerator = FileManager.default.enumerator(
-            at: rootURL,
-            includingPropertiesForKeys: keys,
-            errorHandler: { _, _ in true }
-        ) else { return [] }
+        guard
+            let enumerator = FileManager.default.enumerator(
+                at: rootURL,
+                includingPropertiesForKeys: keys,
+                errorHandler: { _, _ in true }
+            )
+        else { return [] }
 
         var files: [ProjectFileSearchItem] = []
         while let url = enumerator.nextObject() as? URL {
@@ -204,9 +207,9 @@ nonisolated enum ProjectFileSearch {
             // Enumeration can expand /var to /private/var; compare the same path form.
             let absolutePath = url.standardizedFileURL.path
             guard let values = try? url.resourceValues(forKeys: keySet),
-                  values.isDirectory != true,
-                  values.isRegularFile == true,
-                  absolutePath.hasPrefix(rootPrefix)
+                values.isDirectory != true,
+                values.isRegularFile == true,
+                absolutePath.hasPrefix(rootPrefix)
             else { continue }
             let relativePath = String(absolutePath.dropFirst(rootPrefix.count))
             files.append(makeFile(relativePath: relativePath, absolutePath: absolutePath, root: root))

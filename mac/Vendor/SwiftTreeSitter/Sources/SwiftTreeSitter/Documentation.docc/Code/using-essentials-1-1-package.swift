@@ -5,12 +5,10 @@ import PackageDescription
 let package = Package(
     name: "TreeSitterExample",
     products: [
-        .library(name: "TreeSitterExample", targets: ["TreeSitterExample"]),
+        .library(name: "TreeSitterExample", targets: ["TreeSitterExample"])
     ],
-    dependencies: [
-    ],
+    dependencies: [],
     targets: [
-        .target(name: "TreeSitterExample", dependencies: [
-        ]),
+        .target(name: "TreeSitterExample", dependencies: [])
     ]
 )

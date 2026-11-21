@@ -71,19 +71,25 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
     private var translations: [String: String] = [:]
     private var revision: UInt64 = 0
 
-    init(directory: URL, assets: [String: (Data, String)],
-         sessions: @escaping @MainActor @Sendable () -> [BrowserAccessSession],
-         changed: @escaping @Sendable (BrowserAccessServerSnapshot) -> Void) throws {
+    init(
+        directory: URL, assets: [String: (Data, String)],
+        sessions: @escaping @MainActor @Sendable () -> [BrowserAccessSession],
+        changed: @escaping @Sendable (BrowserAccessServerSnapshot) -> Void
+    ) throws {
         authorization = try BrowserAccessAuthorization(directory: directory)
         self.assets = assets
         self.sessions = sessions
         self.changed = changed
     }
 
-    func start(interface: BrowserAccessInterface, port: Int, certificate: BrowserAccessCertificate?,
-               translations: [String: String]) async throws {
+    func start(
+        interface: BrowserAccessInterface, port: Int, certificate: BrowserAccessCertificate?,
+        translations: [String: String]
+    ) async throws {
         await waitForListenerCancellation()
-        queue.sync { running = true; self.certificate = certificate; self.translations = translations }
+        queue.sync {
+            running = true; self.certificate = certificate; self.translations = translations
+        }
         do {
             let localPorts = BrowserAccessConfiguration.localPorts(for: port)
             for (index, port) in localPorts.enumerated() {
@@ -102,7 +108,8 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
             }
             if !interface.isLoopback {
                 guard let certificate else { throw BrowserAccessHTTPRequest.invalid }
-                let listener = try NWListener(using: certificate.parameters(interface: interface), on: NWEndpoint.Port(rawValue: UInt16(port))!)
+                let listener = try NWListener(
+                    using: certificate.parameters(interface: interface), on: NWEndpoint.Port(rawValue: UInt16(port))!)
                 try await start(listener, address: interface.address, tls: true)
             }
             queue.sync {
@@ -124,7 +131,8 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
                 var resumed = false
                 listener.newConnectionHandler = { [weak self] connection in
                     guard let self,
-                          let scope = tls ? remoteScope : localScope, running else { connection.cancel(); return }
+                        let scope = tls ? remoteScope : localScope, running
+                    else { connection.cancel(); return }
                     accept(connection, scope: scope)
                 }
                 listener.stateUpdateHandler = { [weak self] state in
@@ -142,7 +150,9 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
                             listeners.removeAll { $0 === listener }
                             cancel(listener)
                             continuation.resume(throwing: error)
-                        } else { shutdown() }
+                        } else {
+                            shutdown()
+                        }
                     case .cancelled:
                         if cancellingListeners.remove(ObjectIdentifier(listener)) != nil { listenerCancellation.leave() }
                         listener.stateUpdateHandler = nil
@@ -193,12 +203,15 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
     func approve(_ id: UUID, completion: @escaping @Sendable (String?) -> Void) {
         queue.async { [self] in
             guard running else { completion(nil); return }
-            do { try authorization.approve(id); publish(); completion(nil) }
-            catch { completion(error.localizedDescription) }
+            do { try authorization.approve(id); publish(); completion(nil) } catch { completion(error.localizedDescription) }
         }
     }
 
-    func deny(_ id: UUID) { queue.async { [self] in authorization.deny(id); publish() } }
+    func deny(_ id: UUID) {
+        queue.async { [self] in
+            authorization.deny(id); publish()
+        }
+    }
 
     func revoke(_ id: UUID?, completion: @escaping @Sendable (String?) -> Void) {
         queue.async { [self] in
@@ -216,8 +229,9 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
 
     private func accept(_ transport: NWConnection, scope: BrowserAccessScope) {
         guard running, connections.count < BrowserAccessLimits.connections,
-              case .hostPort(let host, _) = transport.endpoint,
-              case .ipv4(let address) = host else { transport.cancel(); return }
+            case .hostPort(let host, _) = transport.endpoint,
+            case .ipv4(let address) = host
+        else { transport.cancel(); return }
         let peer = address.rawValue.map(String.init).joined(separator: ".")
         guard scope.permitsPeer(peer) else { transport.cancel(); return }
         let connection = BrowserAccessConnection(transport: transport, server: self, scope: scope, peer: peer)
@@ -243,7 +257,8 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
             connection.respond(status: 204, type: "image/x-icon", data: Data())
         } else if request.method == "POST", request.path == "/api/pair" {
             guard let body = try? JSONDecoder().decode([String: String].self, from: request.body),
-                  body.count == 1, let name = body["name"] else { connection.reject(); return }
+                body.count == 1, let name = body["name"]
+            else { connection.reject(); return }
             do {
                 let pairing = try authorization.begin(name: name, address: connection.peer, origin: connection.scope.origin)
                 connection.respondJSON(["ticket": pairing.ticket, "code": pairing.code])
@@ -251,21 +266,26 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
             } catch { connection.respondJSON(["error": error.localizedDescription], status: 429) }
         } else if request.method == "POST", request.path == "/api/pair/status" {
             guard let body = try? JSONDecoder().decode([String: String].self, from: request.body),
-                  body.count == 1, let ticket = body["ticket"] else { connection.reject(); return }
+                body.count == 1, let ticket = body["ticket"]
+            else { connection.reject(); return }
             let result = authorization.status(ticket: ticket, address: connection.peer, origin: connection.scope.origin)
             connection.respondJSON(["state": result.state, "token": result.token ?? ""])
             publish()
         } else if request.method == "GET", request.path == "/terminal" {
             guard connections.values.filter(\.isWebSocket).count < BrowserAccessLimits.webSockets,
-                  let accept = try? request.webSocketAccept() else { connection.reject(); return }
+                let accept = try? request.webSocketAccept()
+            else { connection.reject(); return }
             connection.upgrade(accept: accept)
-        } else { connection.respond(status: 404, type: "text/plain; charset=utf-8", data: Data("Not found".utf8)) }
+        } else {
+            connection.respond(status: 404, type: "text/plain; charset=utf-8", data: Data("Not found".utf8))
+        }
     }
 
     fileprivate func authenticate(_ token: String, connection: BrowserAccessConnection) -> BrowserAccessClient? {
         guard running, authorization.allowAttempt(connection.peer),
-              let client = authorization.authenticate(token: token, origin: connection.scope.origin),
-              connections.values.filter({ $0.clientID == client.id }).count < BrowserAccessLimits.socketsPerClient else { return nil }
+            let client = authorization.authenticate(token: token, origin: connection.scope.origin),
+            connections.values.filter({ $0.clientID == client.id }).count < BrowserAccessLimits.socketsPerClient
+        else { return nil }
         return client
     }
 
@@ -280,7 +300,8 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
             guard let self else { return }
             queue.async { [weak connection, weak self] in
                 guard let self, let connection, connection.generation == generation,
-                      !connection.isClosed, isAuthorized(connection) else { return }
+                    !connection.isClosed, isAuthorized(connection)
+                else { return }
                 guard let available else { connection.sendJSON(["type": "unavailable"]); return }
                 connection.attach(id, inputGate: available.inputGate)
             }
@@ -292,17 +313,20 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
         // Control work stays off the network queue. Disable closes the browser
         // immediately; the in-flight bounded resize is harmless to PTY input.
         DispatchQueue.global(qos: .utility).async {
-            _ = try? PTYMuxCommandLine.exchange(method: "resize", params: [
-                "id": .string(id.uuidString), "columns": .number(Double(columns)), "rows": .number(Double(rows)),
-                "cellWidth": .number(8), "cellHeight": .number(16),
-            ], timeout: 0.2)
+            _ = try? PTYMuxCommandLine.exchange(
+                method: "resize",
+                params: [
+                    "id": .string(id.uuidString), "columns": .number(Double(columns)), "rows": .number(Double(rows)),
+                    "cellWidth": .number(8), "cellHeight": .number(16),
+                ], timeout: 0.2)
         }
     }
 
     fileprivate func sendSessions(to connection: BrowserAccessConnection) {
         guard isAuthorized(connection) else { connection.close(); return }
         if let payload = try? JSONEncoder().encode(lastSessions),
-           let values = try? JSONSerialization.jsonObject(with: payload) {
+            let values = try? JSONSerialization.jsonObject(with: payload)
+        {
             connection.sendJSON(["type": "sessions", "sessions": values])
         }
         refresh()
@@ -329,7 +353,9 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
                 }
                 let ids = Set(current.map(\.id))
                 for connection in Array(connections.values) {
-                    if let id = connection.sessionID, !ids.contains(id) { connection.detach(); connection.sendJSON(["type": "unavailable"]) }
+                    if let id = connection.sessionID, !ids.contains(id) {
+                        connection.detach(); connection.sendJSON(["type": "unavailable"])
+                    }
                 }
             }
         }
@@ -337,11 +363,13 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
 
     private func publish() {
         revision &+= 1
-        changed(BrowserAccessServerSnapshot(revision: revision, localURL: localScope?.url, remoteURL: remoteScope?.url,
-            fingerprint: certificate?.fingerprint, certificate: certificate?.pem, clients: authorization.clients,
-            pending: authorization.pairings.filter { $0.state == .pending }.map {
-                BrowserAccessPendingClient(id: $0.id, name: $0.name, address: $0.address, origin: $0.origin, code: $0.code)
-            }))
+        changed(
+            BrowserAccessServerSnapshot(
+                revision: revision, localURL: localScope?.url, remoteURL: remoteScope?.url,
+                fingerprint: certificate?.fingerprint, certificate: certificate?.pem, clients: authorization.clients,
+                pending: authorization.pairings.filter { $0.state == .pending }.map {
+                    BrowserAccessPendingClient(id: $0.id, name: $0.name, address: $0.address, origin: $0.origin, code: $0.code)
+                }))
     }
 }
 
@@ -407,7 +435,8 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
             guard let self else { return }
             isReading = false
             guard !isClosed, error == nil, !complete, let data, !data.isEmpty,
-                  buffer.count + data.count <= BrowserAccessLimits.headerBytes + BrowserAccessLimits.frameBytes + 8 else { close(); return }
+                buffer.count + data.count <= BrowserAccessLimits.headerBytes + BrowserAccessLimits.frameBytes + 8
+            else { close(); return }
             buffer.append(data)
             process()
             if !hasRequest || isWebSocket { read() }
@@ -441,9 +470,10 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
         guard messages <= 500 else { return false }
         if clientID == nil {
             guard frame.opcode == 1,
-                  let value = try? JSONDecoder().decode([String: String].self, from: frame.payload),
-                  value.count == 2, value["type"] == "authenticate", let token = value["token"],
-                  let client = server.authenticate(token, connection: self) else { return false }
+                let value = try? JSONDecoder().decode([String: String].self, from: frame.payload),
+                value.count == 2, value["type"] == "authenticate", let token = value["token"],
+                let client = server.authenticate(token, connection: self)
+            else { return false }
             clientID = client.id
             sendJSON(["type": "authenticated", "name": client.name])
             server.sendSessions(to: self)
@@ -457,10 +487,13 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
                 guard result != .written, let server else { return }
                 server.queue.async { [weak self, weak bridge] in
                     guard let self, let bridge, self.bridge === bridge,
-                          self.generation == generation, !self.isClosed else { return }
+                        self.generation == generation, !self.isClosed
+                    else { return }
                     if result == .readOnly {
-                        self.sendJSON(["type": "read_only", "session": bridge.sessionID.uuidString,
-                                       "read_only": bridge.inputGate.isReadOnly])
+                        self.sendJSON([
+                            "type": "read_only", "session": bridge.sessionID.uuidString,
+                            "read_only": bridge.inputGate.isReadOnly,
+                        ])
                     } else {
                         self.close()
                     }
@@ -468,24 +501,29 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
             }
         }
         guard frame.opcode == 1,
-              let message = try? JSONDecoder().decode([String: ZshellJSONValue].self, from: frame.payload),
-              let type = message["type"]?.stringValue else { return false }
+            let message = try? JSONDecoder().decode([String: ZshellJSONValue].self, from: frame.payload),
+            let type = message["type"]?.stringValue
+        else { return false }
         switch type {
         case "select":
-            guard message.count == 2, let value = message["session"]?.stringValue, let session = UUID(uuidString: value) else { return false }
+            guard message.count == 2, let value = message["session"]?.stringValue, let session = UUID(uuidString: value) else {
+                return false
+            }
             selections += 1
             guard selections <= 8 else { return false }
             detach()
             server.select(session: session, connection: self, generation: generation)
         case "ack":
             guard message.count == 3, let count = message["bytes"]?.intValue,
-                  (1...BrowserAccessLimits.outputCredit).contains(count),
-                  let stream = message["stream"]?.stringValue, UUID(uuidString: stream) != nil else { return false }
+                (1 ... BrowserAccessLimits.outputCredit).contains(count),
+                let stream = message["stream"]?.stringValue, UUID(uuidString: stream) != nil
+            else { return false }
             if stream == generation.uuidString, bridge?.acknowledge(count) != true { return false }
         case "resize":
             guard ready, message.count == 3, let columns = message["columns"]?.intValue,
-                  let rows = message["rows"]?.intValue, let sessionID,
-                  (1...512).contains(columns), (1...256).contains(rows), columns * rows <= 65_536 else { return false }
+                let rows = message["rows"]?.intValue, let sessionID,
+                (1 ... 512).contains(columns), (1 ... 256).contains(rows), columns * rows <= 65_536
+            else { return false }
             if !resizing {
                 resizing = true
                 server.resize(session: sessionID, columns: columns, rows: rows, connection: self)
@@ -501,27 +539,33 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
         let generation = generation
         let bridge = BrowserAccessMuxBridge(sessionID: id, inputGate: inputGate)
         self.bridge = bridge
-        bridge.start(queue: server.queue, frame: { [weak self, weak bridge] kind, bytes in
-            guard let self, let bridge, self.bridge === bridge, self.generation == generation,
-                  self.server?.isAuthorized(self) == true, !isClosed else { return }
-            switch kind {
-            case .output: enqueue(BrowserAccessWebSocketFrame.encode(opcode: 2, payload: bytes))
-            case .reset, .resize:
-                guard bytes.count == 4 else { close(); return }
-                let values = Array(bytes)
-                sendJSON(["type": kind == .reset ? "reset" : "size", "session": id.uuidString,
-                          "stream": generation.uuidString,
-                          "columns": Int(values[0]) * 256 + Int(values[1]), "rows": Int(values[2]) * 256 + Int(values[3])])
-            case .ready:
-                ready = true
-                sendJSON(["type": "ready", "session": id.uuidString, "read_only": inputGate.isReadOnly])
-            }
-        }, ended: { [weak self, weak bridge] stalled in
-            guard let self, let bridge, self.bridge === bridge, self.generation == generation, !isClosed else { return }
-            if stalled { close(); return }
-            detach()
-            sendJSON(["type": "unavailable"])
-        })
+        bridge.start(
+            queue: server.queue,
+            frame: { [weak self, weak bridge] kind, bytes in
+                guard let self, let bridge, self.bridge === bridge, self.generation == generation,
+                    self.server?.isAuthorized(self) == true, !isClosed
+                else { return }
+                switch kind {
+                case .output: enqueue(BrowserAccessWebSocketFrame.encode(opcode: 2, payload: bytes))
+                case .reset, .resize:
+                    guard bytes.count == 4 else { close(); return }
+                    let values = Array(bytes)
+                    sendJSON([
+                        "type": kind == .reset ? "reset" : "size", "session": id.uuidString,
+                        "stream": generation.uuidString,
+                        "columns": Int(values[0]) * 256 + Int(values[1]), "rows": Int(values[2]) * 256 + Int(values[3]),
+                    ])
+                case .ready:
+                    ready = true
+                    sendJSON(["type": "ready", "session": id.uuidString, "read_only": inputGate.isReadOnly])
+                }
+            },
+            ended: { [weak self, weak bridge] stalled in
+                guard let self, let bridge, self.bridge === bridge, self.generation == generation, !isClosed else { return }
+                if stalled { close(); return }
+                detach()
+                sendJSON(["type": "unavailable"])
+            })
     }
 
     func detach() {
@@ -533,8 +577,10 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
 
     func upgrade(accept: String) {
         isWebSocket = true
-        enqueue(Data(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
-            + "Sec-WebSocket-Accept: " + accept + "\r\n\r\n").utf8))
+        enqueue(
+            Data(
+                ("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+                    + "Sec-WebSocket-Accept: " + accept + "\r\n\r\n").utf8))
     }
 
     func respondJSON(_ value: [String: Any], status: Int = 200) {
@@ -543,8 +589,11 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
     }
 
     func respond(status: Int, type: String, data: Data) {
-        let reason = status == 200 ? "OK" : status == 204 ? "No Content" : status == 404 ? "Not Found" : status == 429 ? "Too Many Requests" : "Bad Request"
-        let headers = "HTTP/1.1 \(status) \(reason)\r\nContent-Type: \(type)\r\nContent-Length: \(data.count)\r\n"
+        let reason =
+            status == 200
+            ? "OK" : status == 204 ? "No Content" : status == 404 ? "Not Found" : status == 429 ? "Too Many Requests" : "Bad Request"
+        let headers =
+            "HTTP/1.1 \(status) \(reason)\r\nContent-Type: \(type)\r\nContent-Length: \(data.count)\r\n"
             + "Connection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n"
             + "Referrer-Policy: no-referrer\r\nCross-Origin-Resource-Policy: same-origin\r\n"
             + "X-Frame-Options: DENY\r\nPermissions-Policy: camera=(), microphone=(), geolocation=()\r\n"
@@ -554,8 +603,7 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
     }
 
     func reject() {
-        if isWebSocket { close() }
-        else { respond(status: 400, type: "text/plain; charset=utf-8", data: Data("Bad request".utf8)) }
+        if isWebSocket { close() } else { respond(status: 400, type: "text/plain; charset=utf-8", data: Data("Bad request".utf8)) }
     }
 
     func sendJSON(_ value: [String: Any]) {
@@ -574,12 +622,14 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
         guard !isClosed, !sending, !sendQueue.isEmpty else { return }
         sending = true
         let data = sendQueue.removeFirst()
-        transport.send(content: data, completion: .contentProcessed { [weak self] error in
-            guard let self else { return }
-            sending = false
-            queuedBytes -= data.count
-            if error != nil { close() } else { flush() }
-        })
+        transport.send(
+            content: data,
+            completion: .contentProcessed { [weak self] error in
+                guard let self else { return }
+                sending = false
+                queuedBytes -= data.count
+                if error != nil { close() } else { flush() }
+            })
     }
 
     func close() {

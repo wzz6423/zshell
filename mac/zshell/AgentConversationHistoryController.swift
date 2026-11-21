@@ -46,7 +46,8 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
         ]
         for (id, title, action) in commands {
             let identifier = NSUserInterfaceItemIdentifier(id)
-            let command = menu.items.first { $0.identifier == identifier }
+            let command =
+                menu.items.first { $0.identifier == identifier }
                 ?? NSMenuItem(title: title, action: action, keyEquivalent: id == "agent-attention" ? "a" : "")
             if command.identifier != identifier { command.identifier = identifier }
             if command.target !== self { command.target = self }
@@ -76,8 +77,9 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
         searchField.stringValue = ""
         statusLabel.stringValue = ""
         localize()
-        let origin = NSPoint(x: host.frame.midX - panel.frame.width / 2,
-                             y: host.frame.midY - panel.frame.height / 2)
+        let origin = NSPoint(
+            x: host.frame.midX - panel.frame.width / 2,
+            y: host.frame.midY - panel.frame.height / 2)
         panel.setFrameOrigin(origin)
         host.addChildWindow(panel, ordered: .above)
         panel.makeKeyAndOrderFront(nil)
@@ -106,8 +108,9 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
     }
 
     private func configure() {
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 760, height: 560),
-                            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 760, height: 560),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
         panel.minSize = NSSize(width: 520, height: 440)
         panel.delegate = self
@@ -157,10 +160,12 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
         countLabel.font = .systemFont(ofSize: 12)
         countLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         countLabel.lineBreakMode = .byTruncatingTail
-        for (button, action) in [(resumeButton, #selector(resumeSelection(_:))),
-                                 (forkButton, #selector(forkSelection(_:))),
-                                 (archiveButton, #selector(archiveSelection(_:))),
-                                 (deleteButton, #selector(deleteSelection(_:)))] {
+        for (button, action) in [
+            (resumeButton, #selector(resumeSelection(_:))),
+            (forkButton, #selector(forkSelection(_:))),
+            (archiveButton, #selector(archiveSelection(_:))),
+            (deleteButton, #selector(deleteSelection(_:))),
+        ] {
             button.bezelStyle = .rounded
             button.target = self
             button.action = action
@@ -234,9 +239,12 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
         if !entries.isEmpty {
             let row = selectedID.flatMap { id in entries.firstIndex { $0.id == id } } ?? 0
             table.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
-        } else { table.deselectAll(nil) }
+        } else {
+            table.deselectAll(nil)
+        }
         emptyLabel.isHidden = !entries.isEmpty
-        emptyLabel.stringValue = searchField.stringValue.isEmpty
+        emptyLabel.stringValue =
+            searchField.stringValue.isEmpty
             ? String(localized: "Conversations appear after a supported agent reports its session.")
             : String(localized: "No matching conversations.")
         countLabel.stringValue = String(localized: "Conversations: \(entries.count)")
@@ -256,12 +264,15 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
         forkButton.isEnabled = record != nil && forkTask == nil
         archiveButton.isEnabled = record != nil && forkTask == nil
         deleteButton.isEnabled = record != nil && forkTask == nil
-        resumeButton.title = record.flatMap(TerminalManager.openConversation) == nil
+        resumeButton.title =
+            record.flatMap(TerminalManager.openConversation) == nil
             ? String(localized: "Resume Conversation") : String(localized: "Show Conversation")
         archiveButton.title = record?.isArchived == true ? String(localized: "Unarchive") : String(localized: "Archive")
         guard let record else { detailsLabel.stringValue = ""; return }
-        var details = [record.identity.provider.displayName + " · " + record.identity.sessionID,
-                       String(localized: "Working Directory") + ": " + record.identity.workingDirectory]
+        var details = [
+            record.identity.provider.displayName + " · " + record.identity.sessionID,
+            String(localized: "Working Directory") + ": " + record.identity.workingDirectory,
+        ]
         if let config = record.identity.configDirectory {
             details.append(String(localized: "Configuration Directory") + ": " + config)
         }
@@ -341,21 +352,24 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
 
     @objc private func archiveSelection(_ sender: Any?) {
         guard let record = selected else { return }
-        do { try store.setArchived(!record.isArchived, id: record.id); statusLabel.stringValue = "" }
-        catch { statusLabel.stringValue = error.localizedDescription }
+        do { try store.setArchived(!record.isArchived, id: record.id); statusLabel.stringValue = "" } catch {
+            statusLabel.stringValue = error.localizedDescription
+        }
     }
 
     @objc private func deleteSelection(_ sender: Any?) {
         guard let record = selected, let panel else { return }
         let alert = NSAlert()
         alert.messageText = String(localized: "Delete this conversation history record?")
-        alert.informativeText = String(localized: "The provider’s conversation files are kept. You can still resume the conversation using the provider’s CLI.")
+        alert.informativeText = String(
+            localized: "The provider’s conversation files are kept. You can still resume the conversation using the provider’s CLI.")
         alert.addButton(withTitle: String(localized: "Delete History Record"))
         alert.addButton(withTitle: String(localized: "Cancel"))
         alert.beginSheetModal(for: panel) { [weak self] response in
             guard response == .alertFirstButtonReturn, let self else { return }
-            do { try self.store.delete(id: record.id); self.statusLabel.stringValue = "" }
-            catch { self.statusLabel.stringValue = error.localizedDescription }
+            do { try self.store.delete(id: record.id); self.statusLabel.stringValue = "" } catch {
+                self.statusLabel.stringValue = error.localizedDescription
+            }
         }
     }
 }
@@ -366,7 +380,8 @@ extension AgentConversationHistoryController: NSTableViewDataSource, NSTableView
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard entries.indices.contains(row) else { return nil }
         let identifier = NSUserInterfaceItemIdentifier("history-row")
-        let cell = tableView.makeView(withIdentifier: identifier, owner: self) as? ConversationHistoryCell
+        let cell =
+            tableView.makeView(withIdentifier: identifier, owner: self) as? ConversationHistoryCell
             ?? ConversationHistoryCell()
         cell.identifier = identifier
         let record = entries[row]
@@ -374,12 +389,15 @@ extension AgentConversationHistoryController: NSTableViewDataSource, NSTableView
         date.locale = AppLocalization.current.locale
         date.dateStyle = .medium
         date.timeStyle = .short
-        let state = TerminalManager.openConversation(record) != nil
+        let state =
+            TerminalManager.openConversation(record) != nil
             ? String(localized: "Open Conversation")
             : record.isArchived ? String(localized: "Archived") : String(localized: "Saved Conversation")
-        cell.configure(title: record.displayTitle,
-                       metadata: [record.identity.provider.displayName, record.projectName, state, date.string(from: record.updatedAt)].joined(separator: " · "),
-                       directory: record.identity.workingDirectory)
+        cell.configure(
+            title: record.displayTitle,
+            metadata: [record.identity.provider.displayName, record.projectName, state, date.string(from: record.updatedAt)].joined(
+                separator: " · "),
+            directory: record.identity.workingDirectory)
         return cell
     }
 

@@ -26,8 +26,10 @@ enum AgentConversationHistoryCommandLine {
     }
 
     static func isPaneInvocation(_ environment: [String: String]) -> Bool {
-        ["ZSHELL_CLI_STATE", "ZSHELL_CLI_TOKEN", "ZSHELL_AUTOMATION_SOCKET", "ZSHELL_AUTOMATION_TOKEN",
-         "ZSHELL_TERMINAL_ID", "ZSHELL_PERSISTENT_CONNECTION"].contains { environment[$0] != nil }
+        [
+            "ZSHELL_CLI_STATE", "ZSHELL_CLI_TOKEN", "ZSHELL_AUTOMATION_SOCKET", "ZSHELL_AUTOMATION_TOKEN",
+            "ZSHELL_TERMINAL_ID", "ZSHELL_PERSISTENT_CONNECTION",
+        ].contains { environment[$0] != nil }
     }
 
     static func run(arguments: [String], environment: [String: String] = ProcessInfo.processInfo.environment) throws {
@@ -39,18 +41,22 @@ enum AgentConversationHistoryCommandLine {
         let result: ZshellJSONValue
         if isPaneInvocation(environment) {
             guard options.projectID == nil, options.windowID == nil, options.connectionURL == nil else {
-                throw CLIError.message("History operations inside a Zshell pane use only that pane’s project. Remove --project, --window, and --connection.")
+                throw CLIError.message(
+                    "History operations inside a Zshell pane use only that pane’s project. Remove --project, --window, and --connection.")
             }
             let connection = try AppConnection(environment: environment)
-            result = try connection.automationRequest(method: "agent.history.\(options.method)", params: options.params,
+            result = try connection.automationRequest(
+                method: "agent.history.\(options.method)", params: options.params,
                 timeout: options.method == "fork" ? 45 : 5)
         } else {
             guard options.method == "projects" || options.projectID != nil else {
                 throw CLIError.message("External history operations require --project UUID. Run `zshell +agent history projects` first.")
             }
-            let connection = try options.connectionURL.map { try AgentConversationHistoryConnection.load(from: $0) }
+            let connection =
+                try options.connectionURL.map { try AgentConversationHistoryConnection.load(from: $0) }
                 ?? AgentConversationHistoryConnection.discover()
-            result = try connection.request(method: "history.\(options.method)", params: options.params,
+            result = try connection.request(
+                method: "history.\(options.method)", params: options.params,
                 timeout: options.method == "fork" ? 45 : 5)
         }
         try ZshellAutomationCommandLine.printJSON(result)
@@ -58,7 +64,8 @@ enum AgentConversationHistoryCommandLine {
 
     static func parse(_ arguments: [String]) throws -> Options {
         guard let command = arguments.first,
-              ["history", "resume", "fork", "archive", "unarchive", "delete"].contains(command) else {
+            ["history", "resume", "fork", "archive", "unarchive", "delete"].contains(command)
+        else {
             throw CLIError.message("Unknown conversation history command.")
         }
         var result = Options()
@@ -81,12 +88,15 @@ enum AgentConversationHistoryCommandLine {
                 result.windowID = try uuid(after: &index, in: arguments, option: option)
             case "--connection":
                 let path = try ZshellAutomationCommandLine.value(after: &index, in: arguments, option: option)
-                guard AgentConversationIdentity.isAbsolutePath(path) else { throw CLIError.message("--connection requires an absolute path.") }
+                guard AgentConversationIdentity.isAbsolutePath(path) else {
+                    throw CLIError.message("--connection requires an absolute path.")
+                }
                 result.connectionURL = URL(fileURLWithPath: path)
             case "--query" where result.method == "list":
                 result.query = try ZshellAutomationCommandLine.value(after: &index, in: arguments, option: option)
                 guard result.query.utf8.count <= 1_024,
-                      !result.query.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
+                    !result.query.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
+                else {
                     throw CLIError.message("History search must be control-free and at most 1024 UTF-8 bytes.")
                 }
             case "--all" where result.method == "list", "--archived" where result.method == "list":
@@ -110,25 +120,38 @@ enum AgentConversationHistoryCommandLine {
     }
 
     private static func printHelp() {
-        print("""
-        Usage inside Zshell:
-          zshell +agent history [--all | --archived] [--query TEXT]
-          zshell +agent history projects
-          zshell +agent resume --id UUID [--focus]
-          zshell +agent fork --id UUID [--focus]
-          zshell +agent archive --id UUID
-          zshell +agent unarchive --id UUID
-          zshell +agent delete --id UUID
+        print(
+            """
+            Usage inside Zshell:
+              zshell +agent history [--all | --archived] [--query TEXT]
+              zshell +agent history projects
+              zshell +agent resume --id UUID [--focus]
+              zshell +agent fork --id UUID [--focus]
+              zshell +agent archive --id UUID
+              zshell +agent unarchive --id UUID
+              zshell +agent delete --id UUID
 
-        Usage from an external terminal:
-          zshell +agent history projects [--connection PATH]
-          zshell +agent history --project UUID [--all | --archived] [--query TEXT] [--connection PATH]
-          zshell +agent resume --project UUID --id UUID [--window UUID] [--focus] [--connection PATH]
-          zshell +agent fork --project UUID --id UUID [--window UUID] [--focus] [--connection PATH]
-          zshell +agent archive|unarchive|delete --project UUID --id UUID [--connection PATH]
-        """)
-        print(String(localized: "History keeps the last 200 verified conversations; Recent shows 20 matches. All includes archived records. Deleting a record keeps the provider’s conversation files."))
-        print(String(localized: "Resume shows an open conversation or reconnects its live terminal before starting the provider’s exact resume command. New terminals stay in the background unless --focus is supplied."))
-        print(String(localized: "External access requires a running Zshell app and its owner-only connection. Pane processes keep their original project scope, even after clearing their environment."))
+            Usage from an external terminal:
+              zshell +agent history projects [--connection PATH]
+              zshell +agent history --project UUID [--all | --archived] [--query TEXT] [--connection PATH]
+              zshell +agent resume --project UUID --id UUID [--window UUID] [--focus] [--connection PATH]
+              zshell +agent fork --project UUID --id UUID [--window UUID] [--focus] [--connection PATH]
+              zshell +agent archive|unarchive|delete --project UUID --id UUID [--connection PATH]
+            """)
+        print(
+            String(
+                localized:
+                    "History keeps the last 200 verified conversations; Recent shows 20 matches. All includes archived records. Deleting a record keeps the provider’s conversation files."
+            ))
+        print(
+            String(
+                localized:
+                    "Resume shows an open conversation or reconnects its live terminal before starting the provider’s exact resume command. New terminals stay in the background unless --focus is supplied."
+            ))
+        print(
+            String(
+                localized:
+                    "External access requires a running Zshell app and its owner-only connection. Pane processes keep their original project scope, even after clearing their environment."
+            ))
     }
 }

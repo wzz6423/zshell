@@ -3,21 +3,22 @@
 import Markdown
 
 let source = """
-This document's lines
-will be prefixed with `//`.
-"""
+    This document's lines
+    will be prefixed with `//`.
+    """
 
 let document = Document(parsing: source)
 let formattingOptions = MarkupFormatter.Options(customLinePrefix: "// ")
 let formattedSource = document.format(options: formattingOptions)
 
-print("""
-## Original source:
-\(source)
+print(
+    """
+    ## Original source:
+    \(source)
 
-## Formatted source:
-\(formattedSource)
-""")
+    ## Formatted source:
+    \(formattedSource)
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

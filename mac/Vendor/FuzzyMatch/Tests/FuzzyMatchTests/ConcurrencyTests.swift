@@ -96,7 +96,7 @@ private let candidates: [String] = [
     "Intuit Inc.", "Intuitive Surgical", "Invesco Ltd.",
     "IQVIA Holdings", "Iron Mountain", "J.B. Hunt Transport Services",
     "Jack Henry & Associates", "Jacobs Engineering", "Jazz Pharmaceuticals",
-    "Johnson & Johnson", "Johnson Controls International", "JPMorgan Chase"
+    "Johnson & Johnson", "Johnson Controls International", "JPMorgan Chase",
 ]
 
 @Test func concurrentEditDistanceMatchingIsConsistent() async {
@@ -115,7 +115,7 @@ private let candidates: [String] = [
     // Parallel: split into chunks and process with TaskGroup
     let chunkSize = 50
     let chunks = stride(from: 0, to: candidates.count, by: chunkSize).map { start in
-        Array(candidates[start..<min(start + chunkSize, candidates.count)])
+        Array(candidates[start ..< min(start + chunkSize, candidates.count)])
     }
 
     let parallelResults = await withTaskGroup(
@@ -166,7 +166,7 @@ private let candidates: [String] = [
     // Parallel
     let chunkSize = 50
     let chunks = stride(from: 0, to: candidates.count, by: chunkSize).map { start in
-        Array(candidates[start..<min(start + chunkSize, candidates.count)])
+        Array(candidates[start ..< min(start + chunkSize, candidates.count)])
     }
 
     let parallelResults = await withTaskGroup(
@@ -218,7 +218,8 @@ private let candidates: [String] = [
                 var results: [(String, Double)] = []
                 for candidate in candidates {
                     if let match = edMatcher.score(
-                        candidate, against: edQuery, buffer: &buffer) {
+                        candidate, against: edQuery, buffer: &buffer)
+                    {
                         results.append((candidate, match.score))
                     }
                 }
@@ -240,7 +241,8 @@ private let candidates: [String] = [
                 var results: [(String, Double)] = []
                 for candidate in candidates {
                     if let match = swMatcher.score(
-                        candidate, against: swQuery, buffer: &buffer) {
+                        candidate, against: swQuery, buffer: &buffer)
+                    {
                         results.append((candidate, match.score))
                     }
                 }

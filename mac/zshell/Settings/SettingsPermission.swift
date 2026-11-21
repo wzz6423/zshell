@@ -40,11 +40,17 @@ nonisolated enum SettingsPermission: String, CaseIterable, Sendable {
         case .microphone:
             String(localized: "Let programs running in Zshell record microphone audio.")
         case .automation:
-            String(localized: "Let scripts running in Zshell send Apple events to other apps. macOS asks for each target app when a script runs.")
+            String(
+                localized:
+                    "Let scripts running in Zshell send Apple events to other apps. macOS asks for each target app when a script runs.")
         case .filesAndFolders:
-            String(localized: "Let Zshell and its terminal programs access protected folders. macOS asks when a program first accesses a folder.")
+            String(
+                localized:
+                    "Let Zshell and its terminal programs access protected folders. macOS asks when a program first accesses a folder.")
         case .fullDiskAccess:
-            String(localized: "Access protected files and browser data for import. Add Zshell in System Settings and restart it if macOS asks.")
+            String(
+                localized: "Access protected files and browser data for import. Add Zshell in System Settings and restart it if macOS asks."
+            )
         }
     }
 

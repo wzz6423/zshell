@@ -45,7 +45,8 @@ public struct DisplayLinkModifier: ViewModifier {
             preferredFrameRateRange: preferredFrameRateRange,
             callback: callback
         )
-        return content
+        return
+            content
             .onAppear { context.start() }
             .onDisappear { context.stop() }
     }

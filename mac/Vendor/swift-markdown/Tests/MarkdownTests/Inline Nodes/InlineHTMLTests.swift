@@ -15,7 +15,7 @@ class InlineHTMLTests: XCTestCase {
     func testInlineHTMLRawHTML() {
         let rawHTML = "<b>bold</b>"
         let rawHTML2 = "<p>para</p>"
-        
+
         let inlineHTML = InlineHTML(rawHTML)
         XCTAssertEqual(rawHTML, inlineHTML.rawHTML)
 

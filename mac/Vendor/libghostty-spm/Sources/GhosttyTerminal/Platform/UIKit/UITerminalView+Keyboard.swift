@@ -58,7 +58,7 @@
             )
 
             if action == GHOSTTY_ACTION_PRESS,
-               shouldSuppressUIKeyInput(for: key, isCommandModified: isCommandModified)
+                shouldSuppressUIKeyInput(for: key, isCommandModified: isCommandModified)
             {
                 hardwareKeyHandled = true
             }
@@ -130,7 +130,7 @@
             }
 
             guard let text = TerminalInputText.filteredFunctionKeyText(key.characters),
-                  !text.isEmpty
+                !text.isEmpty
             else {
                 _ = surface.sendKeyEvent(keyEvent)
                 return
@@ -182,8 +182,8 @@
         private func filteredModifierFlags(for key: UIKey) -> UIKeyModifierFlags {
             var flags = key.modifierFlags
             let isFunctionKey =
-                TerminalInputText.filteredFunctionKeyText(key.characters) == nil ||
-                TerminalInputText.filteredFunctionKeyText(key.charactersIgnoringModifiers) == nil
+                TerminalInputText.filteredFunctionKeyText(key.characters) == nil
+                || TerminalInputText.filteredFunctionKeyText(key.charactersIgnoringModifiers) == nil
             if isFunctionKey {
                 flags.remove(.numericPad)
             }

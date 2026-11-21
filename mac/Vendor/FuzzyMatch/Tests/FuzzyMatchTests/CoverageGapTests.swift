@@ -191,7 +191,7 @@ import Testing
         against: "app"
     )
     #expect(results.count >= 2)
-    for i in 1..<results.count {
+    for i in 1 ..< results.count {
         #expect(results[i - 1].match.score >= results[i].match.score)
     }
 }

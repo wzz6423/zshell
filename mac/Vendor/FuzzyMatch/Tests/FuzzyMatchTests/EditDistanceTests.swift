@@ -583,7 +583,7 @@ import Testing
         maxEditDistance: 1
     )
 
-    #expect(distance == 0)  // "w" is an exact prefix of "wisdom"
+    #expect(distance == 0) // "w" is an exact prefix of "wisdom"
 }
 
 @Test func prefixEditDistanceSingleCharacterNoMatch() {
@@ -598,7 +598,7 @@ import Testing
         maxEditDistance: 1
     )
 
-    #expect(distance == 1)  // substitution: z -> w
+    #expect(distance == 1) // substitution: z -> w
 }
 
 @Test func singleCharQueryThroughMatcher() {
@@ -609,7 +609,7 @@ import Testing
 
     let candidates = [
         "wisdom", "WISE Plc", "WKL U6 28", "getUserById",
-        "fetchData", "windowManager", "swift"
+        "fetchData", "windowManager", "swift",
     ]
 
     // Should not crash; just verify it runs without fatal error
@@ -626,7 +626,7 @@ import Testing
 
     let candidates = [
         "wisdom", "WISE Plc", "WKL U6 28", "getUserById",
-        "fetchData", "windowManager", "swift"
+        "fetchData", "windowManager", "swift",
     ]
 
     for candidate in candidates {

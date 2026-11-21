@@ -294,7 +294,7 @@ public struct HTMLFormatter: MarkupWalker {
 
         let wrappedAttributes = "{\(attributes.attributes)}"
         if options.contains(.parseInlineAttributeClass),
-           let attributesData = wrappedAttributes.data(using: .utf8)
+            let attributesData = wrappedAttributes.data(using: .utf8)
         {
             struct ParsedAttributes: Decodable {
                 var `class`: String
@@ -307,11 +307,11 @@ public struct HTMLFormatter: MarkupWalker {
             // compilers and OSs. If/when Swift-Markdown assumes a minimum Swift version of 6.0, we
             // can clean this up to always use JSON5 and top-level dictionaries.
             #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
-            if #available(macOS 12, iOS 15, tvOS 15, watchOS 8, *) {
-                decoder.allowsJSON5 = true
-            }
+                if #available(macOS 12, iOS 15, tvOS 15, watchOS 8, *) {
+                    decoder.allowsJSON5 = true
+                }
             #elseif compiler(>=6.0)
-            decoder.allowsJSON5 = true
+                decoder.allowsJSON5 = true
             #endif
 
             let parsedAttributes = try? decoder.decode(ParsedAttributes.self, from: attributesData)
@@ -328,7 +328,8 @@ public struct HTMLFormatter: MarkupWalker {
 
 private extension String {
     func htmlEscaped() -> String {
-        return self
+        return
+            self
             .replacingOccurrences(of: "&", with: "&amp;")
             .replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;")

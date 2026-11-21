@@ -82,7 +82,7 @@ internal func isWordBoundary(
     let previous = bytes[index - 1]
 
     // After underscore
-    if previous == 0x5F { return true }  // '_'
+    if previous == 0x5F { return true } // '_'
 
     // After digit (0-9)
     if previous >= 0x30 && previous <= 0x39 { return true }
@@ -96,13 +96,12 @@ internal func isWordBoundary(
     // Treat the lead byte 0xC3 (Latin-1 Supplement) as alphanumeric since it's part
     // of a multi-byte letter sequence. The continuation byte (0x80-0xBF) is also
     // treated as part of the letter and not a boundary trigger.
-    let prevIsAlnum = (previous >= 0x30 && previous <= 0x39) ||
-                      (previous >= 0x41 && previous <= 0x5A) ||
-                      (previous >= 0x61 && previous <= 0x7A) ||
-                      previous == 0xC3 ||                        // Latin-1 lead
-                      previous == 0xCE || previous == 0xCF ||    // Greek lead
-                      previous == 0xD0 || previous == 0xD1 ||    // Cyrillic lead
-                      (previous >= 0x80 && previous <= 0xBF)     // continuation byte
+    let prevIsAlnum =
+        (previous >= 0x30 && previous <= 0x39) || (previous >= 0x41 && previous <= 0x5A) || (previous >= 0x61 && previous <= 0x7A)
+        || previous == 0xC3 // Latin-1 lead
+        || previous == 0xCE || previous == 0xCF // Greek lead
+        || previous == 0xD0 || previous == 0xD1 // Cyrillic lead
+        || (previous >= 0x80 && previous <= 0xBF) // continuation byte
     if !prevIsAlnum { return true }
 
     return false
@@ -122,7 +121,7 @@ internal func isWordBoundary(
 @inlinable
 internal func isWordBoundaryFromPrev(prev: UInt8, current: UInt8) -> Bool {
     // After underscore
-    if prev == 0x5F { return true }  // '_'
+    if prev == 0x5F { return true } // '_'
 
     // After digit (0-9)
     if prev >= 0x30 && prev <= 0x39 { return true }
@@ -133,13 +132,11 @@ internal func isWordBoundaryFromPrev(prev: UInt8, current: UInt8) -> Bool {
     if prevIsLower && currIsUpper { return true }
 
     // After non-alphanumeric (dots, dashes, etc.)
-    let prevIsAlnum = (prev >= 0x30 && prev <= 0x39) ||
-                      (prev >= 0x41 && prev <= 0x5A) ||
-                      (prev >= 0x61 && prev <= 0x7A) ||
-                      prev == 0xC3 ||                        // Latin-1 lead
-                      prev == 0xCE || prev == 0xCF ||        // Greek lead
-                      prev == 0xD0 || prev == 0xD1 ||        // Cyrillic lead
-                      (prev >= 0x80 && prev <= 0xBF)         // continuation byte
+    let prevIsAlnum =
+        (prev >= 0x30 && prev <= 0x39) || (prev >= 0x41 && prev <= 0x5A) || (prev >= 0x61 && prev <= 0x7A) || prev == 0xC3 // Latin-1 lead
+        || prev == 0xCE || prev == 0xCF // Greek lead
+        || prev == 0xD0 || prev == 0xD1 // Cyrillic lead
+        || (prev >= 0x80 && prev <= 0xBF) // continuation byte
     if !prevIsAlnum { return true }
 
     return false
@@ -212,7 +209,7 @@ internal func computeBoundaryMask(
 ) -> UInt64 {
     var mask: UInt64 = 0
     let limit = min(bytes.count, 64)
-    for i in 0..<limit {
+    for i in 0 ..< limit {
         if isWordBoundary(at: i, in: bytes) {
             mask |= (1 << i)
         }
@@ -285,12 +282,12 @@ internal func computeBoundaryMaskCompressed(
 
         // Skip combining diacritical marks (same logic as lowercaseUTF8)
         if inIdx + 1 < count && isCombiningMark(lead: byte, second: originalBytes[inIdx + 1]) {
-            inIdx += 2  // skip mark, don't advance outIdx, don't update prevMeaningfulByte
+            inIdx += 2 // skip mark, don't advance outIdx, don't update prevMeaningfulByte
         } else {
             // Check boundary using prevMeaningfulByte for adjacency
             let isBoundary: Bool
             if outIdx == 0 {
-                isBoundary = true  // position 0 is always a boundary
+                isBoundary = true // position 0 is always a boundary
             } else {
                 isBoundary = isWordBoundaryFromPrev(prev: prevMeaningfulByte, current: byte)
             }

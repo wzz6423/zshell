@@ -40,14 +40,18 @@ final class TerminalReadOnlyController: NSObject, NSMenuItemValidation {
         while let current = view {
             if let surface = current as? any TerminalBackendSurface { return surface }
             if let container = current as? TerminalContainerView,
-               let surface = container.terminal as? any TerminalBackendSurface, surface.window === window { return surface }
+                let surface = container.terminal as? any TerminalBackendSurface, surface.window === window
+            {
+                return surface
+            }
             view = current.superview
         }
         if let session = GlobalTerminalOverlay.shared.focusedPromptQueueSession, session.surface.window === window {
             return session.surface
         }
         if case .session(let session)? = TerminalManager.activeWindowManager?.selectedProject?.focusedContent,
-           session.find.isPresented, session.surface.window === window {
+            session.find.isPresented, session.surface.window === window
+        {
             return session.surface
         }
         return nil

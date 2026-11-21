@@ -26,9 +26,9 @@ import Testing
     let bytes = Array("getUserById".utf8)
     // g e t U s e r B y I d
     // 0 1 2 3 4 5 6 7 8 9 10
-    let result3 = isWordBoundary(at: 3, in: bytes)  // U in User
-    let result7 = isWordBoundary(at: 7, in: bytes)  // B in By
-    let result9 = isWordBoundary(at: 9, in: bytes)  // I in Id
+    let result3 = isWordBoundary(at: 3, in: bytes) // U in User
+    let result7 = isWordBoundary(at: 7, in: bytes) // B in By
+    let result9 = isWordBoundary(at: 9, in: bytes) // I in Id
     #expect(result3)
     #expect(result7)
     #expect(result9)
@@ -36,10 +36,10 @@ import Testing
 
 @Test func isWordBoundaryNotInMiddleOfWord() {
     let bytes = Array("getUserById".utf8)
-    let result1 = isWordBoundary(at: 1, in: bytes)  // e in get
-    let result2 = isWordBoundary(at: 2, in: bytes)  // t in get
-    let result4 = isWordBoundary(at: 4, in: bytes)  // s in User
-    let result5 = isWordBoundary(at: 5, in: bytes)  // e in User
+    let result1 = isWordBoundary(at: 1, in: bytes) // e in get
+    let result2 = isWordBoundary(at: 2, in: bytes) // t in get
+    let result4 = isWordBoundary(at: 4, in: bytes) // s in User
+    let result5 = isWordBoundary(at: 5, in: bytes) // e in User
     #expect(!result1)
     #expect(!result2)
     #expect(!result4)
@@ -50,10 +50,10 @@ import Testing
     let bytes = Array("get_user_by_id".utf8)
     // g e t _ u s e r _ b y  _  i  d
     // 0 1 2 3 4 5 6 7 8 9 10 11 12 13
-    let result0 = isWordBoundary(at: 0, in: bytes)   // g (start)
-    let result4 = isWordBoundary(at: 4, in: bytes)   // u after _
-    let result9 = isWordBoundary(at: 9, in: bytes)   // b after _
-    let result12 = isWordBoundary(at: 12, in: bytes)  // i after _
+    let result0 = isWordBoundary(at: 0, in: bytes) // g (start)
+    let result4 = isWordBoundary(at: 4, in: bytes) // u after _
+    let result9 = isWordBoundary(at: 9, in: bytes) // b after _
+    let result12 = isWordBoundary(at: 12, in: bytes) // i after _
     #expect(result0)
     #expect(result4)
     #expect(result9)
@@ -64,9 +64,9 @@ import Testing
     let bytes = Array("user2name".utf8)
     // u s e r 2 n a m e
     // 0 1 2 3 4 5 6 7 8
-    let result0 = isWordBoundary(at: 0, in: bytes)  // u (start)
-    let result5 = isWordBoundary(at: 5, in: bytes)  // n after 2
-    let result4 = isWordBoundary(at: 4, in: bytes)  // 2 is not boundary
+    let result0 = isWordBoundary(at: 0, in: bytes) // u (start)
+    let result5 = isWordBoundary(at: 5, in: bytes) // n after 2
+    let result4 = isWordBoundary(at: 4, in: bytes) // 2 is not boundary
     #expect(result0)
     #expect(result5)
     #expect(!result4)
@@ -76,16 +76,16 @@ import Testing
     let bytes = Array("foo.bar".utf8)
     // f o o . b a r
     // 0 1 2 3 4 5 6
-    let result0 = isWordBoundary(at: 0, in: bytes)  // f (start)
-    let result4 = isWordBoundary(at: 4, in: bytes)  // b after .
+    let result0 = isWordBoundary(at: 0, in: bytes) // f (start)
+    let result4 = isWordBoundary(at: 4, in: bytes) // b after .
     #expect(result0)
     #expect(result4)
 }
 
 @Test func isWordBoundaryAfterDash() {
     let bytes = Array("foo-bar".utf8)
-    let result0 = isWordBoundary(at: 0, in: bytes)  // f (start)
-    let result4 = isWordBoundary(at: 4, in: bytes)  // b after -
+    let result0 = isWordBoundary(at: 0, in: bytes) // f (start)
+    let result4 = isWordBoundary(at: 4, in: bytes) // b after -
     #expect(result0)
     #expect(result4)
 }
@@ -112,15 +112,15 @@ import Testing
     let mask = computeBoundaryMask(bytes: bytes)
     // Boundaries at: 0 (g), 3 (U), 7 (B), 9 (I)
     // Binary: 0b1010001001 = positions 0, 3, 7, 9
-    #expect((mask & (1 << 0)) != 0)  // position 0
-    #expect((mask & (1 << 3)) != 0)  // position 3
-    #expect((mask & (1 << 7)) != 0)  // position 7
-    #expect((mask & (1 << 9)) != 0)  // position 9
+    #expect((mask & (1 << 0)) != 0) // position 0
+    #expect((mask & (1 << 3)) != 0) // position 3
+    #expect((mask & (1 << 7)) != 0) // position 7
+    #expect((mask & (1 << 9)) != 0) // position 9
 
     // Non-boundaries
-    #expect((mask & (1 << 1)) == 0)  // position 1
-    #expect((mask & (1 << 2)) == 0)  // position 2
-    #expect((mask & (1 << 4)) == 0)  // position 4
+    #expect((mask & (1 << 1)) == 0) // position 1
+    #expect((mask & (1 << 2)) == 0) // position 2
+    #expect((mask & (1 << 4)) == 0) // position 4
 }
 
 @Test func computeBoundaryMaskSnakeCase() {
@@ -142,8 +142,8 @@ import Testing
     // Boundaries at: 0 (X), 10 (T after 2)
     // Note: In this implementation, uppercase after uppercase is NOT a boundary
     // But lowercase to uppercase IS a boundary
-    #expect((mask & (1 << 0)) != 0)   // position 0 (start)
-    #expect((mask & (1 << 10)) != 0)  // position 10 (T after 2)
+    #expect((mask & (1 << 0)) != 0) // position 0 (start)
+    #expect((mask & (1 << 10)) != 0) // position 10 (T after 2)
 }
 
 @Test func computeBoundaryMaskEmpty() {
@@ -160,10 +160,10 @@ import Testing
     let bytes = Array(longString.utf8)
     let mask = computeBoundaryMask(bytes: bytes)
     // Should only compute first 64 positions
-    #expect((mask & (1 << 0)) != 0)   // position 0 (start of string)
-    #expect((mask & (1 << 3)) != 0)   // position 3 (D - camelCase)
-    #expect((mask & (1 << 6)) == 0)   // position 6 (a after f - NOT a boundary)
-    #expect((mask & (1 << 9)) != 0)   // position 9 (D - camelCase)
-    #expect((mask & (1 << 15)) != 0)  // position 15 (D - camelCase)
-    #expect((mask & (1 << 21)) != 0)  // position 21 (D - camelCase)
+    #expect((mask & (1 << 0)) != 0) // position 0 (start of string)
+    #expect((mask & (1 << 3)) != 0) // position 3 (D - camelCase)
+    #expect((mask & (1 << 6)) == 0) // position 6 (a after f - NOT a boundary)
+    #expect((mask & (1 << 9)) != 0) // position 9 (D - camelCase)
+    #expect((mask & (1 << 15)) != 0) // position 15 (D - camelCase)
+    #expect((mask & (1 << 21)) != 0) // position 21 (D - camelCase)
 }

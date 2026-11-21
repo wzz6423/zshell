@@ -24,7 +24,7 @@ enum TerminalHardwareKeyRouter {
         backend: TerminalSessionBackend
     ) -> TerminalHardwareKeyDelivery {
         if case .inMemory = backend,
-           let data = directControlInputForUIKit(usage: usage)
+            let data = directControlInputForUIKit(usage: usage)
         {
             return .data(data)
         }
@@ -51,7 +51,7 @@ enum TerminalHardwareKeyRouter {
         backend: TerminalSessionBackend
     ) -> TerminalHardwareKeyDelivery {
         if case .inMemory = backend,
-           let data = directControlInputForAppKit(keyCode: keyCode)
+            let data = directControlInputForAppKit(keyCode: keyCode)
         {
             return .data(data)
         }

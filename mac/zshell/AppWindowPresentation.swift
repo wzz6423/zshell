@@ -66,9 +66,10 @@ enum AppWindowPresentation {
             parent.endSheet(sheet)
             DispatchQueue.main.async { [weak sheet, weak host] in
                 guard let sheet, let host,
-                      sheet.sheetParent == nil,
-                      host.isVisible,
-                      !host.isMiniaturized else { return }
+                    sheet.sheetParent == nil,
+                    host.isVisible,
+                    !host.isMiniaturized
+                else { return }
                 host.beginSheet(sheet)
             }
         } else if sheet.sheetParent == nil {
@@ -120,10 +121,12 @@ enum AppWindowPresentation {
         var current: NSWindow? = window
         var visited = Set<ObjectIdentifier>()
         while let candidate = current,
-              visited.insert(ObjectIdentifier(candidate)).inserted {
+            visited.insert(ObjectIdentifier(candidate)).inserted
+        {
             if isApplicationWindow(candidate),
-               candidate.isVisible,
-               !candidate.isMiniaturized {
+                candidate.isVisible,
+                !candidate.isMiniaturized
+            {
                 return candidate
             }
             current = candidate.sheetParent ?? candidate.parent

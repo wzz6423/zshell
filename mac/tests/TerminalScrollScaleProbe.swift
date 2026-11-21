@@ -34,7 +34,8 @@ struct TerminalScrollScaleProbe {
             expect(converted == pointHeight, "non-finite or non-positive scale uses 1")
         }
         expect(TerminalScrollSettings.ghosttyPrecisePixels(Double.nan, backingScale: scale).isNaN, "non-finite points stay non-finite")
-        expect(TerminalScrollSettings.ghosttyPrecisePixels(Double.infinity, backingScale: scale).isInfinite, "infinite points stay infinite")
+        expect(
+            TerminalScrollSettings.ghosttyPrecisePixels(Double.infinity, backingScale: scale).isInfinite, "infinite points stay infinite")
 
         // scrollWheel applies the conversion only for precise deltas. A wheel
         // tick stays the original value, including when the display scale is 2.

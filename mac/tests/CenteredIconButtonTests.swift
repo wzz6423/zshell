@@ -6,9 +6,11 @@ struct CenteredIconButtonTests {
     static func main() {
         NSApplication.shared.setActivationPolicy(.prohibited)
         let native = CommandLine.arguments.contains("--native")
-        let symbols = ["square.and.arrow.down", "magnifyingglass", "arrow.up.forward.app",
-                       "arrow.clockwise", "ellipsis", "plus", "xmark", "pin", "gearshape",
-                       "rectangle.split.2x1", "rectangle.split.1x2", "stop.fill", "circle.dashed"]
+        let symbols = [
+            "square.and.arrow.down", "magnifyingglass", "arrow.up.forward.app",
+            "arrow.clockwise", "ellipsis", "plus", "xmark", "pin", "gearshape",
+            "rectangle.split.2x1", "rectangle.split.1x2", "stop.fill", "circle.dashed",
+        ]
         let cases = symbols.map { ($0, false) } + symbols.prefix(3).map { ($0, true) }
         var failures = 0
         var checks = 0
@@ -32,14 +34,17 @@ struct CenteredIconButtonTests {
                     let cell = button.cell as! NSButtonCell
                     let rect = cell.imageRect(forBounds: button.bounds)
                     if optical {
-                        check(abs(max(rect.width, rect.height) - 11 * scale) < 0.01,
-                              "\(symbol) uses a uniform visible size at scale \(scale)")
+                        check(
+                            abs(max(rect.width, rect.height) - 11 * scale) < 0.01,
+                            "\(symbol) uses a uniform visible size at scale \(scale)")
                     } else {
-                        check(abs(rect.midY - button.bounds.midY) < 0.01
-                            && abs(rect.midX - button.bounds.midX) < 0.01,
+                        check(
+                            abs(rect.midY - button.bounds.midY) < 0.01
+                                && abs(rect.midX - button.bounds.midX) < 0.01,
                             "\(symbol) image bounds center at scale \(scale)")
                     }
-                    let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil,
+                    let bitmap = NSBitmapImageRep(
+                        bitmapDataPlanes: nil,
                         pixelsWide: Int(button.bounds.width * 2), pixelsHigh: Int(button.bounds.height * 2),
                         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
                         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
@@ -55,8 +60,8 @@ struct CenteredIconButtonTests {
                     var minX = bitmap.pixelsWide, minY = bitmap.pixelsHigh, maxX = -1, maxY = -1
                     var hasTint = false
                     var totalAlpha: CGFloat = 0, weightedX: CGFloat = 0, weightedY: CGFloat = 0
-                    for y in 0..<bitmap.pixelsHigh {
-                        for x in 0..<bitmap.pixelsWide where bitmap.colorAt(x: x, y: y)!.alphaComponent > 0 {
+                    for y in 0 ..< bitmap.pixelsHigh {
+                        for x in 0 ..< bitmap.pixelsWide where bitmap.colorAt(x: x, y: y)!.alphaComponent > 0 {
                             minX = min(minX, x); maxX = max(maxX, x)
                             minY = min(minY, y); maxY = max(maxY, y)
                             let color = bitmap.colorAt(x: x, y: y)!.usingColorSpace(.deviceRGB)!
@@ -69,13 +74,15 @@ struct CenteredIconButtonTests {
                     check(maxX >= minX && maxY >= minY, "\(symbol) draws a visible icon")
                     let centerX = optical ? weightedX / totalAlpha : CGFloat(minX + maxX + 1) / 4
                     let centerY = optical ? weightedY / totalAlpha : CGFloat(minY + maxY + 1) / 4
-                    check(abs(centerX - button.bounds.midX) <= (optical ? 0.35 : 0.26)
-                        && abs(centerY - button.bounds.midY) <= (optical ? 0.35 : 0.26),
+                    check(
+                        abs(centerX - button.bounds.midX) <= (optical ? 0.35 : 0.26)
+                            && abs(centerY - button.bounds.midY) <= (optical ? 0.35 : 0.26),
                         "\(symbol) rendered pixels center at scale \(scale): \(centerX), \(centerY)")
                     if optical {
                         let visibleSize = CGFloat(max(maxX - minX + 1, maxY - minY + 1)) / 2
-                        check(abs(visibleSize - 11 * scale) <= 0.6,
-                              "\(symbol) rendered size matches its neighbors at scale \(scale): \(visibleSize)")
+                        check(
+                            abs(visibleSize - 11 * scale) <= 0.6,
+                            "\(symbol) rendered size matches its neighbors at scale \(scale): \(visibleSize)")
                     }
                     check(hasTint, "\(symbol) keeps template tint")
                 }
@@ -88,8 +95,9 @@ struct CenteredIconButtonTests {
         button.imagePosition = .imageLeading
         let imageRect = button.cell!.imageRect(forBounds: button.bounds)
         let titleRect = button.cell!.titleRect(forBounds: button.bounds)
-        check(imageRect.width > 0 && titleRect.width > 0 && imageRect.maxX <= titleRect.minX,
-              "text buttons keep the icon beside the title")
+        check(
+            imageRect.width > 0 && titleRect.width > 0 && imageRect.maxX <= titleRect.minX,
+            "text buttons keep the icon beside the title")
         print("Icon alignment: \(checks - failures) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

@@ -35,9 +35,15 @@ impl Pty {
         columns: u16,
         rows: u16,
     ) -> io::Result<(Arc<Self>, PtyChild)> {
-        let term = environment.get("TERM").cloned().unwrap_or_else(|| "xterm-256color".into());
-        if term.is_empty() || term.len() > 128
-            || !term.bytes().all(|byte| byte.is_ascii_alphanumeric() || b".-_+".contains(&byte))
+        let term = environment
+            .get("TERM")
+            .cloned()
+            .unwrap_or_else(|| "xterm-256color".into());
+        if term.is_empty()
+            || term.len() > 128
+            || !term
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || b".-_+".contains(&byte))
         {
             return Err(invalid("Invalid terminal type"));
         }

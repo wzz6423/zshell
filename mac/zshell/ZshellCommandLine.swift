@@ -80,9 +80,9 @@ final class AppConnection {
     init(environment: [String: String] = ProcessInfo.processInfo.environment) throws {
         let environment = try PersistentCLIConnection.resolvedEnvironment(environment)
         guard let statePath = environment["ZSHELL_CLI_STATE"],
-              let token = environment["ZSHELL_CLI_TOKEN"],
-              !statePath.isEmpty,
-              !token.isEmpty
+            let token = environment["ZSHELL_CLI_TOKEN"],
+            !statePath.isEmpty,
+            !token.isEmpty
         else {
             throw CLIError.message(
                 String(localized: "`zshell` must be run inside a Zshell terminal.")
@@ -104,7 +104,7 @@ final class AppConnection {
         // The app rewrites atomically. A short bounded wait keeps the default
         // light/dark slot accurate after a system appearance change while
         // still allowing a useful error when the owning app is unavailable.
-        for _ in 0..<15 {
+        for _ in 0 ..< 15 {
             Thread.sleep(forTimeInterval: 0.02)
             let newDate = try? stateURL.resourceValues(
                 forKeys: [.contentModificationDateKey]
@@ -178,8 +178,9 @@ final class AppConnection {
 
     func automationEvents(params: [String: ZshellJSONValue], timeoutMS: Int, once: Bool) throws -> Int32 {
         guard let automationSocketPath, !automationSocketPath.isEmpty,
-              let automationToken, !automationToken.isEmpty,
-              let terminalID, !terminalID.isEmpty else {
+            let automationToken, !automationToken.isEmpty,
+            let terminalID, !terminalID.isEmpty
+        else {
             throw CLIError.message(String(localized: "This terminal predates Zshell automation. Open a new terminal and try again."))
         }
         let request = ZshellAutomationRequest(
@@ -206,8 +207,9 @@ final class AppConnection {
         timeout: TimeInterval = 5
     ) throws -> ZshellJSONValue {
         guard let automationSocketPath, !automationSocketPath.isEmpty,
-              let automationToken, !automationToken.isEmpty,
-              let terminalID, !terminalID.isEmpty else {
+            let automationToken, !automationToken.isEmpty,
+            let terminalID, !terminalID.isEmpty
+        else {
             throw CLIError.message(
                 String(localized: "This terminal predates Zshell automation. Open a new terminal and try again.")
             )
@@ -410,17 +412,20 @@ private final class ThemeBrowser {
 
         var output = "\u{1B}[2J\u{1B}[H"
         output += "  \u{1B}[1mZshell +themes\u{1B}[0m"
-        output += "  \u{1B}[2m"
+        output +=
+            "  \u{1B}[2m"
             + String(localized: "\(appearance.title) palette · Tab switches appearance")
             + "\u{1B}[0m\r\n"
         output += "  \u{1B}[2m" + String(localized: "Type to filter:") + " \u{1B}[0m"
-        output += query.isEmpty
+        output +=
+            query.isEmpty
             ? "\u{1B}[2m" + String(localized: "(all themes)") + "\u{1B}[0m"
             : query
         output += "\r\n\r\n"
 
         if visible.isEmpty {
-            output += "  \u{1B}[2m"
+            output +=
+                "  \u{1B}[2m"
                 + String(localized: "No themes match “\(query)”.")
                 + "\u{1B}[0m\r\n"
         } else {
@@ -441,7 +446,8 @@ private final class ThemeBrowser {
         if padding > 0 {
             output += String(repeating: "\r\n", count: padding)
         }
-        output += "\r\n  \u{1B}[2m"
+        output +=
+            "\r\n  \u{1B}[2m"
             + String(localized: "↑↓ navigate · Return save · Esc cancel · Tab light/dark")
             + "\u{1B}[0m"
         writeOutput(output)
@@ -454,8 +460,8 @@ private final class ThemeBrowser {
         cursesActiveAtExit = true
 
         guard raw() != ERR,
-              noecho() != ERR,
-              keypad(stdscr, true) == OK
+            noecho() != ERR,
+            keypad(stdscr, true) == OK
         else {
             restoreTerminalAtExit()
             throw CLIError.message(String(localized: "Could not enter interactive terminal mode."))
@@ -531,7 +537,7 @@ private final class ThemeBrowser {
                 return .none
             }
             return .cancel
-        case 32...126:
+        case 32 ... 126:
             return .character(Character(UnicodeScalar(UInt8(code))))
         default:
             return .none
@@ -566,7 +572,7 @@ private final class ThemeBrowser {
 
     private static func swatch(_ theme: CLITheme) -> String {
         guard let background = rgb(theme.background),
-              let foreground = rgb(theme.foreground)
+            let foreground = rgb(theme.foreground)
         else { return " Aa " }
         return "\u{1B}[48;2;\(background.r);\(background.g);\(background.b)m"
             + "\u{1B}[38;2;\(foreground.r);\(foreground.g);\(foreground.b)m"
@@ -592,31 +598,32 @@ private func writeOutput(_ string: String) {
 
 private func printHelp() {
     print(
-        String(localized: """
-        Usage:
-          zshell
-          zshell <command> [arguments...]
-          zshell +themes [--dark | --light]
-          zshell +themes --list [--dark | --light]
-          zshell +pane <command> [options]
-          zshell +agent <command> [options]
-          zshell +help
+        String(
+            localized: """
+                Usage:
+                  zshell
+                  zshell <command> [arguments...]
+                  zshell +themes [--dark | --light]
+                  zshell +themes --list [--dark | --light]
+                  zshell +pane <command> [options]
+                  zshell +agent <command> [options]
+                  zshell +help
 
-        With no arguments, zshell creates a project with a normal login shell.
-        A single command matching a Quick Launch entry starts that saved entry.
-        An argv creates a project whose first terminal runs it directly.
+                With no arguments, zshell creates a project with a normal login shell.
+                A single command matching a Quick Launch entry starts that saved entry.
+                An argv creates a project whose first terminal runs it directly.
 
-        +themes browses Zshell's themes in the terminal. Moving through the list
-        previews the theme on the terminal — and across the whole app unless
-        “Terminal theme only” is on; Return saves it and Esc restores the
-        previous theme.
+                +themes browses Zshell's themes in the terminal. Moving through the list
+                previews the theme on the terminal — and across the whole app unless
+                “Terminal theme only” is on; Return saves it and Esc restores the
+                previous theme.
 
-        +pane provides project-scoped terminal layout, input, viewport reads,
-        and output waits. +agent adds recognized-agent start, guarded prompts,
-        lifecycle waits, result reads, and an installable, auto-updating
-        skill for compatible coding agents. Run either command with --help for
-        its complete contract.
-        """)
+                +pane provides project-scoped terminal layout, input, viewport reads,
+                and output waits. +agent adds recognized-agent start, guarded prompts,
+                lifecycle waits, result reads, and an installable, auto-updating
+                skill for compatible coding agents. Run either command with --help for
+                its complete contract.
+                """)
     )
     print(String(localized: "Live project events: `zshell +events --help`."))
     print(String(localized: "Browser automation: `zshell +browser --help`."))
@@ -690,7 +697,8 @@ private func run() throws -> Int32 {
 
     let connection = try AppConnection()
     let state = try connection.loadState()
-    let appearance = requestedAppearance
+    let appearance =
+        requestedAppearance
         ?? Appearance(rawValue: state.appearance)
         ?? .dark
 
@@ -719,7 +727,8 @@ enum ZshellCommandLine {
     /// Xcode and must continue through the normal application entry point.
     static var shouldRun: Bool {
         let environment = ProcessInfo.processInfo.environment
-        let hasBridge = environment["ZSHELL_CLI_STATE"]?.isEmpty == false
+        let hasBridge =
+            environment["ZSHELL_CLI_STATE"]?.isEmpty == false
             && environment["ZSHELL_CLI_TOKEN"]?.isEmpty == false
         if hasBridge { return true }
         return CommandLine.arguments.dropFirst().first?.hasPrefix("+") == true

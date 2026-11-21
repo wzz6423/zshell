@@ -152,8 +152,10 @@ final class RemoteProjectInfoNSView: NSView {
     }
 
     private func refreshLabels() {
-        let titles = [String(localized: "Status"), String(localized: "Host"), String(localized: "User"),
-                      String(localized: "Port"), String(localized: "Remote Directory")]
+        let titles = [
+            String(localized: "Status"), String(localized: "Host"), String(localized: "User"),
+            String(localized: "Port"), String(localized: "Remote Directory"),
+        ]
         for (label, title) in zip(fieldLabels, titles) { label.stringValue = title }
         reconnectButton.title = String(localized: "Reconnect")
         controlButton.title = String(localized: "Take Terminal Control")
@@ -165,7 +167,8 @@ final class RemoteProjectInfoNSView: NSView {
         statusValue.textColor = status?.state == .connected ? .systemGreen : .secondaryLabelColor
         let isActive = project?.selectedSession?.remoteConnection?.isActiveClient == true
         if status?.state == .connected {
-            let control = isActive
+            let control =
+                isActive
                 ? String(localized: "This client controls terminal input and size.")
                 : String(localized: "Another client controls terminal input and size.")
             statusDetail.stringValue = String(localized: "Connected clients: \(status?.clients ?? 0)") + "\n" + control

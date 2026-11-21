@@ -358,7 +358,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // The retained drawable already contains the translucent theme clear.
         frozenLayer.backgroundColor = lastPresentedSurface == nil ? terminalBackgroundColor : nil
         frozenLayer.contents = lastPresentedSurface
-        frozenLayer.contentsScale = lastPresentedScale
+        frozenLayer.contentsScale =
+            lastPresentedScale
             ?? window?.backingScaleFactor
             ?? 2
         frozenLayer.contentsGravity = .topLeft
@@ -402,19 +403,20 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             width: metrics.cellWidth,
             height: metrics.cellHeight
         )
-        let frames: [CGRect] = switch snapshot.cursor_shape {
-        case 1:
-            [CGRect(x: 0, y: 0, width: cell.width, height: 2)]
-        case 2:
-            [CGRect(x: 0, y: 0, width: 2, height: cell.height)]
-        default:
-            [
-                CGRect(x: 0, y: 0, width: cell.width, height: 1),
-                CGRect(x: 0, y: cell.height - 1, width: cell.width, height: 1),
-                CGRect(x: 0, y: 0, width: 1, height: cell.height),
-                CGRect(x: cell.width - 1, y: 0, width: 1, height: cell.height),
-            ]
-        }
+        let frames: [CGRect] =
+            switch snapshot.cursor_shape {
+            case 1:
+                [CGRect(x: 0, y: 0, width: cell.width, height: 2)]
+            case 2:
+                [CGRect(x: 0, y: 0, width: 2, height: cell.height)]
+            default:
+                [
+                    CGRect(x: 0, y: 0, width: cell.width, height: 1),
+                    CGRect(x: 0, y: cell.height - 1, width: cell.width, height: 1),
+                    CGRect(x: 0, y: 0, width: 1, height: cell.height),
+                    CGRect(x: cell.width - 1, y: 0, width: 1, height: cell.height),
+                ]
+            }
 
         let overlay = CALayer()
         overlay.frame = cell
@@ -454,8 +456,9 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // The foreground job's directory, falling back to the shell's — a
         // long-running command should not blank the label.
         let pid = foregroundProcessProvider?() ?? zshell_alacritty_foreground_pid(handle)
-        guard let path = processWorkingDirectory(pid: pid)
-            ?? processWorkingDirectory(pid: zshell_alacritty_child_pid(handle))
+        guard
+            let path = processWorkingDirectory(pid: pid)
+                ?? processWorkingDirectory(pid: zshell_alacritty_child_pid(handle))
         else { return }
         guard path != lastReportedDirectory else { return }
         lastReportedDirectory = path
@@ -750,7 +753,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // row is added after its visibility rewrite, below.
         let partialRows: [Int]?
         if damage.kind == ZSHELL_DAMAGE_PARTIAL, let rows = damage.rows {
-            partialRows = (0..<damage.rows_len).map { Int(rows[$0]) }
+            partialRows = (0 ..< damage.rows_len).map { Int(rows[$0]) }
         } else {
             partialRows = nil
         }
@@ -801,12 +804,12 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // snapshot; marked text is independent of whether the cursor is drawn.
         let preedit: TerminalMarkedText? =
             !markedText.isEmpty && snapshot.cursor_line >= 0 && snapshot.cursor_column >= 0
-                ? TerminalMarkedText(
-                    text: markedText,
-                    line: Int(snapshot.cursor_line),
-                    column: Int(snapshot.cursor_column)
-                )
-                : nil
+            ? TerminalMarkedText(
+                text: markedText,
+                line: Int(snapshot.cursor_line),
+                column: Int(snapshot.cursor_column)
+            )
+            : nil
         // Captured before blink visibility clears the cursor. Rebuilding the
         // row first would see the block cursor and store the background color
         // again on the hide frame.
@@ -855,11 +858,11 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         let onBufferAvailable: @Sendable () -> Void = {
             DispatchQueue.main.async {
                 guard let view = AlacrittyRegistry.shared.view(for: presentationToken),
-                      view.presentationGeneration == generation,
-                      view.layer is CAMetalLayer,
-                      view.needsUnconditionalRedraw,
-                      let currentRenderer = view.metalRenderer,
-                      ObjectIdentifier(currentRenderer) == rendererID
+                    view.presentationGeneration == generation,
+                    view.layer is CAMetalLayer,
+                    view.needsUnconditionalRedraw,
+                    let currentRenderer = view.metalRenderer,
+                    ObjectIdentifier(currentRenderer) == rendererID
                 else { return }
                 view.scheduleRender()
             }
@@ -907,9 +910,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     private var terminalBackgroundColor: CGColor {
-        let isDark = effectiveAppearance.bestMatch(
-            from: [.darkAqua, .aqua]
-        ) == .darkAqua
+        let isDark =
+            effectiveAppearance.bestMatch(
+                from: [.darkAqua, .aqua]
+            ) == .darkAqua
         return profileAppearance.theme(dark: isDark).backgroundNSColor
             .withAlphaComponent(backgroundOpacity)
             .cgColor
@@ -919,9 +923,9 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     /// transient hover underline here cannot leak into terminal state.
     private func applyHoveredURLUnderline(to snapshot: inout ZshellSnapshot) {
         guard let hoveredURL,
-              snapshot.columns > 0,
-              snapshot.rows > 0,
-              let cells = snapshot.cells
+            snapshot.columns > 0,
+            snapshot.rows > 0,
+            let cells = snapshot.cells
         else { return }
 
         let mutableCells = UnsafeMutablePointer(mutating: cells)
@@ -929,15 +933,16 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         let lastRow = min(hoveredURL.endLine, snapshot.rows - 1)
         guard firstRow <= lastRow else { return }
 
-        for row in firstRow...lastRow {
+        for row in firstRow ... lastRow {
             let firstColumn = row == hoveredURL.startLine ? hoveredURL.startColumn : 0
-            let lastColumn = row == hoveredURL.endLine
+            let lastColumn =
+                row == hoveredURL.endLine
                 ? hoveredURL.endColumn : snapshot.columns - 1
             let clampedFirst = max(firstColumn, 0)
             let clampedLast = min(lastColumn, snapshot.columns - 1)
             guard clampedFirst <= clampedLast else { continue }
 
-            for column in clampedFirst...clampedLast {
+            for column in clampedFirst ... clampedLast {
                 mutableCells[row * snapshot.columns + column].flags |= UInt16(
                     ZSHELL_CELL_UNDERLINE
                 )
@@ -990,8 +995,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         guard isAwaitingVisibleFrame else { return }
         let currentScale = window?.backingScaleFactor ?? 2
         guard isSurfaceVisible,
-              bounds.size == size,
-              currentScale == scale
+            bounds.size == size,
+            currentScale == scale
         else {
             // Geometry changed after this command buffer was submitted. Its
             // drawable stays behind the cover; render another at the new size.
@@ -1013,7 +1018,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     /// cursor, independent of whether the terminal cursor itself is drawn.
     private func imeCaretRect(snapshot: ZshellSnapshot) -> NSRect? {
         guard snapshot.ime_cursor_line >= 0,
-              snapshot.ime_cursor_column >= 0
+            snapshot.ime_cursor_column >= 0
         else { return nil }
         return NSRect(
             x: Self.padding.x + CGFloat(snapshot.ime_cursor_column) * metrics.cellWidth,
@@ -1080,7 +1085,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // `display_offset` counts up as the viewport moves back through the
         // scrollback; Zshell's scrollbar measures down from the oldest row.
         let scrolledBack = UInt64(snapshot.display_offset)
-        let top = total > viewport
+        let top =
+            total > viewport
             ? (total - viewport) - min(scrolledBack, total - viewport) : 0
         let position = TerminalScrollPosition(
             totalRows: total, viewportRows: viewport, topRow: top
@@ -1108,15 +1114,17 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         guard commandRecordState.owns(location), let handle else { return nil }
         var region = ZshellCommandRegion()
         guard zshell_alacritty_command_region(handle, location.blockID, &region) else { return nil }
-        return .init(promptStart: .init(row: region.prompt.row, column: region.prompt.column),
-                     inputStart: .init(row: region.input.row, column: region.input.column),
-                     outputStart: .init(row: region.output.row, column: region.output.column),
-                     outputEnd: .init(row: region.end.row, column: region.end.column))
+        return .init(
+            promptStart: .init(row: region.prompt.row, column: region.prompt.column),
+            inputStart: .init(row: region.input.row, column: region.input.column),
+            outputStart: .init(row: region.output.row, column: region.output.column),
+            outputEnd: .init(row: region.end.row, column: region.end.column))
     }
 
     func commandText(at location: TerminalCommandOutputLocation, part: TerminalCommandTextPart) -> String? {
         guard commandRecordState.owns(location), let handle,
-              let text = zshell_alacritty_command_text(handle, location.blockID, part.nativeValue) else { return nil }
+            let text = zshell_alacritty_command_text(handle, location.blockID, part.nativeValue)
+        else { return nil }
         defer { zshell_alacritty_string_free(text) }
         return String(cString: text)
     }
@@ -1124,7 +1132,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     @discardableResult
     func revealCommand(at location: TerminalCommandOutputLocation) -> Bool {
         guard commandRecordState.owns(location), let handle,
-              zshell_alacritty_command_reveal(handle, location.blockID, false) else { return false }
+            zshell_alacritty_command_reveal(handle, location.blockID, false)
+        else { return false }
         scheduleRender(force: true)
         reportScroll()
         return true
@@ -1133,7 +1142,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     @discardableResult
     func selectCommand(at location: TerminalCommandOutputLocation) -> Bool {
         guard commandRecordState.owns(location), let handle,
-              zshell_alacritty_command_reveal(handle, location.blockID, true) else { return false }
+            zshell_alacritty_command_reveal(handle, location.blockID, true)
+        else { return false }
         scheduleRender(force: true)
         reportScroll()
         return true
@@ -1149,17 +1159,18 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     func handleEvent(kind: UInt32, payload: Data) {
         if events == nil,
-           kind == ZSHELL_EVENT_TITLE
-            || kind == ZSHELL_EVENT_BELL
-            || kind == ZSHELL_EVENT_EXIT
-            || kind == ZSHELL_EVENT_CLIPBOARD_LOAD
-            || kind == ZSHELL_EVENT_WORKING_DIRECTORY
-            || kind == ZSHELL_EVENT_NOTIFICATION
-            || kind == ZSHELL_EVENT_SHELL_PROMPT_START
-            || kind == ZSHELL_EVENT_SHELL_COMMAND_START
-            || kind == ZSHELL_EVENT_SHELL_COMMAND_EXECUTING
-            || kind == ZSHELL_EVENT_SHELL_COMMAND_FINISHED
-            || kind == ZSHELL_EVENT_COMMAND_RECORDS {
+            kind == ZSHELL_EVENT_TITLE
+                || kind == ZSHELL_EVENT_BELL
+                || kind == ZSHELL_EVENT_EXIT
+                || kind == ZSHELL_EVENT_CLIPBOARD_LOAD
+                || kind == ZSHELL_EVENT_WORKING_DIRECTORY
+                || kind == ZSHELL_EVENT_NOTIFICATION
+                || kind == ZSHELL_EVENT_SHELL_PROMPT_START
+                || kind == ZSHELL_EVENT_SHELL_COMMAND_START
+                || kind == ZSHELL_EVENT_SHELL_COMMAND_EXECUTING
+                || kind == ZSHELL_EVENT_SHELL_COMMAND_FINISHED
+                || kind == ZSHELL_EVENT_COMMAND_RECORDS
+        {
             if pendingEvents.count < 64 {
                 pendingEvents.append((kind, payload))
             }
@@ -1231,7 +1242,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             events?.terminalDidChangeWorkingDirectory(path)
         case ZSHELL_EVENT_PROGRESS:
             guard payload.count == 3,
-                  let state = Self.progressState(rawValue: payload[0])
+                let state = Self.progressState(rawValue: payload[0])
             else { return }
             let percent = payload[2] == 0 ? nil : Int(payload[1])
             progressBar.applyReport(state: state, percent: percent)
@@ -1320,8 +1331,9 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         case "col-resize", "e-resize", "w-resize", "ew-resize": .resizeLeftRight
         case "row-resize", "n-resize", "s-resize", "ns-resize": .resizeUpDown
         case "default", "help", "progress", "wait",
-             "ne-resize", "nw-resize", "se-resize", "sw-resize",
-             "nesw-resize", "nwse-resize", "zoom-in", "zoom-out": .arrow
+            "ne-resize", "nw-resize", "se-resize", "sw-resize",
+            "nesw-resize", "nwse-resize", "zoom-in", "zoom-out":
+            .arrow
         default: nil
         }
     }
@@ -1376,7 +1388,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             let code = lines > 0 ? 64 : 65
             let column = max(gridGeometry.columns / 2, 0)
             let row = max(gridGeometry.rows / 2, 0)
-            for _ in 0..<min(abs(lines), 50) {
+            for _ in 0 ..< min(abs(lines), 50) {
                 sendMouse(
                     code: code,
                     column: column,
@@ -1389,7 +1401,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         }
         if mode.contains(.alternateScreen), mode.contains(.alternateScroll) {
             let sequence = AlacrittyKeyMap.cursor(up: lines > 0, mode: mode)
-            for _ in 0..<min(abs(lines), 50) { writeControl(sequence) }
+            for _ in 0 ..< min(abs(lines), 50) { writeControl(sequence) }
             return true
         }
         return false
@@ -1409,7 +1421,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         guard let handle else { return }
         var snapshot = ZshellSnapshot()
         zshell_alacritty_snapshot(handle, &snapshot)
-        let history = snapshot.total_lines > snapshot.screen_lines
+        let history =
+            snapshot.total_lines > snapshot.screen_lines
             ? snapshot.total_lines - snapshot.screen_lines : 0
         // The scrollbar runs oldest-to-newest; display offset runs the other way.
         let fromTop = Int((Double(history) * fraction).rounded())
@@ -1483,7 +1496,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         var snapshot = ZshellSnapshot()
         zshell_alacritty_snapshot(handle, &snapshot)
         guard snapshot.columns > 0, snapshot.rows > 0,
-              let cells = snapshot.cells
+            let cells = snapshot.cells
         else { return "" }
 
         let boundedRows = min(snapshot.rows, max(maxLines, 1))
@@ -1491,7 +1504,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         let firstRow = snapshot.rows - boundedRows
         var lines: [String] = []
         lines.reserveCapacity(boundedRows)
-        for row in firstRow..<snapshot.rows {
+        for row in firstRow ..< snapshot.rows {
             var line = viewportRowText(row, columns: boundedColumns, snapshot: snapshot, cells: cells)
             while line.last == " " || line.last == "\t" { line.removeLast() }
             lines.append(line)
@@ -1504,24 +1517,27 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         var snapshot = ZshellSnapshot()
         zshell_alacritty_snapshot(handle, &snapshot)
         guard snapshot.columns > 0, snapshot.rows > 0,
-              snapshot.columns <= TerminalViewportSnapshot.maximumCells / snapshot.rows,
-              let cells = snapshot.cells else { return nil }
+            snapshot.columns <= TerminalViewportSnapshot.maximumCells / snapshot.rows,
+            let cells = snapshot.cells
+        else { return nil }
         var rows: [TerminalViewportRow] = []
-        for row in 0..<snapshot.rows {
+        for row in 0 ..< snapshot.rows {
             var copied: [TerminalViewportCell] = []
-            for column in 0..<snapshot.columns {
+            for column in 0 ..< snapshot.columns {
                 let cell = cells[row * snapshot.columns + column]
                 if cell.flags & UInt16(ZSHELL_CELL_WIDE_SPACER) != 0 { continue }
                 let width = cell.flags & UInt16(ZSHELL_CELL_WIDE) != 0 ? 2 : 1
-                let text = viewportRowText(row, columns: column + 1, snapshot: snapshot,
-                                           cells: cells, firstColumn: column)
+                let text = viewportRowText(
+                    row, columns: column + 1, snapshot: snapshot,
+                    cells: cells, firstColumn: column)
                 copied.append(.init(text: text, column: column, width: width))
             }
             let wraps = cells[(row + 1) * snapshot.columns - 1].flags & UInt16(ZSHELL_CELL_WRAPPED) != 0
             rows.append(TerminalViewportRow(cells: copied, wraps: wraps))
         }
-        return TerminalViewportSnapshot(rows: rows, columns: snapshot.columns, origin: Self.padding,
-                                        cellSize: CGSize(width: metrics.cellWidth, height: metrics.cellHeight))
+        return TerminalViewportSnapshot(
+            rows: rows, columns: snapshot.columns, origin: Self.padding,
+            cellSize: CGSize(width: metrics.cellWidth, height: metrics.cellHeight))
     }
 
     private func viewportRowText(
@@ -1529,7 +1545,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     ) -> String {
         var line = ""
         line.reserveCapacity(columns)
-        for column in firstColumn..<columns {
+        for column in firstColumn ..< columns {
             let cell = cells[row * snapshot.columns + column]
             if cell.flags & UInt16(ZSHELL_CELL_WIDE_SPACER) != 0 { continue }
             if cell.flags & UInt16(ZSHELL_CELL_HIDDEN) != 0 {
@@ -1561,7 +1577,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         var buffer: [UInt8] = []
         var written = 0
         // The PTY may grow the grid between the size query and the copy.
-        for _ in 0..<3 {
+        for _ in 0 ..< 3 {
             buffer = [UInt8](repeating: 0, count: needed)
             written = buffer.withUnsafeMutableBufferPointer { pointer in
                 zshell_alacritty_buffer_text(handle, scrollbackOnly, pointer.baseAddress, needed)
@@ -1606,10 +1622,14 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     private func activatePendingPromptSelection(for event: NSEvent? = nil) {
         guard pendingPromptSelectionActivation else { return }
         if let event, event.modifierFlags.intersection([.command, .control, .option, .shift]) == .command,
-           event.charactersIgnoringModifiers?.lowercased() == "c" { return }
+            event.charactersIgnoringModifiers?.lowercased() == "c"
+        {
+            return
+        }
         if let event,
-           !event.modifierFlags.intersection([.command, .control, .option]).isEmpty
-                || [115, 116, 119, 121, 123, 124, 125, 126].contains(Int(event.keyCode)) {
+            !event.modifierFlags.intersection([.command, .control, .option]).isEmpty
+                || [115, 116, 119, 121, 123, 124, 125, 126].contains(Int(event.keyCode))
+        {
             pendingPromptSelectionActivation = false
             if events?.terminalPromptSelectionIsReady == true { sendText("\u{1b}[27;2;27~") }
             return
@@ -1696,7 +1716,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     @objc private func effectiveFocusChanged(_ notification: Notification) {
         if notification.name == NSWindow.didResignKeyNotification,
-           let notificationWindow = notification.object as? NSWindow, notificationWindow === window {
+            let notificationWindow = notification.object as? NSWindow, notificationWindow === window
+        {
             events?.terminalDidResignFocus()
         }
         GlobalTerminalOverlay.shared.scheduleHotkeyRegistrationRefresh()
@@ -1732,7 +1753,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             events?.terminalDidCancelAgentInterrupt()
             finalizePointerSelectionBeforeInput()
             if !hasMarkedText(),
-               aiInputEditor.handleKeyDown(event, replay: { [weak self] in self?.keyDown(with: event) }) { return }
+                aiInputEditor.handleKeyDown(event, replay: { [weak self] in self?.keyDown(with: event) })
+            {
+                return
+            }
             activatePendingPromptSelection(for: event)
         }
         pendingPromptCaret = nil
@@ -1742,7 +1766,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             case 115: // Command-Home
                 var snapshot = ZshellSnapshot()
                 zshell_alacritty_snapshot(handle, &snapshot)
-                let history = snapshot.total_lines > snapshot.screen_lines
+                let history =
+                    snapshot.total_lines > snapshot.screen_lines
                     ? snapshot.total_lines - snapshot.screen_lines : 0
                 zshell_alacritty_scroll_to_offset(handle, history)
                 scheduleRender(force: true)
@@ -1820,11 +1845,13 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         pendingPromptSelectionActivation = false
         guard let handle else { return }
         if event.modifierFlags.contains(.command),
-           let hit = url(at: gridPoint(for: event)) {
+            let hit = url(at: gridPoint(for: event))
+        {
             events?.terminalDidRequestOpenURL(hit.value)
             return
         }
-        let aiContext = event.clickCount == 1 && event.modifierFlags.intersection([.command, .option, .control]).isEmpty
+        let aiContext =
+            event.clickCount == 1 && event.modifierFlags.intersection([.command, .option, .control]).isEmpty
             ? aiInputContext(for: event) : nil
         if shouldReportMouse(event), aiContext?.caret == nil {
             reportingMouseButton = true
@@ -1833,11 +1860,12 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         }
         let point = gridPoint(for: event)
         aiInputEditor.beginPointer(at: aiContext?.caret, in: aiContext?.snapshot)
-        let kind: UInt32 = switch event.clickCount {
-        case 2: 1 // word
-        case 3: 2 // line
-        default: 0
-        }
+        let kind: UInt32 =
+            switch event.clickCount {
+            case 2: 1 // word
+            case 3: 2 // line
+            default: 0
+            }
         selectionWasDragged = false
         inputSelectionAnchor = promptSelectionAnchor(for: point, clickCount: event.clickCount)
         if inputSelectionAnchor != nil || aiContext?.caret != nil { inputSelectionMouseEvent = event }
@@ -1899,7 +1927,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
                 pendingPromptSelectionActivation = true
             }
         } else if inputSelectionAnchor != nil, selectionAnchor != nil, !selectionWasDragged,
-                  events?.terminalPromptSelectionIsReady == true {
+            events?.terminalPromptSelectionIsReady == true
+        {
             moveCursorToClick(endpoint)
             writeControl(Array("\u{1b}[27;2;27~".utf8))
         }
@@ -2018,10 +2047,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     /// attached to cells that are no longer the hovered URL.
     private func revalidateURLHoverForRender() {
         guard isPointerInside,
-              isCommandPressed,
-              NSApp.isActive,
-              let window,
-              window.isKeyWindow
+            isCommandPressed,
+            NSApp.isActive,
+            let window,
+            window.isKeyWindow
         else {
             if hoveredURL != nil {
                 hoveredURL = nil
@@ -2052,9 +2081,12 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     override func scrollWheel(with event: NSEvent) {
         guard let handle else { return }
         let mode = terminalMode
-        let applicationScroll = !isReadOnly && (mode.contains(.mouseReporting)
-            || (mode.contains(.alternateScreen) && mode.contains(.alternateScroll)))
-        let limit = applicationScroll
+        let applicationScroll =
+            !isReadOnly
+            && (mode.contains(.mouseReporting)
+                || (mode.contains(.alternateScreen) && mode.contains(.alternateScroll)))
+        let limit =
+            applicationScroll
             ? TerminalScrollSettings.maximumApplicationLines
             : TerminalScrollSettings.maximumScrollbackLines
         let precise = event.hasPreciseScrollingDeltas
@@ -2073,10 +2105,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         }
 
         if !isReadOnly, mode.contains(.mouseReporting) {
-            for _ in 0..<abs(lines) {
+            for _ in 0 ..< abs(lines) {
                 sendMouse(code: lines > 0 ? 64 : 65, event: event, released: false)
             }
-            for _ in 0..<abs(columns) {
+            for _ in 0 ..< abs(columns) {
                 sendMouse(code: columns > 0 ? 66 : 67, event: event, released: false)
             }
             return
@@ -2084,7 +2116,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         guard lines != 0 else { return }
         if !isReadOnly, mode.contains(.alternateScreen), mode.contains(.alternateScroll) {
             let sequence = AlacrittyKeyMap.cursor(up: lines > 0, mode: mode)
-            for _ in 0..<abs(lines) {
+            for _ in 0 ..< abs(lines) {
                 writeControl(sequence)
             }
             return
@@ -2120,13 +2152,13 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     private func autoscrollSelection() {
         guard let handle,
-              selectionAnchor != nil,
-              selectionWasDragged,
-              !reportingMouseButton,
-              isSurfaceVisible,
-              let window,
-              window.isKeyWindow,
-              window.firstResponder === self
+            selectionAnchor != nil,
+            selectionWasDragged,
+            !reportingMouseButton,
+            isSurfaceVisible,
+            let window,
+            window.isKeyWindow,
+            window.firstResponder === self
         else {
             stopSelectionAutoscroll()
             return
@@ -2190,9 +2222,11 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
         var snapshot = ZshellSnapshot()
         zshell_alacritty_snapshot(handle, &snapshot)
-        let cursor = pendingPromptCaret ?? PromptCaret(
-            (line: snapshot.cursor_line, column: snapshot.cursor_column, rightHalf: false)
-        )
+        let cursor =
+            pendingPromptCaret
+            ?? PromptCaret(
+                (line: snapshot.cursor_line, column: snapshot.cursor_column, rightHalf: false)
+            )
         let caret = PromptCaret(point)
         let distance = promptDistance(from: cursor, to: caret, handle: handle, restoring: drag)
         // Landing short would erase the wrong characters, so refuse the click
@@ -2273,27 +2307,27 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // reading them. Anything else — a pager, a TUI, a command reading
         // stdin — would receive them as its own input.
         guard !isReadOnly, let handle,
-              supportsInputSelection,
-              events?.terminalPromptSelectionIsReady == true,
-              isShellInputActive,
-              !mode.contains(.mouseReporting),
-              !mode.contains(.alternateScreen),
-              isZshForegroundProcess
+            supportsInputSelection,
+            events?.terminalPromptSelectionIsReady == true,
+            isShellInputActive,
+            !mode.contains(.mouseReporting),
+            !mode.contains(.alternateScreen),
+            isZshForegroundProcess
         else { return false }
 
         var snapshot = ZshellSnapshot()
         zshell_alacritty_snapshot(handle, &snapshot)
         guard snapshot.display_offset == 0,
-              snapshot.cursor_line >= 0,
-              snapshot.cursor_column >= 0,
-              point.line >= 0, point.line < gridGeometry.rows
+            snapshot.cursor_line >= 0,
+            snapshot.cursor_column >= 0,
+            point.line >= 0, point.line < gridGeometry.rows
         else { return false }
         // Earlier command output is not part of the edited buffer: measuring a
         // distance through it counts characters ZLE never had, so the cursor
         // keys would clamp at the buffer edge and mark a region over text the
         // user cannot see selected.
         guard let promptInputRow,
-              Self.viewportTopRow(snapshot) + UInt64(point.line) >= promptInputRow
+            Self.viewportTopRow(snapshot) + UInt64(point.line) >= promptInputRow
         else { return false }
         return true
     }
@@ -2341,34 +2375,39 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // VTE buffers synchronized redraws, so the committed input grid still
         // accepts gestures while the next frame is pending.
         guard !isReadOnly, let handle, !hasMarkedText(),
-              hasEffectiveTerminalFocus,
-              let foregroundPid, ZshellAgentKind.recognizeBuiltin(processID: foregroundPid) == .claude
+            hasEffectiveTerminalFocus,
+            let foregroundPid, ZshellAgentKind.recognizeBuiltin(processID: foregroundPid) == .claude
         else { return nil }
         var viewport = ZshellSnapshot()
         zshell_alacritty_snapshot(handle, &viewport)
         guard viewport.display_offset == 0, viewport.ime_cursor_line >= 0,
-              viewport.ime_cursor_line < viewport.rows,
-              viewport.ime_cursor_column >= 2, viewport.ime_cursor_column <= viewport.columns,
-              let cells = viewport.cells
+            viewport.ime_cursor_line < viewport.rows,
+            viewport.ime_cursor_column >= 2, viewport.ime_cursor_column <= viewport.columns,
+            let cells = viewport.cells
         else { return nil }
-        let lines = (0..<viewport.rows).map {
+        let lines = (0 ..< viewport.rows).map {
             viewportRowText($0, columns: viewport.columns, snapshot: viewport, cells: cells)
         }
         let cursorPrefix = viewportRowText(
             viewport.ime_cursor_line, columns: viewport.ime_cursor_column,
             snapshot: viewport, cells: cells
         )
-        guard let snapshot = TerminalAIInputSnapshot(
-            processID: foregroundPid, columns: viewport.columns, lines: lines,
-            cursorRow: viewport.ime_cursor_line, cursorPrefix: cursorPrefix
-        ) else { return nil }
+        guard
+            let snapshot = TerminalAIInputSnapshot(
+                processID: foregroundPid, columns: viewport.columns, lines: lines,
+                cursorRow: viewport.ime_cursor_line, cursorPrefix: cursorPrefix
+            )
+        else { return nil }
         guard let event else { return (snapshot, nil) }
         let point = gridPoint(for: event)
         guard point.line >= 0, point.line < viewport.rows else { return (snapshot, nil) }
         let prefix = viewportRowText(
-            point.line, columns: min(viewport.columns, max(
-                clampingDrag ? 2 : 0, point.column + (point.rightHalf ? 1 : 0)
-            )),
+            point.line,
+            columns: min(
+                viewport.columns,
+                max(
+                    clampingDrag ? 2 : 0, point.column + (point.rightHalf ? 1 : 0)
+                )),
             snapshot: viewport, cells: cells
         )
         return (snapshot, snapshot.caret(viewportRow: point.line, prefix: prefix))
@@ -2446,8 +2485,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         let legacyX = x + 32
         let legacyY = y + 32
         guard legacyCode <= 255, legacyX <= 255, legacyY <= 255 else { return }
-        writeControl([0x1b, UInt8(ascii: "["), UInt8(ascii: "M"),
-                      UInt8(legacyCode), UInt8(legacyX), UInt8(legacyY)])
+        writeControl([
+            0x1b, UInt8(ascii: "["), UInt8(ascii: "M"),
+            UInt8(legacyCode), UInt8(legacyX), UInt8(legacyY),
+        ])
     }
 
     private func url(
@@ -2497,9 +2538,14 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         guard !isReadOnly else { return }
         finalizePointerSelectionBeforeInput()
         if aiInputEditor.deferWhileBusy({ [weak self] in self?.paste(sender) }) { return }
-        if events?.terminalHandleUserPaste(NSPasteboard.general, paste: { [weak self] text in
-            self?.pasteAIInput(text)
-        }) == true { return }
+        if events?.terminalHandleUserPaste(
+            NSPasteboard.general,
+            paste: { [weak self] text in
+                self?.pasteAIInput(text)
+            }) == true
+        {
+            return
+        }
         activatePendingPromptSelection()
         pendingPromptCaret = nil
         clearActivePromptSelection()
@@ -2550,10 +2596,11 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         switch item.action {
         case #selector(copy(_:)): hasSelection
         case #selector(paste(_:)):
-            !isReadOnly && (Self.pasteboardString(from: .general) != nil
-                || NSPasteboard.general.canReadObject(
-                    forClasses: [NSImage.self], options: nil
-                ))
+            !isReadOnly
+                && (Self.pasteboardString(from: .general) != nil
+                    || NSPasteboard.general.canReadObject(
+                        forClasses: [NSImage.self], options: nil
+                    ))
         default: true
         }
     }
@@ -2582,14 +2629,16 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     override func rightMouseDragged(with event: NSEvent) {
         guard reportingRightMouseButton,
-              terminalMode.contains(.mouseDrag) || terminalMode.contains(.mouseMotion)
+            terminalMode.contains(.mouseDrag) || terminalMode.contains(.mouseMotion)
         else { return }
         sendMouse(code: 34, event: event, released: false)
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        guard event.type == .leftMouseDown && event.modifierFlags.contains(.control)
-            || commandRouting.blocksCommands || !shouldReportMouse(event) else { return nil }
+        guard
+            event.type == .leftMouseDown && event.modifierFlags.contains(.control)
+                || commandRouting.blocksCommands || !shouldReportMouse(event)
+        else { return nil }
         focusForInteraction()
         return TerminalContextMenu.make(for: self, event: event, linkTarget: linkTarget(for: event))
     }
@@ -2618,9 +2667,14 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
         guard !isReadOnly, let urls = fileURLs(sender), !urls.isEmpty else { return false }
         focusForInteraction()
-        if events?.terminalHandleFileDrop(urls, paste: { [weak self] text in
-            self?.sendPaste(text + " ")
-        }) == true { return true }
+        if events?.terminalHandleFileDrop(
+            urls,
+            paste: { [weak self] text in
+                self?.sendPaste(text + " ")
+            }) == true
+        {
+            return true
+        }
         let text = urls.map { AlacrittyTerminalView.shellToken(for: $0.path) }
             .joined(separator: " ")
         // A drop is semantically a paste, not simulated typing. Image-aware
@@ -2720,7 +2774,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         guard !text.isEmpty else { return }
         finalizePointerSelectionBeforeInput()
         if aiInputEditor.deferWhileBusy({ [weak self] in self?.insertAccessibilityText(text) })
-            || aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) }) {
+            || aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) })
+        {
             return
         }
         activatePendingPromptSelection()
@@ -2742,7 +2797,10 @@ extension AlacrittyTerminalView: NSTextInputClient {
         if !text.isEmpty, aiInputEditor.isBusy || aiInputEditor.hasSelection {
             unmarkText()
             if aiInputEditor.deferWhileBusy({ [weak self] in self?.insertText(text, replacementRange: replacementRange) })
-                || aiInputEditor.replaceSelection(then: { [weak self] in self?.insertText(text, replacementRange: replacementRange) }) { return }
+                || aiInputEditor.replaceSelection(then: { [weak self] in self?.insertText(text, replacementRange: replacementRange) })
+            {
+                return
+            }
         }
         activatePendingPromptSelection()
         markedText = ""
@@ -2938,8 +2996,9 @@ enum AlacrittyTheme {
         var theme = ZshellTheme()
         withUnsafeMutableBytes(of: &theme.palette) { raw in
             let palette = raw.bindMemory(to: UInt32.self)
-            for index in 0..<256 {
-                palette[index] = definition.palette[index].flatMap(packed(hex:))
+            for index in 0 ..< 256 {
+                palette[index] =
+                    definition.palette[index].flatMap(packed(hex:))
                     ?? defaultPalette(index)
             }
         }
@@ -2953,13 +3012,13 @@ enum AlacrittyTheme {
     /// 24-step ramp. Only used where a theme leaves an index undefined.
     private nonisolated static func defaultPalette(_ index: Int) -> UInt32 {
         switch index {
-        case 0..<16:
+        case 0 ..< 16:
             let base: [UInt32] = [
                 0x000000, 0xcd0000, 0x00cd00, 0xcdcd00, 0x0000ee, 0xcd00cd, 0x00cdcd, 0xe5e5e5,
                 0x7f7f7f, 0xff0000, 0x00ff00, 0xffff00, 0x5c5cff, 0xff00ff, 0x00ffff, 0xffffff,
             ]
             return base[index]
-        case 16..<232:
+        case 16 ..< 232:
             let value = index - 16
             let steps: [UInt32] = [0, 95, 135, 175, 215, 255]
             let red = steps[(value / 36) % 6]

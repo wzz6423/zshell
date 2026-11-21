@@ -51,7 +51,7 @@ extension MarkupFormatter.Options.UseCodeFence: ExpressibleByArgument {}
 extension MarkupFormatter.Options.ThematicBreakCharacter: ExpressibleByArgument {}
 extension MarkupFormatter.Options.EmphasisMarker: ExpressibleByArgument {}
 extension MarkupFormatter.Options.PreferredHeadingStyle: ExpressibleByArgument {}
-extension MarkupFormatter.Options.PreferredLineLimit.SplittingElement:  ExpressibleByArgument {}
+extension MarkupFormatter.Options.PreferredLineLimit.SplittingElement: ExpressibleByArgument {}
 
 extension MarkdownCommand {
     /**
@@ -70,7 +70,8 @@ extension MarkdownCommand {
                 }
             }
         }
-        static let configuration = CommandConfiguration(commandName: "format", abstract: "Format markdown on standard input to standard output")
+        static let configuration = CommandConfiguration(
+            commandName: "format", abstract: "Format markdown on standard input to standard output")
 
         @Option(help: "Ordered list start numeral")
         var orderedListStartNumeral: UInt = 1
@@ -78,46 +79,72 @@ extension MarkdownCommand {
         @Option(help: "Ordered list counting; choices: \(OrderedListCountingBehavior.allCases.map { $0.rawValue }.joined(separator: ", "))")
         var orderedListCounting: OrderedListCountingBehavior = .allSame
 
-        @Option(help: "Unordered list marker; choices: \(MarkupFormatter.Options.UnorderedListMarker.allCases.map { $0.rawValue }.joined(separator: ", "))")
+        @Option(
+            help:
+                "Unordered list marker; choices: \(MarkupFormatter.Options.UnorderedListMarker.allCases.map { $0.rawValue }.joined(separator: ", "))"
+        )
         var unorderedListMarker: String = "-"
 
-        @Option(help: "Use fenced code blocks; choices: \(MarkupFormatter.Options.UseCodeFence.allCases.map { $0.rawValue }.joined(separator: ", "))")
+        @Option(
+            help:
+                "Use fenced code blocks; choices: \(MarkupFormatter.Options.UseCodeFence.allCases.map { $0.rawValue }.joined(separator: ", "))"
+        )
         var useCodeFence: MarkupFormatter.Options.UseCodeFence = .always
 
         @Option(help: "Default code block language to use for fenced code blocks")
         var defaultCodeBlockLanguage: String?
 
-        @Option(help: "The character to use for thematic breaks; choices: \(MarkupFormatter.Options.ThematicBreakCharacter.allCases.map { $0.rawValue }.joined(separator: ", "))")
+        @Option(
+            help:
+                "The character to use for thematic breaks; choices: \(MarkupFormatter.Options.ThematicBreakCharacter.allCases.map { $0.rawValue }.joined(separator: ", "))"
+        )
         var thematicBreakCharacter: MarkupFormatter.Options.ThematicBreakCharacter = .dash
 
         @Option(help: "The length of thematic breaks")
         var thematicBreakLength: UInt = 5
 
-        @Option(help: "Emphasis marker; choices: \(MarkupFormatter.Options.EmphasisMarker.allCases.map { $0.rawValue }.joined(separator: ", "))")
+        @Option(
+            help: "Emphasis marker; choices: \(MarkupFormatter.Options.EmphasisMarker.allCases.map { $0.rawValue }.joined(separator: ", "))"
+        )
         var emphasisMarker: String = "*"
 
-        @Flag(inversion: .prefixedNo, exclusivity: .chooseLast, help: "Condense links whose text matches their destination to 'autolinks' e.g. <https://swift.org>")
+        @Flag(
+            inversion: .prefixedNo, exclusivity: .chooseLast,
+            help: "Condense links whose text matches their destination to 'autolinks' e.g. <https://swift.org>")
         var condenseAutolinks: Bool = true
 
-        @Option(help: "Preferred heading style; choices: \(MarkupFormatter.Options.PreferredHeadingStyle.allCases.map { $0.rawValue }.joined(separator: ", "))")
+        @Option(
+            help:
+                "Preferred heading style; choices: \(MarkupFormatter.Options.PreferredHeadingStyle.allCases.map { $0.rawValue }.joined(separator: ", "))"
+        )
         var preferredHeadingStyle: MarkupFormatter.Options.PreferredHeadingStyle = .atx
 
-        @Option(help: "Preferred maximum line length, enforced with hard or soft breaks to split text elements where possible (see --line-splitting-element)")
+        @Option(
+            help:
+                "Preferred maximum line length, enforced with hard or soft breaks to split text elements where possible (see --line-splitting-element)"
+        )
         var preferredMaximumLineLength: MaximumLineLength?
 
-        @Option(help: "The kind of element to use to split text elements while enforcing --preferred-maximum-line-length; choices: \(MarkupFormatter.Options.PreferredLineLimit.SplittingElement.allCases.map { $0.rawValue }.joined(separator: ", "))")
+        @Option(
+            help:
+                "The kind of element to use to split text elements while enforcing --preferred-maximum-line-length; choices: \(MarkupFormatter.Options.PreferredLineLimit.SplittingElement.allCases.map { $0.rawValue }.joined(separator: ", "))"
+        )
         var lineSplittingElement: MarkupFormatter.Options.PreferredLineLimit.SplittingElement = .softBreak
 
         @Option(help: "Prepend this prefix to every line")
         var customLinePrefix: String = ""
 
-        @Flag(inversion: .prefixedNo, exclusivity: .chooseLast, help: "Check that the formatted output is structurally equivalent (has the same AST structure) to the input")
+        @Flag(
+            inversion: .prefixedNo, exclusivity: .chooseLast,
+            help: "Check that the formatted output is structurally equivalent (has the same AST structure) to the input")
         var checkStructuralEquivalence: Bool = false
 
         @Flag<Bool>(inversion: .prefixedNo, exclusivity: .chooseLast, help: "Parse block directives")
         var parseBlockDirectives: Bool = false
 
-        @Flag<Bool>(inversion: .prefixedNo, exclusivity: .chooseLast, help: "Interpret inline code spans with two backticks as a symbol link element")
+        @Flag<Bool>(
+            inversion: .prefixedNo, exclusivity: .chooseLast,
+            help: "Interpret inline code spans with two backticks as a symbol link element")
         var parseSymbolLinks: Bool = false
 
         @Argument(help: "Input file (default: standard input)")
@@ -144,9 +171,11 @@ extension MarkdownCommand {
             return output.trimmingCharacters(in: CharacterSet(charactersIn: "\n"))
         }
 
-        func checkStructuralEquivalence(between original: Document,
-                                        and formatted: Document,
-                                        source: String) throws {
+        func checkStructuralEquivalence(
+            between original: Document,
+            and formatted: Document,
+            source: String
+        ) throws {
             struct FileHandlerOutputStream: TextOutputStream {
                 private let fileHandle: FileHandle
                 let encoding: String.Encoding
@@ -166,7 +195,9 @@ extension MarkdownCommand {
             var standardError = FileHandlerOutputStream(FileHandle.standardError, encoding: .utf8)
 
             guard preferredMaximumLineLength == nil else {
-                print("Skipping structural equivalence check because --preferred-maximum-line-length was used, which can intentionally change document structure by inserting soft or hard line breaks.", to: &standardError)
+                print(
+                    "Skipping structural equivalence check because --preferred-maximum-line-length was used, which can intentionally change document structure by inserting soft or hard line breaks.",
+                    to: &standardError)
                 return
             }
 
@@ -222,23 +253,25 @@ extension MarkdownCommand {
                 MarkupFormatter.Options.PreferredLineLimit(maxLength: $0.length, breakWith: lineSplittingElement)
             }
 
-            let formatOptions = MarkupFormatter.Options(unorderedListMarker: unorderedListMarker,
-                                                  orderedListNumerals: orderedListNumerals,
-                                                  useCodeFence: useCodeFence,
-                                                  defaultCodeBlockLanguage: defaultCodeBlockLanguage,
-                                                  thematicBreakCharacter: thematicBreakCharacter,
-                                                  thematicBreakLength: thematicBreakLength,
-                                                  emphasisMarker: emphasisMarker,
-                                                  condenseAutolinks: condenseAutolinks,
-                                                  preferredHeadingStyle: preferredHeadingStyle,
-                                                  preferredLineLimit: preferredLineLimit,
-                                                  customLinePrefix: customLinePrefix)
+            let formatOptions = MarkupFormatter.Options(
+                unorderedListMarker: unorderedListMarker,
+                orderedListNumerals: orderedListNumerals,
+                useCodeFence: useCodeFence,
+                defaultCodeBlockLanguage: defaultCodeBlockLanguage,
+                thematicBreakCharacter: thematicBreakCharacter,
+                thematicBreakLength: thematicBreakLength,
+                emphasisMarker: emphasisMarker,
+                condenseAutolinks: condenseAutolinks,
+                preferredHeadingStyle: preferredHeadingStyle,
+                preferredLineLimit: preferredLineLimit,
+                customLinePrefix: customLinePrefix)
             let formatted = document.format(options: formatOptions)
             print(formatted)
             if checkStructuralEquivalence {
-                try checkStructuralEquivalence(between: document,
-                                               and: Document(parsing: formatted, options: parseOptions),
-                                               source: source)
+                try checkStructuralEquivalence(
+                    between: document,
+                    and: Document(parsing: formatted, options: parseOptions),
+                    source: source)
             }
         }
     }

@@ -18,43 +18,43 @@ final class ParagraphTests: XCTestCase {
 
         do { // Insert nothing
             var newParagraph = paragraph
-            newParagraph.replaceChildrenInRange(0..<0, with: [])
+            newParagraph.replaceChildrenInRange(0 ..< 0, with: [])
             assertElementDidntChange(paragraph, assertedStructure: Paragraph(Strong(Text("OK"))), expectedId: id)
             let expectedDump = """
-            Paragraph
-            └─ Strong
-               └─ Text "OK"
-            """
+                Paragraph
+                └─ Strong
+                   └─ Text "OK"
+                """
             XCTAssertEqual(expectedDump, newParagraph.debugDescription())
         }
 
         do { // Insert one
             var newParagraph = paragraph
-            newParagraph.replaceChildrenInRange(0..<0, with: [InlineCode("Array")])
+            newParagraph.replaceChildrenInRange(0 ..< 0, with: [InlineCode("Array")])
             assertElementDidntChange(paragraph, assertedStructure: Paragraph(Strong(Text("OK"))), expectedId: id)
             let expectedDump = """
-            Paragraph
-            ├─ InlineCode `Array`
-            └─ Strong
-               └─ Text "OK"
-            """
+                Paragraph
+                ├─ InlineCode `Array`
+                └─ Strong
+                   └─ Text "OK"
+                """
             XCTAssertEqual(expectedDump, newParagraph.debugDescription())
         }
 
         do { // Insert many
             var newParagraph = paragraph
-            newParagraph.replaceChildrenInRange(0..<0, with: [Text](repeating: Text("OK"), count: 5))
+            newParagraph.replaceChildrenInRange(0 ..< 0, with: [Text](repeating: Text("OK"), count: 5))
             assertElementDidntChange(paragraph, assertedStructure: Paragraph(Strong(Text("OK"))), expectedId: id)
             let expectedDump = """
-            Paragraph
-            ├─ Text "OK"
-            ├─ Text "OK"
-            ├─ Text "OK"
-            ├─ Text "OK"
-            ├─ Text "OK"
-            └─ Strong
-               └─ Text "OK"
-            """
+                Paragraph
+                ├─ Text "OK"
+                ├─ Text "OK"
+                ├─ Text "OK"
+                ├─ Text "OK"
+                ├─ Text "OK"
+                └─ Strong
+                   └─ Text "OK"
+                """
             XCTAssertEqual(expectedDump, newParagraph.debugDescription())
         }
     }
@@ -64,38 +64,38 @@ final class ParagraphTests: XCTestCase {
         let id = paragraph._data.id
         do { // Replace one
             var newParagraph = paragraph
-            newParagraph.replaceChildrenInRange(0..<1, with: [Text("Changed")])
+            newParagraph.replaceChildrenInRange(0 ..< 1, with: [Text("Changed")])
             assertElementDidntChange(paragraph, assertedStructure: Paragraph(Text("1"), Text("2"), Text("3"), Text("4")), expectedId: id)
             let expectedDump = """
-            Paragraph
-            ├─ Text "Changed"
-            ├─ Text "2"
-            ├─ Text "3"
-            └─ Text "4"
-            """
+                Paragraph
+                ├─ Text "Changed"
+                ├─ Text "2"
+                ├─ Text "3"
+                └─ Text "4"
+                """
             XCTAssertEqual(expectedDump, newParagraph.debugDescription())
         }
 
         do { // Replace many
             var newParagraph = paragraph
-            newParagraph.replaceChildrenInRange(0..<3, with: [Text("Changed")])
+            newParagraph.replaceChildrenInRange(0 ..< 3, with: [Text("Changed")])
             assertElementDidntChange(paragraph, assertedStructure: Paragraph(Text("1"), Text("2"), Text("3"), Text("4")), expectedId: id)
             let expectedDump = """
-            Paragraph
-            ├─ Text "Changed"
-            └─ Text "4"
-            """
+                Paragraph
+                ├─ Text "Changed"
+                └─ Text "4"
+                """
             XCTAssertEqual(expectedDump, newParagraph.debugDescription())
         }
 
         do { // Replace all
             var newParagraph = paragraph
-            newParagraph.replaceChildrenInRange(0..<4, with: [Text("Changed")])
+            newParagraph.replaceChildrenInRange(0 ..< 4, with: [Text("Changed")])
             assertElementDidntChange(paragraph, assertedStructure: Paragraph(Text("1"), Text("2"), Text("3"), Text("4")), expectedId: id)
             let expectedDump = """
-            Paragraph
-            └─ Text "Changed"
-            """
+                Paragraph
+                └─ Text "Changed"
+                """
             XCTAssertEqual(expectedDump, newParagraph.debugDescription())
         }
     }
@@ -103,44 +103,44 @@ final class ParagraphTests: XCTestCase {
     func testParagraphDeleting() {
         let paragraph = Paragraph(Text("1"), Text("2"), Text("3"), Text("4"))
         let id = paragraph._data.id
-        
+
         do { // None
             var newParagraph = paragraph
-            newParagraph.replaceChildrenInRange(0..<0, with: [])
+            newParagraph.replaceChildrenInRange(0 ..< 0, with: [])
             assertElementDidntChange(paragraph, assertedStructure: Paragraph(Text("1"), Text("2"), Text("3"), Text("4")), expectedId: id)
             XCTAssertEqual(paragraph.debugDescription(), newParagraph.debugDescription())
         }
 
         do { // One
             var newParagraph = paragraph
-            newParagraph.replaceChildrenInRange(0..<1, with: [])
+            newParagraph.replaceChildrenInRange(0 ..< 1, with: [])
             assertElementDidntChange(paragraph, assertedStructure: Paragraph(Text("1"), Text("2"), Text("3"), Text("4")), expectedId: id)
             let expectedDump = """
-            Paragraph
-            ├─ Text "2"
-            ├─ Text "3"
-            └─ Text "4"
-            """
+                Paragraph
+                ├─ Text "2"
+                ├─ Text "3"
+                └─ Text "4"
+                """
             XCTAssertEqual(expectedDump, newParagraph.debugDescription())
         }
 
         do { // Many
             var newParagraph = paragraph
-            newParagraph.replaceChildrenInRange(0..<3, with: [])
+            newParagraph.replaceChildrenInRange(0 ..< 3, with: [])
             assertElementDidntChange(paragraph, assertedStructure: Paragraph(Text("1"), Text("2"), Text("3"), Text("4")), expectedId: id)
             let expectedDump = """
-            Paragraph
-            └─ Text "4"
-            """
+                Paragraph
+                └─ Text "4"
+                """
             XCTAssertEqual(expectedDump, newParagraph.debugDescription())
         }
         do { // All
             var newParagraph = paragraph
-            newParagraph.replaceChildrenInRange(0..<4, with: [])
+            newParagraph.replaceChildrenInRange(0 ..< 4, with: [])
             assertElementDidntChange(paragraph, assertedStructure: Paragraph(Text("1"), Text("2"), Text("3"), Text("4")), expectedId: id)
             let expectedDump = """
-            Paragraph
-            """
+                Paragraph
+                """
             XCTAssertEqual(expectedDump, newParagraph.debugDescription())
         }
     }

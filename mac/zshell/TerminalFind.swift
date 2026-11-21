@@ -110,9 +110,9 @@ final class TerminalFind: nonisolated ObservableObject {
     func restoreTerminalFocus() {
         DispatchQueue.main.async { [surface] in
             guard NSApp.isActive,
-                  let window = surface.window,
-                  window.isKeyWindow,
-                  window.firstResponder !== surface
+                let window = surface.window,
+                window.isKeyWindow,
+                window.firstResponder !== surface
             else { return }
             window.makeFirstResponder(surface)
         }
@@ -169,8 +169,9 @@ final class TerminalFind: nonisolated ObservableObject {
             guard !reveal.started, total == reveal.total else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
                 guard let self, var pending = self.logReveal,
-                      pending.generation == reveal.generation, !pending.started,
-                      self.total == pending.total else { return }
+                    pending.generation == reveal.generation, !pending.started,
+                    self.total == pending.total
+                else { return }
                 pending.started = true
                 self.logReveal = pending
                 self.surface.stepFind(forward: pending.forward)
@@ -207,8 +208,9 @@ final class TerminalFind: nonisolated ObservableObject {
         let forward = target <= total / 2
         searchGeneration += 1
         let generation = searchGeneration
-        logReveal = LogReveal(generation: generation, target: target, total: total,
-                              forward: forward, completion: completion)
+        logReveal = LogReveal(
+            generation: generation, target: target, total: total,
+            forward: forward, completion: completion)
         isApplyingReportedNeedle = true
         query = needle
         isApplyingReportedNeedle = false

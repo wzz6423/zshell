@@ -65,7 +65,7 @@ import Testing
         kind: .prefix,
         config: EditDistanceConfig(prefixWeight: 1.5, substringWeight: 1.0)
     )
-    let expected = 1.0 - 0.2 / 1.5  // ≈ 0.8667
+    let expected = 1.0 - 0.2 / 1.5 // ≈ 0.8667
     #expect(abs(score - expected) < 0.0001)
 }
 
@@ -91,9 +91,9 @@ import Testing
         firstMatchBonus: 0.0
     )
 
-    let positions = [0, 5]  // Gap of 4 characters
+    let positions = [0, 5] // Gap of 4 characters
     let candidate = Array("abcdef".utf8)
-    let boundaryMask: UInt64 = 0b1  // Only position 0
+    let boundaryMask: UInt64 = 0b1 // Only position 0
 
     let bonus = calculateBonuses(
         matchPositions: positions,
@@ -178,19 +178,20 @@ import Testing
 @Test func prefixMatchScoreWithDefaultConfig() {
     // Test prefix match score with known configuration
     let config = MatchConfig(
-        algorithm: .editDistance(EditDistanceConfig(
-            prefixWeight: 1.5,
-            substringWeight: 1.0,
-            wordBoundaryBonus: 0.0,
-            consecutiveBonus: 0.0,
-            gapPenalty: .none,
-            firstMatchBonus: 0.0
-        ))
+        algorithm: .editDistance(
+            EditDistanceConfig(
+                prefixWeight: 1.5,
+                substringWeight: 1.0,
+                wordBoundaryBonus: 0.0,
+                consecutiveBonus: 0.0,
+                gapPenalty: .none,
+                firstMatchBonus: 0.0
+            ))
     )
     let matcher = FuzzyMatcher(config: config)
     var buffer = matcher.makeBuffer()
 
-    let query = matcher.prepare("test")  // 4 chars
+    let query = matcher.prepare("test") // 4 chars
     let result = matcher.score("testing", against: query, buffer: &buffer)
 
     #expect(result != nil)
@@ -207,14 +208,15 @@ import Testing
     // A perfect prefix match (distance=0) should score strictly higher than
     // a transposed prefix match (distance=1), even with prefix weight boosting.
     let config = MatchConfig(
-        algorithm: .editDistance(EditDistanceConfig(
-            prefixWeight: 1.5,
-            substringWeight: 1.0,
-            wordBoundaryBonus: 0.0,
-            consecutiveBonus: 0.0,
-            gapPenalty: .none,
-            firstMatchBonus: 0.0
-        ))
+        algorithm: .editDistance(
+            EditDistanceConfig(
+                prefixWeight: 1.5,
+                substringWeight: 1.0,
+                wordBoundaryBonus: 0.0,
+                consecutiveBonus: 0.0,
+                gapPenalty: .none,
+                firstMatchBonus: 0.0
+            ))
     )
     let matcher = FuzzyMatcher(config: config)
     var buffer = matcher.makeBuffer()
@@ -229,20 +231,22 @@ import Testing
 
     #expect(perfectResult != nil)
     #expect(transposedResult != nil)
-    #expect(perfectResult!.score > transposedResult!.score,
-            "Perfect prefix (\(perfectResult!.score)) should score strictly higher than transposed prefix (\(transposedResult!.score))")
+    #expect(
+        perfectResult!.score > transposedResult!.score,
+        "Perfect prefix (\(perfectResult!.score)) should score strictly higher than transposed prefix (\(transposedResult!.score))")
 }
 
 @Test func substringMatchScoreWithKnownConfig() {
     let config = MatchConfig(
-        algorithm: .editDistance(EditDistanceConfig(
-            prefixWeight: 1.0,
-            substringWeight: 0.9,
-            wordBoundaryBonus: 0.0,
-            consecutiveBonus: 0.0,
-            gapPenalty: .none,
-            firstMatchBonus: 0.0
-        ))
+        algorithm: .editDistance(
+            EditDistanceConfig(
+                prefixWeight: 1.0,
+                substringWeight: 0.9,
+                wordBoundaryBonus: 0.0,
+                consecutiveBonus: 0.0,
+                gapPenalty: .none,
+                firstMatchBonus: 0.0
+            ))
     )
     let matcher = FuzzyMatcher(config: config)
     var buffer = matcher.makeBuffer()
@@ -264,21 +268,22 @@ import Testing
 @Test func typoMatchScoreVerification() {
     let config = MatchConfig(
         minScore: 0.0,
-        algorithm: .editDistance(EditDistanceConfig(
-            maxEditDistance: 2,
-            prefixWeight: 1.0,
-            substringWeight: 1.0,
-            wordBoundaryBonus: 0.0,
-            consecutiveBonus: 0.0,
-            gapPenalty: .none,
-            firstMatchBonus: 0.0
-        ))
+        algorithm: .editDistance(
+            EditDistanceConfig(
+                maxEditDistance: 2,
+                prefixWeight: 1.0,
+                substringWeight: 1.0,
+                wordBoundaryBonus: 0.0,
+                consecutiveBonus: 0.0,
+                gapPenalty: .none,
+                firstMatchBonus: 0.0
+            ))
     )
     let matcher = FuzzyMatcher(config: config)
     var buffer = matcher.makeBuffer()
 
     // "helo" vs "hello" - one insertion needed, distance = 1
-    let query = matcher.prepare("helo")  // 4 chars
+    let query = matcher.prepare("helo") // 4 chars
     let result = matcher.score("hello", against: query, buffer: &buffer)
 
     #expect(result != nil)
@@ -292,21 +297,22 @@ import Testing
 @Test func transpositionMatchScoreVerification() {
     let config = MatchConfig(
         minScore: 0.0,
-        algorithm: .editDistance(EditDistanceConfig(
-            maxEditDistance: 2,
-            prefixWeight: 1.0,
-            substringWeight: 1.0,
-            wordBoundaryBonus: 0.0,
-            consecutiveBonus: 0.0,
-            gapPenalty: .none,
-            firstMatchBonus: 0.0
-        ))
+        algorithm: .editDistance(
+            EditDistanceConfig(
+                maxEditDistance: 2,
+                prefixWeight: 1.0,
+                substringWeight: 1.0,
+                wordBoundaryBonus: 0.0,
+                consecutiveBonus: 0.0,
+                gapPenalty: .none,
+                firstMatchBonus: 0.0
+            ))
     )
     let matcher = FuzzyMatcher(config: config)
     var buffer = matcher.makeBuffer()
 
     // "teh" vs "the" - one transposition, distance = 1
-    let query = matcher.prepare("teh")  // 3 chars
+    let query = matcher.prepare("teh") // 3 chars
     let result = matcher.score("the", against: query, buffer: &buffer)
 
     #expect(result != nil)
@@ -322,16 +328,17 @@ import Testing
 @Test func gubiMatchesGetUserByIdWithBonuses() {
     let config = MatchConfig(
         minScore: 0.1,
-        algorithm: .editDistance(EditDistanceConfig(
-            maxEditDistance: 2,
-            prefixWeight: 1.0,
-            substringWeight: 1.0,
-            wordBoundaryBonus: 0.1,
-            consecutiveBonus: 0.05,
-            gapPenalty: .linear(perCharacter: 0.01),
-            firstMatchBonus: 0.15,
-            firstMatchBonusRange: 10
-        ))
+        algorithm: .editDistance(
+            EditDistanceConfig(
+                maxEditDistance: 2,
+                prefixWeight: 1.0,
+                substringWeight: 1.0,
+                wordBoundaryBonus: 0.1,
+                consecutiveBonus: 0.05,
+                gapPenalty: .linear(perCharacter: 0.01),
+                firstMatchBonus: 0.15,
+                firstMatchBonusRange: 10
+            ))
     )
     let matcher = FuzzyMatcher(config: config)
     var buffer = matcher.makeBuffer()
@@ -347,20 +354,21 @@ import Testing
 // MARK: - Score Range Verification
 
 @Test func allScoresBetweenZeroAndOne() {
-    let matcher = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .editDistance(EditDistanceConfig(maxEditDistance: 3))
-    ))
+    let matcher = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .editDistance(EditDistanceConfig(maxEditDistance: 3))
+        ))
     var buffer = matcher.makeBuffer()
 
     let testCases: [(String, String)] = [
-        ("hello", "hello"),      // Exact
+        ("hello", "hello"), // Exact
         ("hello", "helloworld"), // Prefix
         ("hello", "worldhello"), // Substring
-        ("helo", "hello"),       // Typo
-        ("teh", "the"),          // Transposition
-        ("abc", "abcdef"),       // Short query
-        ("x", "xyz")            // Single char
+        ("helo", "hello"), // Typo
+        ("teh", "the"), // Transposition
+        ("abc", "abcdef"), // Short query
+        ("x", "xyz"), // Single char
     ]
 
     for (queryStr, candidate) in testCases {
@@ -385,7 +393,7 @@ import Testing
     // These specific values should produce predictable results
     let positions = [0, 1, 2, 3, 4]
     let candidate = Array("abcde".utf8)
-    let boundaryMask: UInt64 = 0b1  // Only position 0
+    let boundaryMask: UInt64 = 0b1 // Only position 0
 
     let bonus = calculateBonuses(
         matchPositions: positions,
@@ -400,7 +408,7 @@ import Testing
     // Total: 0.3
     // Plus firstMatchBonus (default 0.15 at position 0)
     let expectedBase: Double = 0.1 + 0.2
-    let expectedFirstMatch: Double = 0.15  // Full bonus at position 0
+    let expectedFirstMatch: Double = 0.15 // Full bonus at position 0
 
     let expected = expectedBase + expectedFirstMatch
     #expect(abs(bonus - expected) < 0.0001, "Expected \(expected), got \(bonus)")

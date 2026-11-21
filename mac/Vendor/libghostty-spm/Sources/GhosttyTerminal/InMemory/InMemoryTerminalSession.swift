@@ -121,14 +121,15 @@ public final class InMemoryTerminalSession: @unchecked Sendable {
 
     func updateViewport(_ size: TerminalGridMetrics) {
         TerminalDebugLog.log(.metrics, "in-memory viewport update \(size.debugSummary)")
-        dispatchResize(InMemoryTerminalViewport(
-            columns: size.columns,
-            rows: size.rows,
-            widthPixels: size.widthPixels,
-            heightPixels: size.heightPixels,
-            cellWidthPixels: size.cellWidthPixels,
-            cellHeightPixels: size.cellHeightPixels
-        ))
+        dispatchResize(
+            InMemoryTerminalViewport(
+                columns: size.columns,
+                rows: size.rows,
+                widthPixels: size.widthPixels,
+                heightPixels: size.heightPixels,
+                cellWidthPixels: size.cellWidthPixels,
+                cellHeightPixels: size.cellHeightPixels
+            ))
     }
 
     // MARK: - Receiving Data
@@ -174,10 +175,12 @@ public final class InMemoryTerminalSession: @unchecked Sendable {
 
     /// Enqueue a host-managed process exit after all previously received data.
     public func finish(exitCode: UInt32, runtimeMilliseconds: UInt64) {
-        guard surfaceAccess.enqueueProcessExit(
-            exitCode: exitCode,
-            runtimeMilliseconds: runtimeMilliseconds
-        ) else {
+        guard
+            surfaceAccess.enqueueProcessExit(
+                exitCode: exitCode,
+                runtimeMilliseconds: runtimeMilliseconds
+            )
+        else {
             TerminalDebugLog.log(
                 .lifecycle,
                 "process exit ignored: missing surface exitCode=\(exitCode) runtimeMs=\(runtimeMilliseconds)"
@@ -215,12 +218,13 @@ public final class InMemoryTerminalSession: @unchecked Sendable {
             .metrics,
             "receive resize cols=\(cols) rows=\(rows) pixels=\(widthPx)x\(heightPx)"
         )
-        session.dispatchResize(InMemoryTerminalViewport(
-            columns: cols,
-            rows: rows,
-            widthPixels: widthPx,
-            heightPixels: heightPx
-        ))
+        session.dispatchResize(
+            InMemoryTerminalViewport(
+                columns: cols,
+                rows: rows,
+                widthPixels: widthPx,
+                heightPixels: heightPx
+            ))
     }
 
     private func dispatchResize(_ resize: InMemoryTerminalViewport) {

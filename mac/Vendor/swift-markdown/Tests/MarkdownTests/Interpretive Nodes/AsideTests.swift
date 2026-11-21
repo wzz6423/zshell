@@ -49,7 +49,7 @@ class AsideTests: XCTestCase {
         let blockQuote = document.child(at: 0) as! BlockQuote
         let aside = Aside(blockQuote)
         XCTAssertEqual(.init(rawValue: "Hmm")!, aside.kind)
-        
+
         // Note that the initial text in the paragraph has been adjusted
         // to after the tag.
         let expectedRootDump = """
@@ -76,8 +76,8 @@ class AsideTests: XCTestCase {
     func testConversionStrategySingleWord() throws {
         do {
             let source = """
-            > This is a regular block quote.
-            """
+                > This is a regular block quote.
+                """
             let document = Document(parsing: source)
             let blockQuote = document.child(at: 0) as! BlockQuote
             XCTAssertNil(Aside(blockQuote, tagRequirement: .requireSingleWordTag))
@@ -93,11 +93,11 @@ class AsideTests: XCTestCase {
         do {
             let source = "> Important: This is an aside."
             let expectedRootDump = """
-            Document @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
-            └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
-               └─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:31
-                  └─ Text @/path/to/some-file.md:1:14-/path/to/some-file.md:1:31 "This is an aside."
-            """
+                Document @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
+                └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
+                   └─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:31
+                      └─ Text @/path/to/some-file.md:1:14-/path/to/some-file.md:1:31 "This is an aside."
+                """
             try assertAside(
                 source: source,
                 conversionStrategy: .requireSingleWordTag,
@@ -109,8 +109,8 @@ class AsideTests: XCTestCase {
     func testConversionStrategyMultipleWords() throws {
         do {
             let source = """
-            > This is a regular block quote.
-            """
+                > This is a regular block quote.
+                """
             let document = Document(parsing: source)
             let blockQuote = document.child(at: 0) as! BlockQuote
             XCTAssertNil(Aside(blockQuote, tagRequirement: .requireAnyLengthTag))
@@ -119,11 +119,11 @@ class AsideTests: XCTestCase {
         do {
             let source = "> See Also: A different topic."
             let expectedRootDump = """
-            Document @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
-            └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
-               └─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:31
-                  └─ Text @/path/to/some-file.md:1:13-/path/to/some-file.md:1:31 "A different topic."
-            """
+                Document @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
+                └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
+                   └─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:31
+                      └─ Text @/path/to/some-file.md:1:13-/path/to/some-file.md:1:31 "A different topic."
+                """
             try assertAside(
                 source: source,
                 conversionStrategy: .requireAnyLengthTag,
@@ -134,11 +134,11 @@ class AsideTests: XCTestCase {
         do {
             let source = "> Important: This is an aside."
             let expectedRootDump = """
-            Document @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
-            └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
-               └─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:31
-                  └─ Text @/path/to/some-file.md:1:14-/path/to/some-file.md:1:31 "This is an aside."
-            """
+                Document @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
+                └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
+                   └─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:31
+                      └─ Text @/path/to/some-file.md:1:14-/path/to/some-file.md:1:31 "This is an aside."
+                """
             try assertAside(
                 source: source,
                 conversionStrategy: .requireAnyLengthTag,
@@ -150,14 +150,14 @@ class AsideTests: XCTestCase {
     func testConversionStrategyAllowNoLabel() throws {
         do {
             let source = """
-            > This is a regular block quote.
-            """
+                > This is a regular block quote.
+                """
             let expectedRootDump = """
-            Document @/path/to/some-file.md:1:1-/path/to/some-file.md:1:33
-            └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:1:33
-               └─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:33
-                  └─ Text @/path/to/some-file.md:1:3-/path/to/some-file.md:1:33 "This is a regular block quote."
-            """
+                Document @/path/to/some-file.md:1:1-/path/to/some-file.md:1:33
+                └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:1:33
+                   └─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:33
+                      └─ Text @/path/to/some-file.md:1:3-/path/to/some-file.md:1:33 "This is a regular block quote."
+                """
             try assertAside(
                 source: source,
                 conversionStrategy: .tagNotRequired,
@@ -168,11 +168,11 @@ class AsideTests: XCTestCase {
         do {
             let source = "> See Also: A different topic."
             let expectedRootDump = """
-            Document @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
-            └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
-               └─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:31
-                  └─ Text @/path/to/some-file.md:1:13-/path/to/some-file.md:1:31 "A different topic."
-            """
+                Document @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
+                └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
+                   └─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:31
+                      └─ Text @/path/to/some-file.md:1:13-/path/to/some-file.md:1:31 "A different topic."
+                """
             try assertAside(
                 source: source,
                 conversionStrategy: .tagNotRequired,
@@ -183,11 +183,11 @@ class AsideTests: XCTestCase {
         do {
             let source = "> Important: This is an aside."
             let expectedRootDump = """
-            Document @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
-            └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
-               └─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:31
-                  └─ Text @/path/to/some-file.md:1:14-/path/to/some-file.md:1:31 "This is an aside."
-            """
+                Document @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
+                └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:1:31
+                   └─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:31
+                      └─ Text @/path/to/some-file.md:1:14-/path/to/some-file.md:1:31 "This is an aside."
+                """
             try assertAside(
                 source: source,
                 conversionStrategy: .tagNotRequired,
@@ -209,47 +209,50 @@ class AsideTests: XCTestCase {
         let aside = try XCTUnwrap(Aside(blockQuote))
 
         let expectedRootDump = """
-        BlockQuote
-        └─ Paragraph @/path/to/some-file.md:1:1-/path/to/some-file.md:1:32
-           └─ Text @/path/to/some-file.md:1:7-/path/to/some-file.md:1:32 "This is just a paragraph."
-        """
+            BlockQuote
+            └─ Paragraph @/path/to/some-file.md:1:1-/path/to/some-file.md:1:32
+               └─ Text @/path/to/some-file.md:1:7-/path/to/some-file.md:1:32 "This is just a paragraph."
+            """
 
         XCTAssertEqual(expectedRootDump, aside.content[0].root.debugDescription(options: .printSourceLocations))
     }
-    
+
     func testDoesNotCrashParsingTagWithEnDashAndListItemContent() throws {
         let enDash = "\u{2013}"
         let emDash = "\u{2014}"
-        
+
         for (dashMarkup, expectedColumn, formattedDash) in [
-            ("-",   18, "-"),
-            ("--",  19, enDash),
+            ("-", 18, "-"),
+            ("--", 19, enDash),
             ("---", 20, emDash),
-            
+
             (enDash, 20, enDash), // The unicode en-dash character is 3 UTF-8 bytes
             (emDash, 20, emDash), // The unicode em-dash character is 3 UTF-8 bytes
-        ]{
+        ] {
             try assertAside(
                 source: """
-                > Before \(dashMarkup) after:
-                > - All other content is inside unordered list
-                """,
+                    > Before \(dashMarkup) after:
+                    > - All other content is inside unordered list
+                    """,
                 conversionStrategy: .tagNotRequired,
                 expectedKind: try XCTUnwrap(.init(rawValue: "Before \(formattedDash) after")),
                 expectedRootDump: """
-                Document @/path/to/some-file.md:1:1-/path/to/some-file.md:2:47
-                └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:2:47
-                   ├─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:\(expectedColumn)
-                   │  └─ Text @/path/to/some-file.md:1:\(expectedColumn) ""
-                   └─ UnorderedList @/path/to/some-file.md:2:3-/path/to/some-file.md:2:47
-                      └─ ListItem @/path/to/some-file.md:2:3-/path/to/some-file.md:2:47
-                         └─ Paragraph @/path/to/some-file.md:2:5-/path/to/some-file.md:2:47
-                            └─ Text @/path/to/some-file.md:2:5-/path/to/some-file.md:2:47 "All other content is inside unordered list"
-                """)
+                    Document @/path/to/some-file.md:1:1-/path/to/some-file.md:2:47
+                    └─ BlockQuote @/path/to/some-file.md:1:1-/path/to/some-file.md:2:47
+                       ├─ Paragraph @/path/to/some-file.md:1:3-/path/to/some-file.md:1:\(expectedColumn)
+                       │  └─ Text @/path/to/some-file.md:1:\(expectedColumn) ""
+                       └─ UnorderedList @/path/to/some-file.md:2:3-/path/to/some-file.md:2:47
+                          └─ ListItem @/path/to/some-file.md:2:3-/path/to/some-file.md:2:47
+                             └─ Paragraph @/path/to/some-file.md:2:5-/path/to/some-file.md:2:47
+                                └─ Text @/path/to/some-file.md:2:5-/path/to/some-file.md:2:47 "All other content is inside unordered list"
+                    """)
         }
     }
 
-    func assertAside(source: String, conversionStrategy: Aside.TagRequirement, expectedKind: Aside.Kind, expectedRootDump: String, file: StaticString = #file, line: UInt = #line) throws {
+    func assertAside(
+        source: String, conversionStrategy: Aside.TagRequirement, expectedKind: Aside.Kind, expectedRootDump: String,
+        file: StaticString = #file, line: UInt = #line
+    ) throws {
         let fakeFileLocation = URL(fileURLWithPath: "/path/to/some-file.md")
         let document = Document(parsing: source, source: fakeFileLocation)
         let blockQuote = document.child(at: 0) as! BlockQuote

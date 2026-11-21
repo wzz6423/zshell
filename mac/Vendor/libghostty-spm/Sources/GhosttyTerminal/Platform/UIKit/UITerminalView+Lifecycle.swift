@@ -144,8 +144,8 @@
             TerminalDebugLog.log(.lifecycle, "updateColorScheme scheme=\(scheme)")
             surface?.setColorScheme(scheme.ghosttyValue)
             if let controller,
-               let viewState = delegate as? TerminalViewState,
-               viewState.controller === controller
+                let viewState = delegate as? TerminalViewState,
+                viewState.controller === controller
             {
                 viewState.adopt(terminalColorScheme: scheme)
             } else {

@@ -42,10 +42,12 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     func set(_ directory: String, _ names: [String]) {
         condition.lock()
         defer { condition.unlock() }
-        responses[directory] = .success(names.map {
-            SSHEndpoint.DirectoryEntry(name: $0.hasSuffix("/") ? String($0.dropLast()) : $0,
-                                       isDirectory: $0.hasSuffix("/"))
-        })
+        responses[directory] = .success(
+            names.map {
+                SSHEndpoint.DirectoryEntry(
+                    name: $0.hasSuffix("/") ? String($0.dropLast()) : $0,
+                    isDirectory: $0.hasSuffix("/"))
+            })
     }
 
     func fail(_ directory: String, _ message: String = "Fixture offline") {
@@ -120,7 +122,7 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     try await eventually("initial listing") { !model.isRemoteLoading }
     try require(model.items.map(\.name) == ["initial.txt"], "Initial listing is visible")
     fixture.set("/repo", ["new.txt", "initial.txt"])
-    for _ in 0..<500 { model.sync(root: "/repo") }
+    for _ in 0 ..< 500 { model.sync(root: "/repo") }
     clock.advance(4.99)
     model.sync(root: "/repo")
     try await Task.sleep(for: .milliseconds(10))
@@ -168,8 +170,9 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
         !model.isRemoteLoading && model.items.contains { $0.name == "after.txt" }
     }
     try require(model.items.contains { $0.name == "new-child.txt" }, "Sync refreshes expanded child directories")
-    try require(!model.items.contains { $0.name == "child.txt" || $0.name == "before.txt" },
-                "Deleted and renamed children leave the visible tree")
+    try require(
+        !model.items.contains { $0.name == "child.txt" || $0.name == "before.txt" },
+        "Deleted and renamed children leave the visible tree")
     fixture.fail("/repo/folder/nested")
     fixture.hold("/repo")
     defer { fixture.release() }
@@ -206,7 +209,7 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     model.sync(root: "/repo")
     try await eventually("initial failure") { !model.isRemoteLoading }
     try require(model.remoteError != nil && model.items.isEmpty, "Initial failure is surfaced")
-    for _ in 0..<500 { model.sync(root: "/repo") }
+    for _ in 0 ..< 500 { model.sync(root: "/repo") }
     try require(fixture.count("/repo") == 1, "Initial failures are also throttled")
     fixture.set("/repo", ["folder/", "kept.txt"])
     clock.advance()
@@ -221,8 +224,9 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     fixture.set("/repo", ["folder/", "recovered.txt"])
     model.retryRemoteRoot()
     try await eventually("manual root recovery inside throttle") { !model.isRemoteLoading }
-    try require(model.items.contains { $0.name == "recovered.txt" } && model.remoteError == nil,
-                "Retry bypasses the throttle even with cached contents")
+    try require(
+        model.items.contains { $0.name == "recovered.txt" } && model.remoteError == nil,
+        "Retry bypasses the throttle even with cached contents")
     fixture.set("/repo/folder", ["old-child.txt"])
     model.toggle(try directory("folder", in: model))
     try await eventually("child before failure") { !model.isRemoteLoading }
@@ -235,9 +239,10 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     let previous = fixture.count("/repo/folder")
     model.retryRemoteRoot()
     try await eventually("manual child recovery") { !model.isRemoteLoading }
-    try require(fixture.count("/repo/folder") == previous + 1
-                && model.items.contains { $0.name == "new-child.txt" } && model.remoteError == nil,
-                "Retry also bypasses throttling for visible failed children")
+    try require(
+        fixture.count("/repo/folder") == previous + 1
+            && model.items.contains { $0.name == "new-child.txt" } && model.remoteError == nil,
+        "Retry also bypasses throttling for visible failed children")
     print("PASS initial/cached failure throttling, automatic recovery, root/child manual retry")
 }
 
@@ -245,11 +250,11 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     let fixture = ListingFixture()
     let clock = TestClock()
     let model = try model(fixture, clock)
-    let names = (0..<8).map { "folder\($0)/" }
+    let names = (0 ..< 8).map { "folder\($0)/" }
     fixture.set("/repo", names)
     model.sync(root: "/repo")
     try await eventually("scheduler root") { !model.isRemoteLoading }
-    for index in 0..<8 {
+    for index in 0 ..< 8 {
         let path = "/repo/folder\(index)"
         fixture.set(path, ["child\(index).txt"])
         fixture.hold(path)
@@ -257,35 +262,36 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     }
     defer { fixture.release() }
     try await eventually("two active requests") { fixture.requests.count == 3 }
-    for _ in 0..<1000 { model.sync(root: "/repo") }
+    for _ in 0 ..< 1000 { model.sync(root: "/repo") }
     try await Task.sleep(for: .milliseconds(10))
-    try require(fixture.requests.count == 3 && fixture.maximumActive == 2,
-                "Repeated syncs cannot exceed two requests or enqueue duplicate directory work")
+    try require(
+        fixture.requests.count == 3 && fixture.maximumActive == 2,
+        "Repeated syncs cannot exceed two requests or enqueue duplicate directory work")
     model.toggle(try directory("folder7", in: model))
     fixture.release()
     try await eventually("bounded queue drained") { !model.isRemoteLoading }
     let beforeFreshSyncs = fixture.requests.count
-    for _ in 0..<200 { model.sync(root: "/repo") }
+    for _ in 0 ..< 200 { model.sync(root: "/repo") }
     try await Task.sleep(for: .milliseconds(10))
     try require(fixture.requests.count == beforeFreshSyncs, "A burst after completions cannot bypass the throttle")
-    for index in 0..<7 {
+    for index in 0 ..< 7 {
         try require(fixture.count("/repo/folder\(index)") == 1, "Each pending directory is listed once")
     }
     try require(fixture.count("/repo/folder7") == 0, "Collapsing a queued directory drops its request")
     clock.advance(1)
     model.retryRemoteRoot()
     try await eventually("more recent root") { !model.isRemoteLoading }
-    for index in 0..<7 { fixture.hold("/repo/folder\(index)") }
+    for index in 0 ..< 7 { fixture.hold("/repo/folder\(index)") }
     clock.advance()
     model.sync(root: "/repo")
     try await eventually("older child requests scheduled") { fixture.requests.count == 11 }
     try require(fixture.count("/repo") == 2, "Older children precede the more recent root")
     clock.advance(50)
-    for _ in 0..<1000 { model.sync(root: "/repo") }
+    for _ in 0 ..< 1000 { model.sync(root: "/repo") }
     fixture.release()
     try await eventually("root and all children eventually refreshed") { !model.isRemoteLoading }
     try require(fixture.count("/repo") >= 3, "Failing or stale child work cannot starve the root")
-    for index in 0..<7 {
+    for index in 0 ..< 7 {
         try require(fixture.count("/repo/folder\(index)") >= 2, "Every expanded directory gets another turn")
     }
     try require(fixture.maximumActive <= 2, "Concurrency remains bounded while the clock advances")
@@ -322,8 +328,9 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     try await eventually("same-path replacement directory") {
         model.items.contains { $0.name == "folder" && $0.isDirectory }
     }
-    try require(!model.items.contains { $0.name == "old.txt" || $0.name == "obsolete.txt" },
-                "A replacement directory cannot reuse the removed directory's cache")
+    try require(
+        !model.items.contains { $0.name == "old.txt" || $0.name == "obsolete.txt" },
+        "A replacement directory cannot reuse the removed directory's cache")
     model.sync(root: "/repo")
     var stalePublication = false
     let observation = model.$items.dropFirst().sink { items in
@@ -332,18 +339,20 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     defer { observation.cancel() }
     fixture.release("/repo/folder")
     try await eventually("replacement directory refreshed without toggling") { !model.isRemoteLoading }
-    try require(model.items.contains { $0.name == "replacement.txt" } && !stalePublication,
-                "A late removed-directory result is rejected before a new same-path listing")
+    try require(
+        model.items.contains { $0.name == "replacement.txt" } && !stalePublication,
+        "A late removed-directory result is rejected before a new same-path listing")
     try require(!model.items.contains { $0.name == "nested-old.txt" }, "Removed descendant caches are discarded")
     fixture.set("/repo", ["renamed-folder/", "stable.txt"])
     clock.advance()
     model.sync(root: "/repo")
     try await eventually("parent directory renamed") { !model.isRemoteLoading }
-    try require(!model.items.contains { $0.path.hasPrefix("/repo/folder") },
-                "An external directory rename removes the old subtree")
+    try require(
+        !model.items.contains { $0.path.hasPrefix("/repo/folder") },
+        "An external directory rename removes the old subtree")
     let oldRequests = fixture.count("/repo/folder")
     clock.advance()
-    for _ in 0..<200 { model.sync(root: "/repo") }
+    for _ in 0 ..< 200 { model.sync(root: "/repo") }
     try await eventually("renamed parent stable sync") { !model.isRemoteLoading }
     try require(fixture.count("/repo/folder") == oldRequests, "Removed directories are no longer requested")
     print("PASS parent directory/file replacement, descendant invalidation, late child rejection, rename")
@@ -365,9 +374,10 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     model.toggle(try directory("b", in: model))
     try await eventually("retry busy workers") { fixture.requests.count == 3 }
     fixture.set("/repo", ["a/", "b/", "retry.txt"])
-    for _ in 0..<100 { model.retryRemoteRoot() }
-    try require(fixture.count("/repo") == 1 && fixture.maximumActive == 2,
-                "Forced retries wait for a slot instead of opening more connections")
+    for _ in 0 ..< 100 { model.retryRemoteRoot() }
+    try require(
+        fixture.count("/repo") == 1 && fixture.maximumActive == 2,
+        "Forced retries wait for a slot instead of opening more connections")
     fixture.release("/repo/a")
     try await eventually("queued forced root") { model.items.contains { $0.name == "retry.txt" } }
     try require(fixture.count("/repo") == 2, "Multiple queued retries coalesce and bypass the throttle")
@@ -397,8 +407,9 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     try await eventually("fresh root after A/B/A") { model.items.map(\.name) == ["fresh-a.txt"] }
     fixture.release("/b")
     try await Task.sleep(for: .milliseconds(20))
-    try require(model.items.map(\.name) == ["fresh-a.txt"] && model.remoteError == nil,
-                "Root A/B/A rejects both older roots and preserves the newest same-path request")
+    try require(
+        model.items.map(\.name) == ["fresh-a.txt"] && model.remoteError == nil,
+        "Root A/B/A rejects both older roots and preserves the newest same-path request")
     fixture.set("/a", ["stale-host.txt"])
     fixture.hold("/a")
     clock.advance()
@@ -416,10 +427,12 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     defer { observation.cancel() }
     fixture.release("/a")
     try await eventually("endpoint round trip same path") { !model.isRemoteLoading }
-    try require(model.items.map(\.name) == ["fresh-host.txt"] && !stalePublication,
-                "Endpoint A/B/A rejects an old result even when endpoint and path match again")
-    try require(fixture.requests.filter { $0.destination == "second.invalid" }.isEmpty,
-                "An intermediate endpoint's pending work is discarded")
+    try require(
+        model.items.map(\.name) == ["fresh-host.txt"] && !stalePublication,
+        "Endpoint A/B/A rejects an old result even when endpoint and path match again")
+    try require(
+        fixture.requests.filter { $0.destination == "second.invalid" }.isEmpty,
+        "An intermediate endpoint's pending work is discarded")
     try require(fixture.maximumActive <= 2, "Round trips do not remove newer connection accounting")
     print("PASS root and endpoint A/B/A round trips at the same path")
 }
@@ -438,8 +451,9 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     try await eventually("new root completed first") { model.items.map(\.name) == ["new.txt"] }
     fixture.release("/old")
     try await Task.sleep(for: .milliseconds(20))
-    try require(model.items.map(\.name) == ["new.txt"] && model.remoteError == nil,
-                "An older root cannot overwrite the new listing")
+    try require(
+        model.items.map(\.name) == ["new.txt"] && model.remoteError == nil,
+        "An older root cannot overwrite the new listing")
     fixture.fail("/new")
     fixture.hold("/new")
     clock.advance()
@@ -451,8 +465,9 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     try require(model.items.isEmpty && model.remoteError == nil, "Endpoint switch clears old visible state")
     fixture.release("/new")
     try await eventually("new endpoint same path") { !model.isRemoteLoading }
-    try require(model.items.map(\.name) == ["new-host.txt"] && model.remoteError == nil,
-                "Old endpoint failure cannot contaminate the new endpoint at the same root")
+    try require(
+        model.items.map(\.name) == ["new-host.txt"] && model.remoteError == nil,
+        "Old endpoint failure cannot contaminate the new endpoint at the same root")
     try require(fixture.requests.last?.destination == "second.invalid", "Fresh request targets the new host")
     fixture.hold("/new")
     clock.advance()
@@ -461,8 +476,9 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     model.sync(root: "")
     fixture.release("/new")
     try await Task.sleep(for: .milliseconds(20))
-    try require(model.items.isEmpty && model.remoteError == nil && !model.isRemoteLoading,
-                "Clearing the root discards old work and loading")
+    try require(
+        model.items.isEmpty && model.remoteError == nil && !model.isRemoteLoading,
+        "Clearing the root discards old work and loading")
     print("PASS late root/endpoint results, same-path endpoint changes, empty roots")
 }
 
@@ -470,7 +486,7 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     let fixture = ListingFixture()
     let clock = TestClock()
     let model = try model(fixture, clock)
-    for index in 0..<20 {
+    for index in 0 ..< 20 {
         fixture.set("/root\(index)", ["file\(index).txt"])
         fixture.hold("/root\(index)")
     }
@@ -478,13 +494,14 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     model.sync(root: "/root0")
     model.sync(root: "/root1")
     try await eventually("two older roots") { fixture.requests.count == 2 }
-    for index in 2..<20 { model.sync(root: "/root\(index)") }
+    for index in 2 ..< 20 { model.sync(root: "/root\(index)") }
     try require(fixture.requests.count == 2 && model.isRemoteLoading, "Old roots retain connection slots")
     fixture.release()
     try await eventually("latest root wins") { !model.isRemoteLoading }
     try require(model.items.map(\.name) == ["file19.txt"], "Only the final root can publish contents")
-    try require(fixture.requests.count == 3 && fixture.count("/root19") == 1,
-                "Intermediate root candidates are dropped rather than accumulated")
+    try require(
+        fixture.requests.count == 3 && fixture.count("/root19") == 1,
+        "Intermediate root candidates are dropped rather than accumulated")
     try require(fixture.maximumActive <= 2, "Rapid root changes cannot pile up transport requests")
     print("PASS rapid root changes, old connection accounting, newest pending root only")
 }
@@ -497,19 +514,21 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     try Data("initial".utf8).write(to: initial)
     try fm.createDirectory(at: root.appendingPathComponent(".git"), withIntermediateDirectories: false)
     let clock = TestClock()
-    let model = FileTreeModel(remoteListing: { endpoint, path in
-        try OpenSSHTransport(executableURL: ssh, timeout: 2).listDirectory(endpoint: endpoint, directory: path)
-    }, remoteNow: { clock.time })
+    let model = FileTreeModel(
+        remoteListing: { endpoint, path in
+            try OpenSSHTransport(executableURL: ssh, timeout: 2).listDirectory(endpoint: endpoint, directory: path)
+        }, remoteNow: { clock.time })
     model.configureRemote(try SSHEndpoint(host: "fixture.invalid"))
     model.sync(root: root.path)
     try await eventually("production transport initial listing") { !model.isRemoteLoading }
     try require(model.items.map(\.name) == ["initial.txt"], "Production ls parser hides .git")
     let newFile = root.appendingPathComponent("new.txt")
     try Data("new".utf8).write(to: newFile)
-    for _ in 0..<3 { clock.advance(2); model.sync(root: root.path) }
+    for _ in 0 ..< 3 { clock.advance(2); model.sync(root: root.path) }
     try await eventually("production transport external addition") { !model.isRemoteLoading }
-    try require(model.items.map(\.name) == ["initial.txt", "new.txt"],
-                "Three normal 2-second syncs discover an externally created file")
+    try require(
+        model.items.map(\.name) == ["initial.txt", "new.txt"],
+        "Three normal 2-second syncs discover an externally created file")
     try fm.removeItem(at: initial)
     try fm.moveItem(at: newFile, to: root.appendingPathComponent("renamed.txt"))
     clock.advance()
@@ -521,8 +540,9 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     clock.advance()
     model.sync(root: root.path)
     try await eventually("production transport failure") { !model.isRemoteLoading }
-    try require(model.remoteError != nil && model.items.map(\.name) == ["renamed.txt"],
-                "Production process failure preserves the cached listing")
+    try require(
+        model.remoteError != nil && model.items.map(\.name) == ["renamed.txt"],
+        "Production process failure preserves the cached listing")
     try fm.removeItem(at: failure)
     model.retryRemoteRoot()
     try await eventually("production transport retry") { !model.isRemoteLoading }
@@ -557,15 +577,16 @@ private nonisolated final class CapabilityFixture: @unchecked Sendable {
     model.refreshRemoteWriteCapabilities(enabled: true)
     try await eventually("initial capability failure") { model.remoteWriteError != nil }
     try require(model.remoteCapabilities == nil && !model.canCreateRemote, "A transient failure is not cached as unsupported")
-    for _ in 0..<100 { model.refreshRemoteWriteCapabilities(enabled: true) }
+    for _ in 0 ..< 100 { model.refreshRemoteWriteCapabilities(enabled: true) }
     clock.advance(4)
     model.refreshRemoteWriteCapabilities(enabled: true)
     try require(fixture.attempts == 1, "Repeated UI updates respect the existing five-second throttle")
     clock.advance(1)
     model.refreshRemoteWriteCapabilities(enabled: true)
     try await eventually("capability recovery") { model.canCreateRemote }
-    try require(fixture.attempts == 2 && model.remoteWriteError == nil && model.canRenameRemote,
-                "Same-project writes recover without toggling settings or switching roots")
+    try require(
+        fixture.attempts == 2 && model.remoteWriteError == nil && model.canRenameRemote,
+        "Same-project writes recover without toggling settings or switching roots")
     clock.advance()
     model.refreshRemoteWriteCapabilities(enabled: true)
     try require(fixture.attempts == 2, "Confirmed capabilities remain cached")
@@ -587,8 +608,9 @@ private nonisolated final class CapabilityFixture: @unchecked Sendable {
         try await samePathsAfterRoundTrips()
         try await parentRemovalAndReplacement()
         try await writeCapabilitiesRecover()
-        try await productionTransport(URL(fileURLWithPath: CommandLine.arguments[1]),
-                                      URL(fileURLWithPath: CommandLine.arguments[2]))
+        try await productionTransport(
+            URL(fileURLWithPath: CommandLine.arguments[1]),
+            URL(fileURLWithPath: CommandLine.arguments[2]))
         print("Remote file tree refresh: \(checks) checks passed")
     }
 }

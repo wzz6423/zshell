@@ -3,28 +3,29 @@
 import Markdown
 
 let source = """
-# Title
+    # Title
 
-## Second-level Heading
+    ## Second-level Heading
 
-Another Second-level Heading
-----------------------------
+    Another Second-level Heading
+    ----------------------------
 
-The above heading will be converted to ATX style, using hashes.
-"""
+    The above heading will be converted to ATX style, using hashes.
+    """
 
 let document = Document(parsing: source)
 let headingStyle = MarkupFormatter.Options.PreferredHeadingStyle.atx
 let formattingOptions = MarkupFormatter.Options(preferredHeadingStyle: headingStyle)
 let formattedSource = document.format(options: formattingOptions)
 
-print("""
-## Original source:
-\(source)
+print(
+    """
+    ## Original source:
+    \(source)
 
-## Formatted source:
-\(formattedSource)
-""")
+    ## Formatted source:
+    \(formattedSource)
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

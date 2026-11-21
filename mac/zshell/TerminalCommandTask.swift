@@ -51,11 +51,13 @@ struct TerminalCommandTask {
         output: () -> String
     ) -> Bool {
         guard state == .running,
-              let shellResult, shellResult.taskID == id else { return false }
+            let shellResult, shellResult.taskID == id
+        else { return false }
         // Prompt hooks can overwrite the status in OSC 133;D. The wrapper's
         // result captures the command's own status before any prompt work.
         self.exitCode = shellResult.exitCode
-        self.durationNanos = shellResult.durationNanos
+        self.durationNanos =
+            shellResult.durationNanos
             ?? startedAtNanos.map { DispatchTime.now().uptimeNanoseconds - $0 }
         completionSequence = sequence
         let text = output()

@@ -84,7 +84,8 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
     }
 
     private func open() -> TerminalSession? {
-        project?.newSession(directory: root.path, commandArguments: ["/bin/zsh", "-f"],
+        project?.newSession(
+            directory: root.path, commandArguments: ["/bin/zsh", "-f"],
             usesConfiguredStartupCommand: false, usesConfiguredInitializationCommand: false)
     }
 
@@ -130,18 +131,23 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
             AppLocalization.apply(language)
             let pane = SettingsBrowserPane()
             pane.setCategory(.browser)
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 600, height: 460),
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 600, height: 460),
                 styleMask: [.titled, .resizable], backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
             window.contentViewController = pane
             for width in [480.0, 600, 900] {
                 window.setContentSize(NSSize(width: width, height: 460))
-                for _ in 0..<3 { pane.view.layoutSubtreeIfNeeded() }
+                for _ in 0 ..< 3 { pane.view.layoutSubtreeIfNeeded() }
                 let labels = descendants(pane.view).compactMap { $0 as? NSTextField }
                     .filter { !$0.isEditable && !$0.isHiddenOrHasHiddenAncestor && !$0.stringValue.isEmpty }
                 var invalid = labels.filter {
-                    $0.frame.width <= 0 || $0.frame.height + 1 < $0.cell!.cellSize(forBounds:
-                        NSRect(x: 0, y: 0, width: $0.frame.width, height: 10000)).height
+                    $0.frame.width <= 0
+                        || $0.frame.height + 1
+                            < $0.cell!.cellSize(
+                                forBounds:
+                                    NSRect(x: 0, y: 0, width: $0.frame.width, height: 10000)
+                            ).height
                 }
                 let actions = descendants(pane.view).compactMap { $0 as? SettingsButtonFlowRow }.first!
                 let buttons = actions.subviews.compactMap { $0 as? NSButton }
@@ -189,10 +195,12 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
             .first { $0.headerTitle == String(localized: "Authorized Clients") }
         let revoke = views.compactMap { $0 as? NSButton }
             .first { $0.title == String(localized: "Revoke All Clients") }
-        let controls = ["groupVisible": group?.isHidden == false, "revokeEnabled": revoke?.isEnabled == true,
-                        "savedNameVisible": views.compactMap { $0 as? NSTextField }.contains {
-                            BrowserAccessController.shared.clients.map(\.name).contains($0.stringValue) && !$0.isHiddenOrHasHiddenAncestor
-                        }]
+        let controls = [
+            "groupVisible": group?.isHidden == false, "revokeEnabled": revoke?.isEnabled == true,
+            "savedNameVisible": views.compactMap { $0 as? NSTextField }.contains {
+                BrowserAccessController.shared.clients.map(\.name).contains($0.stringValue) && !$0.isHiddenOrHasHiddenAncestor
+            },
+        ]
         if let data = try? JSONSerialization.data(withJSONObject: controls) {
             try? data.write(to: root.appendingPathComponent("clients-ui.json"), options: .atomic)
         }
@@ -226,7 +234,8 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
                 gate.signal()
                 try await Task.sleep(for: .milliseconds(400))
                 checks["oldReadCannotRestoreRevoke"] = controller.clients.isEmpty
-                checks["offlineRevokePersisted"] = try JSONDecoder().decode([BrowserAccessClient].self, from: Data(contentsOf: file)).isEmpty
+                checks["offlineRevokePersisted"] = try JSONDecoder().decode([BrowserAccessClient].self, from: Data(contentsOf: file))
+                    .isEmpty
                 controller.stop()
 
                 let live = try BrowserAccessAuthorization(directory: state)
@@ -247,8 +256,10 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
                     controller.localURL != nil && controller.clients.isEmpty
                 }
                 if checks["enabledWithoutRevokedClient"] == false {
-                    let details: [String: Any] = ["url": controller.localURL?.absoluteString ?? "",
-                        "clients": controller.clients.map(\.name), "error": controller.error ?? "", "starting": controller.isStarting]
+                    let details: [String: Any] = [
+                        "url": controller.localURL?.absoluteString ?? "",
+                        "clients": controller.clients.map(\.name), "error": controller.error ?? "", "starting": controller.isStarting,
+                    ]
                     if let data = try? JSONSerialization.data(withJSONObject: details) {
                         try? data.write(to: root.appendingPathComponent("state-race-detail.json"), options: .atomic)
                     }

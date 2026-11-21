@@ -41,8 +41,7 @@ private final class CellWidthEvents: TerminalBackendEvents {
 @main
 struct TerminalCellWidthSurfaceTests {
     @MainActor static func main() {
-        do { try run() }
-        catch { fputs("FAIL \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("FAIL \(error)\n", stderr); exit(1) }
     }
 
     @MainActor private static func run() throws {
@@ -95,7 +94,8 @@ struct TerminalCellWidthSurfaceTests {
             interactiveShell: nil, workingDirectory: directory.path,
             environment: ["TERM": "xterm-256color", "LC_ALL": "en_US.UTF-8"]
         )
-        let view: any TerminalBackendSurface = backend == "ghostty"
+        let view: any TerminalBackendSurface =
+            backend == "ghostty"
             ? ZshellTerminalView(launch: launch) : AlacrittyTerminalView(launch: launch)
         let events = CellWidthEvents()
         view.events = events
@@ -115,7 +115,9 @@ struct TerminalCellWidthSurfaceTests {
         func control(_ text: String) {
             if let ghostty = view as? ZshellTerminalView {
                 ghostty.performBindingAction("text:" + text.utf8.map { String(format: "\\x%02x", $0) }.joined())
-            } else { view.sendText(text) }
+            } else {
+                view.sendText(text)
+            }
         }
         defer {
             mode.dismiss(restoringFocus: false)
@@ -128,7 +130,8 @@ struct TerminalCellWidthSurfaceTests {
         }
         func settled() -> Bool {
             guard let geometry = size(), let generation = geometry["generation"],
-                  let snapshot = view.readVisibleSnapshot() else { return false }
+                let snapshot = view.readVisibleSnapshot()
+            else { return false }
             return snapshot.columns == geometry["columns"]
                 && snapshot.rows.count == geometry["rows"]
                 && snapshot.rows.contains { $0.text.contains("READY_CW_\(generation)") }
@@ -137,11 +140,14 @@ struct TerminalCellWidthSurfaceTests {
             guard let result = view.readVisibleSnapshot() else { throw NSError(domain: "missing viewport", code: 1) }
             return result
         }
-        func pointer(_ type: NSEvent.EventType, snapshot: TerminalViewportSnapshot,
-                     row: Int, column: Int, half: CGFloat) -> NSEvent {
+        func pointer(
+            _ type: NSEvent.EventType, snapshot: TerminalViewportSnapshot,
+            row: Int, column: Int, half: CGFloat
+        ) -> NSEvent {
             let top = snapshot.origin.y + (CGFloat(row) + 0.5) * snapshot.cellSize.height
-            let local = NSPoint(x: snapshot.origin.x + (CGFloat(column) + half) * snapshot.cellSize.width,
-                                y: view.isFlipped ? top : view.bounds.height - top)
+            let local = NSPoint(
+                x: snapshot.origin.x + (CGFloat(column) + half) * snapshot.cellSize.width,
+                y: view.isFlipped ? top : view.bounds.height - top)
             return NSEvent.mouseEvent(
                 with: type, location: view.convert(local, to: nil), modifierFlags: [],
                 timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
@@ -170,24 +176,28 @@ struct TerminalCellWidthSurfaceTests {
             view.endFind()
         }
         func verifyGeometry(_ snapshot: TerminalViewportSnapshot) throws {
-            try check(size()?["columns"] == snapshot.columns && size()?["rows"] == snapshot.rows.count,
-                      "real PTY rows and columns match rendered metrics")
+            try check(
+                size()?["columns"] == snapshot.columns && size()?["rows"] == snapshot.rows.count,
+                "real PTY rows and columns match rendered metrics")
             let row = snapshot.rows[0]
             let cjk = (row.text as NSString).range(of: "中")
             let emoji = (row.text as NSString).range(of: "😀")
-            try check(row.columns(for: cjk) == 1..<3 && row.columns(for: emoji) == 3..<5,
-                      "CJK and emoji retain two columns after spacing changes")
+            try check(
+                row.columns(for: cjk) == 1 ..< 3 && row.columns(for: emoji) == 3 ..< 5,
+                "CJK and emoji retain two columns after spacing changes")
             let combining = (row.text as NSString).range(of: "e\u{301}")
-            try check(row.columns(for: combining) == 5..<6, "combining text retains one column")
+            try check(row.columns(for: combining) == 5 ..< 6, "combining text retains one column")
             guard let client = view as? any NSTextInputClient else { throw NSError(domain: "missing IME client", code: 1) }
             let screenRect = client.firstRect(forCharacterRange: NSRange(location: 0, length: 0), actualRange: nil)
             let localRect = view.convert(window.convertFromScreen(screenRect), from: nil)
             // Ghostty returns a zero-width anchor at the cell center; Alacritty returns the cell rect.
             let caretColumn: CGFloat = backend == "ghostty" ? 9.5 : 9
-            try check(abs(localRect.minX - (snapshot.origin.x + caretColumn * snapshot.cellSize.width)) < 1,
-                      "logical cursor and IME anchor use the adjusted column width")
-            try check(abs(localRect.width - (backend == "ghostty" ? 0 : snapshot.cellSize.width)) < 1,
-                      "IME caret retains the backend's native geometry")
+            try check(
+                abs(localRect.minX - (snapshot.origin.x + caretColumn * snapshot.cellSize.width)) < 1,
+                "logical cursor and IME anchor use the adjusted column width")
+            try check(
+                abs(localRect.width - (backend == "ghostty" ? 0 : snapshot.cellSize.width)) < 1,
+                "IME caret retains the backend's native geometry")
             try verifySelection(snapshot)
         }
 
@@ -204,18 +214,21 @@ struct TerminalCellWidthSurfaceTests {
                 (size()?["resizeCount"] ?? 0) > oldSize["resizeCount"]! && settled()
             }
             let changed = try snapshot()
-            try check(multiplier < 1 ? changed.columns > native.columns : changed.columns < native.columns,
-                      "\(Int(multiplier * 100))% changes the real column count")
+            try check(
+                multiplier < 1 ? changed.columns > native.columns : changed.columns < native.columns,
+                "\(Int(multiplier * 100))% changes the real column count")
             try check(changed.cellSize.height == native.cellSize.height, "column spacing preserves row height")
             try check(events.cellSizes.last == changed.cellSize, "session cell-size event uses rendered metrics")
             try wait("active keyboard hints follow the new geometry") {
                 mode.snapshot?.cellSize == changed.cellSize && mode.snapshot?.columns == changed.columns && !mode.hints.isEmpty
             }
             guard let hint = mode.hints.first(where: { $0.value == "https://example.com/width" }),
-                  let fragment = hint.fragments.first else { throw NSError(domain: "missing URL hint", code: 1) }
+                let fragment = hint.fragments.first
+            else { throw NSError(domain: "missing URL hint", code: 1) }
             let rect = changed.rect(row: fragment.row, columns: fragment.columns)
-            try check(rect.minX == changed.origin.x + 7 * changed.cellSize.width,
-                      "hint rectangle shares the Unicode grid's adjusted coordinates")
+            try check(
+                rect.minX == changed.origin.x + 7 * changed.cellSize.width,
+                "hint rectangle shares the Unicode grid's adjusted coordinates")
             try verifyGeometry(changed)
         }
         settings.terminalCellWidth = 1
@@ -229,8 +242,9 @@ struct TerminalCellWidthSurfaceTests {
         view.applyAppearance()
         try wait("font zoom and column spacing resize the existing PTY", settled)
         let zoomed = try snapshot()
-        try check(zoomed.cellSize.width > native.cellSize.width && zoomed.cellSize.height > native.cellSize.height,
-                  "font zoom composes with column spacing")
+        try check(
+            zoomed.cellSize.width > native.cellSize.width && zoomed.cellSize.height > native.cellSize.height,
+            "font zoom composes with column spacing")
         try verifyGeometry(zoomed)
         control("m")
         try wait("raw fixture enables SGR mouse reporting") {
@@ -249,14 +263,16 @@ struct TerminalCellWidthSurfaceTests {
         if backend == "alacritty" {
             guard let device = MTLCreateSystemDefaultDevice() else { throw NSError(domain: "Metal unavailable", code: 1) }
             func metrics(_ width: CGFloat) -> AlacrittyMetrics {
-                AlacrittyMetrics(family: "Menlo", fallbackFamily: "PingFang SC", size: 13,
-                                 fontThicken: false, fontThickenStrength: 255, lineHeight: 1, cellWidth: width)
+                AlacrittyMetrics(
+                    family: "Menlo", fallbackFamily: "PingFang SC", size: 13,
+                    fontThicken: false, fontThickenStrength: 255, lineHeight: 1, cellWidth: width)
             }
             let base = metrics(1)
             let expanded = metrics(2)
-            try check(base.regular == expanded.regular && base.bold == expanded.bold
-                      && base.italic == expanded.italic && base.boldItalic == expanded.boldItalic,
-                      "column spacing preserves all font faces and fallback descriptors")
+            try check(
+                base.regular == expanded.regular && base.bold == expanded.bold
+                    && base.italic == expanded.italic && base.boldItalic == expanded.boldItalic,
+                "column spacing preserves all font faces and fallback descriptors")
             for scale: CGFloat in [1, 2] {
                 guard let atlas = TerminalGlyphAtlas(device: device, metrics: base, scale: scale) else {
                     throw NSError(domain: "glyph atlas unavailable", code: 1)
@@ -264,11 +280,13 @@ struct TerminalCellWidthSurfaceTests {
                 let key = TerminalGlyphAtlas.Key(content: .scalar(0x4E2D), bold: false, italic: false)
                 guard let original = atlas.entry(for: key) else { throw NSError(domain: "missing CJK fallback glyph", code: 1) }
                 let generation = atlas.generation
-                try check(atlas.reset(metrics: expanded, scale: scale) && atlas.generation > generation,
-                          "\(Int(scale))x glyph atlas invalidates changed cell geometry")
+                try check(
+                    atlas.reset(metrics: expanded, scale: scale) && atlas.generation > generation,
+                    "\(Int(scale))x glyph atlas invalidates changed cell geometry")
                 guard let changed = atlas.entry(for: key) else { throw NSError(domain: "missing reset CJK glyph", code: 1) }
-                try check(original.size == changed.size && original.bearing == changed.bearing,
-                          "\(Int(scale))x glyph pixels retain font size and fallback after spacing change")
+                try check(
+                    original.size == changed.size && original.bearing == changed.bearing,
+                    "\(Int(scale))x glyph pixels retain font size and fallback after spacing change")
             }
         }
         try check(QuickTerminalOffscreen.isSafe(), "production probes stay hidden and preserve desktop focus")

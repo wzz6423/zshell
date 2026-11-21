@@ -12,8 +12,7 @@ struct TerminalCommandBlockSurfaceTests {
     private static var backend = ""
 
     static func main() {
-        do { try run() }
-        catch { fputs("Command block surface failed: \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("Command block surface failed: \(error)\n", stderr); exit(1) }
     }
 
     private static func run() throws {
@@ -23,8 +22,10 @@ struct TerminalCommandBlockSurfaceTests {
         let root = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         backend = CommandLine.arguments[2]
         let home = FileManager.default.homeDirectoryForCurrentUser
-        guard ["/tmp/zshell-command-block-tests-", "/private/tmp/zshell-command-block-tests-"]
-            .contains(where: home.path.hasPrefix) else {
+        guard
+            ["/tmp/zshell-command-block-tests-", "/private/tmp/zshell-command-block-tests-"]
+                .contains(where: home.path.hasPrefix)
+        else {
             throw CommandBlockFailure.failed("surface tests require a disposable HOME")
         }
         let draft = root.appendingPathComponent("draft.txt")
@@ -60,8 +61,9 @@ struct TerminalCommandBlockSurfaceTests {
         project.customDirectory = root.path
         manager.projects.append(project)
         manager.selectedProjectID = project.id
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 900, height: 520),
-                              styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 520),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         manager.attach(to: window)
         guard let session = project.newSession(directory: root.path) else {
@@ -82,11 +84,12 @@ struct TerminalCommandBlockSurfaceTests {
         defer {
             if clipboard.changeCount == ownedClipboardCount {
                 clipboard.clearContents()
-                clipboard.writeObjects(savedClipboard.map { entries in
-                    let item = NSPasteboardItem()
-                    for (type, data) in entries { item.setData(data, forType: type) }
-                    return item
-                })
+                clipboard.writeObjects(
+                    savedClipboard.map { entries in
+                        let item = NSPasteboardItem()
+                        for (type, data) in entries { item.setData(data, forType: type) }
+                        return item
+                    })
             }
             manager.windowClosed()
             pump(0.3)
@@ -110,9 +113,10 @@ struct TerminalCommandBlockSurfaceTests {
             session.sendCommand(command, asPaste: true)
             session.sendEnter()
             try wait("command finishes with semantic metadata") {
-                session.terminalPromptQueueIsReady && session.commandRecords.contains {
-                    !existing.contains($0.id) && $0.finishedAt != nil
-                }
+                session.terminalPromptQueueIsReady
+                    && session.commandRecords.contains {
+                        !existing.contains($0.id) && $0.finishedAt != nil
+                    }
             }
             guard let record = session.commandRecords.first(where: { !existing.contains($0.id) }) else {
                 throw CommandBlockFailure.failed("command metadata missing")
@@ -120,14 +124,18 @@ struct TerminalCommandBlockSurfaceTests {
             try check(record.command == command, "command metadata preserves exact input")
             return record
         }
-        func event(row: Int, column: Int = 2, flags: NSEvent.ModifierFlags = [], type: NSEvent.EventType = .rightMouseDown) throws -> NSEvent {
+        func event(row: Int, column: Int = 2, flags: NSEvent.ModifierFlags = [], type: NSEvent.EventType = .rightMouseDown) throws
+            -> NSEvent
+        {
             guard let snapshot = surface.readVisibleSnapshot() else { throw CommandBlockFailure.failed("viewport missing") }
             let top = snapshot.origin.y + (CGFloat(row) + 0.5) * snapshot.cellSize.height
-            let point = NSPoint(x: snapshot.origin.x + (CGFloat(column) + 0.25) * snapshot.cellSize.width,
-                                y: surface.isFlipped ? top : surface.bounds.height - top)
-            return NSEvent.mouseEvent(with: type, location: surface.convert(point, to: nil), modifierFlags: flags,
-                                      timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
-                                      context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
+            let point = NSPoint(
+                x: snapshot.origin.x + (CGFloat(column) + 0.25) * snapshot.cellSize.width,
+                y: surface.isFlipped ? top : surface.bounds.height - top)
+            return NSEvent.mouseEvent(
+                with: type, location: surface.convert(point, to: nil), modifierFlags: flags,
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
         }
         func menu(for record: TerminalCommandRecord) throws -> NSMenu {
             guard let location = record.outputLocation, surface.revealCommand(at: location) else {
@@ -139,8 +147,9 @@ struct TerminalCommandBlockSurfaceTests {
                 let click = try event(row: row)
                 if surface.commandLocation(for: click) == location, let menu = surface.menu(for: click) {
                     let line = snapshot.rows[row].text
-                    try check(!line.trimmingCharacters(in: .whitespaces).isEmpty,
-                              "clicked block token belongs to a populated visible row")
+                    try check(
+                        !line.trimmingCharacters(in: .whitespaces).isEmpty,
+                        "clicked block token belongs to a populated visible row")
                     return menu
                 }
             }
@@ -160,8 +169,9 @@ struct TerminalCommandBlockSurfaceTests {
                 let range = (line.text as NSString).range(of: needle)
                 guard let columns = line.columns(for: range) else { throw CommandBlockFailure.failed("text cells missing") }
                 let click = try event(row: row, column: columns.lowerBound)
-                try check(surface.commandLocation(for: click) == location,
-                          "visible \(needle) row hits its exact block on \(window.backingScaleFactor)x display")
+                try check(
+                    surface.commandLocation(for: click) == location,
+                    "visible \(needle) row hits its exact block on \(window.backingScaleFactor)x display")
             }
         }
         func item(_ identifier: String, in menu: NSMenu) throws -> NSMenuItem {
@@ -182,13 +192,16 @@ struct TerminalCommandBlockSurfaceTests {
 
         try wait("native zsh reaches ready empty prompt") { session.isShellAvailableForAutomation && session.terminalPromptQueueIsReady }
         let keyboard = TerminalContextMenu.make(for: surface, linkTarget: nil)
-        try check(keyboard.items.prefix(3).map(\.title) == ["Copy", "Paste", "Select All"]
-                  && !keyboard.items.contains { $0.identifier?.rawValue == "zshell-copy-command" },
-                  "keyboard menu retains general actions without guessing the last block")
+        try check(
+            keyboard.items.prefix(3).map(\.title) == ["Copy", "Paste", "Select All"]
+                && !keyboard.items.contains { $0.identifier?.rawValue == "zshell-copy-command" },
+            "keyboard menu retains general actions without guessing the last block")
         let initial = try event(row: 0)
-        try check(surface.commandLocation(for: initial) == nil && surface.menu(for: initial)?.items.contains {
-            $0.identifier?.rawValue == "zshell-copy-command"
-        } == false, "unknown prompt does not expose block actions")
+        try check(
+            surface.commandLocation(for: initial) == nil
+                && surface.menu(for: initial)?.items.contains {
+                    $0.identifier?.rawValue == "zshell-copy-command"
+                } == false, "unknown prompt does not expose block actions")
 
         let first = try run("printf 'FIRST_你好 👩🏽‍💻\\nSECOND_終わり\\n'")
         let second = try run("printf 'ADJACENT_BLOCK\\n'")
@@ -202,8 +215,9 @@ struct TerminalCommandBlockSurfaceTests {
         let firstOutput = try item("zshell-copy-command-output", in: firstMenu)
         try invoke(firstOutput)
         let output = clipboard.string(forType: .string) ?? ""
-        try check(output.contains("FIRST_你好 👩🏽‍💻\nSECOND_終わり") && !output.contains("ADJACENT_BLOCK")
-                  && !output.contains("BLOCK_READY>"), "output preserves Unicode and excludes the prompt and adjacent block")
+        try check(
+            output.contains("FIRST_你好 👩🏽‍💻\nSECOND_終わり") && !output.contains("ADJACENT_BLOCK")
+                && !output.contains("BLOCK_READY>"), "output preserves Unicode and excludes the prompt and adjacent block")
         try invoke(try item("zshell-copy-command-block", in: firstMenu))
         let block = clipboard.string(forType: .string) ?? ""
         // Whole-block copy reads the visible grid; ZLE may escape non-printing
@@ -211,24 +225,27 @@ struct TerminalCommandBlockSurfaceTests {
         if !block.contains("BLOCK_READY> printf 'FIRST_你好") || !block.contains(output) {
             print("DIAGNOSTIC block=\(String(reflecting: block)) output=\(String(reflecting: output))")
         }
-        try check(block.contains("BLOCK_READY> printf 'FIRST_你好") && block.contains("\\nSECOND_終わり\\n'")
-                  && block.contains(output) && !block.contains("ADJACENT_BLOCK"),
-                  "whole-block copy includes prompt, visible input and only its full output")
+        try check(
+            block.contains("BLOCK_READY> printf 'FIRST_你好") && block.contains("\\nSECOND_終わり\\n'")
+                && block.contains(output) && !block.contains("ADJACENT_BLOCK"),
+            "whole-block copy includes prompt, visible input and only its full output")
         try invoke(try item("zshell-select-command-output", in: firstMenu))
         try check(surface.hasSelection, "Select Command Output creates a real terminal selection")
         let genericCopy = firstMenu.items[0]
         try invoke(genericCopy)
-        try check(clipboard.string(forType: .string)?.contains("FIRST_你好") == true
-                  && clipboard.string(forType: .string)?.contains("BLOCK_READY>") == false,
-                  "selected text is exactly the command output")
+        try check(
+            clipboard.string(forType: .string)?.contains("FIRST_你好") == true
+                && clipboard.string(forType: .string)?.contains("BLOCK_READY>") == false,
+            "selected text is exactly the command output")
         try invoke(try item("zshell-copy-command", in: menu(for: second)))
         try check(clipboard.string(forType: .string) == second.command, "the next block has its own command target")
 
         let empty = try run(":")
         let emptyMenu = try menu(for: empty)
-        try check(!(try item("zshell-copy-command-output", in: emptyMenu)).isEnabled
-                  && !(try item("zshell-select-command-output", in: emptyMenu)).isEnabled,
-                  "empty output disables copy and selection without inventing content")
+        try check(
+            !(try item("zshell-copy-command-output", in: emptyMenu)).isEnabled
+                && !(try item("zshell-select-command-output", in: emptyMenu)).isEnabled,
+            "empty output disables copy and selection without inventing content")
         seedClipboard()
         try invoke(try item("zshell-copy-command-output", in: emptyMenu))
         try check(clipboard.string(forType: .string) == "COMMAND_BLOCK_SENTINEL", "empty-output action preserves the clipboard")
@@ -242,7 +259,8 @@ struct TerminalCommandBlockSurfaceTests {
         let long = try run("printf '%s\\n' '" + longText + "'")
         let longMenu = try menu(for: long)
         try invoke(try item("zshell-copy-command-output", in: longMenu))
-        try check((clipboard.string(forType: .string) ?? "").contains(longText), "soft-wrapped long Unicode output copies as one logical line")
+        try check(
+            (clipboard.string(forType: .string) ?? "").contains(longText), "soft-wrapped long Unicode output copies as one logical line")
         window.setContentSize(NSSize(width: 520, height: 440))
         pump(0.2)
         try invoke(try item("zshell-copy-command", in: longMenu))
@@ -253,20 +271,22 @@ struct TerminalCommandBlockSurfaceTests {
         for language in AppLanguage.allCases where language != .system {
             AppLocalization.apply(language)
             let localized = try menu(for: multiline)
-            try check(try item("zshell-copy-command", in: localized).title == String(localized: "Copy Command")
-                      && item("zshell-copy-command-output", in: localized).title == String(localized: "Copy Output")
-                      && item("zshell-copy-command-block", in: localized).title == String(localized: "Copy Command Block")
-                      && item("zshell-select-command-output", in: localized).title == String(localized: "Select Command Output")
-                      && item("zshell-insert-command", in: localized).title == String(localized: "Insert at Prompt"),
-                      "\(language.rawValue) command-block menu uses the compiled translations")
+            try check(
+                try item("zshell-copy-command", in: localized).title == String(localized: "Copy Command")
+                    && item("zshell-copy-command-output", in: localized).title == String(localized: "Copy Output")
+                    && item("zshell-copy-command-block", in: localized).title == String(localized: "Copy Command Block")
+                    && item("zshell-select-command-output", in: localized).title == String(localized: "Select Command Output")
+                    && item("zshell-insert-command", in: localized).title == String(localized: "Insert at Prompt"),
+                "\(language.rawValue) command-block menu uses the compiled translations")
         }
         AppLocalization.apply(.english)
         let insertMenu = try menu(for: multiline)
         let insert = try item("zshell-insert-command", in: insertMenu)
         try check(validate(insert), "ready empty zsh permits insertion while saved history is disabled")
         try invoke(insert)
-        try check(try dumpDraft() == multilineText && session.commandLifecycle.phase != .executing,
-                  "insertion preserves multiline input without submitting Enter")
+        try check(
+            try dumpDraft() == multilineText && session.commandLifecycle.phase != .executing,
+            "insertion preserves multiline input without submitting Enter")
         try check(!validate(insert), "an existing draft disables a retained insertion item")
         try invoke(insert)
         try check(try dumpDraft() == multilineText, "stale insertion cannot overwrite or append to a draft")
@@ -288,12 +308,14 @@ struct TerminalCommandBlockSurfaceTests {
         let streamMenu = try menu(for: streaming)
         let streamOutput = try item("zshell-copy-command-output", in: streamMenu)
         try check(!validate(insert), "a foreground command disables retained insertion")
-        try check(streamMenu.items.contains { $0.identifier?.rawValue == "zshell-insert-command" } == false,
-                  "a running command does not offer prompt insertion")
+        try check(
+            streamMenu.items.contains { $0.identifier?.rawValue == "zshell-insert-command" } == false,
+            "a running command does not offer prompt insertion")
         try wait("streaming output finishes") { session.terminalPromptQueueIsReady }
         try invoke(streamOutput)
-        try check(clipboard.string(forType: .string)?.contains("STREAM_AFTER") == true,
-                  "a retained menu reads current output from its original block")
+        try check(
+            clipboard.string(forType: .string)?.contains("STREAM_AFTER") == true,
+            "a retained menu reads current output from its original block")
         try invoke(firstCommand)
         try check(clipboard.string(forType: .string) == first.command, "later output does not retarget an earlier menu")
 
@@ -305,8 +327,9 @@ struct TerminalCommandBlockSurfaceTests {
         try invoke(firstCommand)
         try check(clipboard.string(forType: .string) == "COMMAND_BLOCK_SENTINEL", "alternate screen never copies an old shell block")
         let alternateMenu = surface.menu(for: try event(row: 0))
-        try check(alternateMenu?.items.contains { $0.identifier?.rawValue == "zshell-copy-command" } == false,
-                  "alternate-screen right-click has no shell block actions")
+        try check(
+            alternateMenu?.items.contains { $0.identifier?.rawValue == "zshell-copy-command" } == false,
+            "alternate-screen right-click has no shell block actions")
         try wait("fixture returns from alternate screen") { session.terminalPromptQueueIsReady }
 
         _ = try run("for item in {1..11000}; do printf 'CLIP_%s\\n' \"$item\"; done")
@@ -371,12 +394,14 @@ struct TerminalCommandBlockSurfaceTests {
     }
 
     private static func verifyGhosttyCommandCallbacks(directory: String) throws {
-        let launch = TerminalLaunch(program: "/bin/cat", arguments: [], commandLine: "/bin/cat",
-                                    interactiveShell: nil, workingDirectory: directory,
-                                    environment: ["TERM": "xterm-256color"])
+        let launch = TerminalLaunch(
+            program: "/bin/cat", arguments: [], commandLine: "/bin/cat",
+            interactiveShell: nil, workingDirectory: directory,
+            environment: ["TERM": "xterm-256color"])
         let view = ZshellTerminalView(launch: launch)
-        let window = NSPanel(contentRect: NSRect(x: -100_000, y: -100_000, width: 800, height: 400),
-                             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        let window = NSPanel(
+            contentRect: NSRect(x: -100_000, y: -100_000, width: 800, height: 400),
+            styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.contentView = view
         view.setSurfaceVisible(false)
@@ -399,40 +424,49 @@ struct TerminalCommandBlockSurfaceTests {
         }
         render(); render(); render()
         finish(7, 101); finish(-1, 202); finish(255, 303)
-        try check(recorder.finishExits.isEmpty && recorder.recordUpdates == 0,
-                  "record readers do not run inside the native action callback")
+        try check(
+            recorder.finishExits.isEmpty && recorder.recordUpdates == 0,
+            "record readers do not run inside the native action callback")
         try wait("all native completion payloads are delivered") { recorder.finishExits.count == 3 }
-        try check(recorder.finishExits == [7, nil, 255] && recorder.finishDurations == [101, 202, 303],
-                  "command completions retain FIFO order, exit codes and durations")
-        try check(recorder.recordUpdates == 1 && recorder.successfulReads == 4 && !recorder.reenteredCallback,
-                  "render updates coalesce while completion observers can synchronously read native records")
+        try check(
+            recorder.finishExits == [7, nil, 255] && recorder.finishDurations == [101, 202, 303],
+            "command completions retain FIFO order, exit codes and durations")
+        try check(
+            recorder.recordUpdates == 1 && recorder.successfulReads == 4 && !recorder.reenteredCallback,
+            "render updates coalesce while completion observers can synchronously read native records")
         let updateCount = recorder.recordUpdates
         render(); finish(88, 404)
         view.detach()
         pump(0.05)
-        try check(recorder.recordUpdates == updateCount && recorder.finishExits.count == 3,
-                  "teardown cancels queued record and completion callbacks")
+        try check(
+            recorder.recordUpdates == updateCount && recorder.finishExits.count == 3,
+            "teardown cancels queued record and completion callbacks")
         view.start(launch: launch)
         view.delegate = recorder
-        try check(view.core.bridge === bridge && bridge.rawSurface != nil,
-                  "the callback bridge is reused by a new native surface")
+        try check(
+            view.core.bridge === bridge && bridge.rawSurface != nil,
+            "the callback bridge is reused by a new native surface")
         finish(99, 505)
         view.detach()
         view.start(launch: launch)
         view.delegate = recorder
         pump(0.05)
-        try check(recorder.finishExits.count == 3,
-                  "an old completion is never delivered to a replacement surface")
+        try check(
+            recorder.finishExits.count == 3,
+            "an old completion is never delivered to a replacement surface")
         finish(0, 606)
         try wait("replacement surface delivers fresh completion callbacks") { recorder.finishExits.count == 4 }
-        try check(recorder.finishExits.last == 0 && recorder.finishDurations.last == 606,
-                  "teardown cancellation does not suppress the new surface's completion")
+        try check(
+            recorder.finishExits.last == 0 && recorder.finishDurations.last == 606,
+            "teardown cancellation does not suppress the new surface's completion")
     }
 
     private static func control(_ text: String, in session: TerminalSession) {
         if let ghostty = session.surface as? ZshellTerminalView {
             ghostty.performBindingAction("text:" + text.utf8.map { String(format: "\\x%02x", $0) }.joined())
-        } else { session.surface.sendText(text) }
+        } else {
+            session.surface.sendText(text)
+        }
     }
     private static func quote(_ value: String) -> String { "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'" }
     private static func check(_ condition: @autoclosure () throws -> Bool, _ message: String) throws {

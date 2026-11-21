@@ -69,9 +69,11 @@ struct TerminalThemeConfigurationTests {
 
         #expect(didApply)
         #expect(state.controller === controller)
-        #expect(state.terminalConfiguration == TerminalConfiguration()
-            .fontSize(16)
-            .cursorStyle(.underline))
+        #expect(
+            state.terminalConfiguration
+                == TerminalConfiguration()
+                .fontSize(16)
+                .cursorStyle(.underline))
         #expect(state.renderedConfig.contains("font-size = 16"))
         #expect(state.renderedConfig.contains("cursor-style = underline"))
         let fontSizeLines = state.renderedConfig

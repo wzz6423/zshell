@@ -5,15 +5,15 @@ let package = Package(
     name: "bench-ifrit",
     platforms: [.macOS(.v14)],
     dependencies: [
-        .package(url: "https://github.com/ukushu/Ifrit.git", from: "2.0.0"),
+        .package(url: "https://github.com/ukushu/Ifrit.git", from: "2.0.0")
     ],
     targets: [
         .executableTarget(
             name: "bench-ifrit",
             dependencies: [
-                .product(name: "Ifrit", package: "Ifrit"),
+                .product(name: "Ifrit", package: "Ifrit")
             ],
             path: "Sources"
-        ),
+        )
     ]
 )

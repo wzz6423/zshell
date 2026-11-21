@@ -53,4 +53,3 @@ extension NSRange {
         return shifted(endBy: change.delta)
     }
 }
-

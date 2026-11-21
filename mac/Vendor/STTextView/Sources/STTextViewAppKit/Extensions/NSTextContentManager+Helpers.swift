@@ -12,13 +12,14 @@ extension NSTextContentManager {
             return [:]
         }
 
-        let effectiveLocation: NSTextLocation = if location == documentRange.location {
-            location
-        } else if location == documentRange.endLocation {
-            self.location(location, offsetBy: -1) ?? location
-        } else {
-            location
-        }
+        let effectiveLocation: NSTextLocation =
+            if location == documentRange.location {
+                location
+            } else if location == documentRange.endLocation {
+                self.location(location, offsetBy: -1) ?? location
+            } else {
+                location
+            }
 
         // requires non-empty range
         return attributedString(
@@ -31,6 +32,5 @@ extension NSTextContentManager {
             effectiveRange: nil
         ) ?? [:]
     }
-
 
 }

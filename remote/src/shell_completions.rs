@@ -10,12 +10,17 @@ include!(concat!(env!("OUT_DIR"), "/completions.rs"));
 pub struct Integration(PathBuf);
 
 impl Integration {
-    pub fn prepare(state: &Path, environment: &mut BTreeMap<String, String>) -> io::Result<Option<Self>> {
+    pub fn prepare(
+        state: &Path,
+        environment: &mut BTreeMap<String, String>,
+    ) -> io::Result<Option<Self>> {
         let shell = crate::pty::login_shell();
         if Path::new(&shell).file_name().and_then(|name| name.to_str()) != Some("zsh") {
             return Ok(None);
         }
-        let original = environment.get("ZDOTDIR").cloned()
+        let original = environment
+            .get("ZDOTDIR")
+            .cloned()
             .or_else(|| std::env::var("ZDOTDIR").ok())
             .or_else(|| environment.get("HOME").cloned())
             .or_else(|| std::env::var("HOME").ok())
@@ -23,8 +28,12 @@ impl Integration {
         let path = state.join(format!("shell-completions-{}", new_id()?));
         DirBuilder::new().mode(0o700).create(&path)?;
         let integration = Self(path);
-        DirBuilder::new().mode(0o700).create(integration.0.join("completions"))?;
-        for (name, text) in FILES { integration.write(name, text)?; }
+        DirBuilder::new()
+            .mode(0o700)
+            .create(integration.0.join("completions"))?;
+        for (name, text) in FILES {
+            integration.write(name, text)?;
+        }
         for name in [".zshenv", ".zprofile", ".zlogin"] {
             integration.write(name, &format!(
                 "[[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/{name}\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/{name}\"\n"
@@ -38,18 +47,27 @@ impl Integration {
             quote(&integration.0.join("completions")), quote(&integration.0.join("init.zsh"))
         ))?;
         environment.insert("ZSHELL_ORIGINAL_ZDOTDIR".into(), original);
-        environment.insert("ZDOTDIR".into(), integration.0.to_string_lossy().into_owned());
+        environment.insert(
+            "ZDOTDIR".into(),
+            integration.0.to_string_lossy().into_owned(),
+        );
         Ok(Some(integration))
     }
 
     fn write(&self, name: &str, text: &str) -> io::Result<()> {
-        OpenOptions::new().write(true).create_new(true).mode(0o600)
-            .open(self.0.join(name))?.write_all(text.as_bytes())
+        OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(self.0.join(name))?
+            .write_all(text.as_bytes())
     }
 }
 
 impl Drop for Integration {
-    fn drop(&mut self) { let _ = fs::remove_dir_all(&self.0); }
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
 }
 
 fn quote(path: &Path) -> String {

@@ -24,7 +24,7 @@ package extension CGRect {
     // https://github.com/apple/swift-corelibs-foundation/blob/ca3669eb9ac282c649e71824d9357dbe140c8251/Sources/Foundation/NSGeometry.swift#L812
     // Copyright (c) 2014 - 2016 Apple Inc. and the Swift project authors
     // Licensed under Apache License v2.0 with Runtime Library Exception
-//
+    //
     // See http://swift.org/LICENSE.txt for license information
     // See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 
@@ -66,8 +66,12 @@ package extension CGRect {
 
         // convenience combinations
         public static let alignAllEdgesInward: AlignmentOptions = [.alignMinXInward, .alignMaxXInward, .alignMinYInward, .alignMaxYInward]
-        public static let alignAllEdgesOutward: AlignmentOptions = [.alignMinXOutward, .alignMaxXOutward, .alignMinYOutward, .alignMaxYOutward]
-        public static let alignAllEdgesNearest: AlignmentOptions = [.alignMinXNearest, .alignMaxXNearest, .alignMinYNearest, .alignMaxYNearest]
+        public static let alignAllEdgesOutward: AlignmentOptions = [
+            .alignMinXOutward, .alignMaxXOutward, .alignMinYOutward, .alignMaxYOutward,
+        ]
+        public static let alignAllEdgesNearest: AlignmentOptions = [
+            .alignMinXNearest, .alignMaxXNearest, .alignMinYNearest, .alignMaxYNearest,
+        ]
     }
 
     fileprivate extension AlignmentOptions {
@@ -110,24 +114,35 @@ package extension CGRect {
             let outAttributes = (rawValue & 0xFF00) >> 8
             let nearestAttributes = (rawValue & 0xFF0000) >> 16
 
-            let horizontal: AlignmentOptions = [.alignMinXInward, .alignMinXOutward, .alignMinXNearest, .alignMaxXInward, .alignMaxXOutward, .alignMaxXNearest, .alignWidthInward, .alignWidthOutward, .alignWidthNearest]
-            let vertical: AlignmentOptions = [.alignMinYInward, .alignMinYOutward, .alignMinYNearest, .alignMaxYInward, .alignMaxYOutward, .alignMaxYNearest, .alignHeightInward, .alignHeightOutward, .alignHeightNearest]
+            let horizontal: AlignmentOptions = [
+                .alignMinXInward, .alignMinXOutward, .alignMinXNearest, .alignMaxXInward, .alignMaxXOutward, .alignMaxXNearest,
+                .alignWidthInward, .alignWidthOutward, .alignWidthNearest,
+            ]
+            let vertical: AlignmentOptions = [
+                .alignMinYInward, .alignMinYOutward, .alignMinYNearest, .alignMaxYInward, .alignMaxYOutward, .alignMaxYNearest,
+                .alignHeightInward, .alignHeightOutward, .alignHeightNearest,
+            ]
 
             if ((inAttributes & outAttributes) | (inAttributes & nearestAttributes) | (outAttributes & nearestAttributes)) != 0 {
-                preconditionFailure("The options parameter is invalid. Only one of {in, out, nearest} may be set for a given rect attribute.")
+                preconditionFailure(
+                    "The options parameter is invalid. Only one of {in, out, nearest} may be set for a given rect attribute.")
             }
 
             if intersection(horizontal).rawValue.nonzeroBitCount != 2 {
-                preconditionFailure("The options parameter is invalid. There should be specifiers for exactly two out of {minX, maxX, width}.")
+                preconditionFailure(
+                    "The options parameter is invalid. There should be specifiers for exactly two out of {minX, maxX, width}.")
             }
 
             if intersection(vertical).rawValue.nonzeroBitCount != 2 {
-                preconditionFailure("The options parameter is invalid. There should be specifiers for exactly two out of {minY, maxY, height}.")
+                preconditionFailure(
+                    "The options parameter is invalid. There should be specifiers for exactly two out of {minY, maxY, height}.")
             }
         }
     }
 
-    fileprivate func integralizeRectAttribute(_ num: Double, options: AlignmentOptions, inward: (Double) -> Double, outward: (Double) -> Double, nearest: (Double) -> Double) -> Double {
+    fileprivate func integralizeRectAttribute(
+        _ num: Double, options: AlignmentOptions, inward: (Double) -> Double, outward: (Double) -> Double, nearest: (Double) -> Double
+    ) -> Double {
         let tolerance: Double = (1.0 / Double(1 << 8))
         if options.isAlignNearest {
             let numTimesTwo = num * 2
@@ -165,40 +180,54 @@ package extension CGRect {
 
         if minXOptions.isEmpty {
             // we have a maxX and a width
-            integralRect.size.width = CGFloat(integralizeRectAttribute(Double(aRect.width),
-                                                                       options: widthOptions,
-                                                                       inward: floor,
-                                                                       outward: ceil,
-                                                                       nearest: roundedTowardPlusInfinity))
-            integralRect.origin.x = CGFloat(integralizeRectAttribute(Double(aRect.maxX),
-                                                                     options: maxXOptions,
-                                                                     inward: floor,
-                                                                     outward: ceil,
-                                                                     nearest: horizontalEdgeNearest)) - integralRect.width
+            integralRect.size.width = CGFloat(
+                integralizeRectAttribute(
+                    Double(aRect.width),
+                    options: widthOptions,
+                    inward: floor,
+                    outward: ceil,
+                    nearest: roundedTowardPlusInfinity))
+            integralRect.origin.x =
+                CGFloat(
+                    integralizeRectAttribute(
+                        Double(aRect.maxX),
+                        options: maxXOptions,
+                        inward: floor,
+                        outward: ceil,
+                        nearest: horizontalEdgeNearest)) - integralRect.width
         } else if maxXOptions.isEmpty {
             // we have a minX and a width
-            integralRect.origin.x = CGFloat(integralizeRectAttribute(Double(aRect.minX),
-                                                                     options: minXOptions,
-                                                                     inward: ceil,
-                                                                     outward: floor,
-                                                                     nearest: horizontalEdgeNearest))
-            integralRect.size.width = CGFloat(integralizeRectAttribute(Double(aRect.width),
-                                                                       options: widthOptions,
-                                                                       inward: floor,
-                                                                       outward: ceil,
-                                                                       nearest: roundedTowardPlusInfinity))
+            integralRect.origin.x = CGFloat(
+                integralizeRectAttribute(
+                    Double(aRect.minX),
+                    options: minXOptions,
+                    inward: ceil,
+                    outward: floor,
+                    nearest: horizontalEdgeNearest))
+            integralRect.size.width = CGFloat(
+                integralizeRectAttribute(
+                    Double(aRect.width),
+                    options: widthOptions,
+                    inward: floor,
+                    outward: ceil,
+                    nearest: roundedTowardPlusInfinity))
         } else {
             // we have a minX and a width
-            integralRect.origin.x = CGFloat(integralizeRectAttribute(Double(aRect.minX),
-                                                                     options: minXOptions,
-                                                                     inward: ceil,
-                                                                     outward: floor,
-                                                                     nearest: horizontalEdgeNearest))
-            integralRect.size.width = CGFloat(integralizeRectAttribute(Double(aRect.maxX),
-                                                                       options: maxXOptions,
-                                                                       inward: floor,
-                                                                       outward: ceil,
-                                                                       nearest: horizontalEdgeNearest)) - integralRect.minX
+            integralRect.origin.x = CGFloat(
+                integralizeRectAttribute(
+                    Double(aRect.minX),
+                    options: minXOptions,
+                    inward: ceil,
+                    outward: floor,
+                    nearest: horizontalEdgeNearest))
+            integralRect.size.width =
+                CGFloat(
+                    integralizeRectAttribute(
+                        Double(aRect.maxX),
+                        options: maxXOptions,
+                        inward: floor,
+                        outward: ceil,
+                        nearest: horizontalEdgeNearest)) - integralRect.minX
         }
 
         // no negarects
@@ -211,40 +240,54 @@ package extension CGRect {
 
         if minYOptions.isEmpty {
             // we have a maxY and a height
-            integralRect.size.height = CGFloat(integralizeRectAttribute(Double(aRect.height),
-                                                                        options: heightOptions,
-                                                                        inward: floor,
-                                                                        outward: ceil,
-                                                                        nearest: roundedTowardPlusInfinity))
-            integralRect.origin.y = CGFloat(integralizeRectAttribute(Double(aRect.maxY),
-                                                                     options: maxYOptions,
-                                                                     inward: floor,
-                                                                     outward: ceil,
-                                                                     nearest: verticalEdgeNearest)) - integralRect.height
+            integralRect.size.height = CGFloat(
+                integralizeRectAttribute(
+                    Double(aRect.height),
+                    options: heightOptions,
+                    inward: floor,
+                    outward: ceil,
+                    nearest: roundedTowardPlusInfinity))
+            integralRect.origin.y =
+                CGFloat(
+                    integralizeRectAttribute(
+                        Double(aRect.maxY),
+                        options: maxYOptions,
+                        inward: floor,
+                        outward: ceil,
+                        nearest: verticalEdgeNearest)) - integralRect.height
         } else if maxYOptions.isEmpty {
             // we have a minY and a height
-            integralRect.origin.y = CGFloat(integralizeRectAttribute(Double(aRect.minY),
-                                                                     options: minYOptions,
-                                                                     inward: ceil,
-                                                                     outward: floor,
-                                                                     nearest: verticalEdgeNearest))
-            integralRect.size.height = CGFloat(integralizeRectAttribute(Double(aRect.height),
-                                                                        options: heightOptions,
-                                                                        inward: floor,
-                                                                        outward: ceil,
-                                                                        nearest: roundedTowardPlusInfinity))
+            integralRect.origin.y = CGFloat(
+                integralizeRectAttribute(
+                    Double(aRect.minY),
+                    options: minYOptions,
+                    inward: ceil,
+                    outward: floor,
+                    nearest: verticalEdgeNearest))
+            integralRect.size.height = CGFloat(
+                integralizeRectAttribute(
+                    Double(aRect.height),
+                    options: heightOptions,
+                    inward: floor,
+                    outward: ceil,
+                    nearest: roundedTowardPlusInfinity))
         } else {
             // we have a minY and a maxY
-            integralRect.origin.y = CGFloat(integralizeRectAttribute(Double(aRect.minY),
-                                                                     options: minYOptions,
-                                                                     inward: ceil,
-                                                                     outward: floor,
-                                                                     nearest: verticalEdgeNearest))
-            integralRect.size.height = CGFloat(integralizeRectAttribute(Double(aRect.maxY),
-                                                                        options: maxYOptions,
-                                                                        inward: floor,
-                                                                        outward: ceil,
-                                                                        nearest: verticalEdgeNearest)) - integralRect.minY
+            integralRect.origin.y = CGFloat(
+                integralizeRectAttribute(
+                    Double(aRect.minY),
+                    options: minYOptions,
+                    inward: ceil,
+                    outward: floor,
+                    nearest: verticalEdgeNearest))
+            integralRect.size.height =
+                CGFloat(
+                    integralizeRectAttribute(
+                        Double(aRect.maxY),
+                        options: maxYOptions,
+                        inward: floor,
+                        outward: ceil,
+                        nearest: verticalEdgeNearest)) - integralRect.minY
         }
 
         // no negarects

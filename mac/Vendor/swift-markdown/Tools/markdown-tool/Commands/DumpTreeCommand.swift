@@ -14,7 +14,8 @@ import Markdown
 extension MarkdownCommand {
     /// A command to dump the parsed input's debug tree representation.
     struct DumpTree: ParsableCommand {
-        static let configuration = CommandConfiguration(commandName: "dump-tree", abstract: "Dump the parsed standard input as a tree representation for debugging")
+        static let configuration = CommandConfiguration(
+            commandName: "dump-tree", abstract: "Dump the parsed standard input as a tree representation for debugging")
 
         @Argument(help: "Optional input file path of a Markdown file to format; default: standard input")
         var inputFilePath: String?
@@ -28,7 +29,9 @@ extension MarkdownCommand {
         @Flag<Bool>(inversion: .prefixedNo, exclusivity: .chooseLast, help: "Parse block directives")
         var parseBlockDirectives: Bool = false
 
-        @Flag<Bool>(inversion: .prefixedNo, exclusivity: .chooseLast, help: "Parse a minimal set of Doxygen commands (requires --parse-block-directives)")
+        @Flag<Bool>(
+            inversion: .prefixedNo, exclusivity: .chooseLast,
+            help: "Parse a minimal set of Doxygen commands (requires --parse-block-directives)")
         var experimentalParseDoxygenCommands: Bool = false
 
         func run() throws {
