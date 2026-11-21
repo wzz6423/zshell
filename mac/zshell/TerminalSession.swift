@@ -1041,6 +1041,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         let promptQueueCompletedPath = shellQuote(directory.appendingPathComponent("prompt-queue.completed").path)
         var files = [
             ".zshenv": """
+            # ZLE displays queued input itself. Kernel echo during slow startup
+            # leaves duplicate text and a partial-line marker above the prompt.
+            if [[ -o interactive && -t 0 ]] && /bin/stty -echo; then
+              _zshell_startup_echo_suppressed=1
+            fi
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\"
             if [[ -n \"$ZSHELL_INIT_COMMAND\" ]]; then
               if [[ \"${ZDOTDIR:-$HOME}\" != \(integrationDirectoryPath) ]]; then
@@ -1066,6 +1071,12 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshrc\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshrc\"
             autoload -Uz add-zsh-hook add-zle-hook-widget
             _zshell_prompt_marker() {
+              if (( ${+_zshell_startup_echo_suppressed} )); then
+                # ZLE restores echo itself; a shell with ZLE disabled needs it
+                # restored explicitly before its first prompt and commands.
+                [[ -o zle ]] || /bin/stty echo
+                unset _zshell_startup_echo_suppressed
+              fi
               _zshell_selection_active=0
               REGION_ACTIVE=0
               if [[ -n $_zshell_prompt_queue_active ]]; then

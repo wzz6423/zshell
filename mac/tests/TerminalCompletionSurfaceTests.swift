@@ -24,19 +24,27 @@ private func pump(_ duration: TimeInterval) {
 @main
 struct TerminalCompletionSurfaceTests {
     @MainActor static func main() throws {
+        if PTYMuxCommandLine.shouldRunChild { PTYMuxCommandLine.runChild() }
+        if PTYMuxCommandLine.shouldRunRelay { PTYMuxRelay.run() }
+        if PTYMuxCommandLine.shouldRunDaemon { PTYMuxCommandLine.runDaemon() }
         setbuf(stdout, nil)
         let app = CompletionTestApplication.shared as! CompletionTestApplication
         let backend = CommandLine.arguments[1]
+        let persistent = CommandLine.arguments.count > 2 && CommandLine.arguments[2] == "persistent"
         let directory = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("zshell-completion-surface-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let dump = directory.appendingPathComponent("buffer")
         let sentinel = directory.appendingPathComponent("executed")
+        let starting = directory.appendingPathComponent("starting")
+        let release = directory.appendingPathComponent("release")
         let tuiResult = directory.appendingPathComponent("tui-input")
         let tui = directory.appendingPathComponent("tui.py")
         func quote(_ url: URL) -> String { "'" + url.path.replacingOccurrences(of: "'", with: "'\\''") + "'" }
         try """
+        print ready >| \(quote(starting))
+        while [[ ! -f \(quote(release)) ]]; do /bin/sleep 0.01; done
         bindkey -e
         PROMPT='READY> '; RPROMPT=''; HISTFILE=/dev/null
         autoload -Uz compinit; compinit -D -i
@@ -61,6 +69,7 @@ struct TerminalCompletionSurfaceTests {
         """.write(to: tui, atomically: true, encoding: .utf8)
 
         AppSettings.shared.terminalBackend = backend == "ghostty" ? .libghostty : .alacritty
+        AppSettings.shared.preserveTerminalSessions = persistent
         AppSettings.shared.terminalStartupProgram = ""
         AppSettings.shared.shellCompletions = true
         let session = TerminalSession(initialDirectory: directory.path,
@@ -74,6 +83,7 @@ struct TerminalCompletionSurfaceTests {
             session.terminate()
             pump(0.2)
             window.contentView = nil
+            if persistent { _ = try? PTYMuxCommandLine.exchange(method: "shutdown") }
         }
 
         func lines() -> String {
@@ -113,7 +123,18 @@ struct TerminalCompletionSurfaceTests {
             return try String(contentsOf: dump, encoding: .utf8).components(separatedBy: "\0")
         }
 
+        try wait("shell initialization starts", { FileManager.default.fileExists(atPath: starting.path) })
+        key("z", code: 6)
+        try Data().write(to: release)
         try wait("shell starts", { session.terminalPromptSelectionIsReady && lines().contains("READY>") })
+        try wait("startup input reaches the prompt", { lines().contains("READY> z") })
+        guard !lines().contains("z%"),
+              try state().first == "z" else {
+            fputs("FAIL: \(backend) startup input\n\(lines())\n", stderr)
+            throw NSError(domain: "StartupInputEcho", code: 1)
+        }
+        print("PASS: \(backend) startup input appears only at the prompt")
+        control("\u{15}")
         key("zfixture ", code: 0)
         try wait("inline completion visible", { lines().contains("zfixture alpha") })
         let suggestion = try state()

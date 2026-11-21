@@ -33,7 +33,7 @@ class TerminalCompletionTests(unittest.TestCase):
         self.pid = self.fd = None
         self.addCleanup(self.close_shell)
 
-    def start(self, configuration="", enabled=True):
+    def start(self, configuration="", enabled=True, startup_input=None):
         config = (
             "bindkey -e; PROMPT='READY> '; RPROMPT=''; HISTFILE=/dev/null\n"
             "autoload -Uz compinit; compinit -D -i\n"
@@ -44,6 +44,13 @@ class TerminalCompletionTests(unittest.TestCase):
             f"_dump() {{ print -rn -- \"$BUFFER\"$'\\0'\"$CURSOR\"$'\\0'\"$POSTDISPLAY\" >| {shlex.quote(str(self.dump))}; }}\n"
             "zle -N _dump; for map in emacs viins vicmd; do bindkey -M $map '^T' _dump; done\n" + configuration
         )
+        if startup_input is not None:
+            starting = self.root / "starting"
+            release = self.root / "release"
+            config = (
+                f"print ready >| {shlex.quote(str(starting))}\n"
+                f"while [[ ! -f {shlex.quote(str(release))} ]]; do /bin/sleep 0.01; done\n" + config
+            )
         (self.user / ".zshrc").write_text(config)
         self.original_config = config
         integration = subprocess.check_output([
@@ -57,9 +64,20 @@ class TerminalCompletionTests(unittest.TestCase):
                               ZSHELL_ORIGINAL_ZDOTDIR=str(self.user), TERM="xterm-256color",
                               LC_ALL="en_US.UTF-8")
             os.execv("/bin/zsh", ["zsh", "-dil"])
-        output = self.drain(0.6)
+        if startup_input is not None:
+            deadline = time.monotonic() + 5
+            while not starting.exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            self.assertTrue(starting.exists(), "Shell initialization did not start")
+            os.write(self.fd, startup_input.encode())
+            output = self.drain()
+            release.touch()
+        else:
+            output = b""
+        output += self.drain(0.6)
         self.assertIn(b"READY> ", output)
         self.assertNotIn(b"error", output)
+        return output
 
     def close_shell(self):
         if self.fd is None:
@@ -89,6 +107,20 @@ class TerminalCompletionTests(unittest.TestCase):
         self.keys(b"\x14")
         buffer, cursor, suggestion = self.dump.read_bytes().split(b"\0")
         return buffer.decode(), int(cursor), suggestion.decode()
+
+    def test_input_during_startup_is_not_echoed_before_the_prompt(self):
+        output = self.start(startup_input="z")
+        self.assertFalse(output.startswith(b"z"), output)
+        self.assertEqual(self.state()[0], "z")
+        self.keys(b"\x15read -r answer\r")
+        self.assertIn(b"echo-restored", self.keys(b"echo-restored"))
+        self.keys(b"\r")
+
+    def test_startup_restores_echo_when_line_editing_is_disabled(self):
+        self.start("unsetopt zle\n", enabled=False)
+        self.assertIn(b"read -r answer", self.keys(b"read -r answer\r"))
+        self.assertIn(b"echo-restored", self.keys(b"echo-restored"))
+        self.keys(b"\r")
 
     def test_inline_and_menu_selection_accept_without_execution(self):
         self.start()
