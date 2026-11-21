@@ -43,7 +43,8 @@ enum BrowserImportedHistoryStore {
 }
 
 @MainActor
-final class BrowserImportedHistoryController: NSObject, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate {
+final class BrowserImportedHistoryController: NSObject, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate
+{
     static let shared = BrowserImportedHistoryController()
     private weak var manager: TerminalManager?
     private var panel: NSPanel?
@@ -64,8 +65,9 @@ final class BrowserImportedHistoryController: NSObject, NSWindowDelegate, NSTabl
         if panel == nil { configure() }
         guard let panel else { return }
         self.manager = manager
-        do { allPages = try BrowserImportedHistoryStore.load(); status.stringValue = "" }
-        catch { allPages = []; status.stringValue = error.localizedDescription }
+        do { allPages = try BrowserImportedHistoryStore.load(); status.stringValue = "" } catch {
+            allPages = []; status.stringValue = error.localizedDescription
+        }
         search.stringValue = ""
         localize()
         reload()
@@ -75,8 +77,9 @@ final class BrowserImportedHistoryController: NSObject, NSWindowDelegate, NSTabl
     }
 
     private func configure() {
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 720, height: 500),
-                            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 500),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
         panel.minSize = NSSize(width: 480, height: 340)
         panel.delegate = self
@@ -135,9 +138,12 @@ final class BrowserImportedHistoryController: NSObject, NSWindowDelegate, NSTabl
 
     private func reload() {
         let query = search.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        pages = query.isEmpty ? allPages : allPages.filter {
-            $0.title.localizedCaseInsensitiveContains(query) || $0.url.localizedCaseInsensitiveContains(query)
-        }
+        pages =
+            query.isEmpty
+            ? allPages
+            : allPages.filter {
+                $0.title.localizedCaseInsensitiveContains(query) || $0.url.localizedCaseInsensitiveContains(query)
+            }
         // An empty list should not paint alternating stripes over the whole panel.
         table.usesAlternatingRowBackgroundColors = !pages.isEmpty
         table.reloadData()
@@ -155,9 +161,11 @@ final class BrowserImportedHistoryController: NSObject, NSWindowDelegate, NSTabl
             label.translatesAutoresizingMaskIntoConstraints = false
             cell.addSubview(label)
             cell.textField = label
-            NSLayoutConstraint.activate([label.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 8),
-                                         label.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -8),
-                                         label.centerYAnchor.constraint(equalTo: cell.centerYAnchor)])
+            NSLayoutConstraint.activate([
+                label.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 8),
+                label.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -8),
+                label.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+            ])
         }
         let page = pages[row]
         cell.textField?.stringValue = page.title.isEmpty ? page.url : "\(page.title) — \(page.url)"

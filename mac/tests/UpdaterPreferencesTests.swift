@@ -22,8 +22,9 @@ struct UpdaterPreferencesTests {
 
     @MainActor static func runTests() async throws {
         let testDomain = Bundle.main.bundleIdentifier!
-        precondition(testDomain.hasPrefix("sh.zshell.tests.updater-preferences-"),
-                     "tests must have an isolated app identity")
+        precondition(
+            testDomain.hasPrefix("sh.zshell.tests.updater-preferences-"),
+            "tests must have an isolated app identity")
         let phase = CommandLine.arguments[1]
         let defaults = UserDefaults.standard
         let updater = Updater.shared
@@ -52,8 +53,9 @@ struct UpdaterPreferencesTests {
         case "fresh":
             expect(!updater.automaticallyInstallsUpdates, "automatic installation requires a separate opt-in")
             try await expectState(checks: true, downloads: true, allowed: true)
-            expect(defaults.object(forKey: "SUAutomaticallyUpdate") == nil,
-                   "initialization must enable downloads without writing over a user's preference")
+            expect(
+                defaults.object(forKey: "SUAutomaticallyUpdate") == nil,
+                "initialization must enable downloads without writing over a user's preference")
 
             updater.automaticallyDownloadsUpdates = false
             try await expectState(checks: true, downloads: false, allowed: true)
@@ -69,12 +71,14 @@ struct UpdaterPreferencesTests {
             updater.automaticallyDownloadsUpdates = true
             updater.automaticallyChecksForUpdates = false
             try await expectState(checks: false, downloads: false, allowed: false)
-            expect(defaults.bool(forKey: "SUAutomaticallyUpdate"),
-                   "disabling checks must not erase the persisted opt-in during KVO synchronization")
+            expect(
+                defaults.bool(forKey: "SUAutomaticallyUpdate"),
+                "disabling checks must not erase the persisted opt-in during KVO synchronization")
             updater.automaticallyDownloadsUpdates = true
             try await expectState(checks: false, downloads: false, allowed: false)
-            expect(defaults.bool(forKey: "SUAutomaticallyUpdate"),
-                   "a rejected download preference follows Sparkle without erasing opt-in")
+            expect(
+                defaults.bool(forKey: "SUAutomaticallyUpdate"),
+                "a rejected download preference follows Sparkle without erasing opt-in")
             updater.automaticallyChecksForUpdates = true
             try await expectState(checks: true, downloads: true, allowed: true)
 
@@ -84,8 +88,9 @@ struct UpdaterPreferencesTests {
             try await expectState(checks: true, downloads: true, allowed: true)
             sparkle.automaticallyChecksForUpdates = false
             try await expectState(checks: false, downloads: false, allowed: false)
-            expect(defaults.bool(forKey: "SUAutomaticallyUpdate"),
-                   "external Sparkle changes must retain the stored download choice")
+            expect(
+                defaults.bool(forKey: "SUAutomaticallyUpdate"),
+                "external Sparkle changes must retain the stored download choice")
             sparkle.automaticallyChecksForUpdates = true
             try await expectState(checks: true, downloads: true, allowed: true)
 
@@ -116,8 +121,9 @@ struct UpdaterPreferencesTests {
         case "restore-opted-out":
             expect(!updater.automaticallyInstallsUpdates, "restart retains independent installation opt-out")
             try await expectState(checks: true, downloads: false, allowed: true)
-            expect(defaults.object(forKey: "SUAutomaticallyUpdate") as? Bool == false,
-                   "restart must not overwrite a previous opt-out")
+            expect(
+                defaults.object(forKey: "SUAutomaticallyUpdate") as? Bool == false,
+                "restart must not overwrite a previous opt-out")
             updater.automaticallyChecksForUpdates = false
             try await expectState(checks: false, downloads: false, allowed: false)
             updater.automaticallyChecksForUpdates = true
@@ -127,21 +133,23 @@ struct UpdaterPreferencesTests {
             try await expectState(checks: true, downloads: false, allowed: false)
             updater.automaticallyDownloadsUpdates = true
             try await expectState(checks: true, downloads: false, allowed: false)
-            expect(defaults.object(forKey: "SUAutomaticallyUpdate") == nil,
-                   "a Sparkle policy that disallows automatic updates cannot be overridden")
+            expect(
+                defaults.object(forKey: "SUAutomaticallyUpdate") == nil,
+                "a Sparkle policy that disallows automatic updates cannot be overridden")
 
         default:
             preconditionFailure("Unknown preference test phase: \(phase)")
         }
         updater.checkForUpdates()
         await Task.yield()
-        expect(!updater.canCheckForUpdates && !updater.isUpdating,
-               "Debug builds must not start Sparkle after preference changes or a manual check")
+        expect(
+            !updater.canCheckForUpdates && !updater.isUpdating,
+            "Debug builds must not start Sparkle after preference changes or a manual check")
         print("Updater preferences (\(phase)): \(passed) passed, 0 failed")
     }
 
     @MainActor static func waitUntil(_ condition: () -> Bool, line: UInt = #line) async throws {
-        for _ in 0..<200 {
+        for _ in 0 ..< 200 {
             if condition() { return }
             try await Task.sleep(for: .milliseconds(10))
         }

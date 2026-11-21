@@ -21,9 +21,10 @@ public extension STTextView {
 
         attributedString.enumerateAttribute(.attachment, in: attributedString.range, options: []) { value, attributeRange, _ in
             guard let attachment = value as? NSTextAttachment,
-                  let startLocation = textLayoutManager.location(searchRange.location, offsetBy: attributeRange.location),
-                  let endLocation = textLayoutManager.location(startLocation, offsetBy: attributeRange.length),
-                  let textRange = NSTextRange(location: startLocation, end: endLocation) else {
+                let startLocation = textLayoutManager.location(searchRange.location, offsetBy: attributeRange.location),
+                let endLocation = textLayoutManager.location(startLocation, offsetBy: attributeRange.length),
+                let textRange = NSTextRange(location: startLocation, end: endLocation)
+            else {
                 return
             }
 
@@ -57,7 +58,8 @@ public extension STTextView {
 
         // Convert back to document coordinates
         guard let startLocation = textLayoutManager.location(location, offsetBy: effectiveRange.location),
-              let endLocation = textLayoutManager.location(startLocation, offsetBy: effectiveRange.length) else {
+            let endLocation = textLayoutManager.location(startLocation, offsetBy: effectiveRange.length)
+        else {
             return nil
         }
 
@@ -112,7 +114,8 @@ public extension STTextView {
     /// - Returns: The attachment view at the location, or nil if none exists.
     func attachmentView(at location: NSTextLocation) -> NSView? {
         guard let layoutFragment = textLayoutManager.textLayoutFragment(for: location),
-              let _ = fragmentViewMap.object(forKey: layoutFragment) else {
+            let _ = fragmentViewMap.object(forKey: layoutFragment)
+        else {
             return nil
         }
 

@@ -46,7 +46,7 @@ struct PendingBlockDirective {
 
     /// The number of columns of indentation that were before the `@`.
     var atIndentationColumnCount: Int
-    
+
     /// The number of columns of indentation that were before the first line inside the directive.
     var innerIndentationColumnCount: Int?
 
@@ -118,8 +118,10 @@ struct PendingBlockDirective {
         precondition(parseState == .argumentsText)
         var accepted = false
         var line = line
-        if let argumentsText = line.lex(until: { $0 == ")" ? .stop : .continue },
-                                        allowEscape: true, allowQuote: true) {
+        if let argumentsText = line.lex(
+            until: { $0 == ")" ? .stop : .continue },
+            allowEscape: true, allowQuote: true)
+        {
             self.argumentsText.append(argumentsText)
             accepted = true
         }
@@ -184,13 +186,16 @@ struct PendingBlockDirective {
             var reversedRemainingContent = TrimmedLine(Substring(line.text.reversed()), source: line.source, lineNumber: line.lineNumber)
             reversedRemainingContent.lexWhitespace()
             if !line.text.isEmpty,
-               reversedRemainingContent.lex("}") != nil {
+                reversedRemainingContent.lex("}") != nil
+            {
                 let trailingWhiteSpaceCount = reversedRemainingContent.lexWhitespace()?.text.count ?? 0
                 let textCount = line.text.count - trailingWhiteSpaceCount - 1
                 let leadingSpacingCount = line.untrimmedText.count - textCount - trailingWhiteSpaceCount - 1
                 innerIndentationColumnCount = leadingSpacingCount // Should we add a new property for this kind of usage?
-                
-                let newLine = String(repeating: " ", count: leadingSpacingCount) + line.untrimmedText.dropFirst(leadingSpacingCount).dropLast(trailingWhiteSpaceCount + 1)
+
+                let newLine =
+                    String(repeating: " ", count: leadingSpacingCount)
+                    + line.untrimmedText.dropFirst(leadingSpacingCount).dropLast(trailingWhiteSpaceCount + 1)
                 pendingLine = TrimmedLine(newLine.dropFirst(0), source: line.source, lineNumber: line.lineNumber)
                 parseState = .done
                 endLocation = SourceLocation(line: line.lineNumber ?? 0, column: line.untrimmedText.count + 1, source: line.source)
@@ -304,9 +309,10 @@ struct TrimmedLine {
     /// `true` if this line is empty or consists of all space `" "` or tab
     /// `"\t"` characters.
     var isEmptyOrAllWhitespace: Bool {
-        return text.isEmpty || text.allSatisfy {
-            $0 == " " || $0 == "\t"
-        }
+        return text.isEmpty
+            || text.allSatisfy {
+                $0 == " " || $0 == "\t"
+            }
     }
 
     /// - Parameters:
@@ -333,7 +339,7 @@ struct TrimmedLine {
 
     /// The line's text trimmed of initial indentation.
     var text: Substring {
-        return untrimmedText[parseIndex..<untrimmedText.endIndex]
+        return untrimmedText[parseIndex ..< untrimmedText.endIndex]
     }
 
     /// The number of columns of indentation: a space character
@@ -377,14 +383,16 @@ struct TrimmedLine {
         guard allowEmpty || !consumedText.isEmpty else {
             return nil
         }
-        parseIndex = untrimmedText.index(parseIndex, offsetBy: consumedText.count, limitedBy: untrimmedText.endIndex) ?? untrimmedText.endIndex
+        parseIndex =
+            untrimmedText.index(parseIndex, offsetBy: consumedText.count, limitedBy: untrimmedText.endIndex) ?? untrimmedText.endIndex
         let endIndex = parseIndex
         let endLocation = location
-        let text = untrimmedText[startIndex..<endIndex]
+        let text = untrimmedText[startIndex ..< endIndex]
         let range: SourceRange?
         if let start = startLocation,
-           let end = endLocation {
-            range = start..<end
+            let end = endLocation
+        {
+            range = start ..< end
         } else {
             range = nil
         }
@@ -402,10 +410,12 @@ struct TrimmedLine {
         }
     }
 
-    mutating func lex(until stop: (Character) -> Lex.Continuation,
-                      allowEscape: Bool = false,
-                      allowQuote: Bool = false,
-                      allowEmpty: Bool = false) -> Lex? {
+    mutating func lex(
+        until stop: (Character) -> Lex.Continuation,
+        allowEscape: Bool = false,
+        allowQuote: Bool = false,
+        allowEmpty: Bool = false
+    ) -> Lex? {
         var takeCount = 0
         var prefix = text.makeIterator()
         var isEscaped = false
@@ -414,19 +424,17 @@ struct TrimmedLine {
         while let c = prefix.next() {
             if isEscaped {
                 isEscaped = false
-            }
-            else if allowEscape,
-               c == "\\" {
+            } else if allowEscape,
+                c == "\\"
+            {
                 isEscaped = true
-            }
-            else if isQuoted {
+            } else if isQuoted {
                 isQuoted = (c != "\"")
-            }
-            else if allowQuote,
-               c == "\"" {
+            } else if allowQuote,
+                c == "\""
+            {
                 isQuoted = true
-            }
-            else if case .stop = stop(c) {
+            } else if case .stop = stop(c) {
                 break
             }
             takeCount += 1
@@ -444,26 +452,30 @@ struct TrimmedLine {
     /// - parameter character: the character to expect.
     /// - parameter allowEscape: if `true`, the function will not match the `character`
     ///   if a backslash `\` character precedes it.
-    mutating func lex(_ character: Character,
-                      allowEscape: Bool = false) -> Lex? {
+    mutating func lex(
+        _ character: Character,
+        allowEscape: Bool = false
+    ) -> Lex? {
         var count = 0
-        return lex(until: {
-            switch ($0, count) {
-            case (character, 0):
-                count += 1
-                return .continue
-            default:
-                return .stop
-            }
-        }, allowEscape: allowEscape)
+        return lex(
+            until: {
+                switch ($0, count) {
+                case (character, 0):
+                    count += 1
+                    return .continue
+                default:
+                    return .stop
+                }
+            }, allowEscape: allowEscape)
     }
 
     @discardableResult
     mutating func lexWhitespace(maxLength: Int? = nil) -> Lex? {
         if var maxLength = maxLength {
-            let result =  lex {
+            let result = lex {
                 guard maxLength > 0,
-                      $0 == " " || $0 == "\t" else {
+                    $0 == " " || $0 == "\t"
+                else {
                     return .stop
                 }
                 maxLength -= 1
@@ -497,7 +509,8 @@ private enum ParseContainer: CustomStringConvertible {
     /// A Doxygen command, which can contain arbitrary markup (but not block directives).
     case doxygenCommand(PendingDoxygenCommand, [TrimmedLine])
 
-    init<TrimmedLines: Sequence>(parsingHierarchyFrom trimmedLines: TrimmedLines, options: ParseOptions) where TrimmedLines.Element == TrimmedLine {
+    init<TrimmedLines: Sequence>(parsingHierarchyFrom trimmedLines: TrimmedLines, options: ParseOptions)
+    where TrimmedLines.Element == TrimmedLine {
         self = ParseContainerStack(parsingHierarchyFrom: trimmedLines, options: options).top
     }
 
@@ -516,7 +529,8 @@ private enum ParseContainer: CustomStringConvertible {
 
     var isInCodeFence: Bool {
         guard case let .lineRun(_, inCodeFence) = self,
-              inCodeFence else {
+            inCodeFence
+        else {
             return false
         }
         return true
@@ -528,7 +542,7 @@ private enum ParseContainer: CustomStringConvertible {
         var result = ""
 
         mutating func addressPendingNewlines() {
-            for _ in 0..<pendingNewlines {
+            for _ in 0 ..< pendingNewlines {
                 result += "\n"
                 result += String(repeating: " ", count: indent)
             }
@@ -667,9 +681,11 @@ private enum ParseContainer: CustomStringConvertible {
     }
 
     /// Convert this container to the corresponding ``RawMarkup`` node.
-    func convertToRawMarkup(ranges: inout RangeTracker,
-                            parent: ParseContainer?,
-                            options: ParseOptions) -> [RawMarkup] {
+    func convertToRawMarkup(
+        ranges: inout RangeTracker,
+        parent: ParseContainer?,
+        options: ParseOptions
+    ) -> [RawMarkup] {
         switch self {
         case let .root(children):
             let rawChildren = children.flatMap {
@@ -684,16 +700,22 @@ private enum ParseContainer: CustomStringConvertible {
             // Trim up to that number of whitespace characters off.
             // We need to keep track of what we removed because cmark will report different source locations than what we
             // had in the source. We'll adjust those when we get them back.
-            let trimmedIndentationAndLines = lines.map { line -> (line: TrimmedLine,
-                                                                  indentation: Int) in
+            let trimmedIndentationAndLines = lines.map {
+                line -> (
+                    line: TrimmedLine,
+                    indentation: Int
+                ) in
                 var trimmedLine = line
                 let trimmedWhitespace = trimmedLine.lexWhitespace(maxLength: indentationColumnCount)
-                let indentation = (trimmedWhitespace?.text.count ?? 0) + line.untrimmedText.distance(from: line.untrimmedText.startIndex, to: line.parseIndex)
+                let indentation =
+                    (trimmedWhitespace?.text.count ?? 0)
+                    + line.untrimmedText.distance(from: line.untrimmedText.startIndex, to: line.parseIndex)
                 return (trimmedLine, indentation)
             }
 
             // Build the logical block of text that cmark will see.
-            let logicalText = trimmedIndentationAndLines
+            let logicalText =
+                trimmedIndentationAndLines
                 .map { $0.line.text }
                 .joined(separator: "\n")
 
@@ -707,9 +729,10 @@ private enum ParseContainer: CustomStringConvertible {
             // 0, so we will need to adjust those as well, because child identifiers
             // start at 0 from the `root`.
 
-            var columnAdjuster = RangeAdjuster(startLine: lines.first?.lineNumber ?? 1,
-                                               ranges: ranges,
-                                               trimmedIndentationPerLine: trimmedIndentationAndLines.map { $0.indentation })
+            var columnAdjuster = RangeAdjuster(
+                startLine: lines.first?.lineNumber ?? 1,
+                ranges: ranges,
+                trimmedIndentationPerLine: trimmedIndentationAndLines.map { $0.indentation })
             for child in parsedSubdocument.children {
                 columnAdjuster.visit(child)
             }
@@ -719,7 +742,7 @@ private enum ParseContainer: CustomStringConvertible {
 
             return parsedSubdocument.children.map { $0.raw.markup }
         case let .blockDirective(pendingBlockDirective, children):
-            let range = pendingBlockDirective.atLocation..<pendingBlockDirective.endLocation
+            let range = pendingBlockDirective.atLocation ..< pendingBlockDirective.endLocation
             ranges.add(range)
             let children = children.flatMap {
                 $0.convertToRawMarkup(ranges: &ranges, parent: self, options: options)
@@ -728,28 +751,30 @@ private enum ParseContainer: CustomStringConvertible {
                 .blockDirective(
                     name: String(pendingBlockDirective.name),
                     nameLocation: pendingBlockDirective.atLocation,
-                    argumentText: DirectiveArgumentText(segments: pendingBlockDirective.argumentsText.map {
-                        let base = $0.text.base
-                        let lineStartIndex: String.Index
-                        if let argumentRange = $0.range {
-                            // If the argument has a known source range, offset the column (number of UTF8 bytes) to find the start of the line.
-                            lineStartIndex = base.utf8.index($0.text.startIndex, offsetBy: 1 - argumentRange.lowerBound.column)
-                        } else if let newLineIndex = base[..<$0.text.startIndex].lastIndex(where: \.isNewline) {
-                            // Iterate backwards from the argument start index to find the the start of the line.
-                            lineStartIndex = base.utf8.index(after: newLineIndex)
-                        } else {
-                            lineStartIndex = base.startIndex
-                        }
-                        let parseIndex = base.utf8.index($0.text.startIndex, offsetBy: -base.utf8.distance(from: base.startIndex, to: lineStartIndex))
-                        let untrimmedLine = String(base[lineStartIndex ..< $0.text.endIndex])
-                        return DirectiveArgumentText.LineSegment(untrimmedText: untrimmedLine, parseIndex: parseIndex, range: $0.range)
-                    }),
+                    argumentText: DirectiveArgumentText(
+                        segments: pendingBlockDirective.argumentsText.map {
+                            let base = $0.text.base
+                            let lineStartIndex: String.Index
+                            if let argumentRange = $0.range {
+                                // If the argument has a known source range, offset the column (number of UTF8 bytes) to find the start of the line.
+                                lineStartIndex = base.utf8.index($0.text.startIndex, offsetBy: 1 - argumentRange.lowerBound.column)
+                            } else if let newLineIndex = base[..<$0.text.startIndex].lastIndex(where: \.isNewline) {
+                                // Iterate backwards from the argument start index to find the the start of the line.
+                                lineStartIndex = base.utf8.index(after: newLineIndex)
+                            } else {
+                                lineStartIndex = base.startIndex
+                            }
+                            let parseIndex = base.utf8.index(
+                                $0.text.startIndex, offsetBy: -base.utf8.distance(from: base.startIndex, to: lineStartIndex))
+                            let untrimmedLine = String(base[lineStartIndex ..< $0.text.endIndex])
+                            return DirectiveArgumentText.LineSegment(untrimmedText: untrimmedLine, parseIndex: parseIndex, range: $0.range)
+                        }),
                     parsedRange: pendingBlockDirective.atLocation ..< pendingBlockDirective.endLocation,
                     children
-                ),
+                )
             ]
         case let .doxygenCommand(pendingDoxygenCommand, lines):
-            let range = pendingDoxygenCommand.atLocation..<pendingDoxygenCommand.endLocation
+            let range = pendingDoxygenCommand.atLocation ..< pendingDoxygenCommand.endLocation
             ranges.add(range)
             let children = ParseContainer.lineRun(lines, isInCodeFence: false)
                 .convertToRawMarkup(ranges: &ranges, parent: self, options: options)
@@ -779,7 +804,8 @@ struct ParseContainerStack {
 
     private let options: ParseOptions
 
-    init<TrimmedLines: Sequence>(parsingHierarchyFrom trimmedLines: TrimmedLines, options: ParseOptions) where TrimmedLines.Element == TrimmedLine {
+    init<TrimmedLines: Sequence>(parsingHierarchyFrom trimmedLines: TrimmedLines, options: ParseOptions)
+    where TrimmedLines.Element == TrimmedLine {
         self.stack = [.root([])]
         self.options = options
         for line in trimmedLines {
@@ -792,7 +818,8 @@ struct ParseContainerStack {
     private var isInBlockDirective: Bool {
         return stack.first {
             guard case .blockDirective(let pendingBlockDirective, _) = $0,
-                  case .contents = pendingBlockDirective.parseState else {
+                case .contents = pendingBlockDirective.parseState
+            else {
                 return false
             }
             return true
@@ -838,22 +865,26 @@ struct ParseContainerStack {
             return nil
         }
 
-        guard let name = remainder.lex(until: {
-            switch $0 {
-            case "(", ")", ",", ":", "{", " ", "\t":
-                return .stop
-            default:
-                return .continue
-            }
-        }, allowEscape: false) else {
+        guard
+            let name = remainder.lex(
+                until: {
+                    switch $0 {
+                    case "(", ")", ",", ":", "{", " ", "\t":
+                        return .stop
+                    default:
+                        return .continue
+                    }
+                }, allowEscape: false)
+        else {
             return nil
         }
 
-        var pendingBlockDirective = PendingBlockDirective(atIndentationColumnCount: line.indentationColumnCount,
-                                                          atLocation: at.range!.lowerBound,
-                                                          nameLocation: name.range!.lowerBound,
-                                                          name: name.text,
-                                                          endLocation: name.range!.upperBound)
+        var pendingBlockDirective = PendingBlockDirective(
+            atIndentationColumnCount: line.indentationColumnCount,
+            atLocation: at.range!.lowerBound,
+            nameLocation: name.range!.lowerBound,
+            name: name.text,
+            endLocation: name.range!.upperBound)
 
         // There may be garbage after a block directive opening but we were
         // still able to open a new block directive, so we'll consider the
@@ -869,21 +900,25 @@ struct ParseContainerStack {
 
         var remainder = line
         let indent = remainder.lexWhitespace()
-        guard let at = remainder.lex(until: { ch in
-            switch ch {
-            case "@", "\\":
-                return .continue
-            default:
-                return .stop
-            }
-        }) else { return nil }
-        guard let name = remainder.lex(until: { ch in
-            if ch.isWhitespace {
-                return .stop
-            } else {
-                return .continue
-            }
-        }) else { return nil }
+        guard
+            let at = remainder.lex(until: { ch in
+                switch ch {
+                case "@", "\\":
+                    return .continue
+                default:
+                    return .stop
+                }
+            })
+        else { return nil }
+        guard
+            let name = remainder.lex(until: { ch in
+                if ch.isWhitespace {
+                    return .stop
+                } else {
+                    return .continue
+                }
+            })
+        else { return nil }
         remainder.lexWhitespace()
 
         let kind: PendingDoxygenCommand.CommandKind
@@ -895,13 +930,15 @@ struct ParseContainerStack {
         case "brief", "abstract":
             kind = .abstract
         case "param":
-            guard let paramName = remainder.lex(until: { ch in
-                if ch.isWhitespace {
-                    return .stop
-                } else {
-                    return .continue
-                }
-            }) else { return nil }
+            guard
+                let paramName = remainder.lex(until: { ch in
+                    if ch.isWhitespace {
+                        return .stop
+                    } else {
+                        return .continue
+                    }
+                })
+            else { return nil }
             remainder.lexWhitespace()
             kind = .param(name: paramName.text)
         case "return", "returns", "result":
@@ -929,8 +966,8 @@ struct ParseContainerStack {
             case let .blockDirective(pendingBlockDirective, _):
                 switch pendingBlockDirective.parseState {
                 case .argumentsStart,
-                     .contentsStart,
-                     .done:
+                    .contentsStart,
+                    .done:
                     closeTop()
 
                 default:
@@ -979,7 +1016,8 @@ struct ParseContainerStack {
                 // This right curly brace is meant for it.
                 let foundIndex = stack.reversed().firstIndex {
                     guard case .blockDirective(let pendingBlockDirective, _) = $0,
-                          pendingBlockDirective.isAwaitingChildContent else {
+                        pendingBlockDirective.isAwaitingChildContent
+                    else {
                         return false
                     }
                     return true
@@ -988,7 +1026,7 @@ struct ParseContainerStack {
                 if let foundIndex = foundIndex {
                     let startIndex = stack.reversed().startIndex
                     let closeCount = stack.reversed().distance(from: startIndex, to: foundIndex)
-                    for _ in 0..<closeCount {
+                    for _ in 0 ..< closeCount {
                         closeTop()
                     }
                 }
@@ -1041,9 +1079,8 @@ struct ParseContainerStack {
                 // parsing arguments text (to allow indentation to align arguments) or
                 // if the line isn't taking part in a code block.
                 let canAcceptLine =
-                    pendingBlockDirective.parseState != .done &&
-                    (pendingBlockDirective.parseState == .argumentsText ||
-                     !isCodeFenceOrIndentedCodeBlock(on: line))
+                    pendingBlockDirective.parseState != .done
+                    && (pendingBlockDirective.parseState == .argumentsText || !isCodeFenceOrIndentedCodeBlock(on: line))
                 if canAcceptLine && pendingBlockDirective.accept(line) {
                     pop()
                     push(.blockDirective(pendingBlockDirective, children))
@@ -1095,8 +1132,8 @@ struct ParseContainerStack {
         let child = pop()
 
         if case .blockDirective(let pendingBlockDirective, _) = child,
-           pendingBlockDirective.parseState == .contents ||
-            pendingBlockDirective.parseState == .contentsEnd {
+            pendingBlockDirective.parseState == .contents || pendingBlockDirective.parseState == .contentsEnd
+        {
             // Unclosed block directive?
         }
 
@@ -1132,19 +1169,23 @@ extension Document {
     /// Convert a ``ParseContainer` to a ``Document``.
     ///
     /// - Precondition: The `rootContainer` must be the `.root` case.
-    fileprivate init(converting rootContainer: ParseContainer, from source: URL?,
-                     options: ParseOptions) {
+    fileprivate init(
+        converting rootContainer: ParseContainer, from source: URL?,
+        options: ParseOptions
+    ) {
         guard case .root = rootContainer else {
             fatalError("Tried to convert a non-root container to a `Document`")
         }
 
-        var rangeTracker = RangeTracker(totalRange: SourceLocation(line: 1, column: 1, source: source)..<SourceLocation(line: 1, column: 1, source: source))
+        var rangeTracker = RangeTracker(
+            totalRange: SourceLocation(line: 1, column: 1, source: source) ..< SourceLocation(line: 1, column: 1, source: source))
         let rootId = MarkupIdentifier.newRoot()
         let result = rootContainer.convertToRawMarkup(ranges: &rangeTracker, parent: nil, options: options)
 
         guard let rawDocument = result.first,
-              case .document = rawDocument.header.data,
-              result.count == 1 else {
+            case .document = rawDocument.header.data,
+            result.count == 1
+        else {
             fatalError("Conversion from ParseContainer.document to RawMarkup.document failed")
         }
 
@@ -1162,8 +1203,10 @@ struct BlockDirectiveParser {
     }
 
     /// Parse the input.
-    static func parse(_ input: String, source: URL?,
-                      options: ParseOptions = []) -> Document {
+    static func parse(
+        _ input: String, source: URL?,
+        options: ParseOptions = []
+    ) -> Document {
         // Phase 0: Split the input into lines lazily, keeping track of
         // line numbers, consecutive blank lines, and start positions on each line where indentation ends.
         // These trim points may be used to adjust the indentation seen by the CommonMark parser when

@@ -3,19 +3,19 @@
 import Markdown
 
 struct LinkCollector: MarkupWalker {
-  var links = [String]()
-  mutating func visitLink(_ link: Link) {
-    link.destination.map { links.append($0) }
-  }
+    var links = [String]()
+    mutating func visitLink(_ link: Link) {
+        link.destination.map { links.append($0) }
+    }
 }
 
 let source = """
-A link to a [non-existent website](https://iqnvodkfjd.com).
+    A link to a [non-existent website](https://iqnvodkfjd.com).
 
-A link to a missing resource at <https://www.swift.org/what>.
+    A link to a missing resource at <https://www.swift.org/what>.
 
-A valid link to <https://www.swift.org>.
-"""
+    A valid link to <https://www.swift.org>.
+    """
 let document = Document(parsing: source)
 // snippet.hide
 print("## Checking links in parsed document:")

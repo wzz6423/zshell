@@ -16,7 +16,7 @@ open class STTextContentStorage: NSTextContentStorage {
         assert(hasEditingTransaction, "Not called inside performEditingTransaction")
 
         guard let textStorage,
-              let attributedTextElements = textElements?.compactMap({ $0 as? STAttributedTextElement })
+            let attributedTextElements = textElements?.compactMap({ $0 as? STAttributedTextElement })
         else {
             // Non-functional (FB9925647)
             super.replaceContents(in: range, with: textElements)

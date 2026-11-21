@@ -22,7 +22,7 @@ struct PTYMuxCursorRestoreTests {
             print("PASS: \(label)")
         }
 
-        for boundary in 0...snapshot.count {
+        for boundary in 0 ... snapshot.count {
             var restore = fixture()
             var output = restore.process(Data(snapshot.prefix(boundary)))
             output.append(restore.process(Data(snapshot.dropFirst(boundary))))
@@ -37,14 +37,16 @@ struct PTYMuxCursorRestoreTests {
 
         var restore = fixture()
         let live = Data("\u{1b}[4 qapplication\u{1b}[2 q".utf8)
-        check(restore.process(snapshot + live) == expected + live,
-              "only the initial snapshot changes when live output shares the read")
+        check(
+            restore.process(snapshot + live) == expected + live,
+            "only the initial snapshot changes when live output shares the read")
         check(restore.process(live) == live, "later application cursor changes pass through")
         let current = Data("\u{1b}cprompt> \u{1b}[0 q".utf8)
         var currentRestore = fixture()
         check(currentRestore.process(current) == current, "current daemon default cursor stays unchanged")
-        var currentDaemon = PTYMuxCursorRestore(shellPID: pid, foregroundPID: pid,
-                                               launchDirectoryURL: directory, restoresDefaultCursor: true)
+        var currentDaemon = PTYMuxCursorRestore(
+            shellPID: pid, foregroundPID: pid,
+            launchDirectoryURL: directory, restoresDefaultCursor: true)
         check(currentDaemon.process(snapshot) == snapshot, "current daemons preserve explicit prompt cursor overrides")
         for style in [0, 1, 3, 4, 5, 6] {
             var explicit = fixture()

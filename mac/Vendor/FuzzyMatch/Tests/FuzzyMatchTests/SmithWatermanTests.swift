@@ -128,8 +128,9 @@ import Testing
 
     #expect(boundaryResult != nil)
     #expect(noBoundaryResult != nil)
-    #expect(boundaryResult!.score > noBoundaryResult!.score,
-            "Boundary match should score higher")
+    #expect(
+        boundaryResult!.score > noBoundaryResult!.score,
+        "Boundary match should score higher")
 }
 
 @Test func swCamelCaseTransitionBonus() {
@@ -158,8 +159,9 @@ import Testing
 
     #expect(consecutive != nil)
     #expect(scattered != nil)
-    #expect(consecutive!.score > scattered!.score,
-            "Consecutive match should score higher than scattered")
+    #expect(
+        consecutive!.score > scattered!.score,
+        "Consecutive match should score higher than scattered")
 }
 
 // MARK: - Gap Penalties
@@ -174,8 +176,9 @@ import Testing
 
     #expect(smallGap != nil)
     #expect(largeGap != nil)
-    #expect(smallGap!.score > largeGap!.score,
-            "Smaller gap should score higher")
+    #expect(
+        smallGap!.score > largeGap!.score,
+        "Smaller gap should score higher")
 }
 
 // MARK: - First Char Multiplier
@@ -228,8 +231,9 @@ import Testing
 
     #expect(firstResult != nil)
     #expect(secondResult != nil)
-    #expect(firstResult!.score == secondResult!.score,
-            "Reusing buffer should produce identical results")
+    #expect(
+        firstResult!.score == secondResult!.score,
+        "Reusing buffer should produce identical results")
 }
 
 @Test func swBufferReuseAcrossDifferentCandidates() {
@@ -286,8 +290,9 @@ import Testing
 
     #expect(prefix != nil)
     if let sub = substring {
-        #expect(prefix!.score > sub.score,
-                "Prefix match should rank higher than scattered substring")
+        #expect(
+            prefix!.score > sub.score,
+            "Prefix match should rank higher than scattered substring")
     }
 }
 
@@ -303,8 +308,9 @@ import Testing
 
     #expect(getUserById != nil)
     #expect(scattered != nil)
-    #expect(getUserById!.score > scattered!.score,
-            "\"gubi\" with acronym match should score higher than scattered SW match")
+    #expect(
+        getUserById!.score > scattered!.score,
+        "\"gubi\" with acronym match should score higher than scattered SW match")
 }
 
 @Test func swShorterCandidateDoesNotOverpenalize() {
@@ -317,8 +323,9 @@ import Testing
 
     #expect(short != nil)
     #expect(long != nil)
-    #expect(short!.score >= long!.score,
-            "Exact match should score at least as high as longer candidate")
+    #expect(
+        short!.score >= long!.score,
+        "Exact match should score at least as high as longer candidate")
 }
 
 // MARK: - Backward Compatibility
@@ -356,7 +363,7 @@ import Testing
 
     #expect(results.count <= 3)
     // Results should be sorted by score descending
-    for i in 1..<results.count {
+    for i in 1 ..< results.count {
         #expect(results[i - 1].match.score >= results[i].match.score)
     }
 }
@@ -370,7 +377,7 @@ import Testing
 
     // All matching candidates should be returned, sorted
     #expect(results.count >= 1)
-    for i in 1..<results.count {
+    for i in 1 ..< results.count {
         #expect(results[i - 1].match.score >= results[i].match.score)
     }
 }
@@ -626,18 +633,20 @@ import Testing
 
     #expect(acronymResult != nil)
     if let scattered = scatteredResult {
-        #expect(acronymResult!.score > scattered.score,
-                "Acronym match should beat scattered SW match")
+        #expect(
+            acronymResult!.score > scattered.score,
+            "Acronym match should beat scattered SW match")
     }
 }
 
 @Test func swAcronymDoesNotFireForLongQueries() {
     let matcher = FuzzyMatcher(config: .smithWaterman)
-    let query = matcher.prepare("longquery1")  // 10 chars, > 8
+    let query = matcher.prepare("longquery1") // 10 chars, > 8
     var buffer = matcher.makeBuffer()
 
-    let result = matcher.score("Lively Open Nested Generic Query Utility Extension Resource Y 1",
-                               against: query, buffer: &buffer)
+    let result = matcher.score(
+        "Lively Open Nested Generic Query Utility Extension Resource Y 1",
+        against: query, buffer: &buffer)
 
     // Should not produce .acronym for queries > 8 chars
     if let r = result {
@@ -820,44 +829,49 @@ import Testing
     let delimiter = Int32(sw.bonusBoundaryDelimiter)
 
     // After space → whitespace tier
-    #expect(multiByteBonusTier(
-        prevByte: 0x20,
-        bonusBoundary: boundary,
-        bonusBoundaryWhitespace: whitespace,
-        bonusBoundaryDelimiter: delimiter
-    ) == whitespace)
+    #expect(
+        multiByteBonusTier(
+            prevByte: 0x20,
+            bonusBoundary: boundary,
+            bonusBoundaryWhitespace: whitespace,
+            bonusBoundaryDelimiter: delimiter
+        ) == whitespace)
 
     // After '/' → delimiter tier
-    #expect(multiByteBonusTier(
-        prevByte: 0x2F,
-        bonusBoundary: boundary,
-        bonusBoundaryWhitespace: whitespace,
-        bonusBoundaryDelimiter: delimiter
-    ) == delimiter)
+    #expect(
+        multiByteBonusTier(
+            prevByte: 0x2F,
+            bonusBoundary: boundary,
+            bonusBoundaryWhitespace: whitespace,
+            bonusBoundaryDelimiter: delimiter
+        ) == delimiter)
 
     // After ':' → delimiter tier
-    #expect(multiByteBonusTier(
-        prevByte: 0x3A,
-        bonusBoundary: boundary,
-        bonusBoundaryWhitespace: whitespace,
-        bonusBoundaryDelimiter: delimiter
-    ) == delimiter)
+    #expect(
+        multiByteBonusTier(
+            prevByte: 0x3A,
+            bonusBoundary: boundary,
+            bonusBoundaryWhitespace: whitespace,
+            bonusBoundaryDelimiter: delimiter
+        ) == delimiter)
 
     // After 'a' (alnum) → 0
-    #expect(multiByteBonusTier(
-        prevByte: 0x61,
-        bonusBoundary: boundary,
-        bonusBoundaryWhitespace: whitespace,
-        bonusBoundaryDelimiter: delimiter
-    ) == 0)
+    #expect(
+        multiByteBonusTier(
+            prevByte: 0x61,
+            bonusBoundary: boundary,
+            bonusBoundaryWhitespace: whitespace,
+            bonusBoundaryDelimiter: delimiter
+        ) == 0)
 
     // After '-' (non-alnum, non-whitespace, non-delimiter) → boundary
-    #expect(multiByteBonusTier(
-        prevByte: 0x2D,
-        bonusBoundary: boundary,
-        bonusBoundaryWhitespace: whitespace,
-        bonusBoundaryDelimiter: delimiter
-    ) == boundary)
+    #expect(
+        multiByteBonusTier(
+            prevByte: 0x2D,
+            bonusBoundary: boundary,
+            bonusBoundaryWhitespace: whitespace,
+            bonusBoundaryDelimiter: delimiter
+        ) == boundary)
 }
 
 @Test func swMixedASCIIAndMultiByte() {
@@ -937,8 +951,9 @@ import Testing
 
     #expect(delimiterResult != nil)
     #expect(midWordResult != nil)
-    #expect(delimiterResult!.score > midWordResult!.score,
-            "After '/' delimiter should score higher than mid-word")
+    #expect(
+        delimiterResult!.score > midWordResult!.score,
+        "After '/' delimiter should score higher than mid-word")
 }
 
 @Test func swDelimiterColon() {
@@ -951,8 +966,9 @@ import Testing
 
     #expect(delimiterResult != nil)
     #expect(midWordResult != nil)
-    #expect(delimiterResult!.score > midWordResult!.score,
-            "After ':' delimiter should score higher than mid-word")
+    #expect(
+        delimiterResult!.score > midWordResult!.score,
+        "After ':' delimiter should score higher than mid-word")
 }
 
 @Test func swDelimiterSemicolonPipe() {
@@ -967,10 +983,12 @@ import Testing
     #expect(semicolonResult != nil)
     #expect(pipeResult != nil)
     #expect(midWordResult != nil)
-    #expect(semicolonResult!.score > midWordResult!.score,
-            "After ';' delimiter should score higher than mid-word")
-    #expect(pipeResult!.score > midWordResult!.score,
-            "After '|' delimiter should score higher than mid-word")
+    #expect(
+        semicolonResult!.score > midWordResult!.score,
+        "After ';' delimiter should score higher than mid-word")
+    #expect(
+        pipeResult!.score > midWordResult!.score,
+        "After '|' delimiter should score higher than mid-word")
 }
 
 @Test func swPosition0WhitespaceBonus() {
@@ -983,8 +1001,9 @@ import Testing
 
     #expect(pos0Result != nil)
     #expect(laterResult != nil)
-    #expect(pos0Result!.score > laterResult!.score,
-            "Position 0 (whitespace bonus) should score higher")
+    #expect(
+        pos0Result!.score > laterResult!.score,
+        "Position 0 (whitespace bonus) should score higher")
 }
 
 @Test func swAfterSpaceBonus() {
@@ -997,8 +1016,9 @@ import Testing
 
     #expect(afterSpaceResult != nil)
     #expect(midWordResult != nil)
-    #expect(afterSpaceResult!.score > midWordResult!.score,
-            "After space should score higher than mid-word")
+    #expect(
+        afterSpaceResult!.score > midWordResult!.score,
+        "After space should score higher than mid-word")
 }
 
 @Test func swNonDigitToDigitBonus() {
@@ -1013,21 +1033,24 @@ import Testing
 
     #expect(digitBoundary != nil)
     #expect(digitAfterDigit != nil)
-    #expect(digitBoundary!.score > digitAfterDigit!.score,
-            "Non-digit→digit transition should trigger camelCase bonus")
+    #expect(
+        digitBoundary!.score > digitAfterDigit!.score,
+        "Non-digit→digit transition should trigger camelCase bonus")
 }
 
 // MARK: - E. Config Parameter Isolation
 
 @Test func swConfigScoreMatchIsolation() {
-    let low = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(scoreMatch: 8))
-    ))
-    let high = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(scoreMatch: 32))
-    ))
+    let low = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(scoreMatch: 8))
+        ))
+    let high = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(scoreMatch: 32))
+        ))
 
     let queryLow = low.prepare("abc")
     let queryHigh = high.prepare("abc")
@@ -1045,20 +1068,23 @@ import Testing
 
     // Higher scoreMatch makes gap penalty relatively smaller
     if let lg = lowGapped, let hg = highGapped {
-        #expect(hg.score > lg.score,
-                "Higher scoreMatch should make gap penalty relatively smaller")
+        #expect(
+            hg.score > lg.score,
+            "Higher scoreMatch should make gap penalty relatively smaller")
     }
 }
 
 @Test func swConfigGapStartIsolation() {
-    let low = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(penaltyGapStart: 1))
-    ))
-    let high = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(penaltyGapStart: 8))
-    ))
+    let low = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(penaltyGapStart: 1))
+        ))
+    let high = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(penaltyGapStart: 8))
+        ))
 
     let queryLow = low.prepare("ac")
     let queryHigh = high.prepare("ac")
@@ -1070,19 +1096,22 @@ import Testing
 
     #expect(lowResult != nil)
     #expect(highResult != nil)
-    #expect(lowResult!.score > highResult!.score,
-            "Higher penaltyGapStart should reduce score for gapped match")
+    #expect(
+        lowResult!.score > highResult!.score,
+        "Higher penaltyGapStart should reduce score for gapped match")
 }
 
 @Test func swConfigGapExtendIsolation() {
-    let low = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(penaltyGapExtend: 0))
-    ))
-    let high = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(penaltyGapExtend: 4))
-    ))
+    let low = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(penaltyGapExtend: 0))
+        ))
+    let high = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(penaltyGapExtend: 4))
+        ))
 
     let queryLow = low.prepare("ac")
     let queryHigh = high.prepare("ac")
@@ -1095,19 +1124,22 @@ import Testing
 
     #expect(lowResult != nil)
     #expect(highResult != nil)
-    #expect(lowResult!.score > highResult!.score,
-            "Higher penaltyGapExtend should reduce score for long gaps")
+    #expect(
+        lowResult!.score > highResult!.score,
+        "Higher penaltyGapExtend should reduce score for long gaps")
 }
 
 @Test func swConfigConsecutiveIsolation() {
-    let low = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(bonusConsecutive: 0))
-    ))
-    let high = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(bonusConsecutive: 10))
-    ))
+    let low = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(bonusConsecutive: 0))
+        ))
+    let high = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(bonusConsecutive: 10))
+        ))
 
     let queryLow = low.prepare("abc")
     let queryHigh = high.prepare("abc")
@@ -1119,19 +1151,22 @@ import Testing
 
     #expect(lowResult != nil)
     #expect(highResult != nil)
-    #expect(highResult!.score > lowResult!.score,
-            "Higher bonusConsecutive should increase score for consecutive matches")
+    #expect(
+        highResult!.score > lowResult!.score,
+        "Higher bonusConsecutive should increase score for consecutive matches")
 }
 
 @Test func swConfigBoundaryIsolation() {
-    let low = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(bonusBoundary: 0))
-    ))
-    let high = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(bonusBoundary: 20))
-    ))
+    let low = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(bonusBoundary: 0))
+        ))
+    let high = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(bonusBoundary: 20))
+        ))
 
     let queryLow = low.prepare("b")
     let queryHigh = high.prepare("b")
@@ -1144,19 +1179,22 @@ import Testing
 
     #expect(lowResult != nil)
     #expect(highResult != nil)
-    #expect(highResult!.score > lowResult!.score,
-            "Higher bonusBoundary should increase score for boundary matches")
+    #expect(
+        highResult!.score > lowResult!.score,
+        "Higher bonusBoundary should increase score for boundary matches")
 }
 
 @Test func swConfigCamelCaseIsolation() {
-    let low = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(bonusCamelCase: 0))
-    ))
-    let high = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(bonusCamelCase: 15))
-    ))
+    let low = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(bonusCamelCase: 0))
+        ))
+    let high = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(bonusCamelCase: 15))
+        ))
 
     let queryLow = low.prepare("b")
     let queryHigh = high.prepare("b")
@@ -1169,19 +1207,22 @@ import Testing
 
     #expect(lowResult != nil)
     #expect(highResult != nil)
-    #expect(highResult!.score > lowResult!.score,
-            "Higher bonusCamelCase should increase score for camelCase matches")
+    #expect(
+        highResult!.score > lowResult!.score,
+        "Higher bonusCamelCase should increase score for camelCase matches")
 }
 
 @Test func swConfigFirstCharMultiplierIsolation() {
-    let low = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(bonusFirstCharMultiplier: 1))
-    ))
-    let high = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .smithWaterman(SmithWatermanConfig(bonusFirstCharMultiplier: 5))
-    ))
+    let low = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(bonusFirstCharMultiplier: 1))
+        ))
+    let high = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .smithWaterman(SmithWatermanConfig(bonusFirstCharMultiplier: 5))
+        ))
 
     let queryLow = low.prepare("a")
     let queryHigh = high.prepare("a")
@@ -1197,8 +1238,9 @@ import Testing
 
     #expect(lowResult != nil)
     #expect(highResult != nil)
-    #expect(lowResult!.score > highResult!.score,
-            "Higher firstCharMultiplier should lower score for non-boundary match (higher theoretical max)")
+    #expect(
+        lowResult!.score > highResult!.score,
+        "Higher firstCharMultiplier should lower score for non-boundary match (higher theoretical max)")
 }
 
 // MARK: - F. Acronym Fallback Boundaries
@@ -1286,8 +1328,9 @@ import Testing
     let result = matcher.score("Axxxxxxxxxxxxxxxxxxx Bxxxxxxxxxxxxxxxxxxx", against: query, buffer: &buffer)
 
     if let r = result {
-        #expect(r.kind != .acronym,
-                "2-char query with only 2 words should not fire acronym (needs >= 3 words)")
+        #expect(
+            r.kind != .acronym,
+            "2-char query with only 2 words should not fire acronym (needs >= 3 words)")
     }
 }
 

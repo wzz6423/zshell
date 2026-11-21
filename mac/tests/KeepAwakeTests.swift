@@ -24,14 +24,18 @@ struct KeepAwakeTests {
     }
 
     private static func status(_ phase: ZshellAgentPhase, authority: ZshellAgentStateAuthority = .report) -> ZshellAgentStatus {
-        .init(alias: "fixture", kind: .program, phase: phase, authority: authority,
-              reason: "fixture", updatedAt: Date(), processID: nil, unseen: phase == .done,
-              progress: nil, attention: nil, tasks: [])
+        .init(
+            alias: "fixture", kind: .program, phase: phase, authority: authority,
+            reason: "fixture", updatedAt: Date(), processID: nil, unseen: phase == .done,
+            progress: nil, attention: nil, tasks: [])
     }
 
-    private static func session(remote: RemoteSessionConnection? = nil, paste: RemotePasteTarget? = nil,
-                                restoredID: UUID? = nil) -> TerminalSession {
-        let value = TerminalSession(commandArguments: ["/bin/cat"], restoredSessionID: restoredID,
+    private static func session(
+        remote: RemoteSessionConnection? = nil, paste: RemotePasteTarget? = nil,
+        restoredID: UUID? = nil
+    ) -> TerminalSession {
+        let value = TerminalSession(
+            commandArguments: ["/bin/cat"], restoredSessionID: restoredID,
             allowsPersistence: false, remoteConnection: remote, remotePasteTarget: paste,
             usesConfiguredStartupCommand: false, usesConfiguredInitializationCommand: false)
         sessions.append(value)
@@ -88,8 +92,9 @@ struct KeepAwakeTests {
         firstManager.selectedProjectID = first.id
         lead.agentStatus = status(.blocked)
         working.agentStatus = status(.working)
-        check(tab.agentRollup?.phase == .blocked && tab.focusedPaneID == leadID,
-              "waiting pane takes rollup and focus ahead of working split")
+        check(
+            tab.agentRollup?.phase == .blocked && tab.focusedPaneID == leadID,
+            "waiting pane takes rollup and focus ahead of working split")
         check(controller.isActive && controller.lastError == nil, "background split holds a real assertion")
         tab.toggleZoom()
         check(controller.isActive, "zoomed waiting pane does not hide working split from power policy")
@@ -128,14 +133,16 @@ struct KeepAwakeTests {
         ssh.agentStatus = status(.working)
         check(!controller.isActive, "legacy SSH agent does not prevent local sleep")
         let host = try RemoteHost(name: "Fixture", address: "tailscale://fixture.invalid:7373")
-        let connection = try RemoteSessionConnection(host: host, directory: "/tmp", sessionID: UUID(),
+        let connection = try RemoteSessionConnection(
+            host: host, directory: "/tmp", sessionID: UUID(),
             createIfMissing: false, command: nil, launchSettings: .init())
         defer { connection.stopMonitoring() }
         let remote = session(remote: connection)
         remote.agentStatus = status(.working)
         AgentAutomationMonitor.shared.register(remote)
-        check(!AgentAutomationMonitor.shared.hasWorkingLocalAgent && !controller.isActive,
-              "shared remote session remains excluded even if registered")
+        check(
+            !AgentAutomationMonitor.shared.hasWorkingLocalAgent && !controller.isActive,
+            "shared remote session remains excluded even if registered")
 
         let old = session()
         old.agentStatus = status(.working)
@@ -177,17 +184,21 @@ struct KeepAwakeTests {
         var releaseCount = 0
         var rejectCreate = true
         var rejectRelease = false
-        let controller = KeepAwakeController(assertions: .init(create: {
-            createCount += 1
-            return (rejectCreate ? kIOReturnNotPermitted : kIOReturnSuccess, 42)
-        }, release: { _ in
-            releaseCount += 1
-            return rejectRelease ? kIOReturnNotPermitted : kIOReturnSuccess
-        }), now: { time })
+        let controller = KeepAwakeController(
+            assertions: .init(
+                create: {
+                    createCount += 1
+                    return (rejectCreate ? kIOReturnNotPermitted : kIOReturnSuccess, 42)
+                },
+                release: { _ in
+                    releaseCount += 1
+                    return rejectRelease ? kIOReturnNotPermitted : kIOReturnSuccess
+                }), now: { time })
         defer { controller.stop() }
         controller.start()
-        check(!controller.isActive && controller.lastError == kIOReturnNotPermitted,
-              "create failure never reports active")
+        check(
+            !controller.isActive && controller.lastError == kIOReturnNotPermitted,
+            "create failure never reports active")
         controller.localAgentActivityChanged(false)
         check(createCount == 1, "failure does not spin on unchanged activity")
         rejectCreate = false
@@ -196,19 +207,25 @@ struct KeepAwakeTests {
         check(controller.isActive && controller.lastError == nil, "successful retry reports actual assertion")
         rejectRelease = true
         settings.keepAwakeMode = .off
-        check(controller.isActive && controller.lastError == kIOReturnNotPermitted,
-              "release failure keeps truthful active state")
+        check(
+            controller.isActive && controller.lastError == kIOReturnNotPermitted,
+            "release failure keeps truthful active state")
         check(controller.statusDescription.contains("Could not stop"), "release failure describes remaining prevention")
         rejectRelease = false
         time.addTimeInterval(6)
         controller.localAgentActivityChanged(false)
-        check(!controller.isActive && controller.lastError == nil && releaseCount == 2,
-              "release retry clears assertion and error")
+        check(
+            !controller.isActive && controller.lastError == nil && releaseCount == 2,
+            "release retry clears assertion and error")
 
         settings.keepAwakeMode = .whileRunning
         var disposed = false
-        var transient: KeepAwakeController? = KeepAwakeController(assertions: .init(
-            create: { (kIOReturnSuccess, 43) }, release: { _ in disposed = true; return kIOReturnSuccess }))
+        var transient: KeepAwakeController? = KeepAwakeController(
+            assertions: .init(
+                create: { (kIOReturnSuccess, 43) },
+                release: { _ in
+                    disposed = true; return kIOReturnSuccess
+                }))
         transient?.start()
         check(transient?.isActive == true, "transient controller holds")
         transient = nil
@@ -220,8 +237,9 @@ struct KeepAwakeTests {
         let (result, id) = KeepAwakeController.Assertions.system.create()
         check(result == kIOReturnSuccess, "real IOKit assertion create")
         let properties = IOPMAssertionCopyProperties(id)?.takeRetainedValue() as? [String: Any]
-        check(properties?[kIOPMAssertionTypeKey] as? String == kIOPMAssertionTypePreventUserIdleSystemSleep,
-              "assertion prevents only user idle system sleep")
+        check(
+            properties?[kIOPMAssertionTypeKey] as? String == kIOPMAssertionTypePreventUserIdleSystemSleep,
+            "assertion prevents only user idle system sleep")
         check(properties?[kIOPMAssertionLevelKey] as? Int == kIOPMAssertionLevelOn, "assertion is enabled")
         check(KeepAwakeController.Assertions.system.release(id) == kIOReturnSuccess, "real assertion release")
         check(IOPMAssertionCopyProperties(id) == nil, "released assertion no longer exists")

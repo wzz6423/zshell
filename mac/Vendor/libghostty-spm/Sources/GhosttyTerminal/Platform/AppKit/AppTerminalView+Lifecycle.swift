@@ -100,7 +100,8 @@
         }
 
         @objc func windowDidBecomeKey(_: Notification) {
-            let focused = window?.isKeyWindow == true
+            let focused =
+                window?.isKeyWindow == true
                 && window?.firstResponder === self
             core.setFocus(focused)
             onFocusChange?(focused)
@@ -147,7 +148,8 @@
 
         override open func setFrameSize(_ newSize: NSSize) {
             let sizeChanged = newSize != frame.size
-            let coversDiscreteResize = sizeChanged
+            let coversDiscreteResize =
+                sizeChanged
                 && !rendererTargetsCompacted
                 && window?.inLiveResize != true
             if coversDiscreteResize {
@@ -243,14 +245,15 @@
         }
 
         func updateColorScheme() {
-            let scheme: TerminalColorScheme = switch effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) {
-            case .darkAqua: .dark
-            default: .light
-            }
+            let scheme: TerminalColorScheme =
+                switch effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) {
+                case .darkAqua: .dark
+                default: .light
+                }
             surface?.setColorScheme(scheme.ghosttyValue)
             if let controller,
-               let viewState = delegate as? TerminalViewState,
-               viewState.controller === controller
+                let viewState = delegate as? TerminalViewState,
+                viewState.controller === controller
             {
                 viewState.adopt(terminalColorScheme: scheme)
             } else {

@@ -350,7 +350,10 @@ mod tests {
     fn paste_cleanup_tolerates_concurrent_batches() {
         let fixture = Fixture::new();
         let store = std::sync::Arc::new(PasteStore::new(&fixture.0).unwrap());
-        let file = [PasteFile { name: "racing".into(), size: 0 }];
+        let file = [PasteFile {
+            name: "racing".into(),
+            size: 0,
+        }];
         let churn = {
             let store = store.clone();
             let file = file.clone();

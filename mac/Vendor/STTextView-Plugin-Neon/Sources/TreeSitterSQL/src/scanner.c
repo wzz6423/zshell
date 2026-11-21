@@ -164,7 +164,7 @@ unsigned tree_sitter_sql_external_scanner_serialize(void *payload, char *buffer)
     return 0;
   }
   // + 1 for the '\0'
-  int tag_length = strlen(state->start_tag) + 1;
+  size_t tag_length = strlen(state->start_tag) + 1;
   if (tag_length >= TREE_SITTER_SERIALIZATION_BUFFER_SIZE) {
     return 0;
   }
@@ -174,7 +174,7 @@ unsigned tree_sitter_sql_external_scanner_serialize(void *payload, char *buffer)
     free(state->start_tag);
     state->start_tag = NULL;
   }
-  return tag_length;
+  return (unsigned)tag_length;
 }
 
 void tree_sitter_sql_external_scanner_deserialize(void *payload, const char *buffer, unsigned length) {

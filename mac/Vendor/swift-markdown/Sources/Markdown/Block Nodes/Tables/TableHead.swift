@@ -8,7 +8,6 @@
  See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 */
 
-
 extension Table {
     /// The head of a table which contains one or more ``Table/Cell`` elements.
     public struct Head: Markup, _TableRowProtocol {
@@ -32,13 +31,13 @@ extension Table {
 public extension Table.Head {
     // MARK: TableCellContainer
 
-    init<Cells>(_ cells: Cells) where Cells : Sequence, Cells.Element == Table.Cell {
+    init<Cells>(_ cells: Cells) where Cells: Sequence, Cells.Element == Table.Cell {
         try! self.init(.tableHead(parsedRange: nil, columns: cells.map { $0.raw.markup }))
     }
 
     // MARK: Visitation
 
-    func accept<V>(_ visitor: inout V) -> V.Result where V : MarkupVisitor {
+    func accept<V>(_ visitor: inout V) -> V.Result where V: MarkupVisitor {
         return visitor.visitTableHead(self)
     }
 }

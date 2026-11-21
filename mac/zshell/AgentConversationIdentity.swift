@@ -70,10 +70,10 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
                 return sessionID.utf8.count == 36 && UUID(uuidString: sessionID) != nil
             case .opencode:
                 return sessionID.hasPrefix("ses_")
-                    && (5...128).contains(sessionID.utf8.count)
+                    && (5 ... 128).contains(sessionID.utf8.count)
                     && sessionID.utf8.dropFirst(4).allSatisfy {
-                        (48...57).contains($0) || (65...90).contains($0)
-                            || (97...122).contains($0) || $0 == 95 || $0 == 45
+                        (48 ... 57).contains($0) || (65 ... 90).contains($0)
+                            || (97 ... 122).contains($0) || $0 == 95 || $0 == 45
                     }
             }
         }
@@ -111,21 +111,22 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
     ) {
         let validPath = remoteHostID == nil ? Self.isAbsolutePath : Self.isRemoteAbsolutePath
         guard provider.accepts(sessionID: sessionID),
-              validPath(workingDirectory),
-              configDirectory.map(validPath) ?? true,
-              configurationEnvironment.map({ values in
-                  values.allSatisfy { provider.configurationVariables.contains($0.key) && validPath($0.value) }
-              }) ?? true,
-              sessionFile.map({
-                  provider == .pi && validPath($0) && $0.hasSuffix(".jsonl")
-              }) ?? true,
-              (remoteHostID == nil && remoteProjectDirectory == nil
+            validPath(workingDirectory),
+            configDirectory.map(validPath) ?? true,
+            configurationEnvironment.map({ values in
+                values.allSatisfy { provider.configurationVariables.contains($0.key) && validPath($0.value) }
+            }) ?? true,
+            sessionFile.map({
+                provider == .pi && validPath($0) && $0.hasSuffix(".jsonl")
+            }) ?? true,
+            (remoteHostID == nil && remoteProjectDirectory == nil
                 || remoteHostID != nil && remoteProjectDirectory.map(validPath) == true),
-              alias.map({ !$0.isEmpty && $0.utf8.count <= 128 && !Self.hasControlCharacters($0) }) ?? true
+            alias.map({ !$0.isEmpty && $0.utf8.count <= 128 && !Self.hasControlCharacters($0) }) ?? true
         else { return nil }
         self.provider = provider
         self.sessionID = sessionID
-        let normalize: (String) -> String = remoteHostID == nil
+        let normalize: (String) -> String =
+            remoteHostID == nil
             ? { URL(fileURLWithPath: $0).standardizedFileURL.path } : { $0 }
         self.workingDirectory = normalize(workingDirectory)
         self.configDirectory = configDirectory.map(normalize)
@@ -145,17 +146,19 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        guard let identity = Self(
-            provider: try container.decode(Provider.self, forKey: .provider),
-            sessionID: try container.decode(String.self, forKey: .sessionID),
-            workingDirectory: try container.decode(String.self, forKey: .workingDirectory),
-            configDirectory: try container.decodeIfPresent(String.self, forKey: .configDirectory),
-            sessionFile: try container.decodeIfPresent(String.self, forKey: .sessionFile),
-            alias: try container.decodeIfPresent(String.self, forKey: .alias),
-            configurationEnvironment: try container.decodeIfPresent([String: String].self, forKey: .configurationEnvironment),
-            remoteHostID: try container.decodeIfPresent(UUID.self, forKey: .remoteHostID),
-            remoteProjectDirectory: try container.decodeIfPresent(String.self, forKey: .remoteProjectDirectory)
-        ) else {
+        guard
+            let identity = Self(
+                provider: try container.decode(Provider.self, forKey: .provider),
+                sessionID: try container.decode(String.self, forKey: .sessionID),
+                workingDirectory: try container.decode(String.self, forKey: .workingDirectory),
+                configDirectory: try container.decodeIfPresent(String.self, forKey: .configDirectory),
+                sessionFile: try container.decodeIfPresent(String.self, forKey: .sessionFile),
+                alias: try container.decodeIfPresent(String.self, forKey: .alias),
+                configurationEnvironment: try container.decodeIfPresent([String: String].self, forKey: .configurationEnvironment),
+                remoteHostID: try container.decodeIfPresent(UUID.self, forKey: .remoteHostID),
+                remoteProjectDirectory: try container.decodeIfPresent(String.self, forKey: .remoteProjectDirectory)
+            )
+        else {
             throw DecodingError.dataCorruptedError(
                 forKey: .sessionID,
                 in: container,
@@ -184,9 +187,11 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
     func resumeLaunch(enabled: Bool, hasLiveTerminal: Bool = false) -> ResumeLaunch? {
         guard enabled, !hasLiveTerminal, remoteHostID == nil else { return nil }
         var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(
-            atPath: workingDirectory, isDirectory: &isDirectory
-        ), isDirectory.boolValue else { return nil }
+        guard
+            FileManager.default.fileExists(
+                atPath: workingDirectory, isDirectory: &isDirectory
+            ), isDirectory.boolValue
+        else { return nil }
 
         let arguments: [String]
         switch provider {
@@ -195,9 +200,10 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
         case .opencode: arguments = ["opencode", "--session", sessionID]
         case .pi:
             guard let sessionFile,
-                  Self.piSessionFileMatches(
+                Self.piSessionFileMatches(
                     path: sessionFile, sessionID: sessionID, directory: workingDirectory
-                  ) else { return nil }
+                )
+            else { return nil }
             arguments = ["pi", "--session", sessionFile]
         }
         let environment = (configDirectory.map { [provider.configurationVariable: $0] } ?? [:])
@@ -219,8 +225,9 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
             guard let sessionFile else { return nil }
             arguments = ["pi", "--fork", sessionFile]
         }
-        return ResumeLaunch(arguments: arguments, workingDirectory: launch.workingDirectory,
-                            environment: launch.environment, configurationVariables: launch.configurationVariables)
+        return ResumeLaunch(
+            arguments: arguments, workingDirectory: launch.workingDirectory,
+            environment: launch.environment, configurationVariables: launch.configurationVariables)
     }
 
     func acceptsFork(_ identity: Self) -> Bool {
@@ -237,13 +244,13 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
         guard let handle = FileHandle(forReadingAtPath: path) else { return false }
         defer { try? handle.close() }
         guard let data = try? handle.read(upToCount: 16_384),
-              !data.isEmpty,
-              let header = try? JSONSerialization.jsonObject(
+            !data.isEmpty,
+            let header = try? JSONSerialization.jsonObject(
                 with: data.prefix { $0 != 0x0A }
-              ) as? [String: Any],
-              header["type"] as? String == "session",
-              header["id"] as? String == sessionID,
-              let cwd = header["cwd"] as? String, Self.isAbsolutePath(cwd)
+            ) as? [String: Any],
+            header["type"] as? String == "session",
+            header["id"] as? String == sessionID,
+            let cwd = header["cwd"] as? String, Self.isAbsolutePath(cwd)
         else { return false }
         return URL(fileURLWithPath: cwd).standardizedFileURL.path == directory
     }
@@ -256,7 +263,7 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
         guard path.utf8.count <= 4_096, !hasControlCharacters(path) else { return false }
         if path.hasPrefix("/") || path.hasPrefix("\\\\") { return true }
         let bytes = Array(path.utf8.prefix(3))
-        return bytes.count == 3 && ((65...90).contains(bytes[0]) || (97...122).contains(bytes[0]))
+        return bytes.count == 3 && ((65 ... 90).contains(bytes[0]) || (97 ... 122).contains(bytes[0]))
             && bytes[1] == 58 && (bytes[2] == 92 || bytes[2] == 47)
     }
 
@@ -288,27 +295,32 @@ nonisolated struct AgentConversationSessionEvent: Equatable {
         homeURL: URL = FileManager.default.homeDirectoryForCurrentUser
     ) -> Self? {
         guard payload.count <= 1_048_576, reporterPID > 1,
-              let fields = try? JSONSerialization.jsonObject(with: payload) as? [String: Any],
-              fields["hook_event_name"] as? String == "SessionStart",
-              (fields["agent_id"] as? String ?? "").isEmpty,
-              (fields["parent_session_id"] as? String ?? "").isEmpty,
-              let sessionID = fields["session_id"] as? String
+            let fields = try? JSONSerialization.jsonObject(with: payload) as? [String: Any],
+            fields["hook_event_name"] as? String == "SessionStart",
+            (fields["agent_id"] as? String ?? "").isEmpty,
+            (fields["parent_session_id"] as? String ?? "").isEmpty,
+            let sessionID = fields["session_id"] as? String
         else { return nil }
         if provider == .codex,
-           let threadID = environment["CODEX_THREAD_ID"], !threadID.isEmpty,
-           threadID != sessionID { return nil }
-        guard let identity = AgentConversationIdentity(
-            provider: provider,
-            sessionID: sessionID,
-            workingDirectory: fields["cwd"] as? String ?? currentDirectory,
-            configDirectory: provider.configurationDirectory(
-                homeURL: homeURL, environment: environment
-            ).path,
-            sessionFile: fields["session_file"] as? String,
-            configurationEnvironment: environment.filter {
-                provider.configurationVariables.contains($0.key) && AgentConversationIdentity.isAbsolutePath($0.value)
-            }
-        ) else { return nil }
+            let threadID = environment["CODEX_THREAD_ID"], !threadID.isEmpty,
+            threadID != sessionID
+        {
+            return nil
+        }
+        guard
+            let identity = AgentConversationIdentity(
+                provider: provider,
+                sessionID: sessionID,
+                workingDirectory: fields["cwd"] as? String ?? currentDirectory,
+                configDirectory: provider.configurationDirectory(
+                    homeURL: homeURL, environment: environment
+                ).path,
+                sessionFile: fields["session_file"] as? String,
+                configurationEnvironment: environment.filter {
+                    provider.configurationVariables.contains($0.key) && AgentConversationIdentity.isAbsolutePath($0.value)
+                }
+            )
+        else { return nil }
         return Self(identity: identity, reporterPID: reporterPID, source: fields["source"] as? String)
     }
 }

@@ -11,12 +11,13 @@ private enum OutputExportTemporaryDirectory {
 
     static func install(in home: URL) throws {
         guard home.path.hasPrefix("/tmp/zshell-output-export-tests-"),
-              ProcessInfo.processInfo.environment["CFFIXED_USER_HOME"].map({ URL(fileURLWithPath: $0).resolvingSymlinksInPath() }) == home,
-              let configured = ProcessInfo.processInfo.environment["TMPDIR"],
-              URL(fileURLWithPath: configured).resolvingSymlinksInPath() == home.appendingPathComponent("tmp", isDirectory: true),
-              FileManager.default.fileExists(atPath: configured),
-              let original = class_getInstanceMethod(FileManager.self, #selector(getter: FileManager.temporaryDirectory)),
-              let replacement = class_getInstanceMethod(FileManager.self, NSSelectorFromString("outputExportTestTemporaryDirectory")) else {
+            ProcessInfo.processInfo.environment["CFFIXED_USER_HOME"].map({ URL(fileURLWithPath: $0).resolvingSymlinksInPath() }) == home,
+            let configured = ProcessInfo.processInfo.environment["TMPDIR"],
+            URL(fileURLWithPath: configured).resolvingSymlinksInPath() == home.appendingPathComponent("tmp", isDirectory: true),
+            FileManager.default.fileExists(atPath: configured),
+            let original = class_getInstanceMethod(FileManager.self, #selector(getter: FileManager.temporaryDirectory)),
+            let replacement = class_getInstanceMethod(FileManager.self, NSSelectorFromString("outputExportTestTemporaryDirectory"))
+        else {
             throw OutputExportFailure.check("the fixture's HOME and configured temporary directory must be disposable")
         }
         url = URL(fileURLWithPath: configured, isDirectory: true).resolvingSymlinksInPath()
@@ -45,8 +46,10 @@ private final class OutputExportSavePanel: NSSavePanel {
     var responseIsPending: Bool { responseHandler != nil }
     override var url: URL? { destination }
 
-    override func beginSheetModal(for window: NSWindow,
-                                 completionHandler handler: @escaping (NSApplication.ModalResponse) -> Void) {
+    override func beginSheetModal(
+        for window: NSWindow,
+        completionHandler handler: @escaping (NSApplication.ModalResponse) -> Void
+    ) {
         host = window
         responseHandler = handler
         QuickTerminalOffscreen.prepare(self)
@@ -75,8 +78,9 @@ struct TerminalOutputExportSurfaceTests {
         if PTYMuxCommandLine.shouldRunRelay { PTYMuxRelay.run() }
         if PTYMuxCommandLine.shouldRunDaemon { PTYMuxCommandLine.runDaemon() }
         setbuf(stdout, nil)
-        do { try run(); print("Terminal output export: \(checks) checks passed") }
-        catch { fputs("Terminal output export failed after \(checks) checks: \(error)\n", stderr); exit(1) }
+        do { try run(); print("Terminal output export: \(checks) checks passed") } catch {
+            fputs("Terminal output export failed after \(checks) checks: \(error)\n", stderr); exit(1)
+        }
     }
 
     private static func run() throws {
@@ -88,8 +92,9 @@ struct TerminalOutputExportSurfaceTests {
         try OutputExportTemporaryDirectory.install(in: home)
         let temporary = files.temporaryDirectory.resolvingSymlinksInPath()
         print("Fixture \(backend): HOME=\(home.path); capture directory=\(temporary.path)")
-        try check(home.path.hasPrefix("/tmp/zshell-output-export-tests-")
-                  && temporary.path.hasPrefix(home.path + "/"), "HOME and capture directory are disposable")
+        try check(
+            home.path.hasPrefix("/tmp/zshell-output-export-tests-")
+                && temporary.path.hasPrefix(home.path + "/"), "HOME and capture directory are disposable")
         let draft = home.appendingPathComponent("draft.txt")
         try """
         HISTFILE=/dev/null
@@ -132,8 +137,9 @@ struct TerminalOutputExportSurfaceTests {
         guard let source = first.newSession(directory: home.path), let other = second.newSession(directory: home.path) else {
             throw OutputExportFailure.check("fixture shells could not start")
         }
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 900, height: 500),
-                              styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 500),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
         window.identifier = .init("main-output-export-fixture")
         window.isReleasedWhenClosed = false
         let content = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 500))
@@ -155,8 +161,9 @@ struct TerminalOutputExportSurfaceTests {
         })
         AppMenuController.shared.install()
         guard let terminalMenu = NSApp.mainMenu.flatMap({ AppMenuController.submenu(.terminal, in: $0) }),
-              let mainExport = terminalMenu.items.first(where: { $0.title == String(localized: "Save Terminal Output…") }),
-              let mainValidation = mainExport.target as? NSMenuItemValidation else {
+            let mainExport = terminalMenu.items.first(where: { $0.title == String(localized: "Save Terminal Output…") }),
+            let mainValidation = mainExport.target as? NSMenuItemValidation
+        else {
             throw OutputExportFailure.check("the Terminal menu export command is missing")
         }
         try check(mainValidation.validateMenuItem(mainExport), "the main menu enables export for the focused terminal")
@@ -165,8 +172,9 @@ struct TerminalOutputExportSurfaceTests {
         let fileTab = PaneTab(content: .file(file))
         first.tabs.append(fileTab)
         first.selectedTabID = fileTab.id
-        try check(!controller.canSave(in: manager) && !mainValidation.validateMenuItem(mainExport),
-                  "a focused file pane disables export even if an old terminal responder remains")
+        try check(
+            !controller.canSave(in: manager) && !mainValidation.validateMenuItem(mainExport),
+            "a focused file pane disables export even if an old terminal responder remains")
         first.tabs.removeAll { $0.id == fileTab.id }
         first.selectedTabID = sourceTabID
         defer {
@@ -182,18 +190,23 @@ struct TerminalOutputExportSurfaceTests {
         try run("printf 'OTHER_PROJECT_ONLY\\n'", in: other)
         window.makeFirstResponder(source.surface)
         let original = try capture(source)
-        try check(original.contains("EXPORT_OLD_你好 café e\u{301} 👩🏽‍💻 🇨🇳") && original.contains("EXPORT_NEW_終わり"),
-                  "\(backend) retains Unicode and both old scrollback and the current screen")
-        try check(original.contains("EXPORT_STYLED") && original.contains("EXPORT_LINK_LABEL")
-                  && !original.contains("\u{1b}") && !original.contains("\r"), "styled and hyperlink output becomes plain LF text")
-        try check(original.contains("EXPORT_FIRST\n\nEXPORT_THIRD")
-                  && original.contains("EXPORT_WRAP_" + String(repeating: "你好", count: 120) + "_WRAP_END"),
-                  "blank lines and soft-wrapped Unicode retain their logical text")
-        try check(original.contains("EXPORT_LINE_0000") && original.contains("EXPORT_LINE_0799") && original.utf8.count > 100_000,
-                  "a long capture includes the retained rows above the viewport")
+        try check(
+            original.contains("EXPORT_OLD_你好 café e\u{301} 👩🏽‍💻 🇨🇳") && original.contains("EXPORT_NEW_終わり"),
+            "\(backend) retains Unicode and both old scrollback and the current screen")
+        try check(
+            original.contains("EXPORT_STYLED") && original.contains("EXPORT_LINK_LABEL")
+                && !original.contains("\u{1b}") && !original.contains("\r"), "styled and hyperlink output becomes plain LF text")
+        try check(
+            original.contains("EXPORT_FIRST\n\nEXPORT_THIRD")
+                && original.contains("EXPORT_WRAP_" + String(repeating: "你好", count: 120) + "_WRAP_END"),
+            "blank lines and soft-wrapped Unicode retain their logical text")
+        try check(
+            original.contains("EXPORT_LINE_0000") && original.contains("EXPORT_LINE_0799") && original.utf8.count > 100_000,
+            "a long capture includes the retained rows above the viewport")
 
-        let independent = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 900, height: 500),
-                                  styleMask: [.titled, .nonactivatingPanel], backing: .buffered, defer: false)
+        let independent = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 500),
+            styleMask: [.titled, .nonactivatingPanel], backing: .buffered, defer: false)
         independent.isReleasedWhenClosed = false
         let independentContent = NSView(frame: content.bounds)
         independent.contentView = independentContent
@@ -201,8 +214,9 @@ struct TerminalOutputExportSurfaceTests {
         independent.orderFront(nil)
         independent.makeFirstResponder(other.surface)
         app.fixtureWindow = independent
-        try check(controller.canSave(in: nil) && controller.canSave(in: manager),
-                  "an independent quick surface needs no manager and cannot target another main window")
+        try check(
+            controller.canSave(in: nil) && controller.canSave(in: manager),
+            "an independent quick surface needs no manager and cannot target another main window")
         try check(mainValidation.validateMenuItem(mainExport), "the main menu also enables an independent key terminal")
         let independentSnapshot = try capture(other)
         let independentDestination = home.appendingPathComponent("independent.txt")
@@ -235,8 +249,9 @@ struct TerminalOutputExportSurfaceTests {
         let editor = NSTextView(frame: independentContent.bounds)
         independentContent.addSubview(editor)
         independent.makeFirstResponder(editor)
-        try check(!controller.canSave(in: nil) && !controller.canSave(in: manager),
-                  "an editor in the key independent window cannot fall back to another terminal")
+        try check(
+            !controller.canSave(in: nil) && !controller.canSave(in: manager),
+            "an editor in the key independent window cannot fall back to another terminal")
         try check(!mainValidation.validateMenuItem(mainExport), "the main menu disables export for the independent editor")
         container.releaseTerminal(other.surface)
         other.promptQueueBar.setPaneVisible(false)
@@ -271,22 +286,26 @@ struct TerminalOutputExportSurfaceTests {
         try check(source.surface.hasSelection, "selection exists before exporting")
         let context = controller.menuItem(for: source.surface)
         let actualContext = TerminalContextMenu.make(for: source.surface, linkTarget: nil)
-        try check(actualContext.items.contains { $0.identifier?.rawValue == "zshell-save-terminal-output" },
-                  "the real terminal context menu includes export beside existing actions")
-        try check(controller.validateMenuItem(context) && (context.representedObject as? NSView) === source.surface,
-                  "context action is available and bound to its clicked surface")
+        try check(
+            actualContext.items.contains { $0.identifier?.rawValue == "zshell-save-terminal-output" },
+            "the real terminal context menu includes export beside existing actions")
+        try check(
+            controller.validateMenuItem(context) && (context.representedObject as? NSView) === source.surface,
+            "context action is available and bound to its clicked surface")
         try invoke(context)
         guard let cancelledPanel = panel else { throw OutputExportFailure.check("save panel missing") }
         cancelledPanel.destination = cancelled
-        try check(cancelledPanel.allowedContentTypes == [.plainText] && cancelledPanel.nameFieldStringValue == "terminal-output.txt",
-                  "the AppKit save panel offers a plain-text file")
+        try check(
+            cancelledPanel.allowedContentTypes == [.plainText] && cancelledPanel.nameFieldStringValue == "terminal-output.txt",
+            "the AppKit save panel offers a plain-text file")
         try check((try captureDirectories().subtracting(beforeCancel)).count == 1, "each pending export owns one capture directory")
         cancelledPanel.cancel(nil)
         try wait("cancel removes the capture without creating a destination") {
             (try? captureDirectories()) == beforeCancel && controller.canSave(from: source.surface)
         }
-        try check(!files.fileExists(atPath: cancelled.path) && source.surface.hasSelection
-                  && window.firstResponder === source.surface, "cancel keeps the terminal selection and responder")
+        try check(
+            !files.fileExists(atPath: cancelled.path) && source.surface.hasSelection
+                && window.firstResponder === source.surface, "cancel keeps the terminal selection and responder")
 
         let switched = home.appendingPathComponent("switched.txt")
         let beforeSwitch = try captureDirectories()
@@ -300,8 +319,9 @@ struct TerminalOutputExportSurfaceTests {
             (try? String(contentsOf: switched, encoding: .utf8)) == original
                 && (try? captureDirectories()) == beforeSwitch && controller.canSave(from: source.surface)
         }
-        try check(window.firstResponder === other.surface && source.surface.hasSelection,
-                  "completion preserves the newly focused pane and original selection")
+        try check(
+            window.firstResponder === other.surface && source.surface.hasSelection,
+            "completion preserves the newly focused pane and original selection")
         manager.selectedProjectID = first.id
         window.makeFirstResponder(source.surface)
         let typedDraft = "printf 'UNSENT_DRAFT_你好 👩🏽‍💻'"
@@ -313,17 +333,20 @@ struct TerminalOutputExportSurfaceTests {
         try invoke(blocking)
         let lockedContext = TerminalContextMenu.make(for: source.surface, linkTarget: nil)
         guard let lockedExport = lockedContext.items.first(where: { $0.identifier?.rawValue == "zshell-save-terminal-output" }),
-              let contextValidation = lockedExport.target as? NSMenuItemValidation else {
+            let contextValidation = lockedExport.target as? NSMenuItemValidation
+        else {
             throw OutputExportFailure.check("the locked terminal's context export is missing")
         }
-        try check(source.isReadOnly && source.surface.commandRouting.blocksCommands
-                  && mainValidation.validateMenuItem(mainExport) && contextValidation.validateMenuItem(lockedExport),
-                  "main and context export remain enabled with Read Only and Block Zshell Commands together")
+        try check(
+            source.isReadOnly && source.surface.commandRouting.blocksCommands
+                && mainValidation.validateMenuItem(mainExport) && contextValidation.validateMenuItem(lockedExport),
+            "main and context export remain enabled with Read Only and Block Zshell Commands together")
         let draftSequence = source.commandLifecycle.completionSequence
         func preservedLockedDraft(_ operation: String) throws {
-            try check(source.isReadOnly && source.surface.commandRouting.blocksCommands
-                      && source.commandLifecycle.completionSequence == draftSequence && window.firstResponder === source.surface,
-                      "\(operation) preserves both locks, the command lifecycle and terminal focus")
+            try check(
+                source.isReadOnly && source.surface.commandRouting.blocksCommands
+                    && source.commandLifecycle.completionSequence == draftSequence && window.firstResponder === source.surface,
+                "\(operation) preserves both locks, the command lifecycle and terminal focus")
             source.surface.isReadOnly = false
             defer { source.surface.isReadOnly = true }
             try files.removeItem(at: draft)
@@ -377,7 +400,8 @@ struct TerminalOutputExportSurfaceTests {
         let beforeReadFailure = try captureDirectories()
         controller.save(from: source.surface)
         guard let brokenDirectory = try captureDirectories().subtracting(beforeReadFailure).first,
-              let brokenCapture = try files.contentsOfDirectory(at: brokenDirectory, includingPropertiesForKeys: nil).first else {
+            let brokenCapture = try files.contentsOfDirectory(at: brokenDirectory, includingPropertiesForKeys: nil).first
+        else {
             throw OutputExportFailure.check("no owned capture to corrupt")
         }
         try Data([0xff, 0xfe]).write(to: brokenCapture)
@@ -388,8 +412,9 @@ struct TerminalOutputExportSurfaceTests {
             window.attachedSheet?.identifier?.rawValue == "terminal-output-export-error"
                 && (try? captureDirectories()) == beforeReadFailure
         }
-        try check(!files.fileExists(atPath: unreadable.path) && alertText(in: window).contains("The terminal output could not be read."),
-                  "a capture read failure does not report success or create a file")
+        try check(
+            !files.fileExists(atPath: unreadable.path) && alertText(in: window).contains("The terminal output could not be read."),
+            "a capture read failure does not report success or create a file")
         dismissError(in: window)
         try preservedLockedDraft("a read error while locked")
         source.surface.isReadOnly = false
@@ -429,11 +454,13 @@ struct TerminalOutputExportSurfaceTests {
                 (try? String(contentsOf: destination, encoding: .utf8)) == snapshot && controller.canSave(from: other.surface)
             }
             if mode == "empty" {
-                try check(snapshot.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                          "an empty retained buffer exports only its blank screen rows")
+                try check(
+                    snapshot.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    "an empty retained buffer exports only its blank screen rows")
             } else {
-                try check(snapshot.contains("EXPORT_TUI_你好 👩🏽‍💻") && !snapshot.contains("OTHER_PROJECT_ONLY"),
-                          "alternate-screen export contains the active TUI buffer")
+                try check(
+                    snapshot.contains("EXPORT_TUI_你好 👩🏽‍💻") && !snapshot.contains("OTHER_PROJECT_ONLY"),
+                    "alternate-screen export contains the active TUI buffer")
             }
             try Data().write(to: release)
             try wait("the fixture returns to its root shell") {
@@ -479,8 +506,9 @@ struct TerminalOutputExportSurfaceTests {
     }
 
     private static func captureDirectories() throws -> Set<URL> {
-        Set(try files.contentsOfDirectory(at: files.temporaryDirectory, includingPropertiesForKeys: [.isDirectoryKey])
-            .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true })
+        Set(
+            try files.contentsOfDirectory(at: files.temporaryDirectory, includingPropertiesForKeys: [.isDirectoryKey])
+                .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true })
     }
 
     private static func capture(_ session: TerminalSession) throws -> String {
@@ -502,7 +530,9 @@ struct TerminalOutputExportSurfaceTests {
     private static func control(_ text: String, in session: TerminalSession) {
         if let surface = session.surface as? ZshellTerminalView {
             surface.performBindingAction("text:" + text.utf8.map { String(format: "\\x%02x", $0) }.joined())
-        } else { session.surface.sendText(text) }
+        } else {
+            session.surface.sendText(text)
+        }
     }
 
     private static func invoke(_ item: NSMenuItem) throws {

@@ -48,7 +48,8 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         guard let fileMenu = AppMenuController.submenu(.file, in: mainMenu) else { return }
         let identifier = NSUserInterfaceItemIdentifier("zshell-workspace-templates-menu")
         let title = String(localized: "Workspace Templates")
-        let item = fileMenu.items.first { $0.identifier == identifier }
+        let item =
+            fileMenu.items.first { $0.identifier == identifier }
             ?? NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.identifier = identifier
         if item.title != title { item.title = title }
@@ -60,7 +61,8 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
             ("workspace-template-manage", String(localized: "Workspace Templates…"), #selector(showFromMenu(_:))),
         ] {
             let identifier = NSUserInterfaceItemIdentifier(id)
-            let command = menu.items.first { $0.identifier == identifier }
+            let command =
+                menu.items.first { $0.identifier == identifier }
                 ?? NSMenuItem(title: title, action: action, keyEquivalent: "")
             command.identifier = identifier
             if command.title != title { command.title = title }
@@ -78,7 +80,8 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         self.manager = manager
         let project = manager.selectedProject
         let directory = project?.selectedSession?.currentDirectoryPath ?? NSHomeDirectory()
-        rootField.stringValue = project?.isRemote == false
+        rootField.stringValue =
+            project?.isRemote == false
             ? project?.panelRoot(followingSessionAt: directory).root ?? directory : NSHomeDirectory()
         statusLabel.stringValue = store.loadError ?? ""
         managerObservation = manager.objectWillChange.receive(on: DispatchQueue.main)
@@ -127,18 +130,21 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
     }
 
     private func configure() {
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 860, height: 600),
-                            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 860, height: 600),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
         panel.minSize = NSSize(width: 760, height: 520)
         panel.identifier = NSUserInterfaceItemIdentifier("workspace-templates")
         panel.delegate = self
         self.panel = panel
         guard let content = panel.contentView else { return }
-        for (button, action) in [(saveButton, #selector(saveCurrentProject(_:))), (importButton, #selector(importTemplate(_:))),
-                                 (renameButton, #selector(renameTemplate(_:))), (deleteButton, #selector(deleteTemplate(_:))),
-                                 (editButton, #selector(editTemplate(_:))), (exportButton, #selector(exportTemplate(_:))),
-                                 (chooseButton, #selector(chooseRoot(_:))), (applyButton, #selector(applyTemplate(_:)))] {
+        for (button, action) in [
+            (saveButton, #selector(saveCurrentProject(_:))), (importButton, #selector(importTemplate(_:))),
+            (renameButton, #selector(renameTemplate(_:))), (deleteButton, #selector(deleteTemplate(_:))),
+            (editButton, #selector(editTemplate(_:))), (exportButton, #selector(exportTemplate(_:))),
+            (chooseButton, #selector(chooseRoot(_:))), (applyButton, #selector(applyTemplate(_:))),
+        ] {
             button.bezelStyle = .rounded
             button.target = self
             button.action = action
@@ -252,8 +258,9 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         entries = store.entries
         table.reloadData()
         if !entries.isEmpty {
-            table.selectRowIndexes(IndexSet(integer: selectedID.flatMap { id in entries.firstIndex { $0.id == id } } ?? 0),
-                                  byExtendingSelection: false)
+            table.selectRowIndexes(
+                IndexSet(integer: selectedID.flatMap { id in entries.firstIndex { $0.id == id } } ?? 0),
+                byExtendingSelection: false)
         }
         updateSelection()
     }
@@ -306,7 +313,9 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
     private func preview(_ template: WorkspaceTemplate) -> String {
         var lines = [template.name, ""]
         if let remote = template.remote {
-            lines += [String(localized: "Remote Host") + ": " + remote.host, String(localized: "Remote Directory") + ": " + remote.directory, ""]
+            lines += [
+                String(localized: "Remote Host") + ": " + remote.host, String(localized: "Remote Directory") + ": " + remote.directory, "",
+            ]
         }
         for (index, tab) in template.tabs.enumerated() {
             lines.append(String(localized: "Tab \(index + 1)") + (tab.name.map { " · " + $0 } ?? ""))
@@ -322,16 +331,19 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
                         lines.append(indent + String(localized: "Pane \(number)") + " · " + String(localized: "Terminal"))
                         lines.append(indent + "  " + String(localized: "Working Directory") + ": " + directory)
                         let argv = command?.argv?.map(TerminalSession.shellQuote).joined(separator: " ")
-                        lines.append(indent + "  " + String(localized: "Startup Program") + ": " + (argv ?? String(localized: "Login Shell")))
+                        lines.append(
+                            indent + "  " + String(localized: "Startup Program") + ": " + (argv ?? String(localized: "Login Shell")))
                         if let initialization = command?.initializationCommand {
                             lines.append(indent + "  " + String(localized: "Initialization Command") + ": " + initialization)
                         }
-                    case .browser(let url): lines.append(indent + String(localized: "Pane \(number)") + " · " + (url ?? String(localized: "New Browser Tab")))
+                    case .browser(let url):
+                        lines.append(indent + String(localized: "Pane \(number)") + " · " + (url ?? String(localized: "New Browser Tab")))
                     case .file, .diff, .commitDiff: break
                     }
                 case .split(let axis, let fraction, let first, let second):
-                    lines.append(indent + (axis == .horizontal ? String(localized: "Horizontal Split") : String(localized: "Vertical Split"))
-                                 + " · " + String(format: "%.0f%% / %.0f%%", fraction * 100, (1 - fraction) * 100))
+                    lines.append(
+                        indent + (axis == .horizontal ? String(localized: "Horizontal Split") : String(localized: "Vertical Split"))
+                            + " · " + String(format: "%.0f%% / %.0f%%", fraction * 100, (1 - fraction) * 100))
                     append(first, indent: indent + "  ")
                     append(second, indent: indent + "  ")
                 }
@@ -355,7 +367,8 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         alert.beginSheetModal(for: panel) { [weak self] response in
             guard response == .alertFirstButtonReturn, let self else { return }
             do {
-                let template = try WorkspaceTemplate.capture(project: project, name: name.stringValue.trimmingCharacters(in: .whitespacesAndNewlines))
+                let template = try WorkspaceTemplate.capture(
+                    project: project, name: name.stringValue.trimmingCharacters(in: .whitespacesAndNewlines))
                 let id = try self.store.add(template)
                 self.statusLabel.stringValue = ""
                 self.reload(selecting: id)
@@ -373,8 +386,9 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         open.prompt = String(localized: "Import")
         open.beginSheetModal(for: panel) { [weak self] response in
             guard response == .OK, let url = open.url, let self else { return }
-            do { let id = try self.store.importTemplate(from: url); self.statusLabel.stringValue = ""; self.reload(selecting: id) }
-            catch { self.statusLabel.stringValue = error.localizedDescription }
+            do { let id = try self.store.importTemplate(from: url); self.statusLabel.stringValue = ""; self.reload(selecting: id) } catch {
+                self.statusLabel.stringValue = error.localizedDescription
+            }
         }
     }
 
@@ -385,8 +399,9 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         save.nameFieldStringValue = "workspace-template.json"
         save.beginSheetModal(for: panel) { [weak self] response in
             guard response == .OK, let url = save.url, let self else { return }
-            do { try self.store.exportTemplate(selected.id, to: url); self.statusLabel.stringValue = "" }
-            catch { self.statusLabel.stringValue = error.localizedDescription }
+            do { try self.store.exportTemplate(selected.id, to: url); self.statusLabel.stringValue = "" } catch {
+                self.statusLabel.stringValue = error.localizedDescription
+            }
         }
     }
 
@@ -402,8 +417,9 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         alert.addButton(withTitle: String(localized: "Cancel"))
         alert.beginSheetModal(for: panel) { [weak self] response in
             guard response == .alertFirstButtonReturn, let self else { return }
-            do { try self.store.rename(selected.id, to: field.stringValue); self.statusLabel.stringValue = "" }
-            catch { self.statusLabel.stringValue = error.localizedDescription }
+            do { try self.store.rename(selected.id, to: field.stringValue); self.statusLabel.stringValue = "" } catch {
+                self.statusLabel.stringValue = error.localizedDescription
+            }
         }
         alert.window.makeFirstResponder(field)
     }
@@ -423,8 +439,9 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         alert.addButton(withTitle: String(localized: "Cancel"))
         alert.beginSheetModal(for: panel) { [weak self] response in
             guard response == .alertFirstButtonReturn, let self else { return }
-            do { try self.store.delete(selected.id); self.statusLabel.stringValue = "" }
-            catch { self.statusLabel.stringValue = error.localizedDescription }
+            do { try self.store.delete(selected.id); self.statusLabel.stringValue = "" } catch {
+                self.statusLabel.stringValue = error.localizedDescription
+            }
         }
     }
 
@@ -446,7 +463,8 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         guard let selected, let manager, !applying else { return }
         if let remote = selected.template.remote {
             guard let id = hostPopup.selectedItem?.representedObject as? UUID,
-                  let host = RemoteHostStore.shared.hosts.first(where: { $0.id == id }) else {
+                let host = RemoteHostStore.shared.hosts.first(where: { $0.id == id })
+            else {
                 showRemoteNotice(WorkspaceTemplateError.remoteHostUnavailable(remote.host).localizedDescription)
                 return
             }
@@ -457,8 +475,9 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
             let directory = remoteDirectoryField.stringValue
             Task { @MainActor [weak self] in
                 var failure: Error?
-                do { try await manager.applyRemoteWorkspaceTemplate(selected.template, host: host, directory: directory) }
-                catch { failure = error }
+                do { try await manager.applyRemoteWorkspaceTemplate(selected.template, host: host, directory: directory) } catch {
+                    failure = error
+                }
                 guard let self else { return }
                 self.applying = false
                 self.statusLabel.textColor = .systemRed
@@ -468,8 +487,9 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
             }
             return
         }
-        do { try manager.applyWorkspaceTemplate(selected.template, projectRoot: rootField.stringValue); close() }
-        catch { statusLabel.stringValue = error.localizedDescription }
+        do { try manager.applyWorkspaceTemplate(selected.template, projectRoot: rootField.stringValue); close() } catch {
+            statusLabel.stringValue = error.localizedDescription
+        }
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int { entries.count }

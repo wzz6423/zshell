@@ -57,10 +57,10 @@ final class AppKitContextMenuMonitorView: NSView {
             let input = AppKitContextMenuEvent(event)
             let output: AppKitContextMenuEvent = MainActor.assumeIsolated {
                 guard let self,
-                      let window,
-                      let event = input.value,
-                      event.window === window,
-                      self.visibleRect.contains(self.convert(event.locationInWindow, from: nil))
+                    let window,
+                    let event = input.value,
+                    event.window === window,
+                    self.visibleRect.contains(self.convert(event.locationInWindow, from: nil))
                 else { return input }
 
                 self.popUp(

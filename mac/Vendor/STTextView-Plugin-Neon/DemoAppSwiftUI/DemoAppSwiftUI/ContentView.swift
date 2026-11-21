@@ -8,14 +8,14 @@
 import SwiftUI
 
 #if canImport(AppKit) && !targetEnvironment(macCatalyst)
-import STTextViewSwiftUI
-typealias Font = NSFont
-typealias Color = NSColor
+    import STTextViewSwiftUI
+    typealias Font = NSFont
+    typealias Color = NSColor
 #endif
 #if canImport(UIKit)
-import STTextViewSwiftUIUIKit
-typealias Font = UIFont
-typealias Color = UIColor
+    import STTextViewSwiftUIUIKit
+    typealias Font = UIFont
+    typealias Color = UIColor
 #endif
 
 import STPluginNeon
@@ -25,7 +25,7 @@ struct ContentView: View {
     @State private var text: AttributedString = ""
     @State private var selection: NSRange?
     @State private var font = Font.monospacedSystemFont(ofSize: 0, weight: .medium)
-    
+
     var body: some View {
         VStack(spacing: 0) {
             TextView(
@@ -55,14 +55,14 @@ struct ContentView: View {
 
     private func loadContent() {
         let string = """
-        package main
+            package main
 
-        import "fmt"
+            import "fmt"
 
-        func main() {
-            fmt.Println("hello world")
-        }
-        """
+            func main() {
+                fmt.Println("hello world")
+            }
+            """
         self.text = AttributedString(string)
     }
 }

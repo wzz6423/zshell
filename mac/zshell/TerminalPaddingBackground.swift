@@ -9,6 +9,7 @@ final class TerminalPaddingBackground {
     private let image = CALayer()
     private let border = CAShapeLayer()
     private let coverClip = CAShapeLayer()
+    private weak var view: AppTerminalView?
     private weak var backing: CALayer?
     private weak var cover: CALayer?
     private var originalContentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
@@ -36,13 +37,14 @@ final class TerminalPaddingBackground {
         self.opacity = opacity
         if backing !== layer {
             reset()
+            self.view = view
             backing = layer
             originalContentsRect = layer.contentsRect
             // Ghostty also assigns completed frames asynchronously on main.
             // Observing that assignment avoids showing the previous image.
-            observation = layer.observe(\.contents, options: [.new]) { [weak self, weak view] _, _ in
+            observation = layer.observe(\.contents, options: [.new]) { [weak self] _, _ in
                 MainActor.assumeIsolated {
-                    guard let self, let view, self.backing === view.layer else { return }
+                    guard let self, let view = self.view, self.backing === view.layer else { return }
                     self.update(view: view, enabled: true, color: self.color, opacity: self.opacity)
                 }
             }
@@ -50,15 +52,16 @@ final class TerminalPaddingBackground {
         let scale = view.window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 1
         let bounds = layer.bounds
         guard bounds.width > 0, bounds.height > 0,
-              let contents = layer.contents,
-              CFGetTypeID(contents as CFTypeRef) == IOSurfaceGetTypeID()
+            let contents = layer.contents,
+            CFGetTypeID(contents as CFTypeRef) == IOSurfaceGetTypeID()
         else { return }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         let geometryChanged = previousBounds != bounds || previousScale != scale
         if geometryChanged {
             guard let size = view.viewportGridMetrics, size.columns > 0, size.rows > 0,
-                  let first = view.readViewportText(row: 0, columns: 0..<1) else {
+                let first = view.readViewportText(row: 0, columns: 0 ..< 1)
+            else {
                 CATransaction.commit()
                 return
             }
@@ -66,18 +69,25 @@ final class TerminalPaddingBackground {
             let height = CGFloat(size.rows) * CGFloat(size.cellHeightPixels) / scale
             // `window-padding-balance = true` floors physical pixels and caps
             // the top at the explicit horizontal inset plus half a cell.
-            let top = CGFloat(max(0, min(
-                (Int(size.heightPixels) - Int(size.rows) * Int(size.cellHeightPixels)) / 2,
-                (Int(20 * scale) + Int(size.cellWidthPixels)) / 2
-            ))) / scale
-            grid = CGRect(x: first.origin.x, y: bounds.height - top - height,
-                          width: width, height: height)
-            let screen = CGSize(width: CGFloat(size.widthPixels) / scale,
-                                height: CGFloat(size.heightPixels) / scale)
+            let top =
+                CGFloat(
+                    max(
+                        0,
+                        min(
+                            (Int(size.heightPixels) - Int(size.rows) * Int(size.cellHeightPixels)) / 2,
+                            (Int(20 * scale) + Int(size.cellWidthPixels)) / 2
+                        ))) / scale
+            grid = CGRect(
+                x: first.origin.x, y: bounds.height - top - height,
+                width: width, height: height)
+            let screen = CGSize(
+                width: CGFloat(size.widthPixels) / scale,
+                height: CGFloat(size.heightPixels) / scale)
             image.frame = grid
-            image.contentsRect = CGRect(x: grid.minX / screen.width,
-                                        y: (screen.height - top - height) / screen.height,
-                                        width: width / screen.width, height: height / screen.height)
+            image.contentsRect = CGRect(
+                x: grid.minX / screen.width,
+                y: (screen.height - top - height) / screen.height,
+                width: width / screen.width, height: height / screen.height)
             let path = CGMutablePath()
             path.addRect(bounds)
             path.addRect(grid)
@@ -121,6 +131,7 @@ final class TerminalPaddingBackground {
         image.contents = nil
         border.removeFromSuperlayer()
         restoreCover()
+        view = nil
         backing = nil
         previousBounds = .null
         CATransaction.commit()

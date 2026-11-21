@@ -21,8 +21,8 @@ public struct Replacement: CustomStringConvertible, CustomDebugStringConvertible
     /// - parameter range: The range of the source text to replace.
     /// - parameter replacementText: The text to substitute in the range.
     public init(range: SourceRange, replacementText: String) {
-      self.range = range
-      self.replacementText = replacementText
+        self.range = range
+        self.replacementText = replacementText
     }
 
     public var description: String {

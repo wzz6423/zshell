@@ -79,7 +79,7 @@ struct InMemoryTerminalSessionOutputQueueTests {
 
         let clearDeadline = ProcessInfo.processInfo.systemUptime + 1
         while session.currentSurface != nil,
-              ProcessInfo.processInfo.systemUptime < clearDeadline
+            ProcessInfo.processInfo.systemUptime < clearDeadline
         {
             sched_yield()
         }

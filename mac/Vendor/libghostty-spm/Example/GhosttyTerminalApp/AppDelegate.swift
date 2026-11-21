@@ -39,8 +39,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func repairRestoredWindowSizeIfNeeded(_ window: NSWindow) {
         DispatchQueue.main.async { [defaultContentSize, minimumContentSize] in
             let contentRect = window.contentRect(forFrameRect: window.frame)
-            guard contentRect.width < minimumContentSize.width
-                || contentRect.height < minimumContentSize.height
+            guard
+                contentRect.width < minimumContentSize.width
+                    || contentRect.height < minimumContentSize.height
             else {
                 return
             }

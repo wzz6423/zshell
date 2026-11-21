@@ -163,14 +163,15 @@
         }
 
         func setSelectedTextRange(_ range: UITextRange?) {
-            let updatedRange = if let range = range as? TerminalTextRange {
-                NSRange(
-                    location: range.location,
-                    length: range.length
-                )
-            } else {
-                NSRange(location: 0, length: 0)
-            }
+            let updatedRange =
+                if let range = range as? TerminalTextRange {
+                    NSRange(
+                        location: range.location,
+                        length: range.length
+                    )
+                } else {
+                    NSRange(location: 0, length: 0)
+                }
             let clampedRange = clampedSelectedRange(updatedRange)
             guard markedTextState.selectedRange != clampedRange else { return }
             TerminalDebugLog.log(
@@ -183,10 +184,11 @@
         }
 
         func text(in range: TerminalTextRange) -> String? {
-            markedTextState.text(in: NSRange(
-                location: range.location,
-                length: range.length
-            ))
+            markedTextState.text(
+                in: NSRange(
+                    location: range.location,
+                    length: range.length
+                ))
         }
 
         func deleteBackwardInMarkedText() -> Bool {

@@ -81,7 +81,9 @@ xcodebuild -project mac/zshell.xcodeproj -scheme zshell -configuration Debug -de
 Add `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` if you only have Xcode beta.
 
 `make run` builds and launches the Debug app in one step, and `make update`
-restarts a running one. The Rust build phases synchronize changed input contents
+restarts a running one. Both show a short build status and Xcode warnings and
+errors by default. Use `make run VERBOSE=1` or `make update VERBOSE=1` for the full
+build output. The Rust build phases synchronize changed input contents
 into their sandboxed build directories so Cargo can reuse unchanged dependencies.
 Verify the resulting bundle with:
 
@@ -100,6 +102,14 @@ A Debug build is `sh.zshell.dev` and keeps its own state, so it can run beside a
 installed Zshell without clobbering it: settings go to
 `~/.config/zshell-dev/config.toml`, and the session snapshot, sidebar widths, and
 Sparkle preferences live under the separate bundle id.
+
+Run `make format` to format all tracked Swift and Rust sources, including vendored
+packages, or `make format-check` to check them without writing files. The commands
+use Xcode's `swift-format` with `.swift-format` and stable `rustfmt` with
+`rustfmt.toml`, respecting each Cargo package's Rust edition. Python 3.11 or later
+is required. Swift formatting keeps declaration order and existing language
+constructs. Grammar test inputs retain their original text because their syntax
+errors and highlight column markers are part of the fixture.
 
 To verify SSH against an isolated test host without editing personal SSH files,
 launch the app with `ZSHELL_SSH_CONFIG_FILE` pointing to a readable absolute

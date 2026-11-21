@@ -131,9 +131,10 @@ final class TerminalEnvironmentEditorController: NSWindowController, NSWindowDel
             labelWithString: String(localized: "Initialization Command")
         )
         commandHeader.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .semibold)
-        let plaintextWarning = NSTextField(wrappingLabelWithString: String(
-            localized: "Values are saved as plain text in the session snapshot. Do not store passwords, tokens, or other secrets here."
-        ))
+        let plaintextWarning = NSTextField(
+            wrappingLabelWithString: String(
+                localized: "Values are saved as plain text in the session snapshot. Do not store passwords, tokens, or other secrets here."
+            ))
         plaintextWarning.textColor = .secondaryLabelColor
         plaintextWarning.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
 
@@ -186,7 +187,8 @@ final class TerminalEnvironmentEditorController: NSWindowController, NSWindowDel
         case .tab(let project, let tab):
             titleLabel.stringValue = String(localized: "Tab Terminal Environment")
             detailLabel.stringValue = String(
-                localized: "Tab variables override project variables with the same name. These settings affect only terminals created later in this tab."
+                localized:
+                    "Tab variables override project variables with the same name. These settings affect only terminals created later in this tab."
             )
             commandMode.isHidden = false
             let settings = tab.launchSettingsOverride
@@ -261,21 +263,25 @@ final class TerminalEnvironmentEditorController: NSWindowController, NSWindowDel
             let value = row.valueField.stringValue
             if name.isEmpty, value.isEmpty { continue }
             guard TerminalLaunchSettings.isValidEnvironmentVariableName(name) else {
-                return showError(String(
-                    localized: "Variable names must begin with a letter or underscore and contain only letters, numbers, and underscores."
-                ))
+                return showError(
+                    String(
+                        localized:
+                            "Variable names must begin with a letter or underscore and contain only letters, numbers, and underscores."
+                    ))
             }
             guard !TerminalLaunchSettings.isProtectedEnvironmentVariable(name) else {
-                return showError(String(
-                    localized: "“\(name)” is managed by Zshell and cannot be overridden.",
-                    comment: "The placeholder is an environment variable name."
-                ))
+                return showError(
+                    String(
+                        localized: "“\(name)” is managed by Zshell and cannot be overridden.",
+                        comment: "The placeholder is an environment variable name."
+                    ))
             }
             guard names.insert(name).inserted else {
-                return showError(String(
-                    localized: "“\(name)” appears more than once.",
-                    comment: "The placeholder is a duplicate environment variable name."
-                ))
+                return showError(
+                    String(
+                        localized: "“\(name)” appears more than once.",
+                        comment: "The placeholder is a duplicate environment variable name."
+                    ))
             }
             variables.append(.init(name: name, value: value))
         }

@@ -57,7 +57,8 @@ private final class AgentReviewViewController: NSViewController, NSTableViewData
     private let scopePicker = NSPopUpButton(frame: .zero, pullsDown: false)
     private let agentPicker = NSPopUpButton(frame: .zero, pullsDown: false)
     private let basePicker = NSPopUpButton(frame: .zero, pullsDown: false)
-    private let refreshButton = NSButton(image: NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: nil)!, target: nil, action: nil)
+    private let refreshButton = NSButton(
+        image: NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: nil)!, target: nil, action: nil)
     private let descriptionLabel = NSTextField(wrappingLabelWithString: "")
     private let fileTable = NSTableView()
     private let detail = NSView()
@@ -188,7 +189,8 @@ private final class AgentReviewViewController: NSViewController, NSTableViewData
             self.updateAgents()
             let current = self.currentTurn()
             if self.scope == .latestTurn,
-               current?.id != self.selectedTurn?.id || current?.isActive != self.selectedTurn?.isActive {
+                current?.id != self.selectedTurn?.id || current?.isActive != self.selectedTurn?.isActive
+            {
                 self.loadScope()
             } else {
                 self.selectedTurn = self.scope == .latestTurn ? current : nil
@@ -255,9 +257,14 @@ private final class AgentReviewViewController: NSViewController, NSTableViewData
 
     private func loadBaseReferences() async {
         let root = repositoryRoot
-        guard let values = try? await Task.detached(priority: .userInitiated, operation: {
-            try AgentReviewGit.string(["for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes"], in: root)
-        }).value else { return }
+        guard
+            let values = try? await Task.detached(
+                priority: .userInitiated,
+                operation: {
+                    try AgentReviewGit.string(["for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes"], in: root)
+                }
+            ).value
+        else { return }
         let refs = values.split(separator: "\n").map(String.init)
         basePicker.removeAllItems()
         for reference in refs {
@@ -317,11 +324,19 @@ private final class AgentReviewViewController: NSViewController, NSTableViewData
                 guard let self, self.generation == request, !Task.isCancelled else { return }
                 self.before = comparison.0; self.after = comparison.1; self.files = comparison.2
                 self.loading = false
-                self.descriptionLabel.stringValue = selectedScope == .latestTurn
-                    ? String(localized: "This turn includes all workspace edits between its start and finish, regardless of author. Keep only records a review; Revert changes the working tree.")
+                self.descriptionLabel.stringValue =
+                    selectedScope == .latestTurn
+                    ? String(
+                        localized:
+                            "This turn includes all workspace edits between its start and finish, regardless of author. Keep only records a review; Revert changes the working tree."
+                    )
                     : (selectedScope == .entireBranch
-                        ? String(localized: "The entire branch compares its merge base with the selected branch to the current working tree, including uncommitted files.")
-                        : String(localized: "Uncommitted compares HEAD with the current working tree, including staged and untracked files."))
+                        ? String(
+                            localized:
+                                "The entire branch compares its merge base with the selected branch to the current working tree, including uncommitted files."
+                        )
+                        : String(
+                            localized: "Uncommitted compares HEAD with the current working tree, including staged and untracked files."))
                 self.fileTable.reloadData()
                 if !self.files.isEmpty {
                     self.fileTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
@@ -343,7 +358,8 @@ private final class AgentReviewViewController: NSViewController, NSTableViewData
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         let identifier = NSUserInterfaceItemIdentifier("file")
-        let field = tableView.makeView(withIdentifier: identifier, owner: self) as? NSTextField
+        let field =
+            tableView.makeView(withIdentifier: identifier, owner: self) as? NSTextField
             ?? NSTextField(labelWithString: "")
         field.identifier = identifier
         field.font = .systemFont(ofSize: 12)
@@ -458,38 +474,45 @@ private final class AgentReviewViewController: NSViewController, NSTableViewData
         layoutPicker.isHidden = diff?.imageComparison != nil
         keepButton.isHidden = scope != .latestTurn
         revertButton.isHidden = scope != .latestTurn
-        let available = !loading && !reverting && selectedFile != nil && selectedHunk != nil
+        let available =
+            !loading && !reverting && selectedFile != nil && selectedHunk != nil
             && selectedTurn?.isActive == false && selectedTurn?.failure == nil
         var reverted = false
         decisionLabel.stringValue = ""
         if let turn = selectedTurn, let file = selectedFile, let hunk = selectedHunk {
             let key = AgentTurnReviewStore.decisionKey(file: file, hunk: hunk)
             reverted = turn.reverted.contains(key)
-            decisionLabel.stringValue = reverted ? String(localized: "Reverted")
+            decisionLabel.stringValue =
+                reverted
+                ? String(localized: "Reverted")
                 : (turn.kept.contains(key) ? String(localized: "Kept") : String(localized: "Unreviewed"))
         }
         keepButton.isEnabled = available && !reverted
-        revertButton.isEnabled = available && !reverted && !store.hasActiveTurn(in: repositoryRoot)
+        revertButton.isEnabled =
+            available && !reverted && !store.hasActiveTurn(in: repositoryRoot)
             && selectedTurn?.overlapped == false
-        revertButton.toolTip = selectedTurn?.overlapped == true ? AgentReviewError.overlapping.localizedDescription
+        revertButton.toolTip =
+            selectedTurn?.overlapped == true
+            ? AgentReviewError.overlapping.localizedDescription
             : (store.hasActiveTurn(in: repositoryRoot) ? AgentReviewError.active.localizedDescription : nil)
         hunkPicker.isEnabled = !reverting && !(contents?.hunks.isEmpty ?? true)
     }
 
     @objc private func keepHunk() {
         guard let turn = selectedTurn, let file = selectedFile, let hunk = selectedHunk else { return }
-        do { try store.keep(turn: turn, file: file, hunk: hunk) }
-        catch { descriptionLabel.stringValue = error.localizedDescription }
+        do { try store.keep(turn: turn, file: file, hunk: hunk) } catch { descriptionLabel.stringValue = error.localizedDescription }
     }
 
     @objc private func revertHunk() {
         guard !reverting, let turn = selectedTurn, let file = selectedFile,
-              let contents, let hunk = selectedHunk else { return }
+            let contents, let hunk = selectedHunk
+        else { return }
         reverting = true
         updateActions()
         Task { [weak self] in
-            do { try await self?.store.revert(turn: turn, file: file, contents: contents, hunk: hunk) }
-            catch { self?.descriptionLabel.stringValue = error.localizedDescription }
+            do { try await self?.store.revert(turn: turn, file: file, contents: contents, hunk: hunk) } catch {
+                self?.descriptionLabel.stringValue = error.localizedDescription
+            }
             self?.reverting = false
             self?.updateActions()
         }

@@ -143,7 +143,8 @@ final class ZshellCLIService {
         if let executableURL = Bundle.main.executableURL {
             environment["ZSHELL_EXECUTABLE"] = executableURL.path
             let bin = executableURL.deletingLastPathComponent().path
-            let inherited = ProcessInfo.processInfo.environment["PATH"]
+            let inherited =
+                ProcessInfo.processInfo.environment["PATH"]
                 ?? "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
             environment["PATH"] = "\(bin):\(inherited)"
         }
@@ -175,13 +176,16 @@ final class ZshellCLIService {
 
     private func authorizationFailure(_ request: ZshellAutomationRequest) -> ZshellAutomationResponse? {
         guard request.version == 1 else {
-            return .failure(id: request.id, code: "unsupported_version",
-                            message: "Zshell supports automation protocol version 1.")
+            return .failure(
+                id: request.id, code: "unsupported_version",
+                message: "Zshell supports automation protocol version 1.")
         }
         guard let terminalID = UUID(uuidString: request.terminalID),
-              terminalCapabilities[request.token] == terminalID else {
-            return .failure(id: request.id, code: "unauthorized",
-                            message: "The terminal automation capability is invalid or expired.")
+            terminalCapabilities[request.token] == terminalID
+        else {
+            return .failure(
+                id: request.id, code: "unauthorized",
+                message: "The terminal automation capability is invalid or expired.")
         }
         return nil
     }
@@ -197,8 +201,9 @@ final class ZshellCLIService {
         _ request: ZshellAutomationRequest
     ) async -> ZshellAutomationResponse {
         guard request.version == 1 else {
-            return .failure(id: request.id, code: "unsupported_version",
-                            message: "Zshell supports automation protocol version 1.")
+            return .failure(
+                id: request.id, code: "unsupported_version",
+                message: "Zshell supports automation protocol version 1.")
         }
         if request.token == sessionControlToken, request.terminalID == ZshellSessionControlConnection.callerID {
             return await ZshellSessionAutomationRouter.routeExternal(request)
@@ -211,15 +216,15 @@ final class ZshellCLIService {
 
     private func handle(_ notification: Notification) {
         guard let info = notification.userInfo,
-              info["token"] as? String == secret,
-              let action = info["action"] as? String
+            info["token"] as? String == secret,
+            let action = info["action"] as? String
         else { return }
 
         if action == "openProject" {
             guard let arguments = info["arguments"] as? [String],
-                  arguments.count <= 256,
-                  arguments.allSatisfy({ $0.utf8.count <= 16_384 }),
-                  let directory = info["directory"] as? String
+                arguments.count <= 256,
+                arguments.allSatisfy({ $0.utf8.count <= 16_384 }),
+                let directory = info["directory"] as? String
             else { return }
             let path = info["path"] as? String
             TerminalManager.openCLIProject(
@@ -236,7 +241,7 @@ final class ZshellCLIService {
         }
 
         guard let id = info["id"] as? String,
-              let pidNumber = info["pid"] as? NSNumber
+            let pidNumber = info["pid"] as? NSNumber
         else { return }
         let pid = pid_t(pidNumber.int32Value)
         guard pid > 1 else { return }
@@ -244,15 +249,15 @@ final class ZshellCLIService {
         switch action {
         case "preview":
             guard let name = info["theme"] as? String,
-                  let dark = appearance(from: info),
-                  processExists(pid)
+                let dark = appearance(from: info),
+                processExists(pid)
             else { return }
             beginPreview(id: id, pid: pid, name: name, dark: dark)
 
         case "save":
             guard let name = info["theme"] as? String,
-                  let dark = appearance(from: info),
-                  Theme.isCommonTheme(named: name, dark: dark)
+                let dark = appearance(from: info),
+                Theme.isCommonTheme(named: name, dark: dark)
             else { return }
             savePreview(id: id, name: name, dark: dark)
 
@@ -343,9 +348,10 @@ final class ZshellCLIService {
         let settings = AppSettings.shared
         let isDark: Bool
         if let application = NSApp {
-            isDark = application.effectiveAppearance.bestMatch(
-                from: [.darkAqua, .aqua]
-            ) == .darkAqua
+            isDark =
+                application.effectiveAppearance.bestMatch(
+                    from: [.darkAqua, .aqua]
+                ) == .darkAqua
         } else {
             // `App.init` runs just before AppKit publishes `NSApp`. This value
             // is only the seed file; every CLI invocation requests a fresh

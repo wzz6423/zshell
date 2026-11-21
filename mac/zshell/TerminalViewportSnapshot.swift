@@ -30,8 +30,9 @@ nonisolated struct TerminalViewportRow: Equatable, Sendable {
 
     func columns(for range: NSRange) -> Range<Int>? {
         guard range.length > 0, range.location >= 0,
-              NSMaxRange(range) <= startColumns.count else { return nil }
-        return startColumns[range.location]..<endColumns[NSMaxRange(range) - 1]
+            NSMaxRange(range) <= startColumns.count
+        else { return nil }
+        return startColumns[range.location] ..< endColumns[NSMaxRange(range) - 1]
     }
 }
 
@@ -45,8 +46,9 @@ nonisolated struct TerminalViewportSnapshot: Equatable, Sendable {
     let cellSize: CGSize
 
     func rect(row: Int, columns: Range<Int>) -> CGRect {
-        CGRect(x: origin.x + CGFloat(columns.lowerBound) * cellSize.width,
-               y: origin.y + CGFloat(row) * cellSize.height,
-               width: CGFloat(columns.count) * cellSize.width, height: cellSize.height)
+        CGRect(
+            x: origin.x + CGFloat(columns.lowerBound) * cellSize.width,
+            y: origin.y + CGFloat(row) * cellSize.height,
+            width: CGFloat(columns.count) * cellSize.width, height: cellSize.height)
     }
 }

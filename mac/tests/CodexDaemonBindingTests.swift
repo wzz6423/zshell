@@ -26,30 +26,44 @@ struct CodexDaemonBindingTests {
             daemon: .init(parentPID: shell, groupID: 20, provider: .codex, isSharedService: true),
             hook: .init(parentPID: daemon, groupID: 30, provider: nil),
         ]
-        try check(AgentConversationBinding.isSharedCodexService(arguments: ["codex", "app-server", "--managed-daemon"]),
-                  "Kero shared-service boundary recognizes the official daemon")
-        try check(!AgentConversationBinding.isSharedCodexService(arguments: ["codex", "app-server"]),
-                  "embedded app-server retains ordinary process ownership")
-        try check(AgentConversationBinding.rootAgentPID(reporterPID: hook, shellPID: shell,
-            foregroundPID: daemon, provider: .codex, process: { processes[$0] }) == nil,
-                  "a managed daemon never inherits its first shell's pane ownership")
-        try check(AgentConversationBinding.sharedCodexServicePID(peerPID: hook, reporterPID: hook,
-            process: { processes[$0] }) == daemon, "kernel-owned hook peer identifies its daemon")
-        try check(AgentConversationBinding.sharedCodexServicePID(peerPID: hook, reporterPID: shell,
-            process: { processes[$0] }) == nil, "an arbitrary claimed reporter cannot borrow a peer")
+        try check(
+            AgentConversationBinding.isSharedCodexService(arguments: ["codex", "app-server", "--managed-daemon"]),
+            "Kero shared-service boundary recognizes the official daemon")
+        try check(
+            !AgentConversationBinding.isSharedCodexService(arguments: ["codex", "app-server"]),
+            "embedded app-server retains ordinary process ownership")
+        try check(
+            AgentConversationBinding.rootAgentPID(
+                reporterPID: hook, shellPID: shell,
+                foregroundPID: daemon, provider: .codex, process: { processes[$0] }) == nil,
+            "a managed daemon never inherits its first shell's pane ownership")
+        try check(
+            AgentConversationBinding.sharedCodexServicePID(
+                peerPID: hook, reporterPID: hook,
+                process: { processes[$0] }) == daemon, "kernel-owned hook peer identifies its daemon")
+        try check(
+            AgentConversationBinding.sharedCodexServicePID(
+                peerPID: hook, reporterPID: shell,
+                process: { processes[$0] }) == nil, "an arbitrary claimed reporter cannot borrow a peer")
         processes[40] = .init(parentPID: daemon, groupID: 40, provider: .codex)
         processes[hook] = .init(parentPID: 40, groupID: 40, provider: nil)
-        try check(AgentConversationBinding.sharedCodexServicePID(peerPID: hook, reporterPID: hook,
-            process: { processes[$0] }) == nil, "a nested Codex cannot report for its ancestor daemon")
+        try check(
+            AgentConversationBinding.sharedCodexServicePID(
+                peerPID: hook, reporterPID: hook,
+                process: { processes[$0] }) == nil, "a nested Codex cannot report for its ancestor daemon")
         processes[40] = .init(parentPID: shell, groupID: 40, provider: .codex)
-        try check(AgentConversationBinding.rootAgentPID(reporterPID: hook, shellPID: shell,
-            foregroundPID: 40, provider: .codex, process: { processes[$0] }) == 40,
-                  "ordinary foreground Codex preserves process binding")
+        try check(
+            AgentConversationBinding.rootAgentPID(
+                reporterPID: hook, shellPID: shell,
+                foregroundPID: 40, provider: .codex, process: { processes[$0] }) == 40,
+            "ordinary foreground Codex preserves process binding")
         processes[50] = .init(parentPID: 40, groupID: 50, provider: .codex)
         processes[hook] = .init(parentPID: 50, groupID: 50, provider: nil)
-        try check(AgentConversationBinding.rootAgentPID(reporterPID: hook, shellPID: shell,
-            foregroundPID: 40, provider: .codex, process: { processes[$0] }) == nil,
-                  "nested CLI rejection remains in the ordinary path")
+        try check(
+            AgentConversationBinding.rootAgentPID(
+                reporterPID: hook, shellPID: shell,
+                foregroundPID: 40, provider: .codex, process: { processes[$0] }) == nil,
+            "nested CLI rejection remains in the ordinary path")
     }
 
     static func titleEvidence() throws {
@@ -60,20 +74,27 @@ struct CodexDaemonBindingTests {
         try check(evidence.matches(sessionID: first), "official truncated title matches a complete hook ID")
         try check(!evidence.matches(sessionID: second), "same cwd and title text cannot match another TUI")
         try check(evidence.titleWithoutSessionID == "Fix login | project", "managed UUID leaves user title parts intact")
-        try check(CodexTitleSessionEvidence(title: first)?.matches(sessionID: first) == true,
-                  "a future full UUID title is accepted")
-        try check(CodexTitleSessionEvidence(title: title + " | " + second) == nil,
-                  "multiple session tokens are rejected as ambiguous")
+        try check(
+            CodexTitleSessionEvidence(title: first)?.matches(sessionID: first) == true,
+            "a future full UUID title is accepted")
+        try check(
+            CodexTitleSessionEvidence(title: title + " | " + second) == nil,
+            "multiple session tokens are rejected as ambiguous")
         try check(CodexTitleSessionEvidence(title: "\u{1b}" + title) == nil, "control characters never become title identity")
-        try check(CodexTitleSessionEvidence(title: String(first.prefix(20)) + "...") == nil,
-                  "short session prefixes are not trusted")
+        try check(
+            CodexTitleSessionEvidence(title: String(first.prefix(20)) + "...") == nil,
+            "short session prefixes are not trusted")
         let collision = String(first.prefix(29)) + "9999999"
         try check(evidence.matches(sessionID: collision), "prefix collision is surfaced for unique full-identity selection")
         let root = FileManager.default.temporaryDirectory.path
-        let nested = try JSONSerialization.data(withJSONObject: ["hook_event_name": "SessionStart", "session_id": first,
-            "cwd": root, "parent_session_id": second])
-        try check(AgentConversationSessionEvent.sessionStart(provider: .codex, payload: nested, environment: [:],
-            reporterPID: getpid(), currentDirectory: root) == nil, "nested SessionStart cannot become a root identity")
+        let nested = try JSONSerialization.data(withJSONObject: [
+            "hook_event_name": "SessionStart", "session_id": first,
+            "cwd": root, "parent_session_id": second,
+        ])
+        try check(
+            AgentConversationSessionEvent.sessionStart(
+                provider: .codex, payload: nested, environment: [:],
+                reporterPID: getpid(), currentDirectory: root) == nil, "nested SessionStart cannot become a root identity")
     }
 
     static func configuration() throws {
@@ -81,31 +102,38 @@ struct CodexDaemonBindingTests {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
         defer { try? FileManager.default.removeItem(at: root) }
         let config = root.appendingPathComponent("config.toml")
-        let original = Data("# Keep this comment\nmodel = 'fixture'\n[tui]\nterminal_title = ['activity', 'project-name'] # Keep this too\n".utf8)
+        let original = Data(
+            "# Keep this comment\nmodel = 'fixture'\n[tui]\nterminal_title = ['activity', 'project-name'] # Keep this too\n".utf8)
         try original.write(to: config)
         let installed = try CodexTitleConfiguration.plan(root: root, previous: nil, installing: true)!
-        try check(installed.state?.installedItems == ["activity", "project-name", "session-id"],
-                  "official config API appends one title item after user selections")
+        try check(
+            installed.state?.installedItems == ["activity", "project-name", "session-id"],
+            "official config API appends one title item after user selections")
         try check(try Data(contentsOf: config) == original, "preflight never mutates the real provider configuration")
-        try check(String(decoding: installed.updated!, as: UTF8.self).contains("# Keep this comment"),
-                  "official TOML edit preserves unrelated configuration comments")
+        try check(
+            String(decoding: installed.updated!, as: UTF8.self).contains("# Keep this comment"),
+            "official TOML edit preserves unrelated configuration comments")
         try installed.updated!.write(to: config)
         let repeated = try CodexTitleConfiguration.plan(root: root, previous: installed.state, installing: true)!
-        try check(repeated.updated == installed.updated && repeated.state == installed.state,
-                  "reconciliation is idempotent and retains the initial backup")
+        try check(
+            repeated.updated == installed.updated && repeated.state == installed.state,
+            "reconciliation is idempotent and retains the initial backup")
         let restored = try CodexTitleConfiguration.plan(root: root, previous: installed.state, installing: false)!
         try check(restored.updated == original, "uninstall restores untouched user configuration byte for byte")
         var edited = installed.updated!
         edited.append(Data("\n[analytics]\nenabled = false\n".utf8))
         try edited.write(to: config)
         let merged = try CodexTitleConfiguration.plan(root: root, previous: installed.state, installing: false)!
-        try check(String(decoding: merged.updated!, as: UTF8.self).contains("[analytics]") && merged.updated != original,
-                  "uninstall keeps subsequent user edits outside the title item")
-        try check(!String(decoding: merged.updated!, as: UTF8.self).contains("session-id"),
-                  "uninstall removes only Zshell's session title item after an unrelated edit")
+        try check(
+            String(decoding: merged.updated!, as: UTF8.self).contains("[analytics]") && merged.updated != original,
+            "uninstall keeps subsequent user edits outside the title item")
+        try check(
+            !String(decoding: merged.updated!, as: UTF8.self).contains("session-id"),
+            "uninstall removes only Zshell's session title item after an unrelated edit")
         try Data("[tui]\nterminal_title = ['session-id', 'project-name']\n".utf8).write(to: config)
         let owned = try CodexTitleConfiguration.plan(root: root, previous: nil, installing: true)!
-        try check(owned.state == nil && owned.updated == owned.original,
-                  "an existing user session-id selection stays user owned")
+        try check(
+            owned.state == nil && owned.updated == owned.original,
+            "an existing user session-id selection stays user owned")
     }
 }

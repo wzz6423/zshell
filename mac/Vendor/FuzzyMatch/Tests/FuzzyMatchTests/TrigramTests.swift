@@ -254,7 +254,7 @@ import Testing
         ("hello", "hallo"), // 1 substitution
         ("hello", "helllo"), // 1 insertion
         ("testing", "testng"), // 1 deletion
-        ("test", "tset") // 1 transposition
+        ("test", "tset"), // 1 transposition
     ]
 
     for (query, candidate) in testCases {

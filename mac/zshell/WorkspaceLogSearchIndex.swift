@@ -28,7 +28,7 @@ nonisolated enum WorkspaceLogSearchIndex {
         var matches: [Match] = []
         while cursor < searchable.endIndex {
             if isCancelled() { return Result(matches: [], total: 0, cancelled: true) }
-            guard let range = searchable.range(of: needle, in: cursor..<searchable.endIndex) else { break }
+            guard let range = searchable.range(of: needle, in: cursor ..< searchable.endIndex) else { break }
             if matches.count < limit {
                 matches.append(Match(occurrence: total, snippet: snippet(original, range: range)))
             }
@@ -39,7 +39,7 @@ nonisolated enum WorkspaceLogSearchIndex {
     }
 
     private static func foldASCII(_ byte: UInt8) -> UInt8 {
-        (65...90).contains(byte) ? byte + 32 : byte
+        (65 ... 90).contains(byte) ? byte + 32 : byte
     }
 
     private static func snippet(_ bytes: [UInt8], range: Range<Int>) -> String {
@@ -49,6 +49,6 @@ nonisolated enum WorkspaceLogSearchIndex {
         while upper < bytes.count, upper - range.upperBound < 100, bytes[upper] != 10 { upper += 1 }
         while lower > 0, lower < bytes.count, bytes[lower] & 0xc0 == 0x80 { lower -= 1 }
         while upper < bytes.count, bytes[upper] & 0xc0 == 0x80 { upper += 1 }
-        return String(decoding: bytes[lower..<upper], as: UTF8.self)
+        return String(decoding: bytes[lower ..< upper], as: UTF8.self)
     }
 }

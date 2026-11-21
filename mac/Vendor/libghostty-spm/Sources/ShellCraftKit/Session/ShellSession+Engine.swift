@@ -579,11 +579,13 @@ actor Engine {
         previousInput: String,
         previousCursorPosition: Int
     ) -> Bool {
-        guard canIncrementallyAppendInput(
-            previousInput: previousInput,
-            previousCursorPosition: previousCursorPosition,
-            insertedText: insertedText
-        ) else {
+        guard
+            canIncrementallyAppendInput(
+                previousInput: previousInput,
+                previousCursorPosition: previousCursorPosition,
+                insertedText: insertedText
+            )
+        else {
             return false
         }
 
@@ -893,7 +895,8 @@ func terminalRenderedInputState(
     let columns = max(terminalColumns, 1)
     let clampedCursorPosition = min(max(cursorPosition, 0), input.count)
     let totalWidth = promptDisplayWidth + input.terminalDisplayWidth
-    let cursorWidth = promptDisplayWidth
+    let cursorWidth =
+        promptDisplayWidth
         + String(input.prefix(clampedCursorPosition)).terminalDisplayWidth
     let hasTrailingContent = cursorWidth < totalWidth
 
@@ -1105,7 +1108,8 @@ private func shellDebugLog(
 private func shellDebugDescribe(_ string: String?) -> String {
     guard let string else { return "nil" }
     let truncated = String(string.prefix(96))
-    let escaped = truncated
+    let escaped =
+        truncated
         .replacingOccurrences(of: "\\", with: "\\\\")
         .replacingOccurrences(of: "\u{1B}", with: "\\e")
         .replacingOccurrences(of: "\n", with: "\\n")

@@ -40,7 +40,7 @@ private let prefixes = [
     "make", "create", "build", "parse", "load", "save", "fetch", "send",
     "update", "delete", "remove", "add", "insert", "find", "search",
     "validate", "check", "verify", "process", "handle", "compute",
-    "calculate", "convert", "transform", "format", "render", "display"
+    "calculate", "convert", "transform", "format", "render", "display",
 ]
 
 private let nouns = [
@@ -49,18 +49,18 @@ private let nouns = [
     "file", "path", "name", "id", "key", "index", "count", "size", "length",
     "buffer", "cache", "queue", "stack", "map", "set", "tree", "node",
     "json", "xml", "html", "url", "api", "db", "sql", "http", "tcp",
-    "error", "status", "state", "event", "action", "message", "token"
+    "error", "status", "state", "event", "action", "message", "token",
 ]
 
 private let suffixes = [
     "by", "with", "from", "to", "for", "at", "in", "on", "of",
     "async", "sync", "all", "one", "many", "first", "last",
-    "id", "name", "type", "value", "count", "index", "key"
+    "id", "name", "type", "value", "count", "index", "key",
 ]
 
 /// Generates a camelCase identifier
 private func generateCamelCase(rng: inout SeededRandomNumberGenerator) -> String {
-    let wordCount = Int(rng.next() % 4) + 2  // 2-5 words
+    let wordCount = Int(rng.next() % 4) + 2 // 2-5 words
     var result = ""
 
     // First word (lowercase)
@@ -68,7 +68,7 @@ private func generateCamelCase(rng: inout SeededRandomNumberGenerator) -> String
     result += prefixes[prefixIdx]
 
     // Middle words (capitalized)
-    for i in 1..<wordCount {
+    for i in 1 ..< wordCount {
         let word: String
         if i == wordCount - 1 && rng.next().isMultiple(of: 3) {
             let suffixIdx = Int(rng.next() % UInt64(suffixes.count))
@@ -86,7 +86,7 @@ private func generateCamelCase(rng: inout SeededRandomNumberGenerator) -> String
 
 /// Generates a snake_case identifier
 private func generateSnakeCase(rng: inout SeededRandomNumberGenerator) -> String {
-    let wordCount = Int(rng.next() % 4) + 2  // 2-5 words
+    let wordCount = Int(rng.next() % 4) + 2 // 2-5 words
     var parts: [String] = []
 
     // First word
@@ -94,7 +94,7 @@ private func generateSnakeCase(rng: inout SeededRandomNumberGenerator) -> String
     parts.append(prefixes[prefixIdx])
 
     // Middle words
-    for i in 1..<wordCount {
+    for i in 1 ..< wordCount {
         if i == wordCount - 1 && rng.next().isMultiple(of: 3) {
             let suffixIdx = Int(rng.next() % UInt64(suffixes.count))
             parts.append(suffixes[suffixIdx])
@@ -113,7 +113,7 @@ private func generateDataset(count: Int, seed: UInt64 = 12_345) -> [String] {
     var dataset: [String] = []
     dataset.reserveCapacity(count)
 
-    for i in 0..<count {
+    for i in 0 ..< count {
         // 50% camelCase, 50% snake_case
         let identifier: String
         if i.isMultiple(of: 2) {
@@ -149,7 +149,7 @@ private let documentWords = [
     // Domain words
     "underlying", "isin", "security", "portfolio", "position", "trade", "order",
     "price", "quantity", "amount", "total", "balance", "account", "customer",
-    "transaction", "payment", "transfer", "deposit", "withdrawal", "statement"
+    "transaction", "payment", "transfer", "deposit", "withdrawal", "statement",
 ]
 
 /// Generates a long string of approximately the specified byte size from the dictionary
@@ -191,7 +191,7 @@ private func generateLongStringDataset(count: Int, bytesPerString: Int, seed: UI
     var dataset: [String] = []
     dataset.reserveCapacity(count)
 
-    for i in 0..<count {
+    for i in 0 ..< count {
         let stringSeed = seed &+ UInt64(i)
         dataset.append(generateLongString(approximateBytes: bytesPerString, seed: stringSeed))
     }
@@ -276,17 +276,18 @@ private func runConcurrentScoring(
     chunkSize: Int
 ) async -> Int {
     await withTaskGroup(of: Int.self, returning: Int.self) { group in
-        for workerIndex in 0..<workerCount {
+        for workerIndex in 0 ..< workerCount {
             group.addTask {
                 var buffer = matcher.makeBuffer()
                 var localMatches = 0
 
                 let startIndex = workerIndex * chunkSize
-                let endIndex = workerIndex == workerCount - 1
+                let endIndex =
+                    workerIndex == workerCount - 1
                     ? dataset.count
                     : startIndex + chunkSize
 
-                for i in startIndex..<endIndex {
+                for i in startIndex ..< endIndex {
                     if matcher.score(dataset[i], against: query, buffer: &buffer) != nil {
                         localMatches += 1
                     }
@@ -310,7 +311,7 @@ let benchmarks: @Sendable () -> Void = {
     // MARK: - Shared Configuration
 
     let metrics: [BenchmarkMetric] = [
-        .instructions, .mallocCountTotal, .objectAllocCount, .retainCount, .releaseCount
+        .instructions, .mallocCountTotal, .objectAllocCount, .retainCount, .releaseCount,
     ]
 
     let defaultThreshold: BenchmarkThresholds = .init(relative: [.p25: 15.0, .p50: 15.0, .p75: 15.0])
@@ -319,7 +320,7 @@ let benchmarks: @Sendable () -> Void = {
         .mallocCountTotal: defaultThreshold,
         .objectAllocCount: defaultThreshold,
         .retainCount: defaultThreshold,
-        .releaseCount: defaultThreshold
+        .releaseCount: defaultThreshold,
     ]
 
     let configMega = Benchmark.Configuration(
@@ -342,7 +343,7 @@ let benchmarks: @Sendable () -> Void = {
             .mallocCountTotal: concurrentThreshold,
             .objectAllocCount: concurrentThreshold,
             .retainCount: concurrentThreshold,
-            .releaseCount: concurrentThreshold
+            .releaseCount: concurrentThreshold,
         ]
     )
 
@@ -684,7 +685,7 @@ let benchmarks: @Sendable () -> Void = {
     ) { benchmark in
         let longStrings = DatasetHolder.shared.longStrings32KB
         let matcher = FuzzyMatcher()
-        let query = matcher.prepare("und is")  // "underlying isin" abbreviation
+        let query = matcher.prepare("und is") // "underlying isin" abbreviation
         var buffer = matcher.makeBuffer()
 
         for _ in benchmark.scaledIterations {
@@ -732,7 +733,7 @@ let benchmarks: @Sendable () -> Void = {
     ) { benchmark in
         let longStrings = DatasetHolder.shared.longStrings32KB
         let matcher = FuzzyMatcher()
-        let query = matcher.prepare("xyzqw")  // Should be rejected by prefilter
+        let query = matcher.prepare("xyzqw") // Should be rejected by prefilter
         var buffer = matcher.makeBuffer()
 
         for _ in benchmark.scaledIterations {

@@ -15,8 +15,7 @@ final class MarkupIdentifierTests: XCTestCase {
     func totalElementsInTree(height h: Int, width N: Int) -> Int {
         let total =
             (pow(Double(N), Double(h + 1)) - 1)
-                /
-            Double(N - 1)
+            / Double(N - 1)
         return Int(total)
     }
 

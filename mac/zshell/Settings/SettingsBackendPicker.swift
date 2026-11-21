@@ -98,10 +98,11 @@ private final class BackendHighlightView: NSView {
             weight: .regular
         )
         let symbol = highlight.isPositive ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
-        let icon = NSImageView(image: NSImage(
-            systemSymbolName: symbol,
-            accessibilityDescription: nil
-        )?.withSymbolConfiguration(configuration) ?? NSImage())
+        let icon = NSImageView(
+            image: NSImage(
+                systemSymbolName: symbol,
+                accessibilityDescription: nil
+            )?.withSymbolConfiguration(configuration) ?? NSImage())
         icon.contentTintColor = highlight.isPositive ? .systemGreen : .systemOrange
 
         let label = NSTextField(labelWithString: highlight.title)
@@ -122,15 +123,17 @@ private final class BackendHighlightView: NSView {
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
 
-        let availability = highlight.isPositive
+        let availability =
+            highlight.isPositive
             ? String(localized: "Available", comment: "Accessibility description for a supported terminal feature.")
             : String(localized: "Unavailable", comment: "Accessibility description for an unsupported terminal feature.")
         setAccessibilityElement(true)
         setAccessibilityRole(.staticText)
-        setAccessibilityLabel(String(
-            localized: "\(availability): \(highlight.title)",
-            comment: "Accessibility label for a terminal feature and whether it is available."
-        ))
+        setAccessibilityLabel(
+            String(
+                localized: "\(availability): \(highlight.title)",
+                comment: "Accessibility label for a terminal feature and whether it is available."
+            ))
     }
 
     @available(*, unavailable)

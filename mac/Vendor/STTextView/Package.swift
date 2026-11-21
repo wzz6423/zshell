@@ -13,14 +13,14 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../STTextKitPlus"),
-        .package(path: "../CoreTextSwift")
+        .package(path: "../CoreTextSwift"),
     ],
     targets: [
         .target(
             name: "STTextView",
             dependencies: [
                 .target(name: "STTextViewAppKit", condition: .when(platforms: [.macOS])),
-                .target(name: "STTextViewUIKit", condition: .when(platforms: [.iOS, .macCatalyst]))
+                .target(name: "STTextViewUIKit", condition: .when(platforms: [.iOS, .macCatalyst])),
             ]
         ),
         .target(
@@ -35,7 +35,7 @@ let package = Package(
                 .target(name: "STTextViewCommon"),
                 .target(name: "STObjCLandShim", condition: .when(platforms: [.macOS])),
                 .product(name: "STTextKitPlus", package: "STTextKitPlus"),
-                .product(name: "CoreTextSwift", package: "CoreTextSwift")
+                .product(name: "CoreTextSwift", package: "CoreTextSwift"),
             ]
         ),
         .target(
@@ -44,7 +44,7 @@ let package = Package(
                 .target(name: "STTextViewCommon"),
                 .target(name: "STObjCLandShim", condition: .when(platforms: [.iOS, .macCatalyst])),
                 .product(name: "STTextKitPlus", package: "STTextKitPlus"),
-                .product(name: "CoreTextSwift", package: "CoreTextSwift")
+                .product(name: "CoreTextSwift", package: "CoreTextSwift"),
             ],
             swiftSettings: [
                 // .define("USE_LAYERS_FOR_GLYPHS")
@@ -54,7 +54,7 @@ let package = Package(
             name: "STTextViewSwiftUI",
             dependencies: [
                 .target(name: "STTextViewSwiftUIAppKit", condition: .when(platforms: [.macOS])),
-                .target(name: "STTextViewSwiftUIUIKit", condition: .when(platforms: [.iOS, .macCatalyst]))
+                .target(name: "STTextViewSwiftUIUIKit", condition: .when(platforms: [.iOS, .macCatalyst])),
             ]
         ),
         .target(
@@ -64,14 +64,14 @@ let package = Package(
             name: "STTextViewSwiftUIAppKit",
             dependencies: [
                 .target(name: "STTextView"),
-                .target(name: "STTextViewSwiftUICommon")
+                .target(name: "STTextViewSwiftUICommon"),
             ]
         ),
         .target(
             name: "STTextViewSwiftUIUIKit",
             dependencies: [
                 .target(name: "STTextView"),
-                .target(name: "STTextViewSwiftUICommon")
+                .target(name: "STTextViewSwiftUICommon"),
             ]
         ),
         .target(
@@ -89,6 +89,6 @@ let package = Package(
             dependencies: [
                 .target(name: "STTextViewUIKit", condition: .when(platforms: [.iOS, .macCatalyst]))
             ]
-        )
+        ),
     ]
 )

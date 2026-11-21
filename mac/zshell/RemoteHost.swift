@@ -13,7 +13,8 @@ nonisolated struct RemoteHost: Codable, Equatable, Identifiable, Sendable {
         self.serverPath = serverPath.trimmingCharacters(in: .whitespacesAndNewlines)
         _ = try endpoint()
         guard !self.serverPath.contains("\0"), !self.serverPath.contains(where: \Character.isNewline),
-              self.serverPath.hasPrefix("/") || self.serverPath.hasPrefix("~/") else {
+            self.serverPath.hasPrefix("/") || self.serverPath.hasPrefix("~/")
+        else {
             throw RemoteHostError.message(String(localized: "Use an absolute path or ~/ for the remote server executable."))
         }
         if self.name.isEmpty { self.name = self.address }
@@ -23,8 +24,9 @@ nonisolated struct RemoteHost: Codable, Equatable, Identifiable, Sendable {
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        try self.init(id: values.decode(UUID.self, forKey: .id), name: values.decode(String.self, forKey: .name),
-                      address: values.decode(String.self, forKey: .address), serverPath: values.decode(String.self, forKey: .serverPath))
+        try self.init(
+            id: values.decode(UUID.self, forKey: .id), name: values.decode(String.self, forKey: .name),
+            address: values.decode(String.self, forKey: .address), serverPath: values.decode(String.self, forKey: .serverPath))
     }
 
     enum Endpoint: Sendable {
@@ -39,19 +41,22 @@ nonisolated struct RemoteHost: Codable, Equatable, Identifiable, Sendable {
     func endpoint() throws -> Endpoint {
         let text = address.contains("://") ? address : "ssh://" + address
         guard let url = URLComponents(string: text),
-              let scheme = url.scheme?.lowercased(), let host = url.host, !host.isEmpty,
-              url.password == nil, url.path.isEmpty || url.path == "/",
-              url.query == nil, url.fragment == nil,
-              !host.hasPrefix("-"), Self.validHost(host),
-              url.port == nil || (1...65_535).contains(url.port!) else {
+            let scheme = url.scheme?.lowercased(), let host = url.host, !host.isEmpty,
+            url.password == nil, url.path.isEmpty || url.path == "/",
+            url.query == nil, url.fragment == nil,
+            !host.hasPrefix("-"), Self.validHost(host),
+            url.port == nil || (1 ... 65_535).contains(url.port!)
+        else {
             throw RemoteHostError.message(String(localized: "Enter an SSH address or tailscale://host:7373."))
         }
         switch scheme {
         case "ssh":
             if let user = url.user, !user.isEmpty {
-                guard !user.hasPrefix("-"), user.utf8.allSatisfy({
-                    Self.isASCIIName($0) || $0 == 43
-                }) else {
+                guard !user.hasPrefix("-"),
+                    user.utf8.allSatisfy({
+                        Self.isASCIIName($0) || $0 == 43
+                    })
+                else {
                     throw RemoteHostError.message(String(localized: "Enter an SSH address or tailscale://host:7373."))
                 }
             }
@@ -75,7 +80,7 @@ nonisolated struct RemoteHost: Codable, Equatable, Identifiable, Sendable {
     }
 
     private static func isASCIIName(_ value: UInt8) -> Bool {
-        (65...90).contains(value) || (97...122).contains(value) || (48...57).contains(value)
+        (65 ... 90).contains(value) || (97 ... 122).contains(value) || (48 ... 57).contains(value)
             || value == 45 || value == 46 || value == 95
     }
 }
@@ -247,7 +252,7 @@ nonisolated final class RemoteHostTransport: @unchecked Sendable {
         try writeExactly(wire, timeout: 12)
         let prefix = try readExactly(4, timeout: 12)
         let count = prefix.withUnsafeBytes { Int(UInt32(bigEndian: $0.loadUnaligned(as: UInt32.self))) }
-        guard (1...PTYMuxConstants.maximumFrameBytes).contains(count) else {
+        guard (1 ... PTYMuxConstants.maximumFrameBytes).contains(count) else {
             throw RemoteHostError.message(String(localized: "The remote server returned an invalid response."))
         }
         let response = try JSONDecoder().decode(RemoteFrame.self, from: readExactly(count, timeout: 12))
@@ -273,9 +278,13 @@ nonisolated final class RemoteHostTransport: @unchecked Sendable {
                 if ready == 0 { continue }
                 guard ready > 0 else { throw RemoteHostError.message(String(localized: "The remote host did not respond in time.")) }
                 let received = Darwin.read(output, bytes.baseAddress!.advanced(by: offset), count - offset)
-                if received > 0 { offset += received }
-                else if received < 0, errno == EINTR { continue }
-                else { throw RemoteHostError.message(diagnostic(fallback: String(localized: "The remote connection closed."))) }
+                if received > 0 {
+                    offset += received
+                } else if received < 0, errno == EINTR {
+                    continue
+                } else {
+                    throw RemoteHostError.message(diagnostic(fallback: String(localized: "The remote connection closed.")))
+                }
             }
         }
         return data
@@ -284,7 +293,8 @@ nonisolated final class RemoteHostTransport: @unchecked Sendable {
     private func writeExactly(_ data: Data, timeout: TimeInterval) throws {
         let flags = fcntl(input, F_GETFL, 0)
         guard flags >= 0, fcntl(input, F_SETFL, flags | O_NONBLOCK) == 0,
-              fcntl(input, F_SETNOSIGPIPE, 1) == 0 else { throw PTYMuxWire.errnoError("fcntl") }
+            fcntl(input, F_SETNOSIGPIPE, 1) == 0
+        else { throw PTYMuxWire.errnoError("fcntl") }
         defer { _ = fcntl(input, F_SETFL, flags) }
         let deadline = Date().addingTimeInterval(timeout)
         try data.withUnsafeBytes { bytes in
@@ -298,9 +308,13 @@ nonisolated final class RemoteHostTransport: @unchecked Sendable {
                 if ready == 0 || ready < 0 && errno == EINTR { continue }
                 guard ready > 0 else { throw PTYMuxWire.errnoError("poll") }
                 let written = Darwin.write(input, bytes.baseAddress!.advanced(by: offset), bytes.count - offset)
-                if written > 0 { offset += written }
-                else if written < 0, errno == EINTR || errno == EAGAIN { continue }
-                else { throw RemoteHostError.message(diagnostic(fallback: String(localized: "The remote connection closed."))) }
+                if written > 0 {
+                    offset += written
+                } else if written < 0, errno == EINTR || errno == EAGAIN {
+                    continue
+                } else {
+                    throw RemoteHostError.message(diagnostic(fallback: String(localized: "The remote connection closed.")))
+                }
             }
         }
     }
@@ -372,7 +386,7 @@ nonisolated final class RemoteHostTransport: @unchecked Sendable {
         if address.ai_family == AF_INET {
             return value.withMemoryRebound(to: sockaddr_in.self, capacity: 1) {
                 let bytes = withUnsafeBytes(of: $0.pointee.sin_addr.s_addr) { Array($0) }
-                return bytes[0] == 100 && (64...127).contains(bytes[1])
+                return bytes[0] == 100 && (64 ... 127).contains(bytes[1])
             }
         }
         if address.ai_family == AF_INET6 {
@@ -401,18 +415,24 @@ nonisolated enum RemoteHostClient {
         let directories = try transport.exchange(RemoteFrame(kind: "projects")).decodedResult([String].self)
         return try directories.map { directory in
             let sessions = try transport.exchange(RemoteFrame(kind: "list", project: directory)).decodedResult([RemoteSessionInfo].self)
-            let conversations = try transport.exchange(RemoteFrame(kind: "agentHistory", project: directory)).decodedResult([RemoteAgentConversation].self)
+            let conversations = try transport.exchange(RemoteFrame(kind: "agentHistory", project: directory)).decodedResult(
+                [RemoteAgentConversation].self)
             return RemoteProjectListing(directory: directory, sessions: sessions, conversations: conversations)
         }
     }
 
-    static func create(host: RemoteHost, directory: String, sessionID: UUID = UUID(),
-                       command: [String]? = nil, initializationCommand: String? = nil) throws -> RemoteSessionInfo {
+    static func create(
+        host: RemoteHost, directory: String, sessionID: UUID = UUID(),
+        command: [String]? = nil, initializationCommand: String? = nil
+    ) throws -> RemoteSessionInfo {
         let transport = try RemoteHostTransport(host: host)
         defer { transport.close() }
         try transport.handshake()
-        return try transport.exchange(RemoteFrame(kind: "create", project: directory, sessionId: sessionID.uuidString, command: command,
-                                                  initializationCommand: initializationCommand)).decodedResult(RemoteSessionInfo.self)
+        return try transport.exchange(
+            RemoteFrame(
+                kind: "create", project: directory, sessionId: sessionID.uuidString, command: command,
+                initializationCommand: initializationCommand)
+        ).decodedResult(RemoteSessionInfo.self)
     }
 
     static func terminate(host: RemoteHost, directory: String, sessionID: UUID) throws {
@@ -438,7 +458,8 @@ nonisolated enum RemoteHostClient {
         try launchConversation(host: host, identity: identity, kind: "agentFork")
     }
 
-    private static func launchConversation(host: RemoteHost, identity: AgentConversationIdentity, kind: String) throws -> RemoteSessionInfo {
+    private static func launchConversation(host: RemoteHost, identity: AgentConversationIdentity, kind: String) throws -> RemoteSessionInfo
+    {
         guard identity.remoteHostID == host.id, let project = identity.remoteProjectDirectory else {
             throw AgentConversationHistoryError.differentProject
         }
@@ -451,7 +472,10 @@ nonisolated enum RemoteHostClient {
                 throw RemoteHostError.message(String(localized: "Update the remote Zshell server to fork agent conversations."))
             }
         }
-        return try transport.exchange(RemoteFrame(kind: kind, project: project,
-            provider: identity.provider.rawValue, conversationId: identity.sessionID)).decodedResult(RemoteSessionInfo.self)
+        return try transport.exchange(
+            RemoteFrame(
+                kind: kind, project: project,
+                provider: identity.provider.rawValue, conversationId: identity.sessionID)
+        ).decodedResult(RemoteSessionInfo.self)
     }
 }

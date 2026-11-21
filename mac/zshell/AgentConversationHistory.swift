@@ -54,7 +54,8 @@ nonisolated struct AgentConversationHistoryRecord: Codable, Equatable, Identifia
         id = try values.decode(UUID.self, forKey: .id)
         identity = try values.decode(AgentConversationIdentity.self, forKey: .identity)
         projectID = try values.decode(UUID.self, forKey: .projectID)
-        projectName = Self.normalizedText(try values.decode(String.self, forKey: .projectName))
+        projectName =
+            Self.normalizedText(try values.decode(String.self, forKey: .projectName))
             ?? identity.provider.displayName
         title = Self.normalizedText(try values.decodeIfPresent(String.self, forKey: .title))
         terminalID = try values.decode(UUID.self, forKey: .terminalID)
@@ -63,8 +64,9 @@ nonisolated struct AgentConversationHistoryRecord: Codable, Equatable, Identifia
         endedAt = try values.decodeIfPresent(Date.self, forKey: .endedAt)
         isArchived = try values.decodeIfPresent(Bool.self, forKey: .isArchived) ?? false
         guard startedAt.timeIntervalSince1970.isFinite,
-              updatedAt.timeIntervalSince1970.isFinite, updatedAt >= startedAt,
-              endedAt.map({ $0.timeIntervalSince1970.isFinite && $0 >= startedAt }) ?? true else {
+            updatedAt.timeIntervalSince1970.isFinite, updatedAt >= startedAt,
+            endedAt.map({ $0.timeIntervalSince1970.isFinite && $0 >= startedAt }) ?? true
+        else {
             throw DecodingError.dataCorruptedError(
                 forKey: .updatedAt, in: values, debugDescription: "Invalid conversation history dates"
             )
@@ -76,18 +78,20 @@ nonisolated struct AgentConversationHistoryRecord: Codable, Equatable, Identifia
     }
 
     var searchText: String {
-        [displayTitle, identity.provider.displayName, identity.provider.rawValue,
-         identity.alias ?? "", identity.sessionID, identity.workingDirectory,
-         identity.configDirectory ?? "", projectName].joined(separator: " ")
+        [
+            displayTitle, identity.provider.displayName, identity.provider.rawValue,
+            identity.alias ?? "", identity.sessionID, identity.workingDirectory,
+            identity.configDirectory ?? "", projectName,
+        ].joined(separator: " ")
     }
 }
 
 enum AgentConversationHistoryPaths {
     static var directoryURL: URL {
         #if DEBUG
-        let name = "zshell-dev"
+            let name = "zshell-dev"
         #else
-        let name = "zshell"
+            let name = "zshell"
         #endif
         return FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/\(name)/conversation-history", isDirectory: true)
@@ -171,8 +175,7 @@ final class AgentConversationHistoryStore: ObservableObject {
                     if next == nil { state.scheduled = false }
                     return next
                 }) {
-                    do { try write(next.records); next.completion(nil) }
-                    catch { next.completion(String(describing: error)) }
+                    do { try write(next.records); next.completion(nil) } catch { next.completion(String(describing: error)) }
                 }
             }
         }
@@ -264,7 +267,8 @@ final class AgentConversationHistoryStore: ObservableObject {
             id = next[index].id
             next[index].identity = identity
             next[index].projectID = projectID
-            next[index].projectName = AgentConversationHistoryRecord.normalizedText(projectName)
+            next[index].projectName =
+                AgentConversationHistoryRecord.normalizedText(projectName)
                 ?? next[index].projectName
             next[index].title = AgentConversationHistoryRecord.normalizedText(title) ?? next[index].title
             next[index].terminalID = terminalID
@@ -289,12 +293,14 @@ final class AgentConversationHistoryStore: ObservableObject {
         guard project.sharedHost?.id == host.id, conversations.count <= Self.maximumRecords else { return }
         for conversation in conversations {
             guard conversation.project == project.remoteDirectory,
-                  let terminalID = UUID(uuidString: conversation.remoteSessionID),
-                  let identity = AgentConversationIdentity.remote(conversation.identity, hostID: host.id,
+                let terminalID = UUID(uuidString: conversation.remoteSessionID),
+                let identity = AgentConversationIdentity.remote(
+                    conversation.identity, hostID: host.id,
                     project: conversation.project), conversation.startedAt.isFinite,
-                  conversation.updatedAt.isFinite, conversation.startedAt >= 0,
-                  conversation.updatedAt >= conversation.startedAt,
-                  conversation.endedAt.map({ $0.isFinite && $0 >= conversation.startedAt }) ?? true else { continue }
+                conversation.updatedAt.isFinite, conversation.startedAt >= 0,
+                conversation.updatedAt >= conversation.startedAt,
+                conversation.endedAt.map({ $0.isFinite && $0 >= conversation.startedAt }) ?? true
+            else { continue }
             let started = Date(timeIntervalSince1970: conversation.startedAt)
             let updated = Date(timeIntervalSince1970: conversation.updatedAt)
             if let index = records.firstIndex(where: { $0.matches(identity) }) {
@@ -305,7 +311,8 @@ final class AgentConversationHistoryStore: ObservableObject {
                 records[index].endedAt = conversation.endedAt.map { max(records[index].startedAt, Date(timeIntervalSince1970: $0)) }
                 records[index].title = AgentConversationHistoryRecord.normalizedText(conversation.title) ?? records[index].title
             } else {
-                var record = AgentConversationHistoryRecord(identity: identity,
+                var record = AgentConversationHistoryRecord(
+                    identity: identity,
                     projectID: project.conversationHistoryProjectID, projectName: host.name + ": " + project.name,
                     title: conversation.title, terminalID: terminalID, at: started)
                 record.updatedAt = updated
@@ -320,7 +327,8 @@ final class AgentConversationHistoryStore: ObservableObject {
 
     func ended(id: UUID, terminalID: UUID, title: String? = nil, at: Date = Date()) {
         guard let index = records.firstIndex(where: { $0.id == id && $0.terminalID == terminalID }),
-              records[index].endedAt == nil else { return }
+            records[index].endedAt == nil
+        else { return }
         records[index].endedAt = max(at, records[index].startedAt)
         records[index].updatedAt = max(at, records[index].updatedAt)
         records[index].title = AgentConversationHistoryRecord.normalizedText(title) ?? records[index].title
@@ -392,9 +400,18 @@ enum AgentConversationHistoryError: Error, LocalizedError {
         case .differentProject: String(localized: "This conversation is already open in another project or window.")
         case .noWindow: String(localized: "Open a Zshell window before resuming a conversation.")
         case .forkDisabled: String(localized: "Enable AI integration before forking a conversation.")
-        case .forkUnavailable: String(localized: "The provider CLI could not confirm native fork support. Check that it is installed and supports the fork command or option.")
-        case .forkCheckTimedOut: String(localized: "Checking the provider’s native fork support timed out. Check its CLI and shell configuration.")
-        case .forkUnconfirmed: String(localized: "The new pane has not reported an independent conversation. Check its provider output, sign-in, and native hooks before continuing.")
+        case .forkUnavailable:
+            String(
+                localized:
+                    "The provider CLI could not confirm native fork support. Check that it is installed and supports the fork command or option."
+            )
+        case .forkCheckTimedOut:
+            String(localized: "Checking the provider’s native fork support timed out. Check its CLI and shell configuration.")
+        case .forkUnconfirmed:
+            String(
+                localized:
+                    "The new pane has not reported an independent conversation. Check its provider output, sign-in, and native hooks before continuing."
+            )
         }
     }
 }

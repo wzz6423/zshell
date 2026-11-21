@@ -12,7 +12,7 @@ let package = Package(
         .visionOS(.v1),
     ],
     products: [
-        .library(name: "MSDisplayLink", targets: ["MSDisplayLink"]),
+        .library(name: "MSDisplayLink", targets: ["MSDisplayLink"])
     ],
     targets: [
         .target(name: "MSDisplayLink"),

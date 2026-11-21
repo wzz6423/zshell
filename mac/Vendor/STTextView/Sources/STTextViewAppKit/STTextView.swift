@@ -170,7 +170,7 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
     var _defaultTypingAttributes: [NSAttributedString.Key: Any] = [
         .paragraphStyle: NSParagraphStyle.default,
         .font: NSFont.preferredFont(forTextStyle: .body),
-        .foregroundColor: NSColor.textColor
+        .foregroundColor: NSColor.textColor,
     ]
 
     /// The attributes to apply to new text that the user enters.
@@ -213,7 +213,7 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
         .underlineColor,
         .underlineStyle,
         .accessibilityUnderline,
-        .accessibilityUnderlineColor
+        .accessibilityUnderlineColor,
     ]
 
     func updateTypingAttributes(at location: NSTextLocation? = nil) {
@@ -222,7 +222,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
         } else {
             // TODO: doesn't work work correctly (at all) for multiple insertion points where each has different typing attribute
             if let insertionPointSelection = textLayoutManager.insertionPointSelections.first,
-               let startLocation = insertionPointSelection.textRanges.first?.location {
+                let startLocation = insertionPointSelection.textRanges.first?.location
+            {
                 self.typingAttributes = typingAttributes(at: startLocation)
             }
         }
@@ -246,8 +247,9 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
 
         textContentManager.enumerateTextElements(from: startLocation, options: options) { textElement in
             if let attributedTextElement = textElement as? STAttributedTextElement,
-               let elementRange = textElement.elementRange,
-               let textContentManager = textElement.textContentManager {
+                let elementRange = textElement.elementRange,
+                let textContentManager = textElement.textContentManager
+            {
                 let offset = textContentManager.offset(from: elementRange.location, to: startLocation)
                 assert(offset != NSNotFound, "Unexpected location")
                 typingAttrs = attributedTextElement.attributedString.attributes(at: offset + offsetDiff, effectiveRange: nil)
@@ -265,7 +267,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
     @available(*, deprecated, message: "Use STTextLayoutFragment metrics")
     var typingLineHeight: CGFloat {
         let font = typingAttributes[.font] as? NSFont ?? _defaultTypingAttributes[.font] as! NSFont
-        let paragraphStyle = typingAttributes[.paragraphStyle] as? NSParagraphStyle ?? self._defaultTypingAttributes[.paragraphStyle] as! NSParagraphStyle
+        let paragraphStyle =
+            typingAttributes[.paragraphStyle] as? NSParagraphStyle ?? self._defaultTypingAttributes[.paragraphStyle] as! NSParagraphStyle
         return calculateDefaultLineHeight(for: font) * paragraphStyle.stLineHeightMultiple
     }
 
@@ -604,7 +607,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
     @Invalidating(.layoutViewport, .display)
     public var showsInvisibleCharacters = false {
         willSet {
-            textLayoutManager.invalidateLayout(for: textLayoutManager.textViewportLayoutController.viewportRange ?? textLayoutManager.documentRange)
+            textLayoutManager.invalidateLayout(
+                for: textLayoutManager.textViewportLayoutController.viewportRange ?? textLayoutManager.documentRange)
         }
     }
 
@@ -691,7 +695,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
         // evaluated once, and cached
         let menu = super.defaultMenu ?? NSMenu()
 
-        let pasteAsPlainText = NSMenuItem(title: NSLocalizedString("Paste and Match Style", comment: ""), action: #selector(pasteAsPlainText(_:)), keyEquivalent: "V")
+        let pasteAsPlainText = NSMenuItem(
+            title: NSLocalizedString("Paste and Match Style", comment: ""), action: #selector(pasteAsPlainText(_:)), keyEquivalent: "V")
         pasteAsPlainText.keyEquivalentModifierMask = [.option, .command, .shift]
 
         menu.items = [
@@ -757,7 +762,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
         contentView.addSubview(contentViewportView)
 
         do {
-            let recognizer = DragSelectedTextGestureRecognizer(target: self, action: #selector(_dragSelectedTextGestureRecognizer(gestureRecognizer:)))
+            let recognizer = DragSelectedTextGestureRecognizer(
+                target: self, action: #selector(_dragSelectedTextGestureRecognizer(gestureRecognizer:)))
             recognizer.minimumPressDuration = NSEvent.doubleClickInterval / 3
             recognizer.isEnabled = isSelectable
             addGestureRecognizer(recognizer)
@@ -791,12 +797,15 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
         if let didChangeSelectionNotificationObserver {
             NotificationCenter.default.removeObserver(didChangeSelectionNotificationObserver)
         }
-        didChangeSelectionNotificationObserver = NotificationCenter.default.addObserver(forName: STTextLayoutManager.didChangeSelectionNotification, object: textLayoutManager, queue: .main) { [weak self] notification in
+        didChangeSelectionNotificationObserver = NotificationCenter.default.addObserver(
+            forName: STTextLayoutManager.didChangeSelectionNotification, object: textLayoutManager, queue: .main
+        ) { [weak self] notification in
             guard let self else { return }
 
             _yankingManager.selectionChanged()
 
-            let textViewNotification = Notification(name: Self.didChangeSelectionNotification, object: self, userInfo: notification.userInfo)
+            let textViewNotification = Notification(
+                name: Self.didChangeSelectionNotification, object: self, userInfo: notification.userInfo)
 
             NotificationCenter.default.post(textViewNotification)
             self.delegateProxy.textViewDidChangeSelection(textViewNotification)
@@ -805,10 +814,9 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
 
             // Cancel completinon on selection change
             if self.shouldDimissCompletionOnSelectionChange {
-                if NSApp.currentEvent == nil ||
-                    (NSApp.currentEvent?.type != .keyDown && NSApp.currentEvent?.type != .keyUp) ||
-                    NSApp.currentEvent?.characters == nil ||
-                    !(NSApp.currentEvent?.characters?.contains(where: \.isLetter) ?? false) {
+                if NSApp.currentEvent == nil || (NSApp.currentEvent?.type != .keyDown && NSApp.currentEvent?.type != .keyUp)
+                    || NSApp.currentEvent?.characters == nil || !(NSApp.currentEvent?.characters?.contains(where: \.isLetter) ?? false)
+                {
                     self.cancelComplete(textViewNotification.object)
                 }
             }
@@ -828,31 +836,38 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
             // This iteration may be performance intensive. I think it can be debounced without
             // affecting the correctness
             if let viewportRange = textLayoutManager.textViewportLayoutController.viewportRange,
-               let viewportAttributedString = textContentManager.attributedString(in: viewportRange) {
-                viewportAttributedString.enumerateAttribute(.link, in: viewportAttributedString.range, options: .longestEffectiveRangeNotRequired) { attributeValue, attributeRange, stop in
+                let viewportAttributedString = textContentManager.attributedString(in: viewportRange)
+            {
+                viewportAttributedString.enumerateAttribute(
+                    .link, in: viewportAttributedString.range, options: .longestEffectiveRangeNotRequired
+                ) { attributeValue, attributeRange, stop in
                     guard attributeValue != nil else {
                         return
                     }
 
                     if let startLocation = textLayoutManager.location(viewportRange.location, offsetBy: attributeRange.location),
-                       let endLocation = textLayoutManager.location(startLocation, offsetBy: attributeRange.length),
-                       let linkTextRange = NSTextRange(location: startLocation, end: endLocation),
-                       let linkTypographicBounds = textLayoutManager.typographicBounds(in: linkTextRange) {
+                        let endLocation = textLayoutManager.location(startLocation, offsetBy: attributeRange.length),
+                        let linkTextRange = NSTextRange(location: startLocation, end: endLocation),
+                        let linkTypographicBounds = textLayoutManager.typographicBounds(in: linkTextRange)
+                    {
                         addCursorRect(contentView.convert(linkTypographicBounds, to: self), cursor: .pointingHand)
                     } else {
                         stop.pointee = true
                     }
                 }
 
-                viewportAttributedString.enumerateAttribute(.cursor, in: viewportAttributedString.range, options: .longestEffectiveRangeNotRequired) { attributeValue, attributeRange, stop in
+                viewportAttributedString.enumerateAttribute(
+                    .cursor, in: viewportAttributedString.range, options: .longestEffectiveRangeNotRequired
+                ) { attributeValue, attributeRange, stop in
                     guard let cursorValue = attributeValue as? NSCursor else {
                         return
                     }
 
                     if let startLocation = textLayoutManager.location(viewportRange.location, offsetBy: attributeRange.location),
-                       let endLocation = textLayoutManager.location(startLocation, offsetBy: attributeRange.length),
-                       let linkTextRange = NSTextRange(location: startLocation, end: endLocation),
-                       let linkTypographicBounds = textLayoutManager.typographicBounds(in: linkTextRange) {
+                        let endLocation = textLayoutManager.location(startLocation, offsetBy: attributeRange.length),
+                        let linkTextRange = NSTextRange(location: startLocation, end: endLocation),
+                        let linkTypographicBounds = textLayoutManager.typographicBounds(in: linkTextRange)
+                    {
                         addCursorRect(contentView.convert(linkTypographicBounds, to: self), cursor: cursorValue)
                     } else {
                         stop.pointee = true
@@ -880,7 +895,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
 
         if let observedScrollView {
             NotificationCenter.default.removeObserver(self, name: NSScrollView.didLiveScrollNotification, object: observedScrollView)
-            NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: observedScrollView.contentView)
+            NotificationCenter.default.removeObserver(
+                self, name: NSView.boundsDidChangeNotification, object: observedScrollView.contentView)
             NotificationCenter.default.removeObserver(self, name: NSScrollView.willStartLiveScrollNotification, object: observedScrollView)
             NotificationCenter.default.removeObserver(self, name: NSScrollView.didEndLiveScrollNotification, object: observedScrollView)
         }
@@ -934,7 +950,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
         // and ignore utility subviews that should remain transparent
         // for interaction.
         if let view = result, view != self,
-           (view.isDescendant(of: contentView) || view.isDescendant(of: contentViewportView) || view.isDescendant(of: selectionView)) {
+            (view.isDescendant(of: contentView) || view.isDescendant(of: contentViewportView) || view.isDescendant(of: selectionView))
+        {
             // Check if this is an attachment view - allow it to handle its own events
             if isTextAttachmentView(view) {
                 return view
@@ -995,7 +1012,9 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
 
     override open func resignFirstResponder() -> Bool {
         if isEditable {
-            NotificationCenter.default.post(name: NSText.didEndEditingNotification, object: self, userInfo: [NSText.didEndEditingNotification: NSTextMovement.other.rawValue])
+            NotificationCenter.default.post(
+                name: NSText.didEndEditingNotification, object: self,
+                userInfo: [NSText.didEndEditingNotification: NSTextMovement.other.rawValue])
         }
 
         let result = super.resignFirstResponder()
@@ -1096,7 +1115,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
     /// Add attribute.
     private func addAttributes(_ attrs: [NSAttributedString.Key: Any], range: NSRange, updateLayout: Bool) {
         if let textContentStorage = textContentManager as? NSTextContentStorage,
-           let textStorage = textContentStorage.textStorage {
+            let textStorage = textContentStorage.textStorage
+        {
             if textContentManager.hasEditingTransaction {
                 textStorage.addAttributes(attrs, range: range)
             } else {
@@ -1176,7 +1196,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
     func removeAttribute(_ attribute: NSAttributedString.Key, range: NSTextRange, updateLayout: Bool = true) {
 
         textContentManager.performEditingTransaction {
-            (textContentManager as? NSTextContentStorage)?.textStorage?.removeAttribute(attribute, range: NSRange(range, in: textContentManager))
+            (textContentManager as? NSTextContentStorage)?.textStorage?.removeAttribute(
+                attribute, range: NSRange(range, in: textContentManager))
         }
 
         if updateLayout, !textContentManager.hasEditingTransaction {
@@ -1187,8 +1208,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
     // Update selected line highlight layer
     func updateSelectedLineHighlight() {
         guard highlightSelectedLine,
-              textLayoutManager.textSelectionsRanges(.withoutInsertionPoints).isEmpty,
-              !textLayoutManager.insertionPointSelections.isEmpty
+            textLayoutManager.textSelectionsRanges(.withoutInsertionPoints).isEmpty,
+            !textLayoutManager.insertionPointSelections.isEmpty
         else {
             // don't highlight when there's selection
             return
@@ -1231,7 +1252,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
             // to find the layout fragment and us its frame as highlight area. It has its issue when it comes to the
             // extra line fragment area (sic).
             textLayoutManager.enumerateTextLayoutFragments(in: viewportRange) { layoutFragment in
-                let contentRangeInElement = (layoutFragment.textElement as? NSTextParagraph)?.paragraphContentRange ?? layoutFragment.rangeInElement
+                let contentRangeInElement =
+                    (layoutFragment.textElement as? NSTextParagraph)?.paragraphContentRange ?? layoutFragment.rangeInElement
                 for textLineFragment in layoutFragment.textLineFragments {
 
                     let isLineSelected = STGutterCalculations.isLineSelected(
@@ -1277,7 +1299,7 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
     // Update selection range highlight (on selectionView)
     func updateSelectedRangeHighlight() {
         guard !textLayoutManager.textSelections.isEmpty,
-              let viewportRange = textLayoutManager.textViewportLayoutController.viewportRange
+            let viewportRange = textLayoutManager.textViewportLayoutController.viewportRange
         else {
             selectionView.subviews = []
             // don't highlight when there's selection
@@ -1288,7 +1310,9 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
             selectionView.subviews = []
         }
 
-        for textRange in textLayoutManager.textSelections.flatMap(\.textRanges).sorted(by: { $0.location < $1.location }).compactMap({ $0.clamped(to: viewportRange) }) {
+        for textRange in textLayoutManager.textSelections.flatMap(\.textRanges).sorted(by: { $0.location < $1.location }).compactMap({
+            $0.clamped(to: viewportRange)
+        }) {
             // NOTE: enumerateTextSegments is very slow https://github.com/krzyzanowskim/STTextView/discussions/25#discussioncomment-6464398
             //       Clamp enumerated range to viewport range
             textLayoutManager.enumerateTextSegments(in: textRange, type: .selection) { (_, textSegmentFrame, _, _) in
@@ -1568,7 +1592,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
 
         let didConverge = !needsRelayout
         if didConverge,
-           let viewportRange = pendingPluginViewportRange ?? viewportLayoutController.viewportRange {
+            let viewportRange = pendingPluginViewportRange ?? viewportLayoutController.viewportRange
+        {
             pendingPluginViewportRange = nil
             viewportRangeToNotify = viewportRange
         }
@@ -1698,14 +1723,14 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
 
     private func shouldRelocateViewportToDocumentEnd(_ viewportLayoutController: NSTextViewportLayoutController) -> Bool {
         guard isVerticallyResizable,
-              let scrollView,
-              let documentView = scrollView.documentView,
-              scrollView.contentView.bounds.maxY >= documentView.bounds.maxY,
-              let viewportRange = viewportLayoutController.viewportRange,
-              let remainingRange = NSTextRange(
-                  location: viewportRange.endLocation,
-                  end: textLayoutManager.documentRange.endLocation
-              )
+            let scrollView,
+            let documentView = scrollView.documentView,
+            scrollView.contentView.bounds.maxY >= documentView.bounds.maxY,
+            let viewportRange = viewportLayoutController.viewportRange,
+            let remainingRange = NSTextRange(
+                location: viewportRange.endLocation,
+                end: textLayoutManager.documentRange.endLocation
+            )
         else {
             return false
         }
@@ -1800,7 +1825,9 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
         replaceCharacters(in: range, with: string, useTypingAttributes: true, allowsTypingCoalescing: false)
     }
 
-    func replaceCharacters(in textRanges: [NSTextRange], with replacementString: String, useTypingAttributes: Bool, allowsTypingCoalescing: Bool) {
+    func replaceCharacters(
+        in textRanges: [NSTextRange], with replacementString: String, useTypingAttributes: Bool, allowsTypingCoalescing: Bool
+    ) {
         self.replaceCharacters(
             in: textRanges,
             with: NSAttributedString(string: replacementString, attributes: useTypingAttributes ? typingAttributes : [:]),
@@ -1815,7 +1842,9 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
         }
     }
 
-    func replaceCharacters(in textRange: NSTextRange, with replacementString: String, useTypingAttributes: Bool, allowsTypingCoalescing: Bool) {
+    func replaceCharacters(
+        in textRange: NSTextRange, with replacementString: String, useTypingAttributes: Bool, allowsTypingCoalescing: Bool
+    ) {
         self.replaceCharacters(
             in: textRange,
             with: NSAttributedString(string: replacementString, attributes: useTypingAttributes ? typingAttributes : [:]),
@@ -1824,7 +1853,8 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
     }
 
     func replaceCharacters(in textRange: NSTextRange, with replacementString: NSAttributedString, allowsTypingCoalescing: Bool) {
-        let previousStringInRange = (textContentManager as? NSTextContentStorage)!.attributedString!.attributedSubstring(from: NSRange(textRange, in: textContentManager))
+        let previousStringInRange = (textContentManager as? NSTextContentStorage)!.attributedString!.attributedSubstring(
+            from: NSRange(textRange, in: textContentManager))
 
         textWillChange(self)
         delegateProxy.textView(self, willChangeTextIn: textRange, replacementString: replacementString.string)
@@ -1843,10 +1873,11 @@ open class STTextView: NSView, NSTextInput, NSTextContent, STTextViewProtocol {
 
         // Reach to NSTextStorage because NSTextContentStorage range extraction is cumbersome.
         // A range that is as long as replacement string, so when undo it undo
-        let undoRange = NSTextRange(
-            location: textRange.location,
-            end: textContentManager.location(textRange.location, offsetBy: replacementString.length)
-        ) ?? textRange
+        let undoRange =
+            NSTextRange(
+                location: textRange.location,
+                end: textContentManager.location(textRange.location, offsetBy: replacementString.length)
+            ) ?? textRange
 
         if let coalescingUndoManager = undoManager as? CoalescingUndoManager, !undoManager.isUndoing, !undoManager.isRedoing {
             if allowsTypingCoalescing, processingKeyEvent {

@@ -23,33 +23,33 @@ func secretUsesOldHashedSeed(secret: Data) -> Bool {
 func decodePrivateAndPublicKeys(secret: Data) -> (privateKey: Data, publicKey: Data)? {
     let privateKey: Data
     let publicKey: Data
-    
+
     if secretUsesRegularSeed(secret: secret) {
         let seed = secret
-        
+
         var privateEdKey = Array<UInt8>(repeating: 0, count: 64)
         var publicEdKey = Array<UInt8>(repeating: 0, count: 32)
         seed.withUnsafeBytes { seedBytes in
             let seedBuffer: UnsafePointer<UInt8> = seedBytes.baseAddress!.assumingMemoryBound(to: UInt8.self)
             ed25519_create_keypair(&publicEdKey, &privateEdKey, seedBuffer)
         }
-        
+
         privateKey = Data(privateEdKey)
         publicKey = Data(publicEdKey)
     } else if secretUsesOldHashedSeed(secret: secret) {
-        privateKey = secret[0..<64]
+        privateKey = secret[0 ..< 64]
         publicKey = secret[64...]
     } else {
         return nil
     }
-    
+
     return (privateKey, publicKey)
 }
 
-enum DecodeSecretStringError : LocalizedError {
+enum DecodeSecretStringError: LocalizedError {
     case unableToReadData
     case unableToDecodeDataAsUTF8String
-    
+
     public var errorDescription: String? {
         switch self {
         case .unableToReadData:
@@ -73,7 +73,7 @@ func decodeSecretString(filePath: String) throws -> String {
     guard let decodedPrivateKeyString = String(data: data, encoding: .utf8) else {
         throw DecodeSecretStringError.unableToDecodeDataAsUTF8String
     }
-    
+
     let privateKeyString = decodedPrivateKeyString
     return privateKeyString.trimmingCharacters(in: .whitespacesAndNewlines)
 }

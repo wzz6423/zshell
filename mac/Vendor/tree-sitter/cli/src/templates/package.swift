@@ -11,10 +11,10 @@ if FileManager.default.fileExists(atPath: "src/scanner.c") {
 let package = Package(
     name: "PARSER_CLASS_NAME",
     products: [
-        .library(name: "PARSER_CLASS_NAME", targets: ["PARSER_CLASS_NAME"]),
+        .library(name: "PARSER_CLASS_NAME", targets: ["PARSER_CLASS_NAME"])
     ],
     dependencies: [
-        .package(name: "SwiftTreeSitter", url: "https://github.com/tree-sitter/swift-tree-sitter", from: "0.9.0"),
+        .package(name: "SwiftTreeSitter", url: "https://github.com/tree-sitter/swift-tree-sitter", from: "0.9.0")
     ],
     targets: [
         .target(
@@ -35,7 +35,7 @@ let package = Package(
                 "PARSER_CLASS_NAME",
             ],
             path: "bindings/swift/PARSER_CLASS_NAMETests"
-        )
+        ),
     ],
     cLanguageStandard: .c11
 )

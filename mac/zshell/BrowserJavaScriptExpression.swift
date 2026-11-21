@@ -14,19 +14,20 @@ enum BrowserJavaScriptExpression {
         let root = ts_tree_root_node(tree)
         guard !ts_node_has_error(root) else { return nil }
         func children(_ node: TSNode) -> [TSNode] {
-            (0..<ts_node_named_child_count(node)).map { ts_node_named_child(node, $0) }.filter {
+            (0 ..< ts_node_named_child_count(node)).map { ts_node_named_child(node, $0) }.filter {
                 let type = String(cString: ts_node_type($0))
                 return type != "comment" && type != "empty_statement"
             }
         }
         let statements = children(root)
         guard statements.count == 1, let statement = statements.first,
-              String(cString: ts_node_type(statement)) == "expression_statement" else { return nil }
+            String(cString: ts_node_type(statement)) == "expression_statement"
+        else { return nil }
         let expressions = children(statement)
         guard expressions.count == 1, let expression = expressions.first else { return nil }
         let start = Int(ts_node_start_byte(expression))
         let end = Int(ts_node_end_byte(expression))
         guard start < end, end <= bytes.count else { return nil }
-        return String(decoding: bytes[start..<end], as: UTF8.self)
+        return String(decoding: bytes[start ..< end], as: UTF8.self)
     }
 }

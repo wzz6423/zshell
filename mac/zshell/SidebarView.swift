@@ -22,7 +22,7 @@ struct SidebarView: View {
                 SidebarResizeHandle(
                     edge: .trailing,
                     width: $width,
-                    range: (160 * settings.interfaceScale)...(400 * settings.interfaceScale),
+                    range: (160 * settings.interfaceScale) ... (400 * settings.interfaceScale),
                     defaultWidth: 220 * settings.interfaceScale,
                     fontSize: settings.sidebarFontSize
                 )

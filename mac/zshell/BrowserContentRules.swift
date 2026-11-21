@@ -82,7 +82,9 @@ nonisolated enum BrowserContentRules {
                 hiding.append(Hiding(selector: selector, scope: scope, exception: line[range] == "#@#"))
             } else if let rules = network(line) {
                 if line.hasPrefix("@@") { exceptions += rules } else { blocks += rules }
-            } else { skipped += 1 }
+            } else {
+                skipped += 1
+            }
         }
 
         let cosmeticExceptions = Dictionary(grouping: hiding.filter(\.exception), by: \.selector)
@@ -110,7 +112,9 @@ nonisolated enum BrowserContentRules {
         // Each native list evaluates exceptions independently. Repeat every
         // network exception in each chunk, keeping cosmetics in separate lists.
         let room = rulesPerList - exceptions.count
-        guard (blocks.count + room - 1) / room + (cosmetic.count + rulesPerList - 1) / rulesPerList <= 12 else { throw ConversionError.limit }
+        guard (blocks.count + room - 1) / room + (cosmetic.count + rulesPerList - 1) / rulesPerList <= 12 else {
+            throw ConversionError.limit
+        }
         var encodedBytes = 0
         func encode(_ rules: [Rule]) throws -> String {
             let data = try encoder.encode(rules)
@@ -119,11 +123,11 @@ nonisolated enum BrowserContentRules {
             return String(decoding: data, as: UTF8.self)
         }
         for start in stride(from: 0, to: blocks.count, by: room) {
-            let chunk = Array(blocks[start..<min(start + room, blocks.count)]) + exceptions
+            let chunk = Array(blocks[start ..< min(start + room, blocks.count)]) + exceptions
             lists.append(try encode(chunk))
         }
         for start in stride(from: 0, to: cosmetic.count, by: rulesPerList) {
-            lists.append(try encode(Array(cosmetic[start..<min(start + rulesPerList, cosmetic.count)])))
+            lists.append(try encode(Array(cosmetic[start ..< min(start + rulesPerList, cosmetic.count)])))
         }
         return Result(lists: lists, converted: filters.count - skipped, skipped: skipped)
     }
@@ -136,7 +140,8 @@ nonisolated enum BrowserContentRules {
             pattern = String(pattern[..<dollar])
         }
         guard !pattern.isEmpty, !(pattern.hasPrefix("/") && pattern.hasSuffix("/")),
-              !pattern.contains("#"), let regex = urlFilter(pattern) else { return nil }
+            !pattern.contains("#"), let regex = urlFilter(pattern)
+        else { return nil }
         var trigger = Trigger(urlFilter: regex)
         var domainScope = Scope()
         var included: Set<String> = []
@@ -151,9 +156,12 @@ nonisolated enum BrowserContentRules {
             } else if option == "match-case", !negated {
                 trigger.caseSensitive = true
             } else if option.hasPrefix("domain="), !negated,
-                      let parsed = scope(String(option.dropFirst(7)), separator: "|") {
+                let parsed = scope(String(option.dropFirst(7)), separator: "|")
+            {
                 domainScope = parsed
-            } else { return nil }
+            } else {
+                return nil
+            }
         }
         let selected = (included.isEmpty ? Set(subresources + ["document"]) : included).subtracting(excluded)
         guard !selected.isEmpty, let scopedTrigger = scoped(trigger, scope: domainScope) else { return nil }
@@ -181,7 +189,8 @@ nonisolated enum BrowserContentRules {
             let negative = part.hasPrefix("~")
             let domain = String(negative ? part.dropFirst() : part[...]).lowercased()
             guard !domain.isEmpty, !domain.hasPrefix("."), !domain.hasSuffix("."),
-                  domain.utf8.allSatisfy({ (97...122).contains($0) || (48...57).contains($0) || [45, 46, 95].contains($0) }) else { return nil }
+                domain.utf8.allSatisfy({ (97 ... 122).contains($0) || (48 ... 57).contains($0) || [45, 46, 95].contains($0) })
+            else { return nil }
             if negative { result.excluded.append(domain) } else { result.included.append(domain) }
         }
         return result
@@ -206,8 +215,12 @@ nonisolated enum BrowserContentRules {
 
     private static func validSelector(_ text: String) -> Bool {
         guard !text.isEmpty, !text.hasPrefix("+js("), !text.hasPrefix("^"),
-              !text.contains("{"), !text.contains("}"), text.utf8.allSatisfy({ $0 >= 32 && $0 < 127 }) else { return false }
-        let unsupported = [":-abp-", ":has-text(", ":contains(", ":xpath(", ":matches-", ":upward(", ":remove(", ":style(", ":min-text-length(", ":watch-", ":others(", ":if(", ":if-not(", ":nth-ancestor(", ":-ext-", ":remove-attr(", ":remove-class("]
+            !text.contains("{"), !text.contains("}"), text.utf8.allSatisfy({ $0 >= 32 && $0 < 127 })
+        else { return false }
+        let unsupported = [
+            ":-abp-", ":has-text(", ":contains(", ":xpath(", ":matches-", ":upward(", ":remove(", ":style(", ":min-text-length(", ":watch-",
+            ":others(", ":if(", ":if-not(", ":nth-ancestor(", ":-ext-", ":remove-attr(", ":remove-class(",
+        ]
         return !unsupported.contains(where: text.contains)
     }
 
@@ -237,7 +250,9 @@ nonisolated enum BrowserContentRules {
                     inHost = false
                 } else if index == pattern.count - 1 {
                     result += anchoredEnd ? #"[^a-zA-Z0-9_.%-]?$"# : #"([^a-zA-Z0-9_.%-].*)?$"#
-                } else { result += #"[^a-zA-Z0-9_.%-]"# }
+                } else {
+                    result += #"[^a-zA-Z0-9_.%-]"#
+                }
             default:
                 if #".+?()[]{}\$|"#.contains(character) { result += "\\" }
                 result.append(character)

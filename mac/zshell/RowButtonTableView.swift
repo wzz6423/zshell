@@ -23,9 +23,10 @@ final class RowButtonTableView: NSTableView {
         for event: NSEvent?
     ) -> Bool {
         if event?.type == .leftMouseDown,
-           let view = responder as? NSView,
-           view !== self, view.isDescendant(of: self),
-           view is NSButton {
+            let view = responder as? NSView,
+            view !== self, view.isDescendant(of: self),
+            view is NSButton
+        {
             return true
         }
         return super.validateProposedFirstResponder(responder, for: event)

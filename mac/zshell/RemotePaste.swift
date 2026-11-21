@@ -28,7 +28,9 @@ nonisolated enum RemotePasteInput: Sendable {
             guard urls.count <= RemotePasteUpload.maximumFiles else { throw RemotePasteUpload.sizeError() }
             return .files(urls)
         }
-        if pasteboard.types?.contains(.fileURL) == true { throw RemoteHostError.message(String(localized: "The clipboard files couldn’t be read.")) }
+        if pasteboard.types?.contains(.fileURL) == true {
+            throw RemoteHostError.message(String(localized: "The clipboard files couldn’t be read."))
+        }
         if let text = pasteboard.string(forType: .string), !text.isEmpty { return nil }
         guard let type = pasteboard.availableType(from: imageTypes) else {
             if pasteboard.types?.contains(where: { UTType($0.rawValue)?.conforms(to: .image) == true }) == true {
@@ -47,29 +49,37 @@ nonisolated enum RemotePasteInput: Sendable {
         try Task.checkCancellation()
         guard bytes.count <= RemotePasteUpload.maximumFileBytes else { throw RemotePasteUpload.sizeError() }
         guard !bytes.isEmpty, let source = CGImageSourceCreateWithData(bytes as CFData, nil),
-              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-              let width = properties[kCGImagePropertyPixelWidth] as? Int,
-              let height = properties[kCGImagePropertyPixelHeight] as? Int else {
+            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+            let width = properties[kCGImagePropertyPixelWidth] as? Int,
+            let height = properties[kCGImagePropertyPixelHeight] as? Int
+        else {
             throw RemoteHostError.message(String(localized: "The clipboard image couldn’t be read."))
         }
         guard width > 0, height > 0, width <= 16_384, height <= 16_384, width * height <= 16 * 1024 * 1024 else {
             throw RemotePasteUpload.sizeError()
         }
         guard CGImageSourceGetStatusAtIndex(source, 0) == .statusComplete,
-              let image = CGImageSourceCreateImageAtIndex(source, 0,
-                [kCGImageSourceShouldCacheImmediately: true] as CFDictionary) else {
+            let image = CGImageSourceCreateImageAtIndex(
+                source, 0,
+                [kCGImageSourceShouldCacheImmediately: true] as CFDictionary)
+        else {
             throw RemoteHostError.message(String(localized: "The clipboard image couldn’t be read."))
         }
         try Task.checkCancellation()
         // APNG shares PNG's type identifier; only a single frame can bypass conversion.
         if CGImageSourceGetType(source) == UTType.png.identifier as CFString,
-           CGImageSourceGetCount(source) == 1 { return bytes }
+            CGImageSourceGetCount(source) == 1
+        {
+            return bytes
+        }
         let png = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(png, UTType.png.identifier as CFString, 1, nil) else {
             throw RemoteHostError.message(String(localized: "The clipboard image couldn’t be read."))
         }
         CGImageDestinationAddImage(destination, image, nil)
-        guard CGImageDestinationFinalize(destination), png.length <= RemotePasteUpload.maximumFileBytes else { throw RemotePasteUpload.sizeError() }
+        guard CGImageDestinationFinalize(destination), png.length <= RemotePasteUpload.maximumFileBytes else {
+            throw RemotePasteUpload.sizeError()
+        }
         try Task.checkCancellation()
         return png as Data
     }
@@ -95,8 +105,9 @@ nonisolated enum RemotePasteUpload {
         defer { transport.close() }
         try transport.handshake()
         func frame(_ kind: String, uploadID: String? = nil) -> RemoteFrame {
-            RemoteFrame(kind: kind, project: project, sessionId: sessionID.uuidString.lowercased(),
-                        clientId: clientID.uuidString.lowercased(), uploadId: uploadID)
+            RemoteFrame(
+                kind: kind, project: project, sessionId: sessionID.uuidString.lowercased(),
+                clientId: clientID.uuidString.lowercased(), uploadId: uploadID)
         }
         struct Start: Decodable { let uploadId: String }
         struct Chunk: Decodable { let offset: UInt64 }
@@ -123,33 +134,40 @@ nonisolated enum RemotePasteUpload {
         try Task.checkCancellation()
         let committed = try transport.exchange(frame("pasteCommit", uploadID: started.uploadId)).decodedResult(Commit.self)
         guard committed.paths.count == sources.count,
-              committed.paths.allSatisfy(validPath) else { throw invalidResponse() }
+            committed.paths.allSatisfy(validPath)
+        else { throw invalidResponse() }
         return committed.paths
     }
 
-    static func uploadSSH(_ input: RemotePasteInput, endpoint: SSHEndpoint, authentication: SSHAuthentication,
-                          credentialID: UUID?) throws -> [String] {
+    static func uploadSSH(
+        _ input: RemotePasteInput, endpoint: SSHEndpoint, authentication: SSHAuthentication,
+        credentialID: UUID?
+    ) throws -> [String] {
         let sources = try readSources(input)
         defer { for source in sources { try? source.handle?.close() } }
         try Task.checkCancellation()
         let token = UUID().uuidString.lowercased()
         let transport = OpenSSHTransport(timeout: 60, outputLimit: 16_384)
         func run(_ command: [String], input: Data? = nil) throws -> BoundedProcessOutput {
-            try transport.run(endpoint: endpoint, command: command, authentication: authentication,
-                              credentialID: credentialID, standardInput: input)
+            try transport.run(
+                endpoint: endpoint, command: command, authentication: authentication,
+                credentialID: credentialID, standardInput: input)
         }
         // Receive the created path before cancellation can hand ownership to cleanup.
-        let created = try transport.run(endpoint: endpoint,
+        let created = try transport.run(
+            endpoint: endpoint,
             command: ["/bin/sh", "-c", "umask 077; mktemp -d \"${TMPDIR:-/tmp}/zshell-paste-\(token)-XXXXXXXX\""],
             authentication: authentication, credentialID: credentialID, standardInput: Data(), cancellable: false)
         let directory = created.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !created.wasTruncated, validPath(directory), directory.contains("/zshell-paste-\(token)-"),
-              !directory.contains("/../"), !directory.contains("/./") else { throw invalidResponse() }
+            !directory.contains("/../"), !directory.contains("/./")
+        else { throw invalidResponse() }
         var complete = false
         defer {
             if !complete {
                 // A cancelled upload still needs to remove its temporary remote files.
-                _ = try? OpenSSHTransport(timeout: 10, outputLimit: 1024).run(endpoint: endpoint,
+                _ = try? OpenSSHTransport(timeout: 10, outputLimit: 1024).run(
+                    endpoint: endpoint,
                     command: ["/bin/rm", "-rf", "--", directory], authentication: authentication, credentialID: credentialID,
                     cancellable: false)
             }
@@ -165,9 +183,11 @@ nonisolated enum RemotePasteUpload {
             try checkComplete(source)
             let digest = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
             let name = String(format: "%02d-", index) + source.info.name
-            let uploaded = try run(["/bin/sh", "-c", sshUploadScript, "zshell-paste", directory, name, String(bytes.count), digest],
-                                   input: bytes.base64EncodedData())
-            guard !uploaded.wasTruncated, uploaded.stdout.trimmingCharacters(in: .whitespacesAndNewlines) == "OK \(bytes.count) \(digest)" else { throw invalidResponse() }
+            let uploaded = try run(
+                ["/bin/sh", "-c", sshUploadScript, "zshell-paste", directory, name, String(bytes.count), digest],
+                input: bytes.base64EncodedData())
+            guard !uploaded.wasTruncated, uploaded.stdout.trimmingCharacters(in: .whitespacesAndNewlines) == "OK \(bytes.count) \(digest)"
+            else { throw invalidResponse() }
             paths.append(directory + "/" + name)
         }
         try Task.checkCancellation()
@@ -176,31 +196,31 @@ nonisolated enum RemotePasteUpload {
     }
 
     private static let sshUploadScript = """
-    set -eu
-    umask 077
-    test -d "$1" && test ! -L "$1"
-    file="$1/$2"
-    trap 'rm -f -- "$file"' EXIT HUP INT TERM
-    set -C
-    if base64 --decode </dev/null >/dev/null 2>&1; then
-      base64 --decode > "$file"
-    elif base64 -D </dev/null >/dev/null 2>&1; then
-      base64 -D > "$file"
-    else
-      base64 -d > "$file"
-    fi
-    test "$(wc -c < "$file" | tr -d '[:space:]')" = "$3"
-    if command -v sha256sum >/dev/null 2>&1; then
-      digest=$(sha256sum -- "$file"); digest=${digest%% *}
-    elif command -v shasum >/dev/null 2>&1; then
-      digest=$(shasum -a 256 -- "$file"); digest=${digest%% *}
-    else
-      digest=$(openssl dgst -sha256 "$file"); digest=${digest##* }
-    fi
-    test "$digest" = "$4"
-    trap - EXIT HUP INT TERM
-    printf 'OK %s %s\n' "$3" "$digest"
-    """
+        set -eu
+        umask 077
+        test -d "$1" && test ! -L "$1"
+        file="$1/$2"
+        trap 'rm -f -- "$file"' EXIT HUP INT TERM
+        set -C
+        if base64 --decode </dev/null >/dev/null 2>&1; then
+          base64 --decode > "$file"
+        elif base64 -D </dev/null >/dev/null 2>&1; then
+          base64 -D > "$file"
+        else
+          base64 -d > "$file"
+        fi
+        test "$(wc -c < "$file" | tr -d '[:space:]')" = "$3"
+        if command -v sha256sum >/dev/null 2>&1; then
+          digest=$(sha256sum -- "$file"); digest=${digest%% *}
+        elif command -v shasum >/dev/null 2>&1; then
+          digest=$(shasum -a 256 -- "$file"); digest=${digest%% *}
+        else
+          digest=$(openssl dgst -sha256 "$file"); digest=${digest##* }
+        fi
+        test "$digest" = "$4"
+        trap - EXIT HUP INT TERM
+        printf 'OK %s %s\n' "$3" "$digest"
+        """
 
     private static func readSources(_ input: RemotePasteInput) throws -> [Source] {
         var sources: [Source] = []
@@ -218,16 +238,24 @@ nonisolated enum RemotePasteUpload {
                 guard descriptor >= 0 else { throw PTYMuxWire.errnoError("open") }
                 var metadata = stat()
                 guard fstat(descriptor, &metadata) == 0, metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG),
-                      metadata.st_size >= 0, metadata.st_size <= maximumFileBytes else {
+                    metadata.st_size >= 0, metadata.st_size <= maximumFileBytes
+                else {
                     Darwin.close(descriptor)
-                    throw RemoteHostError.message(String(localized: "Paste regular files up to 32 MiB each. Folders and symbolic links aren’t supported."))
+                    throw RemoteHostError.message(
+                        String(localized: "Paste regular files up to 32 MiB each. Folders and symbolic links aren’t supported."))
                 }
-                sources.append(Source(info: RemotePasteFileInfo(name: safeName(url.lastPathComponent), size: UInt64(metadata.st_size)),
-                                      handle: FileHandle(fileDescriptor: descriptor, closeOnDealloc: true), image: nil))
+                sources.append(
+                    Source(
+                        info: RemotePasteFileInfo(name: safeName(url.lastPathComponent), size: UInt64(metadata.st_size)),
+                        handle: FileHandle(fileDescriptor: descriptor, closeOnDealloc: true), image: nil))
             }
         case .image(let bytes):
             let png = try RemotePasteInput.pngData(from: bytes)
-            sources = [Source(info: RemotePasteFileInfo(name: "clipboard-\(UUID().uuidString.lowercased()).png", size: UInt64(png.count)), handle: nil, image: png)]
+            sources = [
+                Source(
+                    info: RemotePasteFileInfo(name: "clipboard-\(UUID().uuidString.lowercased()).png", size: UInt64(png.count)),
+                    handle: nil, image: png)
+            ]
         }
         guard sources.reduce(UInt64(0), { $0 + $1.info.size }) <= maximumBatchBytes else { throw sizeError() }
         ready = true
@@ -237,8 +265,11 @@ nonisolated enum RemotePasteUpload {
     private static func read(_ source: Source, at offset: UInt64) throws -> Data {
         let wanted = min(chunkBytes, Int(source.info.size - offset))
         let bytes: Data
-        if let image = source.image { bytes = image.subdata(in: Int(offset)..<Int(offset) + wanted) }
-        else { bytes = try source.handle?.read(upToCount: wanted) ?? Data() }
+        if let image = source.image {
+            bytes = image.subdata(in: Int(offset) ..< Int(offset) + wanted)
+        } else {
+            bytes = try source.handle?.read(upToCount: wanted) ?? Data()
+        }
         guard !bytes.isEmpty, bytes.count <= wanted else { throw changedFile() }
         return bytes
     }
@@ -273,7 +304,8 @@ nonisolated enum RemotePasteUpload {
         var result = ""
         for character in name {
             let text = String(character)
-            let part = text.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) || text == "\\" || text == "/" ? "_" : text
+            let part =
+                text.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) || text == "\\" || text == "/" ? "_" : text
             if result.utf8.count + part.utf8.count > 220 { break }
             result += part
         }

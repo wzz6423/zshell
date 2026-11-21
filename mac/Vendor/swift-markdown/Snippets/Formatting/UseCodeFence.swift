@@ -5,14 +5,14 @@
 import Markdown
 
 let source = """
-This document contains a mix of indented and fenced code blocks.
+    This document contains a mix of indented and fenced code blocks.
 
-    A code block.
+        A code block.
 
-```
-func foo() {}
-```
-"""
+    ```
+    func foo() {}
+    ```
+    """
 
 let document = Document(parsing: source)
 // Always fenced code blocks.
@@ -21,13 +21,14 @@ let fencedCodeBlock = MarkupFormatter.Options.UseCodeFence.always
 let defaultCodeBlockLanguage = "swift"
 let formattedSource = document.format(options: .init(useCodeFence: fencedCodeBlock, defaultCodeBlockLanguage: defaultCodeBlockLanguage))
 
-print("""
-## Original source:
-\(source)
+print(
+    """
+    ## Original source:
+    \(source)
 
-## Formatted source:
-\(formattedSource)
-""")
+    ## Formatted source:
+    \(formattedSource)
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

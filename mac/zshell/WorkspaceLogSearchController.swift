@@ -71,8 +71,10 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
         table.setAccessibilityLabel(String(localized: "Search Terminal Logs"))
         searchField.stringValue = ""
         status.stringValue = String(localized: "Search the current terminal buffers.")
-        panel.setFrameOrigin(NSPoint(x: host.frame.midX - panel.frame.width / 2,
-                                    y: host.frame.midY - panel.frame.height / 2))
+        panel.setFrameOrigin(
+            NSPoint(
+                x: host.frame.midX - panel.frame.width / 2,
+                y: host.frame.midY - panel.frame.height / 2))
         host.addChildWindow(panel, ordered: .above)
         panel.makeKeyAndOrderFront(nil)
         panel.makeFirstResponder(searchField)
@@ -105,8 +107,9 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) { close() }
 
     private func configure() {
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 720, height: 500),
-                            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 500),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
         panel.minSize = NSSize(width: 450, height: 300)
         panel.delegate = self
@@ -169,11 +172,12 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
         guard !isScanning, !isNavigating, !searchField.stringValue.isEmpty else { return }
         let current = sources()
         guard current.count == scannedRevisions.count,
-              current.allSatisfy({ scannedRevisions[$0.session.id] == $0.session.surface.logContentRevision })
+            current.allSatisfy({ scannedRevisions[$0.session.id] == $0.session.surface.logContentRevision })
         else {
             // The rescan rebuilds the rows; keep the match the user picked,
             // or Return would open the first row instead.
-            reselect = rows.indices.contains(table.selectedRow)
+            reselect =
+                rows.indices.contains(table.selectedRow)
                 ? rows[table.selectedRow].selectionKey : nil
             beginSearch()
             return
@@ -217,18 +221,23 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
         scan(sources, at: 0, query: query, generation: generation, cancellation: cancellation)
     }
 
-    private func scan(_ sources: [Source], at index: Int, query: String, generation: Int,
-                      cancellation: WorkspaceLogCancellation) {
+    private func scan(
+        _ sources: [Source], at index: Int, query: String, generation: Int,
+        cancellation: WorkspaceLogCancellation
+    ) {
         guard self.generation == generation, !cancellation.isCancelled() else { return }
         guard index < sources.count else {
             isScanning = false
             reselect = nil
-            if hadCaptureFailure { status.stringValue = String(localized: "Some terminal buffers could not be searched.") }
-            else if totalMatches > rows.count {
+            if hadCaptureFailure {
+                status.stringValue = String(localized: "Some terminal buffers could not be searched.")
+            } else if totalMatches > rows.count {
                 status.stringValue = String(localized: "Results are truncated — showing the first \(resultLimit) matches")
+            } else if rows.isEmpty {
+                status.stringValue = String(localized: "No Matches")
+            } else {
+                status.stringValue = ""
             }
-            else if rows.isEmpty { status.stringValue = String(localized: "No Matches") }
-            else { status.stringValue = "" }
             return
         }
         let source = sources[index]
@@ -246,8 +255,9 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
             let text = cached ?? capture?.read()
             if cancellation.isCancelled() { return }
             let result = text.map {
-                WorkspaceLogSearchIndex.search(text: $0, query: query, limit: remaining,
-                                               isCancelled: { cancellation.isCancelled() })
+                WorkspaceLogSearchIndex.search(
+                    text: $0, query: query, limit: remaining,
+                    isCancelled: { cancellation.isCancelled() })
             }
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.generation == generation, !cancellation.isCancelled() else { return }
@@ -260,17 +270,21 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
                     }
                     self.totalMatches += result.total
                     let start = self.rows.count
-                    self.rows.append(contentsOf: result.matches.map {
-                        Row(sessionID: sessionID, context: source.context, snippet: $0.snippet,
-                            occurrence: $0.occurrence, query: query)
-                    })
+                    self.rows.append(
+                        contentsOf: result.matches.map {
+                            Row(
+                                sessionID: sessionID, context: source.context, snippet: $0.snippet,
+                                occurrence: $0.occurrence, query: query)
+                        })
                     // reloadData drops the table selection; inserting keeps a row picked mid-scan.
-                    self.table.insertRows(at: IndexSet(start..<self.rows.count))
+                    self.table.insertRows(at: IndexSet(start ..< self.rows.count))
                     if let key = self.reselect, let row = self.rows.firstIndex(where: { $0.selectionKey == key }) {
                         self.reselect = nil
                         self.table.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
                     }
-                } else { self.hadCaptureFailure = true }
+                } else {
+                    self.hadCaptureFailure = true
+                }
                 self.scan(sources, at: index + 1, query: query, generation: generation, cancellation: cancellation)
             }
         }
@@ -292,7 +306,8 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self, weak session] in
             guard let self, self.navigation == currentNavigation else { return }
             guard let session, self.manager?.projects.flatMap(\.sessions).contains(where: { $0 === session }) == true,
-                  let capture = TerminalHistorySerializer.takeLogCapture(from: session.surface) else {
+                let capture = TerminalHistorySerializer.takeLogCapture(from: session.surface)
+            else {
                 self.isNavigating = false
                 self.beginSearch()
                 return
@@ -303,7 +318,8 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
                 let total = capture.read().flatMap { text -> Int? in
                     let fresh = WorkspaceLogSearchIndex.search(text: text, query: row.query, limit: row.occurrence + 1)
                     guard let match = fresh.matches.last, match.occurrence == row.occurrence,
-                          match.snippet == row.snippet else { return nil }
+                        match.snippet == row.snippet
+                    else { return nil }
                     return fresh.total
                 }
                 DispatchQueue.main.async { [weak self, weak session] in
@@ -314,7 +330,8 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
                         self.beginSearch()
                         return
                     }
-                    session.find.revealLogMatch(needle: row.query, occurrence: row.occurrence, total: total) { [weak self, weak session] success in
+                    session.find.revealLogMatch(needle: row.query, occurrence: row.occurrence, total: total) {
+                        [weak self, weak session] success in
                         guard let self, self.navigation == currentNavigation else { return }
                         self.isNavigating = false
                         self.navigatingSession = nil
@@ -382,7 +399,8 @@ extension WorkspaceLogSearchController: NSSearchFieldDelegate, NSTableViewDataSo
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard rows.indices.contains(row) else { return nil }
         let identifier = NSUserInterfaceItemIdentifier("workspace-log-result")
-        let cell = tableView.makeView(withIdentifier: identifier, owner: self) as? WorkspaceLogResultCell
+        let cell =
+            tableView.makeView(withIdentifier: identifier, owner: self) as? WorkspaceLogResultCell
             ?? WorkspaceLogResultCell()
         cell.identifier = identifier
         cell.configure(context: rows[row].context, snippet: rows[row].snippet)

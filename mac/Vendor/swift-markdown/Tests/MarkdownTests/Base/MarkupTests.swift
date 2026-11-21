@@ -31,20 +31,24 @@ final class MarkupTests: XCTestCase {
         let source = "**OK**"
 
         let document = Document(parsing: source)
-        XCTAssertEqual(SourceLocation(line: 1, column: 1, source: nil)..<SourceLocation(line: 1, column: 7, source: nil),
-                       document.range)
+        XCTAssertEqual(
+            SourceLocation(line: 1, column: 1, source: nil) ..< SourceLocation(line: 1, column: 7, source: nil),
+            document.range)
 
         let paragraph = document.child(at: 0) as! Paragraph
-        XCTAssertEqual(SourceLocation(line: 1, column: 1, source: nil)..<SourceLocation(line: 1, column: 7, source: nil),
-                       paragraph.range)
+        XCTAssertEqual(
+            SourceLocation(line: 1, column: 1, source: nil) ..< SourceLocation(line: 1, column: 7, source: nil),
+            paragraph.range)
 
         let strong = paragraph.child(at: 0) as! Strong
-        XCTAssertEqual(SourceLocation(line: 1, column: 1, source: nil)..<SourceLocation(line: 1, column: 7, source: nil),
-                       strong.range)
+        XCTAssertEqual(
+            SourceLocation(line: 1, column: 1, source: nil) ..< SourceLocation(line: 1, column: 7, source: nil),
+            strong.range)
 
         let text = strong.child(at: 0) as! Text
-        XCTAssertEqual(SourceLocation(line: 1, column: 3, source: nil)..<SourceLocation(line: 1, column: 5, source: nil),
-                       text.range)
+        XCTAssertEqual(
+            SourceLocation(line: 1, column: 3, source: nil) ..< SourceLocation(line: 1, column: 5, source: nil),
+            text.range)
     }
 
     /// Because markup trees aren't "full fidelity" (e.g. block quote markers
@@ -71,12 +75,13 @@ final class MarkupTests: XCTestCase {
             }
         }
 
-        let text = document.child(through: [
-          0, // Paragraph
-          0, // Strong
-          0, // Emphasis
-          0,
-        ]) as! Text
+        let text =
+            document.child(through: [
+                0, // Paragraph
+                0, // Strong
+                0, // Emphasis
+                0,
+            ]) as! Text
         var newText = text
         newText.string = "New"
 
@@ -86,7 +91,8 @@ final class MarkupTests: XCTestCase {
 
     func testRoot() {
         let document = Document(Paragraph(Strong(Text("OK"))))
-        let leaf = document
+        let leaf =
+            document
             .child(at: 0)!
             .child(at: 0)!
             .child(at: 0)! as! Text
@@ -198,28 +204,50 @@ final class MarkupTests: XCTestCase {
         XCTAssertNotNil(document.child(through: path))
 
         // All types specified correctly
-        XCTAssertNotNil(document.child(through: [
-            (0, Paragraph.self),
-            (1, Link.self),
-            (0, Emphasis.self),
-            (0, Text.self),
-        ]))
+        XCTAssertNotNil(
+            document.child(through: [
+                (0, Paragraph.self),
+                (1, Link.self),
+                (0, Emphasis.self),
+                (0, Text.self),
+            ]))
 
         // First type unexpected
-        XCTAssertNil(document.child(through: [
-            (0, UnorderedList.self), // UnexpectedType
-            (1, Link.self),
-            (0, Emphasis.self),
-            (0, Text.self),
-        ]))
+        XCTAssertNil(
+            document.child(through: [
+                (0, UnorderedList.self), // UnexpectedType
+                (1, Link.self),
+                (0, Emphasis.self),
+                (0, Text.self),
+            ]))
 
         // Last type unexpected
-        XCTAssertNil(document.child(through: [
-            (0, Paragraph.self),
-            (1, Link.self),
-            (0, Emphasis.self),
-            (0, SoftBreak.self), // Unexpected type
-        ]))
+        XCTAssertNil(
+            document.child(through: [
+                (0, Paragraph.self),
+                (1, Link.self),
+                (0, Emphasis.self),
+                (0, SoftBreak.self), // Unexpected type
+            ]))
+    }
+
+    func testChildThroughSendablePath() async {
+        let path: TypedChildIndexPath = [(0, Paragraph.self), (0, Text.self)]
+        let transferredPath = await Task.detached { path }.value
+        let document = Document(Paragraph(Text("transferred")))
+
+        XCTAssertEqual((document.child(through: transferredPath) as? Text)?.string, "transferred")
+    }
+
+    func testConversionErrorDoesNotRetainRawMarkup() async {
+        var raw: RawMarkup? = .text(parsedRange: nil, string: "source")
+        weak let original = raw
+        let error = RawMarkup.Error.concreteConversionError(from: raw!, to: Document.self)
+        raw = nil
+
+        XCTAssertNil(original)
+        let transferredError = await Task.detached { error }.value
+        XCTAssertEqual(transferredError.errorDescription, "Can't wrap a text(\"source\") in a Document")
     }
 
     func testChild() {
@@ -241,18 +269,21 @@ final class MarkupTests: XCTestCase {
 
         let source = "This is a [*link*](github.com)."
         let document = Document(parsing: source)
-        XCTAssertNotNil(document.child(through: [
-            0, // Paragraph
-            1, // Link
-            0, // Emphasis
-            0, // Text
-        ]) as? Text)
-        XCTAssertNotNil(document.child(through:
-            0, // Paragraph
-            1, // Link
-            0, // Emphasis
-            0  // Text
-        ) as? Text)
+        XCTAssertNotNil(
+            document.child(through: [
+                0, // Paragraph
+                1, // Link
+                0, // Emphasis
+                0, // Text
+            ]) as? Text)
+        XCTAssertNotNil(
+            document.child(
+                through:
+                    0, // Paragraph
+                1, // Link
+                0, // Emphasis
+                0 // Text
+            ) as? Text)
 
         XCTAssertEqual(
             document.child(through: [
@@ -275,33 +306,34 @@ final class MarkupTests: XCTestCase {
                 (0, Emphasis.self),
                 (0, Text.self),
             ])!.debugDescription(),
-            document.child(through:
-                0, // Paragraph
+            document.child(
+                through:
+                    0, // Paragraph
                 1, // Link
                 0, // Emphasis
-                0  // Text
+                0 // Text
             )!.debugDescription()
         )
     }
 
     func testChildThroughIndicesWithMultipleParagraphs() {
         let source = """
-This is a markup __*document*__ with *some* **more** attributes.
+            This is a markup __*document*__ with *some* **more** attributes.
 
-This is the *second* paragraph.
-This is on a **new** line, but, continues on the same paragraph.
+            This is the *second* paragraph.
+            This is on a **new** line, but, continues on the same paragraph.
 
-This is the *third* paragraph.
-This is on a **new** line, but, continues on the same paragraph.
-"""
+            This is the *third* paragraph.
+            This is on a **new** line, but, continues on the same paragraph.
+            """
 
         let document = Document(parsing: source)
         XCTAssertNotNil(document.child(through: [2, 5]) as? Strong)
     }
-    
+
     func testChildAtPositionHasCorrectType() throws {
         let source = "This is a [*link*](github.com). And some **bold** and *italic* text."
-        
+
         /*
          Document
          └─ Paragraph
@@ -309,19 +341,19 @@ This is on a **new** line, but, continues on the same paragraph.
         let document = Document(parsing: source)
         let paragraph = try XCTUnwrap(document.child(at: 0))
         assertEqualType(paragraph, Paragraph.self)
-        
+
         /*
             ├─ Text "This is a "
             ├─ Link destination: "github.com"
             │  └─ Emphasis
             │     └─ Text "link"
-         
+
         */
         assertEqualType(paragraph.child(at: 0), Text.self)
         assertEqualType(paragraph.child(at: 1), Link.self)
         assertEqualType(paragraph.child(at: 1)?.child(at: 0), Emphasis.self)
         assertEqualType(paragraph.child(at: 1)?.child(at: 0)?.child(at: 0), Text.self)
-        
+
         /*
             ├─ Text ". And some "
             ├─ Strong
@@ -330,7 +362,7 @@ This is on a **new** line, but, continues on the same paragraph.
         assertEqualType(paragraph.child(at: 2), Text.self)
         assertEqualType(paragraph.child(at: 3), Strong.self)
         assertEqualType(paragraph.child(at: 3)?.child(at: 0), Text.self)
-        
+
         /*
             ├─ Text " and "
             ├─ Emphasis
@@ -341,73 +373,73 @@ This is on a **new** line, but, continues on the same paragraph.
         assertEqualType(paragraph.child(at: 5), Emphasis.self)
         assertEqualType(paragraph.child(at: 5)?.child(at: 0), Text.self)
         assertEqualType(paragraph.child(at: 6), Text.self)
-        
+
         XCTAssertNil(paragraph.child(at: 7))
     }
-    
+
     func testChildAtPositionHasCorrectMetadata() throws {
         let source = "This is a [*link*](github.com). And some **bold** and *italic* text."
-        
+
         let document = Document(parsing: source)
         let paragraph = try XCTUnwrap(document.child(at: 0) as? Paragraph)
-        
+
         for (index, sequencedChild) in paragraph.children.enumerated() {
             let indexedChild = try XCTUnwrap(paragraph.child(at: index))
-            
+
             let indexedChildMetadata = indexedChild.raw.metadata
             let sequencedChildMetadata = sequencedChild.raw.metadata
-            
+
             XCTAssertEqual(indexedChildMetadata.id, sequencedChildMetadata.id)
             XCTAssertEqual(indexedChildMetadata.indexInParent, sequencedChildMetadata.indexInParent)
             XCTAssertEqual(indexedChildMetadata.indexInParent, index)
         }
     }
-    
+
     func testNestedChildAtPositionHasCorrectMetadata() throws {
         let source = "This is some **bold** and *italic* text and a [multi-formatted *link* **to** `github`](github.com)."
-        
+
         let document = Document(parsing: source)
         let link = try XCTUnwrap(document.child(at: 0)?.child(at: 5) as? Link)
         XCTAssertEqual(link.indexInParent, 5)
-        
+
         for (index, sequencedChild) in link.children.enumerated() {
             let indexedChild = try XCTUnwrap(link.child(at: index))
-            
+
             let indexedChildMetadata = indexedChild.raw.metadata
             let sequencedChildMetadata = sequencedChild.raw.metadata
-            
+
             XCTAssertEqual(indexedChildMetadata.id, sequencedChildMetadata.id)
             XCTAssertEqual(indexedChildMetadata.indexInParent, sequencedChildMetadata.indexInParent)
             XCTAssertEqual(indexedChildMetadata.indexInParent, index)
         }
     }
-    
+
     func testChildAtPositionHasCorrectDataID() throws {
         let source = "This is a [*link*](github.com). And some **bold** and *italic* text."
-        
+
         let document = Document(parsing: source)
         let paragraph = try XCTUnwrap(document.child(at: 0) as? Paragraph)
-        
+
         for (index, sequencedChild) in paragraph.children.enumerated() {
             let indexedChild = try XCTUnwrap(paragraph.child(at: index))
-            
+
             XCTAssertEqual(indexedChild._data.id, sequencedChild._data.id)
         }
     }
-    
+
     func testNestedChildAtPositionHasCorrectDataID() throws {
         let source = "This is some **bold** and *italic* text and a [multi-formatted *link* **to** `github`](github.com)."
-        
+
         let document = Document(parsing: source)
         let link = try XCTUnwrap(document.child(at: 0)?.child(at: 5) as? Link)
-        
+
         for (index, sequencedChild) in link.children.enumerated() {
             let indexedChild = try XCTUnwrap(link.child(at: index))
-            
+
             XCTAssertEqual(indexedChild._data.id, sequencedChild._data.id)
         }
     }
-    
+
     func assertEqualType<FirstType, SecondType>(
         _ first: FirstType,
         _ second: SecondType.Type,

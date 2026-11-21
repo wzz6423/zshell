@@ -29,9 +29,11 @@ class STTextViewDelegateProxy: STTextViewDelegate {
 
     func textView(_ textView: STTextView, shouldChangeTextIn affectedCharRange: NSTextRange, replacementString: String?) -> Bool {
         var result = source?.textView(textView, shouldChangeTextIn: affectedCharRange, replacementString: replacementString) ?? true
-        result = result && textView.plugins.events.reduce(result) { partialResult, events in
-            partialResult && events.shouldChangeTextHandler?(affectedCharRange, replacementString) ?? true
-        }
+        result =
+            result
+            && textView.plugins.events.reduce(result) { partialResult, events in
+                partialResult && events.shouldChangeTextHandler?(affectedCharRange, replacementString) ?? true
+            }
         return result
     }
 
@@ -109,7 +111,8 @@ class STTextViewDelegateProxy: STTextViewDelegate {
         source?.textView(textView, clickedOnAttachment: attachment, at: location) ?? false
     }
 
-    func textView(_ textView: STTextView, shouldAllowInteractionWith attachment: NSTextAttachment, at location: any NSTextLocation) -> Bool {
+    func textView(_ textView: STTextView, shouldAllowInteractionWith attachment: NSTextAttachment, at location: any NSTextLocation) -> Bool
+    {
         source?.textView(textView, shouldAllowInteractionWith: attachment, at: location) ?? true
     }
 

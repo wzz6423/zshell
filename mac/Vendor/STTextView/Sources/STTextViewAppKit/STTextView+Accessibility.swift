@@ -4,14 +4,12 @@
 import AppKit
 import STTextKitPlus
 
-
 /// NSAccessibility
 extension STTextView {
     override open func accessibilitySharedCharacterRange() -> NSRange {
         NSRange(textContentManager.documentRange, in: textContentManager)
     }
 }
-
 
 /// NSAccessibilityProtocol
 extension STTextView {
@@ -148,7 +146,7 @@ extension STTextView {
 
     override open func accessibilityFrame(for range: NSRange) -> NSRect {
         guard let textRange = NSTextRange(range, in: textContentManager),
-              let segmentFrame = textLayoutManager.textSegmentFrame(in: textRange, type: .standard)
+            let segmentFrame = textLayoutManager.textSegmentFrame(in: textRange, type: .standard)
         else {
             return .zero
         }
@@ -157,7 +155,7 @@ extension STTextView {
 
     override open func accessibilityLine(for index: Int) -> Int {
         guard let location = textContentManager.location(at: index),
-              let position = textContentManager.position(location)
+            let position = textContentManager.position(location)
         else {
             return 0
         }
@@ -181,7 +179,8 @@ extension STTextView {
                         // Include trailing newline if present (per Apple docs)
                         let endIndex = result.upperBound
                         if endIndex < nsString.length,
-                           nsString.character(at: endIndex) == unichar(0x0A) {
+                            nsString.character(at: endIndex) == unichar(0x0A)
+                        {
                             result.length += 1
                         }
                     }
@@ -209,10 +208,12 @@ extension STTextView {
         let viewPoint = contentView.convert(windowPoint, from: nil)
 
         // Find the text location at this point
-        guard let location = textLayoutManager.caretLocation(
-            interactingAt: viewPoint,
-            inContainerAt: textLayoutManager.documentRange.location
-        ) else {
+        guard
+            let location = textLayoutManager.caretLocation(
+                interactingAt: viewPoint,
+                inContainerAt: textLayoutManager.documentRange.location
+            )
+        else {
             return .notFound
         }
 

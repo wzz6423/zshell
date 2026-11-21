@@ -15,7 +15,8 @@
                 forClasses: [NSURL.self],
                 options: [.urlReadingFileURLsOnly: true]
             ) as? [URL], !urls.isEmpty {
-                return urls
+                return
+                    urls
                     .map { shellToken(for: $0.path) }
                     .joined(separator: " ")
             }

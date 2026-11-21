@@ -117,7 +117,8 @@ final class TabSplitDragCoordinator: ObservableObject {
         ungrouped: CGRect?,
         ungroupedFooter: CGRect? = nil
     ) {
-        let changed = sidebarProjectFrames != projects
+        let changed =
+            sidebarProjectFrames != projects
             || sidebarGroupFrames != groups
             || sidebarUngroupedFrame != ungrouped
             || sidebarUngroupedFooterFrame != ungroupedFooter
@@ -173,7 +174,8 @@ final class TabSplitDragCoordinator: ObservableObject {
         manager: TerminalManager
     ) {
         if groupDragSourceGroupID != nil { cancelGroupDrag() }
-        let beginsNewDrag = projectDragSourceProjectID != sourceProjectID
+        let beginsNewDrag =
+            projectDragSourceProjectID != sourceProjectID
             || projectDragManager !== manager
         if beginsNewDrag {
             if drag != nil { drag = nil }
@@ -193,7 +195,8 @@ final class TabSplitDragCoordinator: ObservableObject {
         manager: TerminalManager
     ) {
         if projectDragSourceProjectID != nil { clearProjectDrag() }
-        let beginsNewDrag = groupDragSourceGroupID != sourceGroupID
+        let beginsNewDrag =
+            groupDragSourceGroupID != sourceGroupID
             || projectDragManager !== manager
         if beginsNewDrag {
             if drag != nil { drag = nil }
@@ -212,7 +215,8 @@ final class TabSplitDragCoordinator: ObservableObject {
         screenFrame: CGRect?,
         workspaceFrame: CGRect? = nil
     ) {
-        let changed = tabStripProjectID != projectID
+        let changed =
+            tabStripProjectID != projectID
             || tabStripScreenFrame != screenFrame
             || tabStripWorkspaceFrame != workspaceFrame
         tabStripProjectID = projectID
@@ -288,8 +292,9 @@ final class TabSplitDragCoordinator: ObservableObject {
         case nil:
             result = nil
             if let targetTabID = resolved.targetTabID,
-               let targetPaneID = resolved.targetPaneID,
-               let edge = resolved.edge {
+                let targetPaneID = resolved.targetPaneID,
+                let edge = resolved.edge
+            {
                 project.moveTab(
                     resolved.sourceTabID,
                     into: targetTabID,
@@ -324,21 +329,24 @@ final class TabSplitDragCoordinator: ObservableObject {
         }
 
         if case .project(let destinationProjectID) = resolved.sidebarTarget,
-           let failure = paneMoveFailure(
-               resolved,
-               to: destinationProjectID,
-               from: project,
-               manager: manager
-           ) {
+            let failure = paneMoveFailure(
+                resolved,
+                to: destinationProjectID,
+                from: project,
+                manager: manager
+            )
+        {
             presentMoveFailure(failure)
             cancelPaneDrag()
             return true
         }
 
-        guard let detached = project.extractPaneAsAdjacentTab(
-            resolved.sourcePaneID,
-            from: resolved.sourceTabID
-        ) else {
+        guard
+            let detached = project.extractPaneAsAdjacentTab(
+                resolved.sourcePaneID,
+                from: resolved.sourceTabID
+            )
+        else {
             cancelPaneDrag()
             return true
         }
@@ -370,8 +378,8 @@ final class TabSplitDragCoordinator: ObservableObject {
 
     func commitProjectDrag() {
         guard let sourceProjectID = projectDragSourceProjectID,
-              let screenLocation = projectDragScreenLocation,
-              let manager = projectDragManager
+            let screenLocation = projectDragScreenLocation,
+            let manager = projectDragManager
         else {
             cancelProjectDrag()
             return
@@ -396,8 +404,8 @@ final class TabSplitDragCoordinator: ObservableObject {
 
     func commitGroupDrag() {
         guard let sourceGroupID = groupDragSourceGroupID,
-              let screenLocation = projectDragScreenLocation,
-              let manager = projectDragManager
+            let screenLocation = projectDragScreenLocation,
+            let manager = projectDragManager
         else {
             cancelGroupDrag()
             return
@@ -473,14 +481,15 @@ final class TabSplitDragCoordinator: ObservableObject {
         var targetPaneID: UUID?
         var edge: PaneDropEdge?
         if let source,
-           !source.allContents.contains(where: \.isDiff),
-           targetTabID != sourceTabID,
-           renderedTabID == targetTabID,
-           let targetTab = project.selectedTab,
-           source.isPinned == targetTab.isPinned,
-           let hit = paneFrames.first(where: { $0.value.contains(location) }),
-           let targetPane = targetTab.allPanes.first(where: { $0.id == hit.key }),
-           !targetPane.content.isDiff {
+            !source.allContents.contains(where: \.isDiff),
+            targetTabID != sourceTabID,
+            renderedTabID == targetTabID,
+            let targetTab = project.selectedTab,
+            source.isPinned == targetTab.isPinned,
+            let hit = paneFrames.first(where: { $0.value.contains(location) }),
+            let targetPane = targetTab.allPanes.first(where: { $0.id == hit.key }),
+            !targetPane.content.isDiff
+        {
             targetPaneID = hit.key
             edge = dropEdge(at: location, in: hit.value)
         }
@@ -512,7 +521,8 @@ final class TabSplitDragCoordinator: ObservableObject {
     ) -> ProjectDrag {
         let targetProjectID: UUID?
         if let tabStripProjectID, let tabStripScreenFrame,
-           tabStripScreenFrame.contains(screenLocation), tabStripProjectID != sourceProjectID {
+            tabStripScreenFrame.contains(screenLocation), tabStripProjectID != sourceProjectID
+        {
             targetProjectID = tabStripProjectID
         } else {
             targetProjectID = nil
@@ -530,10 +540,11 @@ final class TabSplitDragCoordinator: ObservableObject {
     ) -> GroupDrag {
         let targetProjectID: UUID?
         if let tabStripProjectID, let tabStripScreenFrame,
-           tabStripScreenFrame.contains(screenLocation),
-           let target = manager.projects.first(where: { $0.id == tabStripProjectID }),
-           target.groupID != sourceGroupID,
-           ProjectGroupStore.shared.group(id: sourceGroupID) != nil {
+            tabStripScreenFrame.contains(screenLocation),
+            let target = manager.projects.first(where: { $0.id == tabStripProjectID }),
+            target.groupID != sourceGroupID,
+            ProjectGroupStore.shared.group(id: sourceGroupID) != nil
+        {
             targetProjectID = target.id
         } else {
             targetProjectID = nil
@@ -551,15 +562,19 @@ final class TabSplitDragCoordinator: ObservableObject {
         in project: Project
     ) -> PaneDrag {
         let sourceTab = project.tabs.first { $0.id == sourceTabID }
-        let canDetach = sourceTab?.hasMultiplePanes == true
+        let canDetach =
+            sourceTab?.hasMultiplePanes == true
             && sourceTab?.allPanes.first(where: { $0.id == sourcePaneID })?.content.isDiff == false
-        let sidebarDrop: (
-            target: TabSidebarDropTarget?,
-            highlight: TabSidebarDropHighlight?
-        ) = canDetach
-            ? resolvedSidebarDrop(at: location, excluding: project.id)
-            : (nil, nil)
-        let targetsTabStrip = canDetach
+        let sidebarDrop:
+            (
+                target: TabSidebarDropTarget?,
+                highlight: TabSidebarDropHighlight?
+            ) =
+                canDetach
+                ? resolvedSidebarDrop(at: location, excluding: project.id)
+                : (nil, nil)
+        let targetsTabStrip =
+            canDetach
             && sidebarDrop.target == nil
             && tabStripProjectID == project.id
             && tabStripWorkspaceFrame?.contains(location) == true
@@ -583,13 +598,13 @@ final class TabSplitDragCoordinator: ObservableObject {
         manager: TerminalManager
     ) -> TerminalManager.TabMoveFailure? {
         guard let destination = manager.projects.first(where: { $0.id == destinationProjectID }),
-              let sourceTab = source.tabs.first(where: { $0.id == drag.sourceTabID }),
-              let sourcePane = sourceTab.allPanes.first(where: { $0.id == drag.sourcePaneID })
+            let sourceTab = source.tabs.first(where: { $0.id == drag.sourceTabID }),
+            let sourcePane = sourceTab.allPanes.first(where: { $0.id == drag.sourcePaneID })
         else { return .unavailable }
         guard source.location == destination.location else { return .incompatibleLocation }
         guard !sourcePane.content.isDiff else { return .containsDiff }
         guard case .session(let session) = sourcePane.content,
-              let alias = session.agentStatus?.alias
+            let alias = session.agentStatus?.alias
         else { return nil }
         let aliases = Set(destination.sessions.compactMap { $0.agentStatus?.alias })
         return aliases.contains(alias) ? .agentAliasConflict(alias) : nil
@@ -625,7 +640,7 @@ final class TabSplitDragCoordinator: ObservableObject {
 
     private func publishProjectDrag() {
         guard let sourceProjectID = projectDragSourceProjectID,
-              let screenLocation = projectDragScreenLocation
+            let screenLocation = projectDragScreenLocation
         else { return }
         let resolved = resolvedProjectDrag(
             sourceProjectID: sourceProjectID,
@@ -638,8 +653,8 @@ final class TabSplitDragCoordinator: ObservableObject {
 
     private func publishGroupDrag() {
         guard let sourceGroupID = groupDragSourceGroupID,
-              let screenLocation = projectDragScreenLocation,
-              let manager = projectDragManager
+            let screenLocation = projectDragScreenLocation,
+            let manager = projectDragManager
         else { return }
         let resolved = resolvedGroupDrag(
             sourceGroupID: sourceGroupID,
@@ -690,8 +705,9 @@ enum BottomToolbarLayout {
     ) -> CGFloat {
         let scaledIdealHeight = idealHeight * interfaceScale
         guard session?.backend == .libghostty,
-              let cellHeight = session?.terminalCellSize?.height,
-              cellHeight.isFinite, cellHeight > 0 else {
+            let cellHeight = session?.terminalCellSize?.height,
+            cellHeight.isFinite, cellHeight > 0
+        else {
             return scaledIdealHeight
         }
         let rowCount = max(1, (scaledIdealHeight / cellHeight).rounded())
@@ -711,10 +727,11 @@ struct ContentView: View {
     /// Every terminal in the selected project can change the same repository.
     /// Watching command completion keeps the toolbar current without polling.
     private var commandCompletionSequences: [UUID: UInt64] {
-        Dictionary(uniqueKeysWithValues:
-            manager.selectedProject?.sessions.map {
-                ($0.id, $0.commandLifecycle.completionSequence)
-            } ?? []
+        Dictionary(
+            uniqueKeysWithValues:
+                manager.selectedProject?.sessions.map {
+                    ($0.id, $0.commandLifecycle.completionSequence)
+                } ?? []
         )
     }
 
@@ -755,7 +772,8 @@ struct ContentView: View {
                     DiffWorkspaceView(manager: manager)
                     Group {
                         if let project = manager.selectedProject,
-                           let tab = project.selectedTab {
+                            let tab = project.selectedTab
+                        {
                             PaneLayoutView(
                                 manager: manager,
                                 project: project,
@@ -789,7 +807,8 @@ struct ContentView: View {
 
                 if manager.selectedProject != nil
                     && settings.toolbarVisibility != .hide
-                    && (git.isRepo || settings.toolbarVisibility == .always) {
+                    && (git.isRepo || settings.toolbarVisibility == .always)
+                {
                     BottomToolbarView(
                         model: git,
                         height: bottomToolbarHeight,
@@ -817,9 +836,9 @@ struct ContentView: View {
                 sessions: parkedTerminalSessions,
                 manager: manager
             )
-                .frame(width: 1, height: 1)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+            .frame(width: 1, height: 1)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
         }
         .overlay {
             if manager.isCommandPaletteVisible {
@@ -836,15 +855,19 @@ struct ContentView: View {
             TabSwitcherEventMonitor(manager: manager, controller: tabSwitcher)
                 .frame(width: 0, height: 0)
         }
-        .background(WindowChromeAccessor(
-            showsFrostedBackground: settings.isTerminalBackgroundBlurActive
-        ) {
-            manager.attach(to: $0)
-        })
+        .background(
+            WindowChromeAccessor(
+                showsFrostedBackground: settings.isTerminalBackgroundBlurActive
+            ) {
+                manager.attach(to: $0)
+            }
+        )
         .onAppear { syncGit() }
-        .onReceive(NotificationCenter.default.publisher(
-            for: NSApplication.didBecomeActiveNotification
-        )) { _ in
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: NSApplication.didBecomeActiveNotification
+            )
+        ) { _ in
             syncGit()
         }
         .onChange(of: commandCompletionSequences) { syncGit() }
@@ -881,7 +904,8 @@ struct ContentView: View {
 
     private func syncGit() {
         guard let project = manager.selectedProject,
-              let session = project.selectedSession else {
+            let session = project.selectedSession
+        else {
             git.configureRemote(nil)
             git.sync(root: "")
             return
@@ -957,11 +981,15 @@ private struct BottomToolbarView: View {
 
     private var filteredBranches: [String] {
         let query = branchFilter.trimmingCharacters(in: .whitespacesAndNewlines)
-        var branches = query.isEmpty ? model.branches : model.branches.filter {
-            $0.localizedCaseInsensitiveContains(query)
-        }
+        var branches =
+            query.isEmpty
+            ? model.branches
+            : model.branches.filter {
+                $0.localizedCaseInsensitiveContains(query)
+            }
         if let current = model.branch,
-           let index = branches.firstIndex(of: current), index != branches.startIndex {
+            let index = branches.firstIndex(of: current), index != branches.startIndex
+        {
             branches.remove(at: index)
             branches.insert(current, at: branches.startIndex)
         }
@@ -1107,8 +1135,9 @@ private struct BottomToolbarView: View {
                 focusRequest: branchSearchFocusRequest
             ) {
                 if filteredBranches.count == 1,
-                   let branch = filteredBranches.first,
-                   branch != model.branch {
+                    let branch = filteredBranches.first,
+                    branch != model.branch
+                {
                     selectBranch(branch)
                 }
             }
@@ -1332,10 +1361,10 @@ private final class ToolbarContextMenuMonitorView: NSView {
             let input = ToolbarContextMenuEvent(event)
             let output: ToolbarContextMenuEvent = MainActor.assumeIsolated {
                 guard let self,
-                      let window,
-                      let event = input.value,
-                      event.window === window,
-                      self.bounds.contains(self.convert(event.locationInWindow, from: nil))
+                    let window,
+                    let event = input.value,
+                    event.window === window,
+                    self.bounds.contains(self.convert(event.locationInWindow, from: nil))
                 else { return input }
 
                 let menu = NSMenu()
@@ -1457,9 +1486,10 @@ private struct InstantPopoverPresenter<PopoverContent: View>: NSViewRepresentabl
             let generation = presentationGeneration
             DispatchQueue.main.async { [weak self] in
                 guard let self,
-                      self.presentationGeneration == generation,
-                      self.popover.isShown,
-                      self.parent.isPresented else { return }
+                    self.presentationGeneration == generation,
+                    self.popover.isShown,
+                    self.parent.isPresented
+                else { return }
                 self.parent.onPresent()
             }
         }
@@ -1472,8 +1502,9 @@ private struct InstantPopoverPresenter<PopoverContent: View>: NSViewRepresentabl
             let generation = presentationGeneration
             DispatchQueue.main.async { [weak self] in
                 guard let self,
-                      self.presentationGeneration == generation,
-                      !self.popover.isShown else { return }
+                    self.presentationGeneration == generation,
+                    !self.popover.isShown
+                else { return }
                 self.parent.onDismiss()
                 if self.parent.isPresented {
                     self.parent.isPresented = false

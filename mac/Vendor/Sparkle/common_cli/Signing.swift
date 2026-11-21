@@ -38,17 +38,18 @@ func addSignWarningToAppcast(data inputData: Data) -> Data {
     let xmlData: Data
     do {
         let signWarningPrefix = " sparkle-sign-warning:"
-        let signWarningMessage = "\nIMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.\n"
-        
+        let signWarningMessage =
+            "\nIMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.\n"
+
         let readAndWriteOptions: XMLNode.Options = [
             XMLNode.Options.nodeLoadExternalEntitiesNever,
             XMLNode.Options.nodePreserveCDATA,
             XMLNode.Options.nodePreserveWhitespace,
         ]
-        
+
         do {
             let document = try XMLDocument(data: inputData, options: readAndWriteOptions)
-            
+
             var foundSignWarningComment: Bool = false
             if let documentChildren = document.children {
                 for child in documentChildren {
@@ -58,14 +59,14 @@ func addSignWarningToAppcast(data inputData: Data) -> Data {
                     }
                 }
             }
-            
+
             if !foundSignWarningComment {
                 let newSigningWarningMessage = "\(signWarningPrefix)\(signWarningMessage)"
-                
+
                 let newCommentNode = XMLNode(kind: .comment)
                 newCommentNode.stringValue = newSigningWarningMessage
                 document.insertChild(newCommentNode, at: 0)
-                
+
                 xmlData = document.xmlData(options: readAndWriteOptions)
             } else {
                 xmlData = inputData
@@ -75,7 +76,7 @@ func addSignWarningToAppcast(data inputData: Data) -> Data {
             xmlData = inputData
         }
     }
-    
+
     return xmlData
 }
 
@@ -84,17 +85,17 @@ func addSignWarningToAppcast(data inputData: Data) -> Data {
 // The input data should have the signing block already stripped (use SPUExtractAppcastContent()
 func signAppcast(data contentData: Data, publicEdKey: Data, privateEdKey: Data) throws -> Data {
     let base64Signature = edSignature(data: contentData, publicEdKey: publicEdKey, privateEdKey: privateEdKey)
-    
+
     let signingBlock = "<!-- sparkle-signatures:\nedSignature: \(base64Signature)\nlength: \(contentData.count)\n-->\n"
-    
+
     guard let signingBlockData = signingBlock.data(using: .utf8) else {
         // Extremely unlikely to occur
         throw SigningError.failedToDecodeSigningBlockAsUTF8
     }
-    
+
     var signedData = contentData
     signedData.append(signingBlockData)
-    
+
     return signedData
 }
 
@@ -102,17 +103,18 @@ func signAppcast(data contentData: Data, publicEdKey: Data, privateEdKey: Data) 
 // that future modifications to this file will require it to be re-signed
 func updateHTMLCommentSigningWarningInReleaseNotes(data: Data) -> Data? {
     let modificationWarningPrefix = "<!-- sparkle-sign-warning:"
-    
+
     // If there's already a warning, it's not worth it to update the warning message again
     // (even if it's slightly different / out of date).
     guard data.range(of: Data(modificationWarningPrefix.utf8)) == nil else {
         return nil
     }
-    
+
     let modificationWarningSuffix = "-->\n"
-    
-    let modificationWarningMessage = "\(modificationWarningPrefix)\nIMPORTANT: This file was signed by Sparkle. Any modifications to this file requires updating signatures in appcasts that reference this file! This will involve re-running generate_appcast or sign_update.\n\(modificationWarningSuffix)"
-    
+
+    let modificationWarningMessage =
+        "\(modificationWarningPrefix)\nIMPORTANT: This file was signed by Sparkle. Any modifications to this file requires updating signatures in appcasts that reference this file! This will involve re-running generate_appcast or sign_update.\n\(modificationWarningSuffix)"
+
     var dataToSign = data
     dataToSign.insert(contentsOf: Data(modificationWarningMessage.utf8), at: dataToSign.startIndex)
 
@@ -120,84 +122,86 @@ func updateHTMLCommentSigningWarningInReleaseNotes(data: Data) -> Data? {
 }
 
 #if GENERATE_APPCAST_BUILD_LEGACY_DSA_SUPPORT
-func loadPrivateDSAKey(at privateKeyURL: URL) throws -> SecKey {
-    let data = try Data(contentsOf: privateKeyURL)
+    func loadPrivateDSAKey(at privateKeyURL: URL) throws -> SecKey {
+        let data = try Data(contentsOf: privateKeyURL)
 
-    var cfitems: CFArray?
-    var format = SecExternalFormat.formatOpenSSL
-    var type = SecExternalItemType.itemTypePrivateKey
+        var cfitems: CFArray?
+        var format = SecExternalFormat.formatOpenSSL
+        var type = SecExternalItemType.itemTypePrivateKey
 
-    let status = SecItemImport(data as CFData, nil, &format, &type, SecItemImportExportFlags(rawValue: UInt32(0)), nil, nil, &cfitems)
-    if status != errSecSuccess || cfitems == nil {
-        print("Private DSA key file", privateKeyURL.path, "exists, but it could not be read. SecItemImport error", status)
-        throw DSAError.secItemImportFailure
+        let status = SecItemImport(data as CFData, nil, &format, &type, SecItemImportExportFlags(rawValue: UInt32(0)), nil, nil, &cfitems)
+        if status != errSecSuccess || cfitems == nil {
+            print("Private DSA key file", privateKeyURL.path, "exists, but it could not be read. SecItemImport error", status)
+            throw DSAError.secItemImportFailure
+        }
+
+        if format != SecExternalFormat.formatOpenSSL || type != SecExternalItemType.itemTypePrivateKey {
+            print("Not an OpensSSL private key \(format) \(type)")
+            throw DSAError.invalidOpenSSLFormat
+        }
+
+        return (cfitems! as NSArray)[0] as! SecKey
     }
 
-    if format != SecExternalFormat.formatOpenSSL || type != SecExternalItemType.itemTypePrivateKey {
-        print("Not an OpensSSL private key \(format) \(type)")
-        throw DSAError.invalidOpenSSLFormat
+    func loadPrivateDSAKey(named keyName: String, fromKeychainAt keychainURL: URL) throws -> SecKey {
+        var keychain: SecKeychain?
+
+        guard SecKeychainOpen(keychainURL.path, &keychain) == errSecSuccess, keychain != nil else {
+            throw DSAError.secKeychainOpenFailure
+        }
+
+        let query: [CFString: CFTypeRef] = [
+            kSecClass: kSecClassKey,
+            kSecAttrKeyClass: kSecAttrKeyClassPrivate,
+            kSecAttrLabel: keyName as CFString,
+            kSecMatchLimit: kSecMatchLimitOne,
+            kSecUseKeychain: keychain!,
+            kSecReturnRef: kCFBooleanTrue,
+        ]
+
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, item != nil else {
+            throw DSAError.secItemCopyFailure
+        }
+
+        return item! as! SecKey
     }
 
-    return (cfitems! as NSArray)[0] as! SecKey
-}
+    func dsaSignature(path: URL, privateDSAKey: SecKey) throws -> String {
 
-func loadPrivateDSAKey(named keyName: String, fromKeychainAt keychainURL: URL) throws -> SecKey {
-    var keychain: SecKeychain?
+        var error: Unmanaged<CFError>?
 
-    guard SecKeychainOpen(keychainURL.path, &keychain) == errSecSuccess, keychain != nil else {
-        throw DSAError.secKeychainOpenFailure
+        let stream = InputStream(fileAtPath: path.path)!
+        let dataReadTransform = SecTransformCreateReadTransformWithReadStream(stream)
+
+        let dataDigestTransform = SecDigestTransformCreate(kSecDigestSHA1, 20, nil)
+        guard let dataSignTransform = SecSignTransformCreate(privateDSAKey, &error) else {
+            print("can't use the key")
+            throw error!.takeRetainedValue()
+        }
+
+        let group = SecTransformCreateGroupTransform()
+        SecTransformConnectTransforms(
+            dataReadTransform, kSecTransformOutputAttributeName, dataDigestTransform, kSecTransformInputAttributeName, group, &error)
+        if error != nil {
+            throw error!.takeRetainedValue()
+        }
+
+        SecTransformConnectTransforms(
+            dataDigestTransform, kSecTransformOutputAttributeName, dataSignTransform, kSecTransformInputAttributeName, group, &error)
+        if error != nil {
+            throw error!.takeRetainedValue()
+        }
+
+        let result = SecTransformExecute(group, &error)
+        if error != nil {
+            throw error!.takeRetainedValue()
+        }
+        guard let resultData = result as? Data else {
+            throw DSAError.invalidSecTransformData
+        }
+        return resultData.base64EncodedString()
     }
-
-    let query: [CFString: CFTypeRef] = [
-        kSecClass: kSecClassKey,
-        kSecAttrKeyClass: kSecAttrKeyClassPrivate,
-        kSecAttrLabel: keyName as CFString,
-        kSecMatchLimit: kSecMatchLimitOne,
-        kSecUseKeychain: keychain!,
-        kSecReturnRef: kCFBooleanTrue,
-    ]
-
-    var item: CFTypeRef?
-    guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, item != nil else {
-        throw DSAError.secItemCopyFailure
-    }
-
-    return item! as! SecKey
-}
-
-func dsaSignature(path: URL, privateDSAKey: SecKey) throws -> String {
-
-    var error: Unmanaged<CFError>?
-
-    let stream = InputStream(fileAtPath: path.path)!
-    let dataReadTransform = SecTransformCreateReadTransformWithReadStream(stream)
-
-    let dataDigestTransform = SecDigestTransformCreate(kSecDigestSHA1, 20, nil)
-    guard let dataSignTransform = SecSignTransformCreate(privateDSAKey, &error) else {
-        print("can't use the key")
-        throw error!.takeRetainedValue()
-    }
-
-    let group = SecTransformCreateGroupTransform()
-    SecTransformConnectTransforms(dataReadTransform, kSecTransformOutputAttributeName, dataDigestTransform, kSecTransformInputAttributeName, group, &error)
-    if error != nil {
-        throw error!.takeRetainedValue()
-    }
-
-    SecTransformConnectTransforms(dataDigestTransform, kSecTransformOutputAttributeName, dataSignTransform, kSecTransformInputAttributeName, group, &error)
-    if error != nil {
-        throw error!.takeRetainedValue()
-    }
-
-    let result = SecTransformExecute(group, &error)
-    if error != nil {
-        throw error!.takeRetainedValue()
-    }
-    guard let resultData = result as? Data else {
-        throw DSAError.invalidSecTransformData
-    }
-    return resultData.base64EncodedString()
-}
 #endif
 
 func edSignature(data: Data, publicEdKey: Data, privateEdKey: Data) -> String {
@@ -206,7 +210,7 @@ func edSignature(data: Data, publicEdKey: Data, privateEdKey: Data) -> String {
     let data = Array(data)
     var output = Array<UInt8>(repeating: 0, count: 64)
     let pubkey = Array(publicEdKey), privkey = Array(privateEdKey)
-    
+
     ed25519_sign(&output, data, data.count, pubkey, privkey)
     return Data(output).base64EncodedString()
 }

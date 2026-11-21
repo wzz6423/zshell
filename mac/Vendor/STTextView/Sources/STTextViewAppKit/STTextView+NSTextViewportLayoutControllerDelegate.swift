@@ -53,10 +53,14 @@ extension STTextView: NSTextViewportLayoutControllerDelegate {
         return viewportBounds
     }
 
-    public func textViewportLayoutController(_ textViewportLayoutController: NSTextViewportLayoutController, configureRenderingSurfaceFor textLayoutFragment: NSTextLayoutFragment) {
+    public func textViewportLayoutController(
+        _ textViewportLayoutController: NSTextViewportLayoutController,
+        configureRenderingSurfaceFor textLayoutFragment: NSTextLayoutFragment
+    ) {
         var needsDisplay = false
         if let textLayoutFragment = textLayoutFragment as? STTextLayoutFragment,
-           textLayoutFragment.showsInvisibleCharacters != showsInvisibleCharacters {
+            textLayoutFragment.showsInvisibleCharacters != showsInvisibleCharacters
+        {
             textLayoutFragment.showsInvisibleCharacters = showsInvisibleCharacters
             needsDisplay = true
         }
@@ -104,4 +108,4 @@ extension STTextView: NSTextViewportLayoutControllerDelegate {
     }
 }
 
-private class ViewportDebugView: NSView { }
+private class ViewportDebugView: NSView {}

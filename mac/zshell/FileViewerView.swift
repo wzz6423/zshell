@@ -71,9 +71,10 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     private nonisolated static let maxImagePreviewBytes = 64 << 20
     /// These image types keep the existing native, pixel-accurate image view.
     /// Other visual types, such as SVG, route through Quick Look instead.
-    private nonisolated static let directlyRenderedImageTypeIdentifiers = Set([
-        "png", "jpg", "jpeg", "gif", "heic", "webp", "tiff", "bmp", "icns",
-    ].compactMap { UTType(filenameExtension: $0)?.identifier })
+    private nonisolated static let directlyRenderedImageTypeIdentifiers = Set(
+        [
+            "png", "jpg", "jpeg", "gif", "heic", "webp", "tiff", "bmp", "icns",
+        ].compactMap { UTType(filenameExtension: $0)?.identifier })
     /// Exact image bytes, kept so a reload can compare the new data against the
     /// old without a lossy hash (a hash here could collide and show a stale
     /// image for a different file).
@@ -115,8 +116,10 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         var saveBaseline: FileSaveSnapshot? = nil
     }
 
-    init(path: String, source: FileSource = .local, remoteFiles: RemoteFileService = .init(),
-         draftID: UUID = UUID(), recoveringDraft: Bool = false) {
+    init(
+        path: String, source: FileSource = .local, remoteFiles: RemoteFileService = .init(),
+        draftID: UUID = UUID(), recoveringDraft: Bool = false
+    ) {
         self.draftID = draftID
         self.path = path
         self.source = source
@@ -139,7 +142,9 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         }
         if !source.isRemote, recoveringDraft, AppSettings.shared.recoverEditorDrafts {
             recoverDraft(id: draftID)
-        } else { reloadFromDiskIfClean() }
+        } else {
+            reloadFromDiskIfClean()
+        }
         if source.isRemote { refreshRemoteCapability() }
     }
 
@@ -205,8 +210,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             }
         }
         if !isRemote {
-            if dirty { EditorDraftStore.shared.schedule(draftID) }
-            else { EditorDraftStore.shared.remove(draftID) }
+            if dirty { EditorDraftStore.shared.schedule(draftID) } else { EditorDraftStore.shared.remove(draftID) }
         }
     }
 
@@ -277,12 +281,15 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
                     guard !self.isClosed, self.path == expectedPath, self.allowsEditing else { return false }
                     let approval = overwrite
                     let task = Task.detached(priority: .userInitiated) {
-                        try service.save(source: remote, path: expectedPath, text: draft,
-                                                     baseline: baseline, overwrite: approval)
+                        try service.save(
+                            source: remote, path: expectedPath, text: draft,
+                            baseline: baseline, overwrite: approval)
                     }
                     let result = try await withTaskCancellationHandler {
                         try await task.value
-                    } onCancel: { task.cancel() }
+                    } onCancel: {
+                        task.cancel()
+                    }
                     try Task.checkCancellation()
                     guard !self.isClosed, self.path == expectedPath else { return false }
                     switch result {
@@ -295,11 +302,14 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
                     case .conflict(let current):
                         let conflict = FileSaveCoordinator.Conflict(path: expectedPath, current: current.comparison)
                         let choice: FileSaveConflictController.Choice
-                        if let resolveConflict { choice = resolveConflict(conflict, draft) }
-                        else {
+                        if let resolveConflict {
+                            choice = resolveConflict(conflict, draft)
+                        } else {
                             guard AppWindowPresentation.hostWindow(relativeTo: self.editorView?.window) != nil else { return false }
-                            choice = FileSaveConflictController(conflict: conflict, draft: draft,
-                                remotePath: remote.displayPath(expectedPath)).resolve()
+                            choice = FileSaveConflictController(
+                                conflict: conflict, draft: draft,
+                                remotePath: remote.displayPath(expectedPath)
+                            ).resolve()
                         }
                         switch choice {
                         case .keepDraft:
@@ -364,9 +374,9 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             // a fresh load instead of being blocked by the completed one.
             defer { if self.reloadGeneration == generation { self.reloadTask = nil } }
             guard !Task.isCancelled,
-                  self.reloadGeneration == generation,
-                  self.path == expectedPath,
-                  draft.map({ $0 == self.text }) ?? !self.isDirty
+                self.reloadGeneration == generation,
+                self.path == expectedPath,
+                draft.map({ $0 == self.text }) ?? !self.isDirty
             else { return }
 
             let loaded = Self.loadedContent(path: expectedPath, result: result)
@@ -392,7 +402,8 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// path so a failed selection leaves the original tab recoverable.
     func reopen(at url: URL) async -> Bool {
         guard !Task.isCancelled, !isClosed, !isRemote, !isDirty, !isRestoringDraft, !isReopening,
-              url.isFileURL, case .missing = content else { return false }
+            url.isFileURL, case .missing = content
+        else { return false }
         invalidateReload()
         let generation = reloadGeneration
         let expectedPath = path
@@ -404,8 +415,9 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             return Self.readData(path: newPath)
         }.value
         guard !Task.isCancelled, !isClosed, !isDirty,
-              reloadGeneration == generation, path == expectedPath,
-              case .missing = content else { return false }
+            reloadGeneration == generation, path == expectedPath,
+            case .missing = content
+        else { return false }
         let loaded = Self.loadedContent(path: newPath, result: result)
         switch loaded.content {
         case .missing, .unavailable: return false
@@ -455,7 +467,8 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
                 let snapshot = try await reading.value
                 try Task.checkCancellation()
                 guard !self.isClosed, self.reloadGeneration == generation, self.path == expectedPath,
-                      draft.map({ $0 == self.text }) ?? !self.isDirty else { return }
+                    draft.map({ $0 == self.text }) ?? !self.isDirty
+                else { return }
                 guard snapshot.isRegular, let data = snapshot.data else {
                     throw snapshot.isRegular ? RemoteFileService.Failure.tooLarge : RemoteFileService.Failure.unsafePath
                 }
@@ -473,8 +486,11 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
                 self.reloadRevision &+= 1
             } catch is CancellationError {} catch {
                 guard !self.isClosed, self.reloadGeneration == generation, self.path == expectedPath else { return }
-                if draft != nil { self.saveError = error.localizedDescription }
-                else { self.content = .unavailable(error.localizedDescription) }
+                if draft != nil {
+                    self.saveError = error.localizedDescription
+                } else {
+                    self.content = .unavailable(error.localizedDescription)
+                }
             }
         }
     }
@@ -497,9 +513,10 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     func draftSnapshot() -> EditorDraftRecord? {
         guard !isRemote, isDirty, text != discardedDraftText, let saveBaseline else { return nil }
-        return EditorDraftRecord(id: draftID, source: .file(path: path), text: text,
-                                 baseline: saveBaseline, editorState: editorState,
-                                 previousPaths: draftPreviousPaths.isEmpty ? nil : draftPreviousPaths)
+        return EditorDraftRecord(
+            id: draftID, source: .file(path: path), text: text,
+            baseline: saveBaseline, editorState: editorState,
+            previousPaths: draftPreviousPaths.isEmpty ? nil : draftPreviousPaths)
     }
 
     func discardDraftBackup() {
@@ -519,12 +536,15 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             self.isRestoringDraft = false
             guard AppSettings.shared.recoverEditorDrafts else { self.reloadFromDiskIfClean(); return }
             if let record, case .file(let path) = record.source,
-               path == self.path || record.previousPaths?.contains(self.path) == true {
+                path == self.path || record.previousPaths?.contains(self.path) == true
+            {
                 self.path = path
                 self.draftPreviousPaths = record.previousPaths ?? []
                 self.restoreDraft(record.text, baseline: record.baseline)
                 if let state = record.sanitizedEditorState() { self.editorState = state }
-            } else { self.reloadFromDiskIfClean() }
+            } else {
+                self.reloadFromDiskIfClean()
+            }
         }
     }
 
@@ -622,9 +642,10 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     private nonisolated static func quickLookSignature(for path: String) -> QuickLookSignature? {
         guard let attributes = try? FileManager.default.attributesOfItem(atPath: path),
-              let size = attributes[.size] as? NSNumber
+            let size = attributes[.size] as? NSNumber
         else { return nil }
-        let modificationTime = (attributes[.modificationDate] as? Date)?
+        let modificationTime =
+            (attributes[.modificationDate] as? Date)?
             .timeIntervalSinceReferenceDate ?? 0
         return QuickLookSignature(
             fileSize: size.uint64Value,
@@ -674,8 +695,9 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         // `NSImage` decodes on the main actor, so an oversized buffer must not
         // reach it even when a caller already holds the bytes.
         if usesDirectImagePreview(for: url),
-           data.count <= maxImagePreviewBytes,
-           let image = NSImage(data: data) {
+            data.count <= maxImagePreviewBytes,
+            let image = NSImage(data: data)
+        {
             return LoadedContent(
                 content: .image(image),
                 text: "",
@@ -977,15 +999,17 @@ final class FileViewerContainerView: NSView {
         let view: NSView
         switch kind {
         case .source:
-            let controller = editor ?? SourceEditorController(
-                file: file,
-                font: font,
-                palette: palette,
-                wrapLines: wrapLines,
-                isFocused: isFocused,
-                onFocused: onFocused,
-                onSplit: onSplit
-            )
+            let controller =
+                editor
+                ?? SourceEditorController(
+                    file: file,
+                    font: font,
+                    palette: palette,
+                    wrapLines: wrapLines,
+                    isFocused: isFocused,
+                    onFocused: onFocused,
+                    onSplit: onSplit
+                )
             editor = controller
             // Find acts on whichever view is mounted, and a reused controller
             // set this only when it was first built.
@@ -1026,14 +1050,16 @@ final class FileViewerContainerView: NSView {
             }
         case .missing:
             file.editorView = nil
-            let locate = NSButton(title: String(localized: "Locate File…"),
-                                  target: self, action: #selector(locateFile))
+            let locate = NSButton(
+                title: String(localized: "Locate File…"),
+                target: self, action: #selector(locateFile))
             locate.bezelStyle = .rounded
             locate.setAccessibilityIdentifier("file-preview.locate")
             locate.isEnabled = !file.isReopening
             locateButton = locate
-            view = Self.placeholderView(path: file.path, reason: String(localized: "File not found"),
-                                        palette: palette, details: file.path, action: locate)
+            view = Self.placeholderView(
+                path: file.path, reason: String(localized: "File not found"),
+                palette: palette, details: file.path, action: locate)
         case .unavailable(let reason):
             file.editorView = nil
             view = Self.placeholderView(path: file.path, reason: reason, palette: palette)
@@ -1062,7 +1088,8 @@ final class FileViewerContainerView: NSView {
 
     @objc private func locateFile() {
         guard !file.isReopening, case .missing = file.content,
-              let window, window.attachedSheet == nil else { return }
+            let window, window.attachedSheet == nil
+        else { return }
         let expectedPath = file.path
         let panel = NSOpenPanel()
         panel.title = String(localized: "Locate File…")
@@ -1074,12 +1101,14 @@ final class FileViewerContainerView: NSView {
         panel.prompt = String(localized: "Choose")
         panel.beginSheetModal(for: window) { [weak self, weak window] response in
             guard response == .OK, let url = panel.url, let self, let window,
-                  self.window === window, self.file.path == expectedPath else { return }
+                self.window === window, self.file.path == expectedPath
+            else { return }
             Task { [weak self, weak window] in
                 guard let self else { return }
                 let reopened = await self.file.reopen(at: url)
                 guard !reopened, let window, self.window === window, window.attachedSheet == nil,
-                      self.file.path == expectedPath, case .missing = self.file.content else { return }
+                    self.file.path == expectedPath, case .missing = self.file.content
+                else { return }
                 let alert = NSAlert()
                 alert.messageText = String(localized: "Could not read file")
                 alert.informativeText = url.path

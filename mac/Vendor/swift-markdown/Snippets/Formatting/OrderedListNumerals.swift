@@ -3,23 +3,24 @@
 import Markdown
 
 let source = """
-1. An
-2. ordered
-3. list
-"""
+    1. An
+    2. ordered
+    3. list
+    """
 
 let document = Document(parsing: source)
 // Use all 0. markers to allow easily reordering ordered list items.
 let formattingOptions = MarkupFormatter.Options(orderedListNumerals: .allSame(1))
 let formattedSource = document.format(options: formattingOptions)
 
-print("""
-## Original source:
-\(source)
+print(
+    """
+    ## Original source:
+    \(source)
 
-## Formatted source:
-\(formattedSource)
-""")
+    ## Formatted source:
+    \(formattedSource)
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

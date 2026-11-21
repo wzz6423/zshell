@@ -177,7 +177,7 @@ import Testing
     // The boundary mask is a UInt64, so only positions 0-63 are tracked
     // Boundary detection uses original case - uppercase after lowercase is a boundary
     let candidate = String(repeating: "a", count: 63) + "Bc"
-    let bytes = Array(candidate.utf8)  // Keep original case for boundary detection
+    let bytes = Array(candidate.utf8) // Keep original case for boundary detection
 
     let mask = computeBoundaryMask(bytes: bytes)
 
@@ -208,7 +208,7 @@ import Testing
     let matcher = FuzzyMatcher()
     var buffer = matcher.makeBuffer()
 
-    let longString = String(repeating: "abcdefghij", count: 100)  // 1000 chars
+    let longString = String(repeating: "abcdefghij", count: 100) // 1000 chars
     let query = matcher.prepare(longString)
 
     let result = matcher.score(longString, against: query, buffer: &buffer)
@@ -238,7 +238,7 @@ import Testing
     // Long string with a transposition near the end
     let base = String(repeating: "a", count: 500)
     let candidate = base + "test"
-    let queryStr = base + "tset"  // Transposed "test"
+    let queryStr = base + "tset" // Transposed "test"
     let query = matcher.prepare(queryStr)
 
     let result = matcher.score(candidate, against: query, buffer: &buffer)
@@ -325,7 +325,7 @@ import Testing
     let base = String(repeating: "a", count: 2_000)
     var candidateStr = base
     let idx = candidateStr.index(candidateStr.startIndex, offsetBy: 1_000)
-    candidateStr.replaceSubrange(idx...idx, with: "b")
+    candidateStr.replaceSubrange(idx ... idx, with: "b")
 
     let query: [UInt8] = Array(base.utf8)
     let candidate: [UInt8] = Array(candidateStr.utf8)
@@ -428,11 +428,11 @@ import Testing
 
     // Check that all expected bits are set
     // Bits 0-25 for a-z
-    for i in 0..<26 {
+    for i in 0 ..< 26 {
         #expect((mask & (1 << i)) != 0, "Bit \(i) should be set for letter \(Character(UnicodeScalar(97 + i)!))")
     }
     // Bits 26-35 for 0-9
-    for i in 0..<10 {
+    for i in 0 ..< 10 {
         #expect((mask & (1 << (26 + i))) != 0, "Bit \(26 + i) should be set for digit \(i)")
     }
     // Bit 36 for underscore
@@ -461,7 +461,7 @@ import Testing
     let matcher = FuzzyMatcher(config: MatchConfig(minScore: 0.9, algorithm: .editDistance(EditDistanceConfig(maxEditDistance: 3))))
     var buffer = matcher.makeBuffer()
 
-    let query = matcher.prepare("helol")  // Transposition of "hello"
+    let query = matcher.prepare("helol") // Transposition of "hello"
 
     // "hello" vs "helol" has distance 1 (transposition), base = 0.8, below 0.9 threshold
     let result = matcher.score("hello", against: query, buffer: &buffer)

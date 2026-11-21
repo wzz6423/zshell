@@ -96,7 +96,8 @@ enum ProjectSidebarOrder {
         projectIDs: [UUID],
         groupIDs: [UUID]
     ) -> [ProjectSidebarItem] {
-        let fallback = projectIDs.map(ProjectSidebarItem.project)
+        let fallback =
+            projectIDs.map(ProjectSidebarItem.project)
             + groupIDs.map(ProjectSidebarItem.group)
         let available = Set(fallback)
         var seen = Set<ProjectSidebarItem>()
@@ -160,7 +161,7 @@ final class ProjectGroupStore: ObservableObject {
     @discardableResult
     func update(_ group: ProjectGroup) -> Bool {
         guard let index = groups.firstIndex(where: { $0.id == group.id }),
-              !groups.contains(where: { $0.id != group.id && $0.name == group.name })
+            !groups.contains(where: { $0.id != group.id && $0.name == group.name })
         else { return false }
         groups[index] = group
         save()
@@ -169,8 +170,9 @@ final class ProjectGroupStore: ObservableObject {
 
     func move(_ groupID: UUID, to targetID: UUID) {
         guard groupID != targetID,
-              let source = groups.firstIndex(where: { $0.id == groupID }),
-              let target = groups.firstIndex(where: { $0.id == targetID }) else { return }
+            let source = groups.firstIndex(where: { $0.id == groupID }),
+            let target = groups.firstIndex(where: { $0.id == targetID })
+        else { return }
         let group = groups.remove(at: source)
         groups.insert(group, at: target)
         save()

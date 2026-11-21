@@ -17,9 +17,11 @@ struct ContentView: View {
                 .contentTransition(.numericText())
         }
         .animation(.interactiveSpring, value: frame)
-        .modifier(DisplayLinkModifier(scheduleToMainThread: true) {
-            frame += 1
-        })
+        .modifier(
+            DisplayLinkModifier(scheduleToMainThread: true) {
+                frame += 1
+            }
+        )
         .padding()
     }
 }

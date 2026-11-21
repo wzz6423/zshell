@@ -12,20 +12,20 @@ public class Highlighter {
     private var pendingSet: IndexSet
     public var tokenProvider: TokenProvider
 
-	/// Requests to the TokenProvider will not exceed this length.
-	public var requestLengthLimit = 1024
+    /// Requests to the TokenProvider will not exceed this length.
+    public var requestLengthLimit = 1024
 
-	/// Highlighting may be done past the visible range by up to this amount.
-	public var visibleLookAheadLength = 1024
+    /// Highlighting may be done past the visible range by up to this amount.
+    public var visibleLookAheadLength = 1024
 
-	/// Highlighting may be done before the visible range by up to this amount.
-	public var visibleLookBehindLength = 1024
+    /// Highlighting may be done before the visible range by up to this amount.
+    public var visibleLookBehindLength = 1024
 
     public init(textInterface: TextSystemInterface, tokenProvider: TokenProvider? = nil) {
         self.textInterface = textInterface
         self.validSet = IndexSet()
         self.pendingSet = IndexSet()
-        self.tokenProvider = tokenProvider ?? { _, block in block(.success([]))}
+        self.tokenProvider = tokenProvider ?? { _, block in block(.success([])) }
     }
 }
 
@@ -84,9 +84,9 @@ extension Highlighter {
         // if we have pending requests, we have to start over
         self.pendingSet.removeAll()
         DispatchQueue.main.async {
-			assumeMainActor {
-				self.makeNextTokenRequest()
-			}
+            assumeMainActor {
+                self.makeNextTokenRequest()
+            }
         }
     }
 }
@@ -101,7 +101,7 @@ extension Highlighter {
     }
 
     var fullTextSet: IndexSet {
-        return IndexSet(integersIn: 0..<textLength)
+        return IndexSet(integersIn: 0 ..< textLength)
     }
 
     private var visibleSet: IndexSet {
@@ -112,47 +112,49 @@ extension Highlighter {
         return fullTextSet.subtracting(validSet)
     }
 
-	/// Computes the next contiguous invalid range
+    /// Computes the next contiguous invalid range
     private func nextNeededTokenRange() -> NSRange? {
-		let visibleRange = visibleTextRange
+        let visibleRange = visibleTextRange
 
-		let lookBehindLength = requestLengthLimit
-		let lookAheadLength = requestLengthLimit
+        let lookBehindLength = requestLengthLimit
+        let lookAheadLength = requestLengthLimit
 
-		// expand the visible range by the maximum possible request length
-		let expandedVisibleStart = max(visibleRange.location - lookBehindLength, 0)
-		let expandedVisibleEnd = min(visibleRange.max + lookAheadLength, textLength)
+        // expand the visible range by the maximum possible request length
+        let expandedVisibleStart = max(visibleRange.location - lookBehindLength, 0)
+        let expandedVisibleEnd = min(visibleRange.max + lookAheadLength, textLength)
 
-		let expandedVisibleSet = IndexSet(integersIn: NSRange(expandedVisibleStart..<expandedVisibleEnd))
+        let expandedVisibleSet = IndexSet(integersIn: NSRange(expandedVisibleStart ..< expandedVisibleEnd))
 
-		// determine what parts of that set are actually invalid
-		let expandedVisibleInvalidSet = invalidSet.intersection(expandedVisibleSet)
+        // determine what parts of that set are actually invalid
+        let expandedVisibleInvalidSet = invalidSet.intersection(expandedVisibleSet)
 
-		// here's a trick. Create a set with a single range, and then remove
-		// any pending ranges from it. The result can be used to determine the longest
-		// ranges that do not overlap pending.
-		let spanSet = expandedVisibleInvalidSet
-			.limitSpanningRange
-			.map({ IndexSet(integersIn: $0) }) ?? IndexSet()
+        // here's a trick. Create a set with a single range, and then remove
+        // any pending ranges from it. The result can be used to determine the longest
+        // ranges that do not overlap pending.
+        let spanSet =
+            expandedVisibleInvalidSet
+            .limitSpanningRange
+            .map({ IndexSet(integersIn: $0) }) ?? IndexSet()
 
-		let candidateSet = spanSet.subtracting(pendingSet)
+        let candidateSet = spanSet.subtracting(pendingSet)
 
-		// We want to prioritize the invalid ranges that are actually visible
-		let hasVisibleInvalidRanges = visibleSet.intersection(invalidSet).isEmpty == false
+        // We want to prioritize the invalid ranges that are actually visible
+        let hasVisibleInvalidRanges = visibleSet.intersection(invalidSet).isEmpty == false
 
-		// now get back the first range, which is the longest continuous
-		// range that includes invalid regions
-		let range = candidateSet.nsRangeView.first{ range in
-			guard hasVisibleInvalidRanges else { return true }
+        // now get back the first range, which is the longest continuous
+        // range that includes invalid regions
+        let range = candidateSet.nsRangeView.first { range in
+            guard hasVisibleInvalidRanges else { return true }
 
-			return range.max > visibleRange.location
-		}
+            return range.max > visibleRange.location
+        }
 
-		guard let range = range else { return nil }
+        guard let range = range else { return nil }
 
-		// make sure to respect the request limit
-		return NSRange(location: range.location,
-					   length: min(range.length, requestLengthLimit))
+        // make sure to respect the request limit
+        return NSRange(
+            location: range.location,
+            length: min(range.length, requestLengthLimit))
     }
 
     private func makeNextTokenRequest() {
@@ -162,8 +164,8 @@ extension Highlighter {
 
         // this can be called 0 or more times
         tokenProvider(range) { result in
-			dispatchPrecondition(condition: .onQueue(.main))
-            
+            dispatchPrecondition(condition: .onQueue(.main))
+
             switch result {
             case .failure(let error):
                 print("failed to get tokens: ", error)
@@ -187,7 +189,7 @@ extension Highlighter {
     private func handleTokens(_ tokenApplication: TokenApplication, for range: NSRange) {
         self.pendingSet.remove(integersIn: range)
 
-		var receivedSet = IndexSet(integersIn: tokenApplication.range ?? range)
+        var receivedSet = IndexSet(integersIn: tokenApplication.range ?? range)
 
         let tokenRanges = tokenApplication.tokens.map({ $0.range })
 

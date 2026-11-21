@@ -277,7 +277,8 @@ extension TerminalSessionBackend {
 extension TerminalSurfaceOptions {
     var debugSummary: String {
         let fontSizeDescription = fontSize.map { String($0) } ?? "nil"
-        return "backend=\(backend.debugSummary) fontSize=\(fontSizeDescription) workingDirectory=\(workingDirectory ?? "nil") context=\(context.debugSummary)"
+        return
+            "backend=\(backend.debugSummary) fontSize=\(fontSizeDescription) workingDirectory=\(workingDirectory ?? "nil") context=\(context.debugSummary)"
     }
 }
 

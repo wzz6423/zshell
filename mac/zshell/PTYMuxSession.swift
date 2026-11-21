@@ -38,8 +38,10 @@ nonisolated struct PTYSessionProcesses: Sendable {
             let group = getpgid(process.pid)
             if group > 1 && group != getpgrp() { groups[group] = process }
         }
-        for (group, process) in groups where Self.isCurrentSessionProcess(process, root: root)
-            && getpgid(process.pid) == group {
+        for (group, process) in groups
+        where Self.isCurrentSessionProcess(process, root: root)
+            && getpgid(process.pid) == group
+        {
             _ = Darwin.kill(-group, signal)
         }
         for process in processes where Self.isCurrentSessionProcess(process, root: root) {
@@ -69,7 +71,8 @@ nonisolated struct PTYSessionProcesses: Sendable {
         var size = MemoryLayout<kinfo_proc>.size
         var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, root]
         guard sysctl(&mib, UInt32(mib.count), &info, &size, nil, 0) == 0,
-              size == MemoryLayout<kinfo_proc>.size, info.kp_proc.p_stat == Int8(SZOMB) else { return false }
+            size == MemoryLayout<kinfo_proc>.size, info.kp_proc.p_stat == Int8(SZOMB)
+        else { return false }
         let started = info.kp_proc.p_un.__p_starttime
         return UInt64(exactly: started.tv_sec) == process.startedSeconds
             && UInt64(exactly: started.tv_usec) == process.startedMicroseconds
@@ -92,7 +95,8 @@ final class PTYMuxAttachment {
         lock.lock()
         guard !closed else { lock.unlock(); return }
         guard pendingBytes + data.count <= PTYMuxConstants.maximumSnapshotBytes + PTYMuxConstants.maximumBacklogBytes,
-              snapshot || pendingLiveBytes + data.count <= PTYMuxConstants.maximumBacklogBytes else {
+            snapshot || pendingLiveBytes + data.count <= PTYMuxConstants.maximumBacklogBytes
+        else {
             lock.unlock()
             disconnect()
             return
@@ -105,8 +109,7 @@ final class PTYMuxAttachment {
             let canWrite = !closed
             lock.unlock()
             if canWrite {
-                do { try PTYMuxWire.writeAll(data, to: descriptor) }
-                catch { disconnect() }
+                do { try PTYMuxWire.writeAll(data, to: descriptor) } catch { disconnect() }
             }
             lock.lock()
             pendingBytes -= data.count
@@ -214,7 +217,8 @@ final class PTYMuxSession: @unchecked Sendable {
     func write(_ bytes: Data, from client: PTYMuxAttachment) {
         io.sync {
             guard attachment === client || observers[ObjectIdentifier(client)] === client,
-                  !processExited else { return }
+                !processExited
+            else { return }
             enqueueInput(bytes)
         }
     }
@@ -231,8 +235,10 @@ final class PTYMuxSession: @unchecked Sendable {
             observers[ObjectIdentifier(client)] = client
             client.send(PTYMuxObserverFrame.encode(kind: .reset, data: dimensionBytes), snapshot: true)
             for offset in stride(from: 0, to: snapshot.count, by: 32 * 1024) {
-                client.send(PTYMuxObserverFrame.encode(kind: .output,
-                    data: snapshot.subdata(in: offset..<min(offset + 32 * 1024, snapshot.count))), snapshot: true)
+                client.send(
+                    PTYMuxObserverFrame.encode(
+                        kind: .output,
+                        data: snapshot.subdata(in: offset ..< min(offset + 32 * 1024, snapshot.count))), snapshot: true)
             }
             client.send(PTYMuxObserverFrame.encode(kind: .ready), snapshot: true)
         }
@@ -310,7 +316,7 @@ final class PTYMuxSession: @unchecked Sendable {
         guard !masterClosed else { return }
         var buffer = [UInt8](repeating: 0, count: 16 * 1024)
         // Yield to attach/input work even when a program writes continuously.
-        for _ in 0..<64 {
+        for _ in 0 ..< 64 {
             let count = Darwin.read(master, &buffer, buffer.count)
             if count > 0 {
                 let bytes = Data(buffer.prefix(count))
@@ -350,9 +356,11 @@ final class PTYMuxSession: @unchecked Sendable {
     private func flushInput() {
         while !input.isEmpty && !masterClosed {
             let count = input.withUnsafeBytes { Darwin.write(master, $0.baseAddress, $0.count) }
-            if count > 0 { input.removeFirst(count) }
-            else if count < 0 && errno == EINTR { continue }
-            else if count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK) {
+            if count > 0 {
+                input.removeFirst(count)
+            } else if count < 0 && errno == EINTR {
+                continue
+            } else if count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK) {
                 if writeSource == nil {
                     let source = DispatchSource.makeWriteSource(fileDescriptor: master, queue: io)
                     source.setEventHandler { [weak self] in self?.flushInput() }
@@ -360,7 +368,9 @@ final class PTYMuxSession: @unchecked Sendable {
                     source.resume()
                 }
                 return
-            } else { input.removeAll(); break }
+            } else {
+                input.removeAll(); break
+            }
         }
         writeSource?.cancel()
         writeSource = nil

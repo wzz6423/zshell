@@ -14,8 +14,9 @@ final class WorkspaceTemplateEditorController: NSObject {
     init(entry: WorkspaceTemplateStore.Entry, store: WorkspaceTemplateStore) {
         self.entry = entry
         self.store = store
-        panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 700, height: 500),
-                        styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 700, height: 500),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
         super.init()
         panel.isReleasedWhenClosed = false
         panel.minSize = NSSize(width: 540, height: 400)
@@ -64,7 +65,7 @@ final class WorkspaceTemplateEditorController: NSObject {
             actions.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -16),
         ])
         localizationObservation = NotificationCenter.default.addObserver(forName: AppLocalization.didChange, object: nil, queue: .main) {
-            [weak self] _ in assumeMainActor { self?.localize() }
+            [weak self] _ in assumeMainActor { [weak self] in self?.localize() }
         }
         localize()
     }

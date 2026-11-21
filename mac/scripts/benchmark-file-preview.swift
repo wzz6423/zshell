@@ -34,7 +34,8 @@ private func boundedRead(path: String) throws -> ReadResult {
         data.append(chunk)
     }
     guard data.count <= maxTextBytes,
-          try handle.seekToEnd() <= UInt64(maxTextBytes) else {
+        try handle.seekToEnd() <= UInt64(maxTextBytes)
+    else {
         return .tooLarge
     }
     return .data(data)
@@ -57,21 +58,23 @@ private func measure(
 ) throws {
     var samples: [Double] = []
     var sink = 0
-    for _ in 0..<iterations {
+    for _ in 0 ..< iterations {
         let start = ContinuousClock.now
         let count = try autoreleasepool { try byteCount(operation()) }
         let elapsed = start.duration(to: .now)
-        samples.append(Double(elapsed.components.seconds) * 1_000
-            + Double(elapsed.components.attoseconds) / 1.0e15)
+        samples.append(
+            Double(elapsed.components.seconds) * 1_000
+                + Double(elapsed.components.attoseconds) / 1.0e15)
         sink &+= count
     }
     samples.sort()
     let median = percentile(samples, fraction: 0.5)
     let p95 = percentile(samples, fraction: 0.95)
-    print(String(
-        format: "%@\tmedian=%.3fms\tp95=%.3fms\tsink=%d",
-        name, median, p95, sink
-    ))
+    print(
+        String(
+            format: "%@\tmedian=%.3fms\tp95=%.3fms\tsink=%d",
+            name, median, p95, sink
+        ))
 }
 
 private func createFixture(at url: URL, sizeMiB: Int) throws {
@@ -79,7 +82,7 @@ private func createFixture(at url: URL, sizeMiB: Int) throws {
     let handle = try FileHandle(forWritingTo: url)
     defer { try? handle.close() }
     let chunk = Data(repeating: 0x78, count: 1 << 20)
-    for _ in 0..<sizeMiB {
+    for _ in 0 ..< sizeMiB {
         try handle.write(contentsOf: chunk)
     }
 }
@@ -89,9 +92,10 @@ guard iterations > 0, benchmarkSizes.allSatisfy({ $0 > 0 }) else {
 }
 
 let environment = ProcessInfo.processInfo.environment
-let baseDirectory = environment["CLAUDE_JOB_DIR"].map {
-    URL(fileURLWithPath: $0, isDirectory: true).appendingPathComponent("tmp")
-} ?? FileManager.default.temporaryDirectory
+let baseDirectory =
+    environment["CLAUDE_JOB_DIR"].map {
+        URL(fileURLWithPath: $0, isDirectory: true).appendingPathComponent("tmp")
+    } ?? FileManager.default.temporaryDirectory
 let fixtureDirectory = baseDirectory.appendingPathComponent(
     "zshell-file-preview-benchmark-\(UUID().uuidString)",
     isDirectory: true
@@ -102,7 +106,7 @@ defer { try? FileManager.default.removeItem(at: fixtureDirectory) }
 for sizeMiB in benchmarkSizes {
     let fixture = fixtureDirectory.appendingPathComponent("fixture-\(sizeMiB)MiB.txt")
     try createFixture(at: fixture, sizeMiB: sizeMiB)
-    for _ in 0..<3 {
+    for _ in 0 ..< 3 {
         _ = try legacyRead(path: fixture.path)
         _ = try boundedRead(path: fixture.path)
     }

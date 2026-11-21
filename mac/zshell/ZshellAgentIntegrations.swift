@@ -49,7 +49,8 @@ enum ZshellAgentIntegrations {
             switch self {
             case .pi:
                 if let configured = environment["PI_CODING_AGENT_DIR"],
-                   !configured.isEmpty {
+                    !configured.isEmpty
+                {
                     return expandedURL(configured, homeURL: homeURL)
                 }
                 return homeURL.appendingPathComponent(".pi/agent", isDirectory: true)
@@ -59,7 +60,8 @@ enum ZshellAgentIntegrations {
                 )
             case .grok:
                 if let configured = environment["GROK_HOME"],
-                   !configured.isEmpty {
+                    !configured.isEmpty
+                {
                     return expandedURL(configured, homeURL: homeURL)
                 }
                 return homeURL.appendingPathComponent(".grok", isDirectory: true)
@@ -121,7 +123,8 @@ enum ZshellAgentIntegrations {
                 environment: environment
             )
             if itemType(at: destination) != nil,
-               !isManaged(destination, kind: kind, sourceURL: source.url) {
+                !isManaged(destination, kind: kind, sourceURL: source.url)
+            {
                 throw IntegrationError.message(
                     "The \(kind.rawValue) integration at \(destination.path) is not managed by Zshell."
                 )
@@ -151,7 +154,8 @@ enum ZshellAgentIntegrations {
             // Recheck ownership after the all-destination preflight so a file
             // changed concurrently is never replaced.
             if itemType(at: destination) != nil,
-               !isManaged(destination, kind: kind, sourceURL: source.url) {
+                !isManaged(destination, kind: kind, sourceURL: source.url)
+            {
                 throw IntegrationError.message(
                     "The \(kind.rawValue) integration at \(destination.path) changed while Zshell was enabling AI."
                 )
@@ -210,14 +214,17 @@ enum ZshellAgentIntegrations {
     private static func source(for kind: Kind, bundle: Bundle) throws -> Source {
         let resource = kind.resource
         for directory in resource.directories {
-            guard let url = bundle.url(
-                forResource: resource.name,
-                withExtension: resource.extension,
-                subdirectory: directory
-            ) else { continue }
+            guard
+                let url = bundle.url(
+                    forResource: resource.name,
+                    withExtension: resource.extension,
+                    subdirectory: directory
+                )
+            else { continue }
             let data = try Data(contentsOf: url)
             guard let text = String(data: data, encoding: .utf8),
-                  text.contains(kind.marker) else { continue }
+                text.contains(kind.marker)
+            else { continue }
             return Source(url: url.standardizedFileURL)
         }
         throw IntegrationError.message(
@@ -231,16 +238,16 @@ enum ZshellAgentIntegrations {
         sourceURL: URL?
     ) -> Bool {
         guard let data = try? Data(contentsOf: url, options: .mappedIfSafe),
-              data.count <= 256 * 1_024,
-              let text = String(data: data, encoding: .utf8)
+            data.count <= 256 * 1_024,
+            let text = String(data: data, encoding: .utf8)
         else {
             // A moved or replaced app can leave Zshell's absolute resource link
             // temporarily dangling. Recognize only its exact resource name
             // beneath an app bundle so launch reconciliation can repair it.
             guard itemType(at: url) == .typeSymbolicLink,
-                  let target = symbolicLinkTarget(at: url),
-                  target.lastPathComponent == kind.resourceFileName,
-                  target.path.contains(".app/Contents/Resources/")
+                let target = symbolicLinkTarget(at: url),
+                target.lastPathComponent == kind.resourceFileName,
+                target.path.contains(".app/Contents/Resources/")
             else { return false }
             return true
         }
@@ -251,15 +258,17 @@ enum ZshellAgentIntegrations {
 
     private static func isCurrentLink(_ url: URL, sourceURL: URL) -> Bool {
         guard itemType(at: url) == .typeSymbolicLink,
-              let target = symbolicLinkTarget(at: url)
+            let target = symbolicLinkTarget(at: url)
         else { return false }
         return target.standardizedFileURL.path == sourceURL.standardizedFileURL.path
     }
 
     private static func symbolicLinkTarget(at url: URL) -> URL? {
-        guard let path = try? FileManager.default.destinationOfSymbolicLink(
-            atPath: url.path
-        ) else { return nil }
+        guard
+            let path = try? FileManager.default.destinationOfSymbolicLink(
+                atPath: url.path
+            )
+        else { return nil }
         if path.hasPrefix("/") { return URL(fileURLWithPath: path) }
         return url.deletingLastPathComponent().appendingPathComponent(path)
     }

@@ -12,7 +12,10 @@ use crate::vte::ansi::Rgb;
 /// itself.
 #[derive(Clone)]
 pub enum Event {
-    SemanticPrompt { action: u8, exit_code: Option<i32> },
+    SemanticPrompt {
+        action: u8,
+        exit_code: Option<i32>,
+    },
     CommandRecordsChanged,
     /// Grid has changed possibly requiring a mouse cursor shape change.
     MouseCursorDirty,
@@ -30,7 +33,10 @@ pub enum Event {
     ///
     /// The attached function is a formatter which will correctly transform the clipboard content
     /// into the expected escape sequence format.
-    ClipboardLoad(ClipboardType, Arc<dyn Fn(&str) -> String + Sync + Send + 'static>),
+    ClipboardLoad(
+        ClipboardType,
+        Arc<dyn Fn(&str) -> String + Sync + Send + 'static>,
+    ),
 
     /// Request to write the RGB value of a color to the PTY.
     ///
@@ -63,7 +69,9 @@ pub enum Event {
 impl Debug for Event {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Event::SemanticPrompt { action, exit_code } => write!(f, "SemanticPrompt({action}, {exit_code:?})"),
+            Event::SemanticPrompt { action, exit_code } => {
+                write!(f, "SemanticPrompt({action}, {exit_code:?})")
+            }
             Event::CommandRecordsChanged => write!(f, "CommandRecordsChanged"),
             Event::ClipboardStore(ty, text) => write!(f, "ClipboardStore({ty:?}, {text})"),
             Event::ClipboardLoad(ty, _) => write!(f, "ClipboardLoad({ty:?})"),

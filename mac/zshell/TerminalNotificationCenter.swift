@@ -20,7 +20,8 @@ final class TerminalNotificationCenterController: NSObject {
         ]
         for (id, title, action) in commands {
             let id = NSUserInterfaceItemIdentifier(id)
-            let command = menu.items.first { $0.identifier == id }
+            let command =
+                menu.items.first { $0.identifier == id }
                 ?? NSMenuItem(title: title, action: action, keyEquivalent: "")
             if command.identifier != id { command.identifier = id }
             if command.title != title { command.title = title }
@@ -32,7 +33,8 @@ final class TerminalNotificationCenterController: NSObject {
 
     func show(filter: TerminalNotificationHistoryStore.Filter = .all) {
         if windowController == nil {
-            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 680, height: 520),
+            let panel = NSPanel(
+                contentRect: NSRect(x: 0, y: 0, width: 680, height: 520),
                 styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
             panel.isReleasedWhenClosed = false
             panel.minSize = NSSize(width: 680, height: 420)
@@ -43,7 +45,8 @@ final class TerminalNotificationCenterController: NSObject {
             windowController = NSWindowController(window: panel)
         }
         guard let window = windowController?.window,
-              let controller = window.contentViewController as? TerminalNotificationCenterViewController else { return }
+            let controller = window.contentViewController as? TerminalNotificationCenterViewController
+        else { return }
         if let host = TerminalManager.activeWindowManager?.presentationWindow, host !== window {
             AppWindowPresentation.position(window, relativeTo: host, placement: .centered)
         }
@@ -203,8 +206,10 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
 
     private func localize() {
         view.window?.title = String(localized: "Notification History")
-        for (index, title) in [String(localized: "All"), String(localized: "Unread"),
-                              String(localized: "Failed"), String(localized: "Pending")].enumerated() {
+        for (index, title) in [
+            String(localized: "All"), String(localized: "Unread"),
+            String(localized: "Failed"), String(localized: "Pending"),
+        ].enumerated() {
             filters.setLabel(title, forSegment: index)
         }
         filters.setAccessibilityLabel(String(localized: "Notification filter"))
@@ -224,14 +229,20 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
         table.reloadData()
         if let index = selectedID.flatMap({ id in records.firstIndex { $0.id == id } }) {
             table.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
-        } else { table.deselectAll(nil) }
+        } else {
+            table.deselectAll(nil)
+        }
         emptyLabel.isHidden = !records.isEmpty
         // Alternating stripes behind an empty list read as a stray gray block under the empty-state text.
         table.usesAlternatingRowBackgroundColors = !records.isEmpty
-        emptyLabel.stringValue = service.history.isLoading ? String(localized: "Loading notifications…")
+        emptyLabel.stringValue =
+            service.history.isLoading
+            ? String(localized: "Loading notifications…")
             : String(localized: "No notifications in this filter.")
         countLabel.stringValue = String(localized: "Notifications: \(records.count)")
-        errorLabel.stringValue = service.history.persistenceError == nil ? ""
+        errorLabel.stringValue =
+            service.history.persistenceError == nil
+            ? ""
             : String(localized: "Notification history could not be loaded or saved.")
         errorLabel.isHidden = errorLabel.stringValue.isEmpty
         allReadButton.isEnabled = service.history.records.contains { !$0.isRead }
@@ -267,7 +278,8 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard records.indices.contains(row) else { return nil }
         let id = NSUserInterfaceItemIdentifier("notification-row")
-        let cell = tableView.makeView(withIdentifier: id, owner: self) as? TerminalNotificationCell
+        let cell =
+            tableView.makeView(withIdentifier: id, owner: self) as? TerminalNotificationCell
             ?? TerminalNotificationCell()
         cell.identifier = id
         cell.update(records[row])
@@ -280,8 +292,11 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
 
     @objc private func openSelection(_ sender: Any?) {
         guard let record = selected else { return }
-        if service.open(id: record.id) { view.window?.orderOut(nil) }
-        else { setDetails(String(localized: "This pane is closed or unavailable.")) }
+        if service.open(id: record.id) {
+            view.window?.orderOut(nil)
+        } else {
+            setDetails(String(localized: "This pane is closed or unavailable."))
+        }
     }
 
     @objc private func markSelectionRead(_ sender: Any?) {
@@ -333,8 +348,11 @@ private final class TerminalNotificationCell: NSTableCellView {
         message.font = .systemFont(ofSize: 13, weight: record.isRead ? .regular : .semibold)
         context.stringValue = [record.target.remoteHostName, record.target.projectName, record.target.tabName]
             .compactMap { $0 }.joined(separator: " · ")
-        var states = [record.createdAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened)
-            .locale(AppLocalization.current.locale))]
+        var states = [
+            record.createdAt.formatted(
+                Date.FormatStyle(date: .abbreviated, time: .shortened)
+                    .locale(AppLocalization.current.locale))
+        ]
         if !record.isRead { states.append(String(localized: "Unread")) }
         if record.isFailure { states.append(String(localized: "Failed")) }
         if record.isPending { states.append(String(localized: "Pending")) }

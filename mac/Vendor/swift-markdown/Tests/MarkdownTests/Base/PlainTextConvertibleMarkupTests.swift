@@ -32,11 +32,12 @@ final class PlainTextConvertibleMarkupTests: XCTestCase {
     }
 
     func testLink() {
-        let link = Link(destination: "test.png",
-                        Text("This "),
-                        Text("is "),
-                        Text("a "),
-                        Text("link."))
+        let link = Link(
+            destination: "test.png",
+            Text("This "),
+            Text("is "),
+            Text("a "),
+            Text("link."))
         XCTAssertEqual("This is a link.", link.plainText)
     }
 

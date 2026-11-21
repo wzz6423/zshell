@@ -142,8 +142,10 @@ final class SettingsSidebarViewController: NSViewController, NSSearchFieldDelega
                 .map { _ in () },
             SettingsVisibility.recommendationsDidChange
         )
-        .merge(with: NotificationCenter.default.publisher(for: NSColor.systemColorsDidChangeNotification)
-            .map { _ in () })
+        .merge(
+            with: NotificationCenter.default.publisher(for: NSColor.systemColorsDidChangeNotification)
+                .map { _ in () }
+        )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in
             guard let self else { return }

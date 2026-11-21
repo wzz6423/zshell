@@ -43,7 +43,7 @@ final class SettingsRow: NSView {
 
         let descriptor = SettingsRowSymbols.icon(for: title, control: control)
         let labels = SettingsLabelColumn(
-            title: titleLabel, text: textStack,
+            text: textStack,
             symbolName: symbolName ?? descriptor.name,
             symbolColor: symbolColor ?? descriptor.category.iconColor
         )
@@ -63,8 +63,10 @@ final class SettingsRow: NSView {
             }
         }
         if !(control is NSControl), description != nil,
-           !(control is NSStackView) {
-            compactWidth = control.fittingSize.width + SettingsMetrics.labelControlGap + SettingsMetrics.rowIconSize
+            !(control is NSStackView)
+        {
+            compactWidth =
+                control.fittingSize.width + SettingsMetrics.labelControlGap + SettingsMetrics.rowIconSize
                 + SettingsMetrics.iconLabelGap + SettingsMetrics.rowTitleFont.pointSize * 12
             compoundWidths = [
                 labels.widthAnchor.constraint(equalTo: stack.widthAnchor),
@@ -108,23 +110,21 @@ final class SettingsRow: NSView {
     }
 }
 
-/// Keep the icon beside the title's first line while explanations grow below it.
-private final class SettingsLabelColumn: NSView {
-    init(title: NSTextField, text: NSView, symbolName: String, symbolColor: NSColor) {
+/// The taller of the icon and the text sets the row height without shifting their tops.
+private final class SettingsLabelColumn: NSStackView {
+    init(text: NSView, symbolName: String, symbolColor: NSColor) {
         super.init(frame: .zero)
 
         let icon = SettingsIconView(symbolName: symbolName, color: symbolColor, size: SettingsMetrics.rowIconSize)
-        text.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(icon)
-        addSubview(text)
-        NSLayoutConstraint.activate([
-            icon.leadingAnchor.constraint(equalTo: leadingAnchor),
-            icon.centerYAnchor.constraint(equalTo: title.firstBaselineAnchor, constant: SettingsMetrics.rowIconBaselineOffset),
-            text.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: SettingsMetrics.iconLabelGap),
-            text.trailingAnchor.constraint(equalTo: trailingAnchor),
-            text.topAnchor.constraint(equalTo: topAnchor),
-            text.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
+        addArrangedSubview(icon)
+        addArrangedSubview(text)
+        orientation = .horizontal
+        alignment = .top
+        spacing = SettingsMetrics.iconLabelGap
+        distribution = .fill
+        setHuggingPriority(.defaultLow, for: .horizontal)
+        text.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        text.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
     }
 
     @available(*, unavailable)
@@ -276,8 +276,9 @@ final class SettingsButtonFlowRow: NSView {
         )
         // The native bezel extends beyond the button's alignment rect.
         let frameSize = button.frame(forAlignmentRect: NSRect(origin: .zero, size: alignmentSize)).size
-        return NSSize(width: max(0, ceil(max(fitting.width, frameSize.width))),
-                      height: max(0, ceil(max(fitting.height, frameSize.height))))
+        return NSSize(
+            width: max(0, ceil(max(fitting.width, frameSize.width))),
+            height: max(0, ceil(max(fitting.height, frameSize.height))))
     }
 }
 
@@ -373,7 +374,7 @@ final class SettingsSliderRow: NSView {
 
         let descriptor = SettingsRowSymbols.icon(for: accessibilityLabel ?? title)
         let labels = SettingsLabelColumn(
-            title: titleLabel, text: titleLabel,
+            text: titleLabel,
             symbolName: symbolName ?? descriptor.name,
             symbolColor: symbolColor ?? descriptor.category.iconColor
         )
@@ -444,7 +445,7 @@ final class SettingsSliderRow: NSView {
         case .points: String(localized: "\(Int(value)) pt", comment: "Font size in points")
         case .percent: "\(Int((value * 100).rounded()))%"
         case .integer: String(Int(value.rounded()))
-        case .ratio: value.formatted(.number.precision(.fractionLength(0...2))) + ":1"
+        case .ratio: value.formatted(.number.precision(.fractionLength(0 ... 2))) + ":1"
         }
     }
 

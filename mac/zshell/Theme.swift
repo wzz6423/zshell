@@ -130,12 +130,14 @@ enum Theme {
     /// Zshell's Default comes first; the duplicate GitHub Default catalog rows
     /// are intentionally omitted because the built-ins use those palettes.
     nonisolated static let commonDarkThemes: [GhosttyThemeDefinition] =
-        [defaultDarkDefinition] + GhosttyThemeCatalog.allThemes.filter {
+        [defaultDarkDefinition]
+        + GhosttyThemeCatalog.allThemes.filter {
             $0.isDark && commonDarkCatalogThemeNames.contains($0.name)
         }
 
     nonisolated static let commonLightThemes: [GhosttyThemeDefinition] =
-        [defaultLightDefinition] + GhosttyThemeCatalog.allThemes.filter {
+        [defaultLightDefinition]
+        + GhosttyThemeCatalog.allThemes.filter {
             !$0.isDark && commonLightCatalogThemeNames.contains($0.name)
         }
 
@@ -182,7 +184,7 @@ enum Theme {
     @discardableResult
     static func previewSelection(named name: String, dark: Bool) -> Bool {
         guard isCommonTheme(named: name, dark: dark),
-              let definition = definition(named: name)
+            let definition = definition(named: name)
         else { return false }
         selection.withLock {
             if dark {
@@ -271,11 +273,12 @@ enum Theme {
 
     /// Last-resort definition should a default name ever leave the catalog.
     private nonisolated static func fallback(named name: String, dark: Bool) -> GhosttyThemeDefinition {
-        GhosttyThemeCatalog.theme(named: name) ?? GhosttyThemeDefinition(
-            name: name,
-            background: dark ? "0d1117" : "ffffff",
-            foreground: dark ? "e6edf3" : "1f2328"
-        )
+        GhosttyThemeCatalog.theme(named: name)
+            ?? GhosttyThemeDefinition(
+                name: name,
+                background: dark ? "0d1117" : "ffffff",
+                foreground: dark ? "e6edf3" : "1f2328"
+            )
     }
 }
 

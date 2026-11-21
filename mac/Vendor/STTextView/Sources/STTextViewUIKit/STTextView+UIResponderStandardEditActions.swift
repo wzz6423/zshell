@@ -25,20 +25,20 @@ extension STTextView {
         }
     }
 
-//    @objc open override func pasteAndGo(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.pasteAndGo(sender)
-//    }
-//
-//    @objc open override func pasteAndSearch(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.pasteAndSearch(sender)
-//    }
-//
-//    @objc open override func pasteAndMatchStyle(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.pasteAndMatchStyle(sender)
-//    }
+    //    @objc open override func pasteAndGo(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.pasteAndGo(sender)
+    //    }
+    //
+    //    @objc open override func pasteAndSearch(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.pasteAndSearch(sender)
+    //    }
+    //
+    //    @objc open override func pasteAndMatchStyle(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.pasteAndMatchStyle(sender)
+    //    }
 
     @objc override open func cut(_ sender: Any?) {
         if let selectedTextRange, let text = text(in: selectedTextRange) {
@@ -121,73 +121,73 @@ extension STTextView {
         inputDelegate?.selectionDidChange(self)
     }
 
-//    @objc open override func toggleItalics(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.toggleItalics(sender)
-//    }
-//
-//    @objc open override func toggleBoldface(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.toggleBoldface(sender)
-//    }
-//
-//    @objc open override func toggleUnderline(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.toggleUnderline(sender)
-//    }
+    //    @objc open override func toggleItalics(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.toggleItalics(sender)
+    //    }
+    //
+    //    @objc open override func toggleBoldface(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.toggleBoldface(sender)
+    //    }
+    //
+    //    @objc open override func toggleUnderline(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.toggleUnderline(sender)
+    //    }
 
-//    @objc open override func increaseSize(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.increaseSize(sender)
-//    }
-//
-//    @objc open override func decreaseSize(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.decreaseSize(sender)
-//    }
+    //    @objc open override func increaseSize(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.increaseSize(sender)
+    //    }
+    //
+    //    @objc open override func decreaseSize(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.decreaseSize(sender)
+    //    }
 
-//    @objc open override func updateTextAttributes(conversionHandler: ([NSAttributedString.Key : Any]) -> [NSAttributedString.Key : Any]) {
-//        assertionFailure("Not implemented")
-//        return super.updateTextAttributes(conversionHandler: conversionHandler)
-//    }
+    //    @objc open override func updateTextAttributes(conversionHandler: ([NSAttributedString.Key : Any]) -> [NSAttributedString.Key : Any]) {
+    //        assertionFailure("Not implemented")
+    //        return super.updateTextAttributes(conversionHandler: conversionHandler)
+    //    }
 
-//    @objc open override func makeTextWritingDirectionLeftToRight(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.makeTextWritingDirectionLeftToRight(sender)
-//    }
-//
-//    @objc open override func makeTextWritingDirectionRightToLeft(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.makeTextWritingDirectionRightToLeft(sender)
-//    }
+    //    @objc open override func makeTextWritingDirectionLeftToRight(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.makeTextWritingDirectionLeftToRight(sender)
+    //    }
+    //
+    //    @objc open override func makeTextWritingDirectionRightToLeft(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.makeTextWritingDirectionRightToLeft(sender)
+    //    }
 
-//    @objc open override func printContent(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.printContent(sender)
-//    }
+    //    @objc open override func printContent(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.printContent(sender)
+    //    }
 
-//    @objc open override func find(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.find(sender)
-//    }
-//
-//    @objc open override func findNext(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.findNext(sender)
-//    }
-//
-//    @objc open override func findPrevious(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.findPrevious(sender)
-//    }
-//
-//    @objc open override func findAndReplace(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.findAndReplace(sender)
-//    }
-//
-//    @objc open override func useSelectionForFind(_ sender: Any?) {
-//        assertionFailure("Not implemented")
-//        super.useSelectionForFind(sender)
-//    }
+    //    @objc open override func find(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.find(sender)
+    //    }
+    //
+    //    @objc open override func findNext(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.findNext(sender)
+    //    }
+    //
+    //    @objc open override func findPrevious(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.findPrevious(sender)
+    //    }
+    //
+    //    @objc open override func findAndReplace(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.findAndReplace(sender)
+    //    }
+    //
+    //    @objc open override func useSelectionForFind(_ sender: Any?) {
+    //        assertionFailure("Not implemented")
+    //        super.useSelectionForFind(sender)
+    //    }
 }

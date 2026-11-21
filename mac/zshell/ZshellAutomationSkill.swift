@@ -25,9 +25,10 @@ enum ZshellAutomationSkill {
 
         var agents: [String] {
             switch self {
-            case .universal: [
-                "codex", "gemini", "grok", "cursor", "opencode", "amp", "pi",
-            ]
+            case .universal:
+                [
+                    "codex", "gemini", "grok", "cursor", "opencode", "amp", "pi",
+                ]
             case .claude: ["claude"]
             }
         }
@@ -110,7 +111,7 @@ enum ZshellAutomationSkill {
         case "all":
             return Destination.allCases
         case "universal", "agents", "codex", "gemini", "grok", "cursor",
-             "cursor-agent", "opencode", "amp", "pi":
+            "cursor-agent", "opencode", "amp", "pi":
             return [.universal]
         case "claude":
             return [.claude]
@@ -194,20 +195,24 @@ enum ZshellAutomationSkill {
     }
 
     private static func source(bundle: Bundle = .main) throws -> Source {
-        guard let skillURL = bundledURL(
-            name: "SKILL",
-            extension: "md",
-            subdirectories: ["Skills/\(name)", name, nil],
-            bundle: bundle
-        ) else {
+        guard
+            let skillURL = bundledURL(
+                name: "SKILL",
+                extension: "md",
+                subdirectories: ["Skills/\(name)", name, nil],
+                bundle: bundle
+            )
+        else {
             throw SkillError.message("Zshell's bundled automation SKILL.md is missing.")
         }
-        guard let metadataURL = bundledURL(
-            name: "openai",
-            extension: "yaml",
-            subdirectories: ["Skills/\(name)/agents", "\(name)/agents", "agents", nil],
-            bundle: bundle
-        ) else {
+        guard
+            let metadataURL = bundledURL(
+                name: "openai",
+                extension: "yaml",
+                subdirectories: ["Skills/\(name)/agents", "\(name)/agents", "agents", nil],
+                bundle: bundle
+            )
+        else {
             throw SkillError.message("Zshell's bundled automation skill metadata is missing.")
         }
         guard isRegularFile(skillURL), isRegularFile(metadataURL) else {
@@ -260,18 +265,21 @@ enum ZshellAutomationSkill {
 
         let manifestURL = url.appendingPathComponent(manifestName)
         if isRegularFile(manifestURL),
-           let data = try? Data(contentsOf: manifestURL),
-           let manifest = try? JSONDecoder().decode(Manifest.self, from: data),
-           manifest.formatVersion == 2,
-           manifest.skill == name {
+            let data = try? Data(contentsOf: manifestURL),
+            let manifest = try? JSONDecoder().decode(Manifest.self, from: data),
+            manifest.formatVersion == 2,
+            manifest.skill == name
+        {
             let expectedEntries = expectedEntries(
                 paths: manifest.links.keys,
                 includesManifest: true
             )
             if try treeEntries(at: url) == expectedEntries,
-               let links = try symbolicLinks(at: url, paths: manifest.links.keys),
-               links == manifest.links {
-                let state: InstallationState = manifest.links == source.links
+                let links = try symbolicLinks(at: url, paths: manifest.links.keys),
+                links == manifest.links
+            {
+                let state: InstallationState =
+                    manifest.links == source.links
                     ? .current
                     : .updateAvailable
                 return Snapshot(destination: destination, url: url, state: state)
@@ -282,10 +290,12 @@ enum ZshellAutomationSkill {
         let sourceLinks = source.links
         let entries = try treeEntries(at: url)
         let links = try symbolicLinks(at: url, paths: sourceLinks.keys)
-        let isUnmanagedMatch = entries == expectedEntries(
-            paths: sourceLinks.keys,
-            includesManifest: false
-        ) && links == sourceLinks
+        let isUnmanagedMatch =
+            entries
+            == expectedEntries(
+                paths: sourceLinks.keys,
+                includesManifest: false
+            ) && links == sourceLinks
         let state: InstallationState = isUnmanagedMatch ? .unmanaged : .modified
         return Snapshot(destination: destination, url: url, state: state)
     }
@@ -345,7 +355,8 @@ enum ZshellAutomationSkill {
             // string prefixes. Foundation can return `/private/tmp` child
             // URLs for a `/tmp` root even when resolving symlinks leaves the
             // root spelling unchanged.
-            let relative = prefix.isEmpty
+            let relative =
+                prefix.isEmpty
                 ? child.lastPathComponent
                 : "\(prefix)/\(child.lastPathComponent)"
             result.insert(relative)

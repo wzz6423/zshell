@@ -81,187 +81,15 @@ extension FuzzyMatcher {
         // Each array subscript write normally goes through a yield-once coroutine with
         // bounds checking; UnsafeMutablePointer eliminates this for the O(n) merged pass.
         let actualCandidateLength = candidateStorage.withMutableBuffers { bytesPtr, bonusPtr in
-        if candidateIsASCII {
-            // Fast path: ASCII-only
-            var prevByte: UInt8 = 0
-            for i in 0..<candidateLength {
-                let byte = candidateUTF8[i]
-                bytesPtr[i] = confusableASCIIToCanonical(lowercaseASCII(byte))
+            if candidateIsASCII {
+                // Fast path: ASCII-only
+                var prevByte: UInt8 = 0
+                for i in 0 ..< candidateLength {
+                    let byte = candidateUTF8[i]
+                    bytesPtr[i] = confusableASCIIToCanonical(lowercaseASCII(byte))
 
-                let posBonus: Int32
-                if i == 0 {
-                    posBonus = bonusBoundaryWhitespaceVal
-                } else {
-                    let currIsUpper = byte >= 0x41 && byte <= 0x5A
-                    let currIsLower = byte >= 0x61 && byte <= 0x7A
-                    let currIsDigit = byte >= 0x30 && byte <= 0x39
-                    let currIsWhitespace = byte == 0x20 || byte == 0x09
-
-                    if currIsWhitespace {
-                        posBonus = bonusBoundaryWhitespaceVal
-                    } else if !(currIsUpper || currIsLower || currIsDigit) {
-                        posBonus = bonusBoundaryVal  // non-word char itself
-                    } else {
-                        let prevIsWhitespace = prevByte == 0x20 || prevByte == 0x09
-                        if prevIsWhitespace {
-                            posBonus = bonusBoundaryWhitespaceVal
-                        } else if prevByte == 0x2F || prevByte == 0x3A
-                            || prevByte == 0x3B || prevByte == 0x7C {
-                            posBonus = bonusBoundaryDelimiterVal  // after delimiter
-                        } else {
-                            let prevIsLower = prevByte >= 0x61 && prevByte <= 0x7A
-                            if prevIsLower && currIsUpper {
-                                posBonus = bonusCamelCaseVal  // camelCase
-                            } else {
-                                let prevIsDigit = prevByte >= 0x30 && prevByte <= 0x39
-                                if !prevIsDigit && currIsDigit {
-                                    posBonus = bonusCamelCaseVal  // non-digit → digit
-                                } else {
-                                    let prevIsUpper = prevByte >= 0x41 && prevByte <= 0x5A
-                                    let prevIsAlnum = prevIsLower || prevIsUpper || prevIsDigit
-                                    posBonus = (!prevIsAlnum && !prevIsWhitespace) ? bonusBoundaryVal : 0
-                                }
-                            }
-                        }
-                    }
-                }
-                bonusPtr[i] = posBonus
-                prevByte = byte
-            }
-            return candidateLength
-        } else {
-            // Slow path: multi-byte — lowercase + tiered bonus precomputation
-            var prevByte: UInt8 = 0
-            var idx = 0
-            var outIdx = 0
-            while idx < candidateLength {
-                let byte = candidateUTF8[idx]
-                // Skip combining diacritical marks (U+0300–U+036F)
-                if idx + 1 < candidateLength && isCombiningMark(lead: byte, second: candidateUTF8[idx + 1]) {
-                    idx += 2
-                } else if byte == 0xC3 && idx + 1 < candidateLength {
-                    let lowered = lowercaseLatinExtended(candidateUTF8[idx + 1])
-                    let ascii = latin1ToASCII(lowered)
-                    if ascii != 0 {
-                        // Latin-1 diacritic normalizes to ASCII — emit single byte
-                        bytesPtr[outIdx] = ascii
-                        bonusPtr[outIdx] = multiBytePositionBonus(
-                            outIdx: outIdx, prevByte: prevByte,
-                            bonusBoundaryVal: bonusBoundaryVal,
-                            bonusBoundaryWhitespaceVal: bonusBoundaryWhitespaceVal,
-                            bonusBoundaryDelimiterVal: bonusBoundaryDelimiterVal
-                        )
-                        prevByte = candidateUTF8[idx + 1]
-                        outIdx += 1
-                    } else {
-                        bytesPtr[outIdx] = byte
-                        bytesPtr[outIdx + 1] = lowered
-                        bonusPtr[outIdx] = multiBytePositionBonus(
-                            outIdx: outIdx, prevByte: prevByte,
-                            bonusBoundaryVal: bonusBoundaryVal,
-                            bonusBoundaryWhitespaceVal: bonusBoundaryWhitespaceVal,
-                            bonusBoundaryDelimiterVal: bonusBoundaryDelimiterVal
-                        )
-                        bonusPtr[outIdx + 1] = 0
-                        prevByte = candidateUTF8[idx + 1]
-                        outIdx += 2
-                    }
-                    idx += 2
-                } else if (byte == 0xCE || byte == 0xCF) && idx + 1 < candidateLength {
-                    let (newLead, newSecond) = lowercaseGreek(lead: byte, second: candidateUTF8[idx + 1])
-                    bytesPtr[outIdx] = newLead
-                    bytesPtr[outIdx + 1] = newSecond
-                    bonusPtr[outIdx] = multiBytePositionBonus(
-                        outIdx: outIdx, prevByte: prevByte,
-                        bonusBoundaryVal: bonusBoundaryVal,
-                        bonusBoundaryWhitespaceVal: bonusBoundaryWhitespaceVal,
-                        bonusBoundaryDelimiterVal: bonusBoundaryDelimiterVal
-                    )
-                    bonusPtr[outIdx + 1] = 0
-                    prevByte = candidateUTF8[idx + 1]
-                    outIdx += 2
-                    idx += 2
-                } else if (byte == 0xD0 || byte == 0xD1) && idx + 1 < candidateLength {
-                    let (newLead, newSecond) = lowercaseCyrillic(lead: byte, second: candidateUTF8[idx + 1])
-                    bytesPtr[outIdx] = newLead
-                    bytesPtr[outIdx + 1] = newSecond
-                    bonusPtr[outIdx] = multiBytePositionBonus(
-                        outIdx: outIdx, prevByte: prevByte,
-                        bonusBoundaryVal: bonusBoundaryVal,
-                        bonusBoundaryWhitespaceVal: bonusBoundaryWhitespaceVal,
-                        bonusBoundaryDelimiterVal: bonusBoundaryDelimiterVal
-                    )
-                    bonusPtr[outIdx + 1] = 0
-                    prevByte = candidateUTF8[idx + 1]
-                    outIdx += 2
-                    idx += 2
-                } else if (byte == 0xC2 || byte == 0xCA) && idx + 1 < candidateLength {
-                    let ascii = confusable2ByteToASCII(lead: byte, second: candidateUTF8[idx + 1])
-                    if ascii != 0 {
-                        // Confusable normalizes to ASCII — emit single byte
-                        bytesPtr[outIdx] = ascii
-                        let posBonus: Int32
-                        if outIdx == 0 {
-                            posBonus = bonusBoundaryWhitespaceVal
-                        } else if ascii == 0x20 {
-                            // NBSP normalizes to space — whitespace boundary
-                            posBonus = bonusBoundaryWhitespaceVal
-                        } else {
-                            // Apostrophe/quote/dash — non-word punctuation boundary
-                            posBonus = bonusBoundaryVal
-                        }
-                        bonusPtr[outIdx] = posBonus
-                        prevByte = ascii
-                        outIdx += 1
-                    } else {
-                        bytesPtr[outIdx] = byte
-                        bytesPtr[outIdx + 1] = candidateUTF8[idx + 1]
-                        bonusPtr[outIdx] = multiBytePositionBonus(
-                            outIdx: outIdx, prevByte: prevByte,
-                            bonusBoundaryVal: bonusBoundaryVal,
-                            bonusBoundaryWhitespaceVal: bonusBoundaryWhitespaceVal,
-                            bonusBoundaryDelimiterVal: bonusBoundaryDelimiterVal
-                        )
-                        bonusPtr[outIdx + 1] = 0
-                        prevByte = candidateUTF8[idx + 1]
-                        outIdx += 2
-                    }
-                    idx += 2
-                } else if byte == 0xE2 && idx + 2 < candidateLength {
-                    let ascii = confusable3ByteToASCII(second: candidateUTF8[idx + 1], third: candidateUTF8[idx + 2])
-                    if ascii != 0 {
-                        // Confusable normalizes to ASCII — emit single byte
-                        bytesPtr[outIdx] = ascii
-                        let posBonus: Int32
-                        if outIdx == 0 {
-                            posBonus = bonusBoundaryWhitespaceVal
-                        } else {
-                            // All 3-byte confusables are punctuation — non-word boundary
-                            posBonus = bonusBoundaryVal
-                        }
-                        bonusPtr[outIdx] = posBonus
-                        prevByte = ascii
-                        outIdx += 1
-                    } else {
-                        bytesPtr[outIdx] = byte
-                        bytesPtr[outIdx + 1] = candidateUTF8[idx + 1]
-                        bytesPtr[outIdx + 2] = candidateUTF8[idx + 2]
-                        bonusPtr[outIdx] = multiBytePositionBonus(
-                            outIdx: outIdx, prevByte: prevByte,
-                            bonusBoundaryVal: bonusBoundaryVal,
-                            bonusBoundaryWhitespaceVal: bonusBoundaryWhitespaceVal,
-                            bonusBoundaryDelimiterVal: bonusBoundaryDelimiterVal
-                        )
-                        bonusPtr[outIdx + 1] = 0
-                        bonusPtr[outIdx + 2] = 0
-                        prevByte = candidateUTF8[idx + 2]
-                        outIdx += 3
-                    }
-                    idx += 3
-                } else {
-                    bytesPtr[outIdx] = confusableASCIIToCanonical(lowercaseASCII(byte))
                     let posBonus: Int32
-                    if outIdx == 0 {
+                    if i == 0 {
                         posBonus = bonusBoundaryWhitespaceVal
                     } else {
                         let currIsUpper = byte >= 0x41 && byte <= 0x5A
@@ -272,50 +100,225 @@ extension FuzzyMatcher {
                         if currIsWhitespace {
                             posBonus = bonusBoundaryWhitespaceVal
                         } else if !(currIsUpper || currIsLower || currIsDigit) {
-                            posBonus = bonusBoundaryVal
+                            posBonus = bonusBoundaryVal // non-word char itself
                         } else {
                             let prevIsWhitespace = prevByte == 0x20 || prevByte == 0x09
                             if prevIsWhitespace {
                                 posBonus = bonusBoundaryWhitespaceVal
                             } else if prevByte == 0x2F || prevByte == 0x3A
-                                || prevByte == 0x3B || prevByte == 0x7C {
-                                posBonus = bonusBoundaryDelimiterVal
+                                || prevByte == 0x3B || prevByte == 0x7C
+                            {
+                                posBonus = bonusBoundaryDelimiterVal // after delimiter
                             } else {
                                 let prevIsLower = prevByte >= 0x61 && prevByte <= 0x7A
                                 if prevIsLower && currIsUpper {
-                                    posBonus = bonusCamelCaseVal
+                                    posBonus = bonusCamelCaseVal // camelCase
                                 } else {
                                     let prevIsDigit = prevByte >= 0x30 && prevByte <= 0x39
                                     if !prevIsDigit && currIsDigit {
-                                        posBonus = bonusCamelCaseVal
+                                        posBonus = bonusCamelCaseVal // non-digit → digit
                                     } else {
-                                        let prevIsAlnum = (prevByte >= 0x41 && prevByte <= 0x5A)
-                                            || (prevByte >= 0x61 && prevByte <= 0x7A)
-                                            || prevByte == 0xC3
-                                            || prevByte == 0xCE || prevByte == 0xCF
-                                            || prevByte == 0xD0 || prevByte == 0xD1
-                                            || (prevByte >= 0x80 && prevByte <= 0xBF)
-                                            || prevIsDigit
-                                        posBonus = (prevIsAlnum || prevIsWhitespace) ? 0 : bonusBoundaryVal
+                                        let prevIsUpper = prevByte >= 0x41 && prevByte <= 0x5A
+                                        let prevIsAlnum = prevIsLower || prevIsUpper || prevIsDigit
+                                        posBonus = (!prevIsAlnum && !prevIsWhitespace) ? bonusBoundaryVal : 0
                                     }
                                 }
                             }
                         }
                     }
-                    bonusPtr[outIdx] = posBonus
+                    bonusPtr[i] = posBonus
                     prevByte = byte
-                    outIdx += 1
-                    idx += 1
                 }
+                return candidateLength
+            } else {
+                // Slow path: multi-byte — lowercase + tiered bonus precomputation
+                var prevByte: UInt8 = 0
+                var idx = 0
+                var outIdx = 0
+                while idx < candidateLength {
+                    let byte = candidateUTF8[idx]
+                    // Skip combining diacritical marks (U+0300–U+036F)
+                    if idx + 1 < candidateLength && isCombiningMark(lead: byte, second: candidateUTF8[idx + 1]) {
+                        idx += 2
+                    } else if byte == 0xC3 && idx + 1 < candidateLength {
+                        let lowered = lowercaseLatinExtended(candidateUTF8[idx + 1])
+                        let ascii = latin1ToASCII(lowered)
+                        if ascii != 0 {
+                            // Latin-1 diacritic normalizes to ASCII — emit single byte
+                            bytesPtr[outIdx] = ascii
+                            bonusPtr[outIdx] = multiBytePositionBonus(
+                                outIdx: outIdx, prevByte: prevByte,
+                                bonusBoundaryVal: bonusBoundaryVal,
+                                bonusBoundaryWhitespaceVal: bonusBoundaryWhitespaceVal,
+                                bonusBoundaryDelimiterVal: bonusBoundaryDelimiterVal
+                            )
+                            prevByte = candidateUTF8[idx + 1]
+                            outIdx += 1
+                        } else {
+                            bytesPtr[outIdx] = byte
+                            bytesPtr[outIdx + 1] = lowered
+                            bonusPtr[outIdx] = multiBytePositionBonus(
+                                outIdx: outIdx, prevByte: prevByte,
+                                bonusBoundaryVal: bonusBoundaryVal,
+                                bonusBoundaryWhitespaceVal: bonusBoundaryWhitespaceVal,
+                                bonusBoundaryDelimiterVal: bonusBoundaryDelimiterVal
+                            )
+                            bonusPtr[outIdx + 1] = 0
+                            prevByte = candidateUTF8[idx + 1]
+                            outIdx += 2
+                        }
+                        idx += 2
+                    } else if (byte == 0xCE || byte == 0xCF) && idx + 1 < candidateLength {
+                        let (newLead, newSecond) = lowercaseGreek(lead: byte, second: candidateUTF8[idx + 1])
+                        bytesPtr[outIdx] = newLead
+                        bytesPtr[outIdx + 1] = newSecond
+                        bonusPtr[outIdx] = multiBytePositionBonus(
+                            outIdx: outIdx, prevByte: prevByte,
+                            bonusBoundaryVal: bonusBoundaryVal,
+                            bonusBoundaryWhitespaceVal: bonusBoundaryWhitespaceVal,
+                            bonusBoundaryDelimiterVal: bonusBoundaryDelimiterVal
+                        )
+                        bonusPtr[outIdx + 1] = 0
+                        prevByte = candidateUTF8[idx + 1]
+                        outIdx += 2
+                        idx += 2
+                    } else if (byte == 0xD0 || byte == 0xD1) && idx + 1 < candidateLength {
+                        let (newLead, newSecond) = lowercaseCyrillic(lead: byte, second: candidateUTF8[idx + 1])
+                        bytesPtr[outIdx] = newLead
+                        bytesPtr[outIdx + 1] = newSecond
+                        bonusPtr[outIdx] = multiBytePositionBonus(
+                            outIdx: outIdx, prevByte: prevByte,
+                            bonusBoundaryVal: bonusBoundaryVal,
+                            bonusBoundaryWhitespaceVal: bonusBoundaryWhitespaceVal,
+                            bonusBoundaryDelimiterVal: bonusBoundaryDelimiterVal
+                        )
+                        bonusPtr[outIdx + 1] = 0
+                        prevByte = candidateUTF8[idx + 1]
+                        outIdx += 2
+                        idx += 2
+                    } else if (byte == 0xC2 || byte == 0xCA) && idx + 1 < candidateLength {
+                        let ascii = confusable2ByteToASCII(lead: byte, second: candidateUTF8[idx + 1])
+                        if ascii != 0 {
+                            // Confusable normalizes to ASCII — emit single byte
+                            bytesPtr[outIdx] = ascii
+                            let posBonus: Int32
+                            if outIdx == 0 {
+                                posBonus = bonusBoundaryWhitespaceVal
+                            } else if ascii == 0x20 {
+                                // NBSP normalizes to space — whitespace boundary
+                                posBonus = bonusBoundaryWhitespaceVal
+                            } else {
+                                // Apostrophe/quote/dash — non-word punctuation boundary
+                                posBonus = bonusBoundaryVal
+                            }
+                            bonusPtr[outIdx] = posBonus
+                            prevByte = ascii
+                            outIdx += 1
+                        } else {
+                            bytesPtr[outIdx] = byte
+                            bytesPtr[outIdx + 1] = candidateUTF8[idx + 1]
+                            bonusPtr[outIdx] = multiBytePositionBonus(
+                                outIdx: outIdx, prevByte: prevByte,
+                                bonusBoundaryVal: bonusBoundaryVal,
+                                bonusBoundaryWhitespaceVal: bonusBoundaryWhitespaceVal,
+                                bonusBoundaryDelimiterVal: bonusBoundaryDelimiterVal
+                            )
+                            bonusPtr[outIdx + 1] = 0
+                            prevByte = candidateUTF8[idx + 1]
+                            outIdx += 2
+                        }
+                        idx += 2
+                    } else if byte == 0xE2 && idx + 2 < candidateLength {
+                        let ascii = confusable3ByteToASCII(second: candidateUTF8[idx + 1], third: candidateUTF8[idx + 2])
+                        if ascii != 0 {
+                            // Confusable normalizes to ASCII — emit single byte
+                            bytesPtr[outIdx] = ascii
+                            let posBonus: Int32
+                            if outIdx == 0 {
+                                posBonus = bonusBoundaryWhitespaceVal
+                            } else {
+                                // All 3-byte confusables are punctuation — non-word boundary
+                                posBonus = bonusBoundaryVal
+                            }
+                            bonusPtr[outIdx] = posBonus
+                            prevByte = ascii
+                            outIdx += 1
+                        } else {
+                            bytesPtr[outIdx] = byte
+                            bytesPtr[outIdx + 1] = candidateUTF8[idx + 1]
+                            bytesPtr[outIdx + 2] = candidateUTF8[idx + 2]
+                            bonusPtr[outIdx] = multiBytePositionBonus(
+                                outIdx: outIdx, prevByte: prevByte,
+                                bonusBoundaryVal: bonusBoundaryVal,
+                                bonusBoundaryWhitespaceVal: bonusBoundaryWhitespaceVal,
+                                bonusBoundaryDelimiterVal: bonusBoundaryDelimiterVal
+                            )
+                            bonusPtr[outIdx + 1] = 0
+                            bonusPtr[outIdx + 2] = 0
+                            prevByte = candidateUTF8[idx + 2]
+                            outIdx += 3
+                        }
+                        idx += 3
+                    } else {
+                        bytesPtr[outIdx] = confusableASCIIToCanonical(lowercaseASCII(byte))
+                        let posBonus: Int32
+                        if outIdx == 0 {
+                            posBonus = bonusBoundaryWhitespaceVal
+                        } else {
+                            let currIsUpper = byte >= 0x41 && byte <= 0x5A
+                            let currIsLower = byte >= 0x61 && byte <= 0x7A
+                            let currIsDigit = byte >= 0x30 && byte <= 0x39
+                            let currIsWhitespace = byte == 0x20 || byte == 0x09
+
+                            if currIsWhitespace {
+                                posBonus = bonusBoundaryWhitespaceVal
+                            } else if !(currIsUpper || currIsLower || currIsDigit) {
+                                posBonus = bonusBoundaryVal
+                            } else {
+                                let prevIsWhitespace = prevByte == 0x20 || prevByte == 0x09
+                                if prevIsWhitespace {
+                                    posBonus = bonusBoundaryWhitespaceVal
+                                } else if prevByte == 0x2F || prevByte == 0x3A
+                                    || prevByte == 0x3B || prevByte == 0x7C
+                                {
+                                    posBonus = bonusBoundaryDelimiterVal
+                                } else {
+                                    let prevIsLower = prevByte >= 0x61 && prevByte <= 0x7A
+                                    if prevIsLower && currIsUpper {
+                                        posBonus = bonusCamelCaseVal
+                                    } else {
+                                        let prevIsDigit = prevByte >= 0x30 && prevByte <= 0x39
+                                        if !prevIsDigit && currIsDigit {
+                                            posBonus = bonusCamelCaseVal
+                                        } else {
+                                            let prevIsAlnum =
+                                                (prevByte >= 0x41 && prevByte <= 0x5A)
+                                                || (prevByte >= 0x61 && prevByte <= 0x7A)
+                                                || prevByte == 0xC3
+                                                || prevByte == 0xCE || prevByte == 0xCF
+                                                || prevByte == 0xD0 || prevByte == 0xD1
+                                                || (prevByte >= 0x80 && prevByte <= 0xBF)
+                                                || prevIsDigit
+                                            posBonus = (prevIsAlnum || prevIsWhitespace) ? 0 : bonusBoundaryVal
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        bonusPtr[outIdx] = posBonus
+                        prevByte = byte
+                        outIdx += 1
+                        idx += 1
+                    }
+                }
+                return outIdx
             }
-            return outIdx
-        }
         }
 
         // Exact match early exit (before atom split so multi-word self-matches return .exact)
         if actualCandidateLength == queryLength {
             var isExact = true
-            for i in 0..<queryLength {
+            for i in 0 ..< queryLength {
                 if candidateStorage.bytes[i] != query.lowercased[i] {
                     isExact = false
                     break
@@ -333,7 +336,7 @@ extension FuzzyMatcher {
                     var totalRawScore: Int32 = 0
                     for atom in query.atoms {
                         let atomQuery = UnsafeBufferPointer(
-                            rebasing: querySpan[atom.start..<(atom.start + atom.length)]
+                            rebasing: querySpan[atom.start ..< (atom.start + atom.length)]
                         )
                         let atomScore = smithWatermanScore(
                             query: atomQuery,
@@ -386,7 +389,7 @@ extension FuzzyMatcher {
                     let boundaryMask = computeBoundaryMaskCompressed(originalBytes: candidateUTF8, isASCII: candidateIsASCII)
                     var wordCount = boundaryMask.nonzeroBitCount
                     if actualCandidateLength > 64 {
-                        for i in 64..<actualCandidateLength {
+                        for i in 64 ..< actualCandidateLength {
                             if isWordBoundary(at: i, in: candidateSpan) {
                                 wordCount += 1
                             }

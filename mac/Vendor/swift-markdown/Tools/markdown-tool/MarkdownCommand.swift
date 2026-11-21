@@ -14,11 +14,13 @@ import Markdown
 
 @main
 struct MarkdownCommand: ParsableCommand {
-    static let configuration = CommandConfiguration(commandName: "markdown", shouldDisplay: false, subcommands: [
-        DumpTree.self,
-        Format.self,
-        PrintHTML.self,
-    ])
+    static let configuration = CommandConfiguration(
+        commandName: "markdown", shouldDisplay: false,
+        subcommands: [
+            DumpTree.self,
+            Format.self,
+            PrintHTML.self,
+        ])
 
     static func parseFile(at path: String, options: ParseOptions) throws -> (source: String, parsed: Document) {
         let data = try Data(contentsOf: URL(fileURLWithPath: path))

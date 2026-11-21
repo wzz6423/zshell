@@ -21,7 +21,7 @@ public struct ParseOptions: OptionSet, Sendable {
 
     /// Enable interpretation of symbol links from inline code spans surrounded by two backticks.
     public static let parseSymbolLinks = ParseOptions(rawValue: 1 << 1)
-    
+
     /// Disable converting straight quotes to curly, --- to em dashes, -- to en dashes during parsing.
     public static let disableSmartOpts = ParseOptions(rawValue: 1 << 2)
 
@@ -31,4 +31,3 @@ public struct ParseOptions: OptionSet, Sendable {
     /// Disable including a `data-sourcepos` attribute on all block elements during parsing.
     public static let disableSourcePosOpts = ParseOptions(rawValue: 1 << 4)
 }
-

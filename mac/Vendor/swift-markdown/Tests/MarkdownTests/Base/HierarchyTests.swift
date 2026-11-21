@@ -15,7 +15,8 @@ final class HierarchyTests: XCTestCase {
     /// Tests that the actual root element is returned
     func testRoot() {
         let document = Document(parsing: "*OK*")
-        let leaf = document
+        let leaf =
+            document
             .child(at: 0)!
             .child(at: 0)!
             .child(at: 0) as! Text
@@ -39,10 +40,10 @@ final class HierarchyTests: XCTestCase {
         XCTAssertFalse(newLeaf.parent!.parent!.isIdentical(to: leaf.parent!.parent!))
 
         let expectedDump = """
-        Paragraph
-        └─ Strong
-           └─ Text "Turned over!"
-        """
+            Paragraph
+            └─ Strong
+               └─ Text "Turned over!"
+            """
         XCTAssertEqual(expectedDump, newLeaf.root.debugDescription())
     }
 
@@ -52,16 +53,16 @@ final class HierarchyTests: XCTestCase {
         let leaf = paragraph.child(at: 0)!.child(at: 0) as! Text
 
         var newParagraph = paragraph
-        newParagraph.replaceChildrenInRange(middle.indexInParent..<middle.indexInParent + 1, with: CollectionOfOne(Emphasis(leaf)))
+        newParagraph.replaceChildrenInRange(middle.indexInParent ..< middle.indexInParent + 1, with: CollectionOfOne(Emphasis(leaf)))
 
         XCTAssertFalse(newParagraph.isIdentical(to: paragraph))
         XCTAssertFalse(leaf.isIdentical(to: newParagraph.child(at: 0)!.child(at: 0)!))
 
         let expectedDump = """
-        Paragraph
-        └─ Emphasis
-           └─ Text "Turned over!"
-        """
+            Paragraph
+            └─ Emphasis
+               └─ Text "Turned over!"
+            """
         XCTAssertEqual(expectedDump, newParagraph.root.debugDescription())
     }
 }

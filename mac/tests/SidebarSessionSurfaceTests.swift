@@ -47,7 +47,8 @@ extension NSApplication {
     func finish() throws {
         timer?.invalidate(); timer = nil
         guard failure == nil, responses.isEmpty else {
-            throw NSError(domain: "pane close responses", code: 4,
+            throw NSError(
+                domain: "pane close responses", code: 4,
                 userInfo: [NSLocalizedDescriptionKey: failure ?? "Missing close prompt"])
         }
     }
@@ -67,10 +68,10 @@ extension NSApplication {
         let replacement = class_getInstanceMethod(NSApplication.self, NSSelectorFromString("sidebarProbe_activate"))!
         method_exchangeImplementations(original, replacement)
         let launched = NotificationCenter.default.addObserver(
-            forName: NSApplication.didFinishLaunchingNotification, object: app, queue: .main) { _ in
+            forName: NSApplication.didFinishLaunchingNotification, object: app, queue: .main
+        ) { _ in
             Task { @MainActor in
-                do { try await run(); exit(0) }
-                catch { fputs("Pane-close production probe failed: \(error)\n", stderr); exit(1) }
+                do { try await run(); exit(0) } catch { fputs("Pane-close production probe failed: \(error)\n", stderr); exit(1) }
             }
         }
         app.run()
@@ -92,9 +93,11 @@ extension NSApplication {
         let root = FileManager.default.homeDirectoryForCurrentUser
         let repository = root.appendingPathComponent("repository")
         try FileManager.default.createDirectory(at: repository, withIntermediateDirectories: true)
-        for args in [["init", "-q", "-b", "pane-fixture"], ["config", "user.name", "Pane Fixture"],
-                     ["config", "user.email", "fixture@example.invalid"], ["config", "commit.gpgsign", "false"],
-                     ["config", "core.hooksPath", "/dev/null"], ["commit", "--allow-empty", "-qm", "base"]] {
+        for args in [
+            ["init", "-q", "-b", "pane-fixture"], ["config", "user.name", "Pane Fixture"],
+            ["config", "user.email", "fixture@example.invalid"], ["config", "commit.gpgsign", "false"],
+            ["config", "core.hooksPath", "/dev/null"], ["commit", "--allow-empty", "-qm", "base"],
+        ] {
             let process = Process(); process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
             process.arguments = args; process.currentDirectoryURL = repository
             try process.run(); process.waitUntilExit()
@@ -106,7 +109,8 @@ extension NSApplication {
         project.customName = "Pane fixture"
         project.customDirectory = repository.path
         project.sessions.forEach { project.closeContent(.session($0)) }
-        let window = NSWindow(contentRect: NSRect(x: -100000, y: -100000, width: 1250, height: 760),
+        let window = NSWindow(
+            contentRect: NSRect(x: -100000, y: -100000, width: 1250, height: 760),
             styleMask: [.titled], backing: .buffered, defer: false)
         window.identifier = NSUserInterfaceItemIdentifier("main-pane-close-fixture")
         window.isReleasedWhenClosed = false
@@ -133,7 +137,7 @@ extension NSApplication {
             checks += 1; print("PASS \(backend): \(label)")
         }
         func wait(_ label: String, _ condition: () -> Bool) async throws {
-            for _ in 0..<600 {
+            for _ in 0 ..< 600 {
                 if condition() { return }
                 try await Task.sleep(for: .milliseconds(10))
             }
@@ -146,17 +150,22 @@ extension NSApplication {
             host.layoutSubtreeIfNeeded()
         }
         func session() async throws -> TerminalSession {
-            guard let session = project.newSession(directory: repository.path,
-                commandArguments: ["/bin/sleep", "240"], usesConfiguredStartupCommand: false,
-                usesConfiguredInitializationCommand: false) else { throw NSError(domain: "session", code: 1) }
+            guard
+                let session = project.newSession(
+                    directory: repository.path,
+                    commandArguments: ["/bin/sleep", "240"], usesConfiguredStartupCommand: false,
+                    usesConfiguredInitializationCommand: false)
+            else { throw NSError(domain: "session", code: 1) }
             allSessions.append(session)
             try await wait("real PTY starts") { session.shellPid.map { Darwin.kill($0, 0) == 0 } == true }
             return session
         }
         func header(_ title: String) throws -> PaneHeaderNSView {
-            guard let header = descendants(host, as: PaneHeaderNSView.self).first(where: {
-                descendants($0, as: NSTextField.self).contains { $0.stringValue == title }
-            }) else { throw NSError(domain: "pane header \(title)", code: 1) }
+            guard
+                let header = descendants(host, as: PaneHeaderNSView.self).first(where: {
+                    descendants($0, as: NSTextField.self).contains { $0.stringValue == title }
+                })
+            else { throw NSError(domain: "pane header \(title)", code: 1) }
             return header
         }
         let first = try await session()
@@ -168,8 +177,9 @@ extension NSApplication {
         try await wait("second PTY starts") { second.shellPid.map { Darwin.kill($0, 0) == 0 } == true }
         second.title = "SECOND"
         try await layout()
-        try check(backend == "ghostty" ? first.surface is ZshellTerminalView : first.surface is AlacrittyTerminalView,
-                  "fixture uses requested production terminal backend")
+        try check(
+            backend == "ghostty" ? first.surface is ZshellTerminalView : first.surface is AlacrittyTerminalView,
+            "fixture uses requested production terminal backend")
         let firstID = ObjectIdentifier(first.surface), secondID = ObjectIdentifier(second.surface)
         let firstPaneID = tab.paneID(forContent: first.id)!
         let secondPaneID = tab.paneID(forContent: second.id)!
@@ -186,26 +196,32 @@ extension NSApplication {
             let label = descendants(nativeHeader, as: NSTextField.self).first { $0.stringValue == title }!
             let drawing = label.cell!.drawingRect(forBounds: label.bounds)
             let textWidth = (title as NSString).size(withAttributes: [.font: label.font!]).width
-            try check(label.frame.width > 100 && drawing.width >= textWidth + 2,
-                      "short \(title) header receives available space without truncation")
+            try check(
+                label.frame.width > 100 && drawing.width >= textWidth + 2,
+                "short \(title) header receives available space without truncation")
         }
-        try check(firstHeader.closeButton.frame.size == NSSize(width: 24, height: 24)
-            && !firstHeader.closeButton.isHidden, "unfocused pane exposes a permanent 24-point native close button")
-        try check(firstHeader.closeButton.accessibilityLabel() == AppCommand.closePane.title,
-                  "native close button keeps localized Close Pane accessibility label")
+        try check(
+            firstHeader.closeButton.frame.size == NSSize(width: 24, height: 24)
+                && !firstHeader.closeButton.isHidden, "unfocused pane exposes a permanent 24-point native close button")
+        try check(
+            firstHeader.closeButton.accessibilityLabel() == AppCommand.closePane.title,
+            "native close button keeps localized Close Pane accessibility label")
         for width: CGFloat in [360, 160, 80, 32, 360] {
             firstHeader.frame.size.width = width; firstHeader.layoutSubtreeIfNeeded()
-            try check(!firstHeader.closeButton.isHidden && firstHeader.closeButton.frame.maxX <= width
-                && firstHeader.closeButton.frame.size == NSSize(width: 24, height: 24),
+            try check(
+                !firstHeader.closeButton.isHidden && firstHeader.closeButton.frame.maxX <= width
+                    && firstHeader.closeButton.frame.size == NSSize(width: 24, height: 24),
                 "close stays reachable at pane width \(width)")
         }
         try await layout()
-        try check(ObjectIdentifier(first.surface) == firstID && ObjectIdentifier(second.surface) == secondID,
-                  "header refresh and focus changes preserve terminal surfaces")
+        try check(
+            ObjectIdentifier(first.surface) == firstID && ObjectIdentifier(second.surface) == secondID,
+            "header refresh and focus changes preserve terminal surfaces")
         try header("FIRST").closeButton.performClick(nil)
         try await wait("unfocused pane closes") { !project.sessions.contains { $0.id == first.id } }
-        try check(tab.focusedContent?.id == second.id && !second.hasExited
-            && second.shellPid.map { Darwin.kill($0, 0) == 0 } == true,
+        try check(
+            tab.focusedContent?.id == second.id && !second.hasExited
+                && second.shellPid.map { Darwin.kill($0, 0) == 0 } == true,
             "closing unfocused pane leaves focused sibling and its job alive")
         project.splitRight()
         let third = project.selectedSession!; allSessions.append(third); third.title = "THIRD"
@@ -215,22 +231,26 @@ extension NSApplication {
         try check(descendants(host, as: PaneHeaderNSView.self).count == 1, "zoom mounts only its pane header")
         try header("THIRD").closeButton.performClick(nil)
         try await wait("zoomed pane closes") { !project.sessions.contains { $0.id == third.id } }
-        try check(tab.allPanes.count == 1 && tab.focusedContent?.id == second.id && !tab.isZoomed && !second.hasExited,
-                  "zoom close restores surviving pane without ending its shell")
+        try check(
+            tab.allPanes.count == 1 && tab.focusedContent?.id == second.id && !tab.isZoomed && !second.hasExited,
+            "zoom close restores surviving pane without ending its shell")
         project.closeFocusedPane()
         try await wait("last terminal closes") { project.tabs.isEmpty }
-        try check(manager.projects.contains { $0 === project } && project.selectedTabID == nil,
-                  "closing last terminal keeps its empty project")
+        try check(
+            manager.projects.contains { $0 === project } && project.selectedTabID == nil,
+            "closing last terminal keeps its empty project")
         try await layout()
         let sidebar = descendants(host, as: ProjectSidebarNSView.self).first!
         let scroll = descendants(sidebar, as: NSScrollView.self).first!
         let document = scroll.documentView!
         sidebar.refresh(); sidebar.layoutSubtreeIfNeeded()
         let rows = descendants(sidebar, as: WorkspaceItemView.self)
-        try check(rows.count == 1 && rows[0].titleLabel.stringValue == "Pane fixture",
-                  "sidebar renders only the main-based project list")
+        try check(
+            rows.count == 1 && rows[0].titleLabel.stringValue == "Pane fixture",
+            "sidebar renders only the main-based project list")
         func mouse(_ point: NSPoint, _ count: Int) -> NSEvent {
-            NSEvent.mouseEvent(with: .leftMouseDown, location: document.convert(point, to: nil),
+            NSEvent.mouseEvent(
+                with: .leftMouseDown, location: document.convert(point, to: nil),
                 modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber,
                 context: nil, eventNumber: 1, clickCount: count, pressure: 1)!
         }
@@ -250,8 +270,11 @@ extension NSApplication {
         guard let menus = rows[0].menuItems?(), case .submenu(_, _, let entries) = menus.last! else {
             throw NSError(domain: "sidebar menu", code: 1)
         }
-        try check(entries.contains { if case .action(let title, _, _) = $0 { return title == AppCommand.newSession.title }; return false },
-                  "project context menu provides a non-status-bar new-session entry")
+        try check(
+            entries.contains {
+                if case .action(let title, _, _) = $0 { return title == AppCommand.newSession.title }; return false
+            },
+            "project context menu provides a non-status-bar new-session entry")
         project.closeAll(); try await layout()
         let survivor = try await session(); survivor.title = "SURVIVOR"
         let survivorTab = project.selectedTab!
@@ -259,7 +282,9 @@ extension NSApplication {
             let url = repository.appendingPathComponent(name)
             try "before".write(to: url, atomically: true, encoding: .utf8)
             let file = FileTab(path: url.path)
-            try await wait("file load") { if case .text = file.content { return true }; return false }
+            try await wait("file load") {
+                if case .text = file.content { return true }; return false
+            }
             file.text = "file draft"; file.refreshDirtyState()
             return file
         }
@@ -271,16 +296,18 @@ extension NSApplication {
         try header(file.name).closeButton.performClick(nil)
         try await wait("file cancel completes") { fileResponder.prompts == 1 && !UnsavedChangesConfirmation.isPending }
         try fileResponder.finish()
-        try check(file.isDirty && file.text == "file draft" && survivorTab.allPanes.count == 2
-            && survivorTab.focusedContent?.id == survivor.id && !survivor.hasExited,
+        try check(
+            file.isDirty && file.text == "file draft" && survivorTab.allPanes.count == 2
+                && survivorTab.focusedContent?.id == survivor.id && !survivor.hasExited,
             "canceling unfocused dirty file close retains draft, focus, pane and running task")
         try "external file".write(to: URL(fileURLWithPath: file.path), atomically: true, encoding: .utf8)
         let fileConflict = PaneCloseAlertResponder([.alertFirstButtonReturn, .alertFirstButtonReturn]); responders.append(fileConflict)
         try header(file.name).closeButton.performClick(nil)
         try await wait("file conflict cancels") { fileConflict.prompts == 2 && !UnsavedChangesConfirmation.isPending }
         try fileConflict.finish()
-        try check(file.isDirty && file.text == "file draft" && survivorTab.paneID(forContent: file.id) != nil
-            && (try String(contentsOfFile: file.path, encoding: .utf8)) == "external file",
+        try check(
+            file.isDirty && file.text == "file draft" && survivorTab.paneID(forContent: file.id) != nil
+                && (try String(contentsOfFile: file.path, encoding: .utf8)) == "external file",
             "Save then Keep Draft preserves dirty file pane and external disk text")
         let fileDiscard = PaneCloseAlertResponder([.alertSecondButtonReturn]); responders.append(fileDiscard)
         try header(file.name).closeButton.performClick(nil)
@@ -299,28 +326,32 @@ extension NSApplication {
         try header(diff.title).closeButton.performClick(nil)
         try await wait("Diff cancel completes") { diffCancel.prompts == 1 && !UnsavedChangesConfirmation.isPending }
         try diffCancel.finish()
-        try check(diff.unsavedText == "diff draft" && diff.isDirty && survivorTab.isZoomed
-            && survivorTab.paneID(forContent: diff.id) != nil && !survivor.hasExited,
+        try check(
+            diff.unsavedText == "diff draft" && diff.isDirty && survivorTab.isZoomed
+                && survivorTab.paneID(forContent: diff.id) != nil && !survivor.hasExited,
             "canceling zoomed editable Diff keeps draft, zoom and terminal task")
         try "external diff".write(to: diffURL, atomically: true, encoding: .utf8)
         let diffConflict = PaneCloseAlertResponder([.alertFirstButtonReturn, .alertFirstButtonReturn]); responders.append(diffConflict)
         try header(diff.title).closeButton.performClick(nil)
         try await wait("Diff conflict cancels") { diffConflict.prompts == 2 && !UnsavedChangesConfirmation.isPending }
         try diffConflict.finish()
-        try check(diff.isDirty && diff.unsavedText == "diff draft" && survivorTab.isZoomed
-            && (try String(contentsOf: diffURL, encoding: .utf8)) == "external diff",
+        try check(
+            diff.isDirty && diff.unsavedText == "diff draft" && survivorTab.isZoomed
+                && (try String(contentsOf: diffURL, encoding: .utf8)) == "external diff",
             "Save then Keep Draft preserves zoomed Diff and external disk text")
         let diffDiscard = PaneCloseAlertResponder([.alertSecondButtonReturn]); responders.append(diffDiscard)
         try header(diff.title).closeButton.performClick(nil)
         try await wait("Diff discard closes") { survivorTab.paneID(forContent: diff.id) == nil }
         try diffDiscard.finish()
-        try check(!survivor.hasExited && survivorTab.allPanes.count == 1 && !survivorTab.isZoomed,
-                  "closing Diff leaves original terminal alive and clears zoom")
+        try check(
+            !survivor.hasExited && survivorTab.allPanes.count == 1 && !survivorTab.isZoomed,
+            "closing Diff leaves original terminal alive and clears zoom")
         project.closeAll()
         for kind in ["file", "diff"] {
             let content: PaneContent
-            if kind == "file" { content = .file(try await loadedFile("last.txt")) }
-            else {
+            if kind == "file" {
+                content = .file(try await loadedFile("last.txt"))
+            } else {
                 try "before".write(to: repository.appendingPathComponent("last-diff.txt"), atomically: true, encoding: .utf8)
                 let lastDiff = DiffTab(repoRoot: repository.path, path: "last-diff.txt", staged: false, untracked: true, origPath: nil)
                 try await wait("last Diff loads") { !lastDiff.isLoading }
@@ -334,8 +365,9 @@ extension NSApplication {
             project.closeFocusedPane()
             try await wait("last \(kind) cancels") { cancel.prompts == 1 && !UnsavedChangesConfirmation.isPending }
             try cancel.finish()
-            try check(project.tabs.count == 1 && content.unsavedText == draft && content.isDirty,
-                      "canceling last \(kind) close retains tab and draft")
+            try check(
+                project.tabs.count == 1 && content.unsavedText == draft && content.isDirty,
+                "canceling last \(kind) close retains tab and draft")
             let save = PaneCloseAlertResponder([.alertFirstButtonReturn]); responders.append(save)
             project.closeFocusedPane()
             try await wait("last \(kind) saves and closes") { project.tabs.isEmpty }
@@ -349,27 +381,32 @@ extension NSApplication {
         guard git.terminationStatus == 0 else { throw NSError(domain: "worktree", code: 1) }
         let association = try await SessionWorktreeService().association(at: worktreeURL.path, sourceDirectory: repository.path)
         let baseSession = try await session(); baseSession.title = "BASE"
-        let worktreeSession = project.newSession(directory: worktreeURL.path, commandArguments: ["/bin/sleep", "240"],
+        let worktreeSession = project.newSession(
+            directory: worktreeURL.path, commandArguments: ["/bin/sleep", "240"],
             worktree: association, usesConfiguredStartupCommand: false, usesConfiguredInitializationCommand: false)!
         allSessions.append(worktreeSession); worktreeSession.title = "WORKTREE"
         let worktreeTab = project.selectedTab!
         project.splitRight()
         let worktreeSibling = project.selectedSession!; allSessions.append(worktreeSibling); worktreeSibling.title = "NEIGHBOR"
-        try await wait("worktree PTYs start") { [worktreeSession, worktreeSibling].allSatisfy { $0.shellPid.map { Darwin.kill($0, 0) == 0 } == true } }
+        try await wait("worktree PTYs start") {
+            [worktreeSession, worktreeSibling].allSatisfy { $0.shellPid.map { Darwin.kill($0, 0) == 0 } == true }
+        }
         try await layout()
         let cancelWorktree = PaneCloseAlertResponder([.alertThirdButtonReturn]); responders.append(cancelWorktree)
         try header("WORKTREE").closeButton.performClick(nil)
         try await wait("worktree cancel completes") { cancelWorktree.prompts == 1 && window.attachedSheet == nil }
         try await Task.sleep(for: .milliseconds(100)); try cancelWorktree.finish()
-        try check(worktreeTab.paneID(forContent: worktreeSession.id) != nil && !worktreeSession.hasExited
-            && !worktreeSibling.hasExited && FileManager.default.fileExists(atPath: worktreeURL.path),
+        try check(
+            worktreeTab.paneID(forContent: worktreeSession.id) != nil && !worktreeSession.hasExited
+                && !worktreeSibling.hasExited && FileManager.default.fileExists(atPath: worktreeURL.path),
             "worktree Cancel preserves selected session, neighboring task and checkout")
         let keepWorktree = PaneCloseAlertResponder([.alertFirstButtonReturn]); responders.append(keepWorktree)
         try header("WORKTREE").closeButton.performClick(nil)
         try await wait("worktree keep closes session") { worktreeTab.paneID(forContent: worktreeSession.id) == nil }
         try keepWorktree.finish()
-        try check(FileManager.default.fileExists(atPath: worktreeURL.path) && !worktreeSibling.hasExited,
-                  "Keep Worktree closes only target pane and preserves checkout")
+        try check(
+            FileManager.default.fileExists(atPath: worktreeURL.path) && !worktreeSibling.hasExited,
+            "Keep Worktree closes only target pane and preserves checkout")
         manager.projects.forEach { $0.terminateAll() }
         for session in allSessions { _ = await session.waitUntilTerminated() }
         try check(QuickTerminalOffscreen.isSafe(), "production probes stayed offscreen and never activated")

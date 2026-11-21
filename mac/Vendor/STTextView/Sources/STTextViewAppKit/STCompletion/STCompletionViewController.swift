@@ -97,14 +97,14 @@ open class STCompletionViewController: NSViewController, STCompletionViewControl
                 for c in characters {
                     switch c {
                     case "\u{001B}", // esc
-                         "\u{0009}", // NSTabCharacter
-                         "\u{000A}", // NSNewlineCharacter
-                         "\u{000D}", // NSCarriageReturnCharacter
-                         "\u{0003}": // NSEnterCharacter
+                        "\u{0009}", // NSTabCharacter
+                        "\u{000A}", // NSNewlineCharacter
+                        "\u{000D}", // NSCarriageReturnCharacter
+                        "\u{0003}": // NSEnterCharacter
                         self.interpretKeyEvents([event])
                         return nil
                     case "\u{F701}", // NSDownArrowFunctionKey
-                         "\u{F700}": // NSUpArrowFunctionKey
+                        "\u{F700}": // NSUpArrowFunctionKey
                         self.tableView.keyDown(with: event)
                         return nil
                     default:

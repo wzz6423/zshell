@@ -15,7 +15,8 @@ enum TerminalCommandTaskWait {
                 timeout: max(0.1, min(5, remaining))
             )
             guard let task = snapshot.objectValue?["task"]?.objectValue,
-                  let state = task["state"]?.stringValue else {
+                let state = task["state"]?.stringValue
+            else {
                 throw CLIError.message(String(localized: "Zshell returned an invalid command task response."))
             }
             result["task_id"] = .string(taskID)
@@ -36,12 +37,14 @@ enum TerminalCommandTaskWait {
 
     static func exitCode(for result: ZshellJSONValue) -> Int32 {
         guard let object = result.objectValue,
-              object["waited"]?.boolValue == true else { return 0 }
+            object["waited"]?.boolValue == true
+        else { return 0 }
         if object["timed_out"]?.boolValue == true { return 124 }
         guard let task = object["task"]?.objectValue,
-              task["state"]?.stringValue == "completed",
-              let exitCode = task["exit_code"]?.intValue,
-              (0...255).contains(exitCode) else { return 1 }
+            task["state"]?.stringValue == "completed",
+            let exitCode = task["exit_code"]?.intValue,
+            (0 ... 255).contains(exitCode)
+        else { return 1 }
         return Int32(exitCode)
     }
 }

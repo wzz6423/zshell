@@ -34,7 +34,8 @@ extension TerminalManager {
         guard record.identity.remoteHostID == nil else { throw AgentConversationHistoryError.differentProject }
         if let live = Self.openConversation(record) {
             if let requestedProject,
-               live.manager !== self || live.project !== requestedProject {
+                live.manager !== self || live.project !== requestedProject
+            {
                 throw AgentConversationHistoryError.differentProject
             }
             try store.setArchived(false, id: id)
@@ -52,9 +53,11 @@ extension TerminalManager {
         // A reconnected terminal can predate the current provider hook. Keep
         // that live PTY without asserting that its saved conversation is current.
         if let existing, !existing.session.hasExited, existing.session.reconnectedToPersistentPTY,
-           existing.session.agentResume?.matchesConversation(record.identity) == true {
+            existing.session.agentResume?.matchesConversation(record.identity) == true
+        {
             if let requestedProject,
-               existing.manager !== self || existing.project !== requestedProject {
+                existing.manager !== self || existing.project !== requestedProject
+            {
                 throw AgentConversationHistoryError.differentProject
             }
             if record.isArchived { try store.setArchived(false, id: id) }
@@ -62,13 +65,15 @@ extension TerminalManager {
             return (existing, "revealed_terminal")
         }
         guard AppSettings.shared.aiEnabled else { throw AgentConversationHistoryError.disabled }
-        let reconnectID = existing == nil || existing?.session.hasExited == true
+        let reconnectID =
+            existing == nil || existing?.session.hasExited == true
             ? record.terminalID : nil
         let livePTY = reconnectID.flatMap { PersistentPTY.reconnect(id: $0) }
         if livePTY == nil { try Self.validateConversationResume(record.identity) }
         if record.isArchived { try store.setArchived(false, id: id) }
 
-        let project = requestedProject
+        let project =
+            requestedProject
             ?? projects.first(where: { !$0.isRemote && $0.conversationHistoryProjectID == record.projectID })
             ?? makeConversationHistoryProject(record, focus: focus)
         guard !project.isRemote else { throw AgentConversationHistoryError.differentProject }
@@ -82,8 +87,10 @@ extension TerminalManager {
             record, focus: focus, restoredTerminalID: livePTY == nil ? nil : reconnectID
         )
         if focus { Self.revealSession(id: session.id) }
-        return (.init(manager: self, project: project, session: session),
-                session.reconnectedToPersistentPTY ? "reconnected" : "resume_started")
+        return (
+            .init(manager: self, project: project, session: session),
+            session.reconnectedToPersistentPTY ? "reconnected" : "resume_started"
+        )
     }
 
     static func validateConversationResume(_ identity: AgentConversationIdentity) throws {
@@ -115,7 +122,8 @@ extension TerminalManager {
         }
         try Self.validateConversationResume(record.identity)
         guard record.identity.forkLaunch() != nil else { throw AgentConversationHistoryError.unavailableSessionFile }
-        let existingProject = requestedProject
+        let existingProject =
+            requestedProject
             ?? projects.first(where: { !$0.isRemote && $0.conversationHistoryProjectID == record.projectID })
         try await Self.validateConversationFork(record.identity, launchSettings: existingProject?.launchSettings ?? .init())
         try Task.checkCancellation()
@@ -123,7 +131,8 @@ extension TerminalManager {
         try Self.validateConversationResume(record.identity)
         let project = existingProject ?? makeConversationHistoryProject(record, focus: focus)
         guard !project.isRemote, projects.contains(where: { $0 === project }),
-              !TerminalManager.isRemovingWorktree(containing: record.identity.workingDirectory) else {
+            !TerminalManager.isRemovingWorktree(containing: record.identity.workingDirectory)
+        else {
             throw AgentConversationHistoryError.differentProject
         }
         let session = project.forkConversation(record, focus: focus)
@@ -138,9 +147,10 @@ extension TerminalManager {
     ) async throws {
         guard let launch = identity.forkLaunch() else { throw AgentConversationHistoryError.unavailableSessionFile }
         var environment = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("ZSHELL_") }
-        environment.merge(launchSettings.environment.filter {
-            !TerminalLaunchSettings.isProtectedEnvironmentVariable($0.key)
-        }, uniquingKeysWith: { _, value in value })
+        environment.merge(
+            launchSettings.environment.filter {
+                !TerminalLaunchSettings.isProtectedEnvironmentVariable($0.key)
+            }, uniquingKeysWith: { _, value in value })
         let unset = launch.configurationVariables.union(["CODEX_THREAD_ID"]).subtracting(launch.environment.keys)
             .sorted().map { "-u \(TerminalSession.shellQuote($0))" }.joined(separator: " ")
         let values = launch.environment.sorted { $0.key < $1.key }
@@ -151,14 +161,20 @@ extension TerminalManager {
         let shell = TerminalSession.loginShell()
         let probeArguments = ["-l", "-i", "-c", "exec /bin/sh -c \(TerminalSession.shellQuote(command))"]
         let probe = Task.detached(priority: .userInitiated) {
-            try BoundedProcessRunner.run(executableURL: URL(fileURLWithPath: shell),
+            try BoundedProcessRunner.run(
+                executableURL: URL(fileURLWithPath: shell),
                 arguments: probeArguments,
                 timeout: timeout, outputLimit: 65_536, environment: probeEnvironment, standardInput: Data())
         }
-        let result = try await withTaskCancellationHandler { try await probe.value } onCancel: { probe.cancel() }
+        let result = try await withTaskCancellationHandler {
+            try await probe.value
+        } onCancel: {
+            probe.cancel()
+        }
         if result.timedOut { throw AgentConversationHistoryError.forkCheckTimedOut }
         guard result.terminationStatus == 0, !result.output.wasTruncated,
-              identity.provider.supportsNativeFork(help: result.output.stdout + "\n" + result.output.stderr) else {
+            identity.provider.supportsNativeFork(help: result.output.stdout + "\n" + result.output.stderr)
+        else {
             throw AgentConversationHistoryError.forkUnavailable
         }
     }
@@ -170,10 +186,14 @@ extension TerminalManager {
         while Date() < deadline {
             try Task.checkCancellation()
             guard projects.contains(where: { $0 === context.project }),
-                  context.project.sessions.contains(where: { $0 === context.session }),
-                  !context.session.hasExited else { break }
+                context.project.sessions.contains(where: { $0 === context.session }),
+                !context.session.hasExited
+            else { break }
             if let identity = context.session.agentResume, source.acceptsFork(identity),
-               context.session.hasOpenConversation(identity) { return }
+                context.session.hasOpenConversation(identity)
+            {
+                return
+            }
             try await Task.sleep(for: .milliseconds(100))
         }
         throw AgentConversationHistoryError.forkUnconfirmed
@@ -183,13 +203,16 @@ extension TerminalManager {
         _ record: AgentConversationHistoryRecord, in requestedProject: Project?, focus: Bool, timeout: TimeInterval
     ) async throws -> ConversationContext {
         guard let hostID = record.identity.remoteHostID,
-              let directory = record.identity.remoteProjectDirectory else { throw AgentConversationHistoryError.notFound }
+            let directory = record.identity.remoteProjectDirectory
+        else { throw AgentConversationHistoryError.notFound }
         if let requestedProject, requestedProject.sharedHost?.id != hostID || requestedProject.remoteDirectory != directory {
             throw AgentConversationHistoryError.differentProject
         }
-        guard let host = requestedProject?.sharedHost
-            ?? projects.first(where: { $0.sharedHost?.id == hostID })?.sharedHost
-            ?? RemoteHostStore.shared.hosts.first(where: { $0.id == hostID }) else {
+        guard
+            let host = requestedProject?.sharedHost
+                ?? projects.first(where: { $0.sharedHost?.id == hostID })?.sharedHost
+                ?? RemoteHostStore.shared.hosts.first(where: { $0.id == hostID })
+        else {
             throw AgentConversationHistoryError.unavailableConfiguration
         }
         let info = try await Task.detached(priority: .userInitiated) {
@@ -212,8 +235,7 @@ extension TerminalManager {
         }
         session.agentConversationForkSource = record.identity
         let context = ConversationContext(manager: self, project: project, session: session)
-        if focus { Self.revealSession(id: session.id) }
-        else { selectedProjectID = previousSelection; project.selectedTabID = previousTab }
+        if focus { Self.revealSession(id: session.id) } else { selectedProjectID = previousSelection; project.selectedTabID = previousTab }
         try await confirmConversationFork(context, source: record.identity, timeout: timeout)
         return context
     }
@@ -221,8 +243,9 @@ extension TerminalManager {
     func resumeRemoteConversation(id: UUID, in requestedProject: Project? = nil, focus: Bool) async throws -> ConversationContext {
         let store = AgentConversationHistoryStore.shared
         guard let record = store.record(id: id, projectID: requestedProject?.conversationHistoryProjectID),
-              let hostID = record.identity.remoteHostID,
-              let directory = record.identity.remoteProjectDirectory else { throw AgentConversationHistoryError.notFound }
+            let hostID = record.identity.remoteHostID,
+            let directory = record.identity.remoteProjectDirectory
+        else { throw AgentConversationHistoryError.notFound }
         if let live = Self.openConversation(record) {
             if let requestedProject, live.manager !== self || live.project !== requestedProject {
                 throw AgentConversationHistoryError.differentProject
@@ -235,16 +258,19 @@ extension TerminalManager {
         if let requestedProject, requestedProject.sharedHost?.id != hostID || requestedProject.remoteDirectory != directory {
             throw AgentConversationHistoryError.differentProject
         }
-        guard let host = requestedProject?.sharedHost
-            ?? projects.first(where: { $0.sharedHost?.id == hostID })?.sharedHost
-            ?? RemoteHostStore.shared.hosts.first(where: { $0.id == hostID }) else {
+        guard
+            let host = requestedProject?.sharedHost
+                ?? projects.first(where: { $0.sharedHost?.id == hostID })?.sharedHost
+                ?? RemoteHostStore.shared.hosts.first(where: { $0.id == hostID })
+        else {
             throw AgentConversationHistoryError.unavailableConfiguration
         }
         let info = try await Task.detached(priority: .userInitiated) {
             try RemoteHostClient.resume(host: host, identity: record.identity)
         }.value
         guard store.record(id: id)?.identity == record.identity,
-              info.project == directory, let remoteID = UUID(uuidString: info.sessionId) else {
+            info.project == directory, let remoteID = UUID(uuidString: info.sessionId)
+        else {
             throw AgentConversationHistoryError.notFound
         }
         if let requestedProject, !projects.contains(where: { $0 === requestedProject }) {
@@ -258,8 +284,7 @@ extension TerminalManager {
         }
         session.agentConversationHistoryID = record.id
         if record.isArchived { try store.setArchived(false, id: id) }
-        if focus { Self.revealSession(id: session.id) }
-        else { selectedProjectID = previousSelection }
+        if focus { Self.revealSession(id: session.id) } else { selectedProjectID = previousSelection }
         return .init(manager: self, project: project, session: session)
     }
 }

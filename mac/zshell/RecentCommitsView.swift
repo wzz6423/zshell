@@ -18,10 +18,11 @@ struct RecentCommitsView: NSViewRepresentable {
     let hasMoreCommits: Bool
     let isLoadingMore: Bool
     let loadMore: () -> Bool
-    let openDiff: (
-        _ commit: GitStatusModel.RecentCommit,
-        _ file: GitStatusModel.RecentCommit.FileChange
-    ) -> Void
+    let openDiff:
+        (
+            _ commit: GitStatusModel.RecentCommit,
+            _ file: GitStatusModel.RecentCommit.FileChange
+        ) -> Void
 
     init(
         commits: [GitStatusModel.RecentCommit],
@@ -30,10 +31,11 @@ struct RecentCommitsView: NSViewRepresentable {
         hasMoreCommits: Bool,
         isLoadingMore: Bool,
         loadMore: @escaping () -> Bool,
-        openDiff: @escaping (
-            _ commit: GitStatusModel.RecentCommit,
-            _ file: GitStatusModel.RecentCommit.FileChange
-        ) -> Void
+        openDiff:
+            @escaping (
+                _ commit: GitStatusModel.RecentCommit,
+                _ file: GitStatusModel.RecentCommit.FileChange
+            ) -> Void
     ) {
         self.commits = commits
         _expandedCommitIDs = expandedCommitIDs
@@ -89,10 +91,13 @@ final class RecentCommitsNSView: NSView {
 
     var onToggleCommit: ((String) -> Void)?
     var onLoadMore: (() -> Bool)?
-    var onOpenDiff: ((
-        GitStatusModel.RecentCommit,
-        GitStatusModel.RecentCommit.FileChange
-    ) -> Void)?
+    var onOpenDiff:
+        (
+            (
+                GitStatusModel.RecentCommit,
+                GitStatusModel.RecentCommit.FileChange
+            ) -> Void
+        )?
     private var snapshot: Snapshot?
     private var language: String?
     private var orderedRows: [NSView] = []
@@ -127,7 +132,8 @@ final class RecentCommitsNSView: NSView {
         }
         if snapshot?.commits.count != next.commits.count
             || snapshot?.isLoadingMore != next.isLoadingMore
-            || !next.hasMoreCommits {
+            || !next.hasMoreCommits
+        {
             autoLoadRequestPending = false
         }
         self.language = language
@@ -156,35 +162,39 @@ final class RecentCommitsNSView: NSView {
             guard isExpanded else { continue }
             let omittedFileCount = commit.omittedFileCount
             if commit.files.isEmpty && omittedFileCount == 0 {
-                addArrangedRow(CommitFileRowView(
-                    change: nil,
-                    continuesBelow: !isLastCommit,
-                    metrics: metrics,
-                    onOpen: nil
-                ))
+                addArrangedRow(
+                    CommitFileRowView(
+                        change: nil,
+                        continuesBelow: !isLastCommit,
+                        metrics: metrics,
+                        onOpen: nil
+                    ))
             } else {
                 for (fileIndex, file) in commit.files.enumerated() {
                     let hasAnotherRow = fileIndex < commit.files.count - 1 || omittedFileCount > 0
-                    addArrangedRow(CommitFileRowView(
-                        change: file,
-                        continuesBelow: hasAnotherRow || !isLastCommit,
-                        metrics: metrics,
-                        onOpen: { [weak self] in self?.onOpenDiff?(commit, file) }
-                    ))
+                    addArrangedRow(
+                        CommitFileRowView(
+                            change: file,
+                            continuesBelow: hasAnotherRow || !isLastCommit,
+                            metrics: metrics,
+                            onOpen: { [weak self] in self?.onOpenDiff?(commit, file) }
+                        ))
                 }
                 if omittedFileCount > 0 {
                     // One static sentence for the unread tail. It is not a path,
                     // so it must not highlight, focus, or open a diff.
-                    addArrangedRow(CommitFileRowView(
-                        change: nil,
-                        continuesBelow: !isLastCommit,
-                        metrics: metrics,
-                        onOpen: nil,
-                        summary: String(
-                            localized: "\(omittedFileCount) more files are not shown.",
-                            comment: "Shown under an expanded commit when some changed paths are not listed. The placeholder is the number of omitted files."
-                        )
-                    ))
+                    addArrangedRow(
+                        CommitFileRowView(
+                            change: nil,
+                            continuesBelow: !isLastCommit,
+                            metrics: metrics,
+                            onOpen: nil,
+                            summary: String(
+                                localized: "\(omittedFileCount) more files are not shown.",
+                                comment:
+                                    "Shown under an expanded commit when some changed paths are not listed. The placeholder is the number of omitted files."
+                            )
+                        ))
                 }
             }
         }
@@ -267,16 +277,18 @@ final class RecentCommitsNSView: NSView {
 
     private func evaluateAutoLoadIfNeeded() {
         guard window != nil, !isHiddenOrHasHiddenAncestor,
-              let snapshot,
-              snapshot.hasMoreCommits,
-              !snapshot.isLoadingMore,
-              !autoLoadRequestPending,
-              requiredHeight > 0,
-              let clipView = observedClipView ?? enclosingScrollView?.contentView else { return }
+            let snapshot,
+            snapshot.hasMoreCommits,
+            !snapshot.isLoadingMore,
+            !autoLoadRequestPending,
+            requiredHeight > 0,
+            let clipView = observedClipView ?? enclosingScrollView?.contentView
+        else { return }
         let visibleRect = convert(clipView.bounds, from: clipView)
         let preloadDistance = max(44, clipView.bounds.height * 0.25)
         guard visibleRect.minY < requiredHeight,
-              visibleRect.maxY >= requiredHeight - preloadDistance else { return }
+            visibleRect.maxY >= requiredHeight - preloadDistance
+        else { return }
         // Only latch requests the model accepted. A temporary rejection (for
         // example while a Git mutation is finishing) must remain retryable on
         // the next SwiftUI update or scroll/layout event.
@@ -350,7 +362,8 @@ private final class CommitGraphRowView: NSView {
         self.metrics = metrics
         super.init(frame: .zero)
         focusRingType = .default
-        toolTip = (["\(commit.shortHash) · \(commit.author) · \(commit.relativeDate)"]
+        toolTip =
+            (["\(commit.shortHash) · \(commit.author) · \(commit.relativeDate)"]
             + commit.references).joined(separator: "\n")
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
@@ -489,13 +502,14 @@ private final class CommitGraphRowView: NSView {
                 .foregroundColor: NSColor.secondaryLabelColor,
             ]
         )
-        summary.append(NSAttributedString(
-            string: "  " + commit.author.uppercased(),
-            attributes: [
-                .font: metrics.metadataFont,
-                .foregroundColor: NSColor.tertiaryLabelColor,
-            ]
-        ))
+        summary.append(
+            NSAttributedString(
+                string: "  " + commit.author.uppercased(),
+                attributes: [
+                    .font: metrics.metadataFont,
+                    .foregroundColor: NSColor.tertiaryLabelColor,
+                ]
+            ))
         let height = ceil(max(metrics.subjectFont.pointSize, metrics.metadataFont.pointSize) * 1.45)
         summary.draw(
             with: NSRect(
@@ -515,9 +529,10 @@ private final class CommitGraphRowView: NSView {
     private var primaryReference: String? {
         commit.references.first { $0.hasPrefix("tag: ") } ?? commit.references.first {
             $0.contains("/") && !$0.hasPrefix("HEAD -> ") && !$0.contains("/HEAD")
-        } ?? commit.references.first.map {
-            $0.hasPrefix("HEAD -> ") ? String($0.dropFirst("HEAD -> ".count)) : $0
         }
+            ?? commit.references.first.map {
+                $0.hasPrefix("HEAD -> ") ? String($0.dropFirst("HEAD -> ".count)) : $0
+            }
     }
 
     private func referenceBadgeWidth(_ reference: String) -> CGFloat {
@@ -748,13 +763,14 @@ private final class CommitFileRowView: NSView {
             ]
         )
         if !change.directory.isEmpty {
-            text.append(NSAttributedString(
-                string: "  " + change.directory,
-                attributes: [
-                    .font: metrics.pathFont,
-                    .foregroundColor: NSColor.tertiaryLabelColor,
-                ]
-            ))
+            text.append(
+                NSAttributedString(
+                    string: "  " + change.directory,
+                    attributes: [
+                        .font: metrics.pathFont,
+                        .foregroundColor: NSColor.tertiaryLabelColor,
+                    ]
+                ))
         }
         let height = ceil(max(metrics.fileFont.pointSize, metrics.pathFont.pointSize) * 1.45)
         text.draw(

@@ -5,14 +5,14 @@ import SwiftUI
 import STTextViewSwiftUI
 
 #if canImport(AppKit) && !targetEnvironment(macCatalyst)
-typealias Font = NSFont
-typealias Color = NSColor
-let textColor = Color.textColor
+    typealias Font = NSFont
+    typealias Color = NSColor
+    let textColor = Color.textColor
 #endif
 #if canImport(UIKit)
-typealias Font = UIFont
-typealias Color = UIColor
-let textColor = Color.label
+    typealias Font = UIFont
+    typealias Color = UIColor
+    let textColor = Color.label
 #endif
 
 struct ContentView: View {
@@ -42,7 +42,7 @@ struct ContentView: View {
             .ignoresSafeArea(.container)
             .navigationTitle("STTextView")
             #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
+                .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
                 ToolbarItemGroup {

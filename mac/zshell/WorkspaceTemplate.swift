@@ -49,13 +49,13 @@ struct WorkspaceTemplate: Codable {
     static func decode(_ data: Data) throws -> WorkspaceTemplate {
         guard data.count <= maximumBytes else { throw WorkspaceTemplateError.fileTooLarge }
         let object: Any
-        do { object = try JSONSerialization.jsonObject(with: data) }
-        catch { throw WorkspaceTemplateError.invalidFile }
+        do { object = try JSONSerialization.jsonObject(with: data) } catch { throw WorkspaceTemplateError.invalidFile }
         guard let envelope = object as? [String: Any],
-              envelope["format"] as? String == fileFormat,
-              let version = envelope["version"] as? NSNumber,
-              CFGetTypeID(version) != CFBooleanGetTypeID(),
-              version.doubleValue == Double(version.intValue) else {
+            envelope["format"] as? String == fileFormat,
+            let version = envelope["version"] as? NSNumber,
+            CFGetTypeID(version) != CFBooleanGetTypeID(),
+            version.doubleValue == Double(version.intValue)
+        else {
             throw WorkspaceTemplateError.invalidFile
         }
         guard version.intValue == currentVersion else {
@@ -65,8 +65,7 @@ struct WorkspaceTemplate: Codable {
         // also prevents a small, deeply nested import from exhausting the stack.
         try checkJSONDepth(object, depth: 0)
         let template: WorkspaceTemplate
-        do { template = try JSONDecoder().decode(Self.self, from: data) }
-        catch { throw WorkspaceTemplateError.invalidFile }
+        do { template = try JSONDecoder().decode(Self.self, from: data) } catch { throw WorkspaceTemplateError.invalidFile }
         try template.validate()
         return template
     }
@@ -85,7 +84,8 @@ struct WorkspaceTemplate: Codable {
         guard version == Self.currentVersion else { throw WorkspaceTemplateError.unsupportedVersion(version) }
         guard Self.validName(name) else { throw WorkspaceTemplateError.invalidName }
         guard !tabs.isEmpty, tabs.count <= Self.maximumTabs,
-              tabs.indices.contains(selectedTabIndex) else { throw WorkspaceTemplateError.invalidLayout }
+            tabs.indices.contains(selectedTabIndex)
+        else { throw WorkspaceTemplateError.invalidLayout }
         var totalPanes = 0
         for tab in tabs {
             if let name = tab.name, !Self.validName(name) { throw WorkspaceTemplateError.invalidLayout }
@@ -100,28 +100,34 @@ struct WorkspaceTemplate: Codable {
                 return false
             }
             guard tab.terminals.count == terminalIndexes.count,
-                  Set(tab.terminals.map(\.paneIndex)) == Set(terminalIndexes) else {
+                Set(tab.terminals.map(\.paneIndex)) == Set(terminalIndexes)
+            else {
                 throw WorkspaceTemplateError.invalidLayout
             }
             for terminal in tab.terminals {
                 if let program = terminal.program {
                     guard Self.validText(program, maximum: 4096),
-                          program == program.trimmingCharacters(in: .whitespacesAndNewlines) else {
+                        program == program.trimmingCharacters(in: .whitespacesAndNewlines)
+                    else {
                         throw WorkspaceTemplateError.invalidCommand
                     }
-                } else if !terminal.arguments.isEmpty { throw WorkspaceTemplateError.invalidCommand }
+                } else if !terminal.arguments.isEmpty {
+                    throw WorkspaceTemplateError.invalidCommand
+                }
                 guard terminal.arguments.count <= 256,
-                      terminal.arguments.allSatisfy({ Self.validText($0, maximum: 32_768, allowsEmpty: true) }),
-                      terminal.arguments.reduce(0, { $0 + $1.utf8.count }) <= 32_768 else {
+                    terminal.arguments.allSatisfy({ Self.validText($0, maximum: 32_768, allowsEmpty: true) }),
+                    terminal.arguments.reduce(0, { $0 + $1.utf8.count }) <= 32_768
+                else {
                     throw WorkspaceTemplateError.invalidCommand
                 }
                 if let command = terminal.initializationCommand,
-                   (!Self.validText(command, maximum: 32_768) || terminal.program != nil) {
+                    (!Self.validText(command, maximum: 32_768) || terminal.program != nil)
+                {
                     throw WorkspaceTemplateError.invalidCommand
                 }
             }
         }
-        guard (0...totalPanes).contains(simplifiedPaneCount) else { throw WorkspaceTemplateError.invalidLayout }
+        guard (0 ... totalPanes).contains(simplifiedPaneCount) else { throw WorkspaceTemplateError.invalidLayout }
         if let remote {
             // Remote sessions share one project directory, so terminals cannot
             // carry their own working directories.
@@ -130,8 +136,9 @@ struct WorkspaceTemplate: Codable {
                 return nil
             }
             guard Self.validName(remote.host), !remote.host.contains(where: \.isNewline),
-                  Self.validRemoteDirectory(remote.directory),
-                  !sessions.isEmpty, sessions.allSatisfy({ $0 == "." }) else {
+                Self.validRemoteDirectory(remote.directory),
+                !sessions.isEmpty, sessions.allSatisfy({ $0 == "." })
+            else {
                 throw WorkspaceTemplateError.invalidRemote
             }
         }
@@ -185,8 +192,9 @@ struct WorkspaceTemplate: Codable {
     /// userinfo, queries and fragments, which can carry one-time login tokens.
     static func capturedBrowserURL(_ raw: String?) -> String? {
         guard let raw, var components = URLComponents(string: raw),
-              ["http", "https"].contains(components.scheme?.lowercased() ?? ""),
-              components.host?.isEmpty == false else { return nil }
+            ["http", "https"].contains(components.scheme?.lowercased() ?? ""),
+            components.host?.isEmpty == false
+        else { return nil }
         components.user = nil
         components.password = nil
         components.query = nil
@@ -206,20 +214,23 @@ struct WorkspaceTemplate: Codable {
         switch layout {
         case .pane(let pane):
             guard pane.historyKey == nil, pane.agentResume == nil, pane.terminalID == nil,
-                  pane.remoteSessionID == nil, pane.worktree == nil else {
+                pane.remoteSessionID == nil, pane.worktree == nil
+            else {
                 throw WorkspaceTemplateError.runtimeState
             }
             guard pane.weight == 1 else { throw WorkspaceTemplateError.invalidLayout }
             switch pane.content {
             case .session(let directory):
                 guard validText(directory, maximum: 4096),
-                      directory.hasPrefix("/") || !directory.split(separator: "/").contains(".."),
-                      !directory.hasPrefix("~") else { throw WorkspaceTemplateError.invalidDirectory }
+                    directory.hasPrefix("/") || !directory.split(separator: "/").contains(".."),
+                    !directory.hasPrefix("~")
+                else { throw WorkspaceTemplateError.invalidDirectory }
             case .browser(let rawURL):
                 if let rawURL {
                     guard validText(rawURL, maximum: 8192), let url = URLComponents(string: rawURL),
-                          ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
-                          url.host?.isEmpty == false, url.user == nil, url.password == nil else {
+                        ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
+                        url.host?.isEmpty == false, url.user == nil, url.password == nil
+                    else {
                         throw WorkspaceTemplateError.invalidBrowserURL
                     }
                 }
@@ -237,15 +248,18 @@ struct WorkspaceTemplate: Codable {
         switch layout {
         case .pane(var pane):
             if case .session(let directory) = pane.content {
-                let path = (directory.hasPrefix("/") ? URL(fileURLWithPath: directory)
+                let path =
+                    (directory.hasPrefix("/")
+                    ? URL(fileURLWithPath: directory)
                     : root.appendingPathComponent(directory)).standardizedFileURL.path
                 try requireDirectory(path)
                 pane.content = .session(workingDirectory: path)
             }
             return .pane(pane)
         case .split(let axis, let fraction, let first, let second):
-            return .split(axis: axis, fraction: fraction,
-                          first: try resolve(first, root: root), second: try resolve(second, root: root))
+            return .split(
+                axis: axis, fraction: fraction,
+                first: try resolve(first, root: root), second: try resolve(second, root: root))
         }
     }
 
@@ -292,16 +306,31 @@ enum WorkspaceTemplateError: LocalizedError {
         case .invalidName: return String(localized: "Enter a template name.")
         case .unsupportedVersion(let version): return String(localized: "Workspace template version \(version) is not supported.")
         case .invalidLayout: return String(localized: "The template layout or pane positions are invalid.")
-        case .runtimeState: return String(localized: "Templates cannot contain live session, history, agent, worktree, editor or diff state.")
+        case .runtimeState:
+            return String(localized: "Templates cannot contain live session, history, agent, worktree, editor or diff state.")
         case .invalidDirectory: return String(localized: "Use a project-relative directory without “..”, or an absolute directory.")
-        case .missingDirectory(let path): return String(localized: "The directory “\(path)” is unavailable. Choose another project root or edit the template.")
-        case .invalidCommand: return String(localized: "Use a valid startup program and arguments, or a login-shell initialization command.")
-        case .programNotExecutable(let program): return String(localized: "The startup program “\(program)” is not an executable file on this Mac.")
-        case .invalidBrowserURL: return String(localized: "Template browser pages must use HTTP or HTTPS URLs without embedded credentials.")
-        case .invalidRemote: return String(localized: "Remote templates need a saved host name, an absolute or ~/ remote directory and at least one terminal. Every terminal starts in that directory (“.”).")
-        case .unsupportedRemoteProject: return String(localized: "Only local projects and projects on saved remote hosts can be saved as templates.")
-        case .remoteHostUnavailable(let name): return String(localized: "The saved remote host “\(name)” is not on this Mac. Choose another saved host, or add it in Remote Hosts.")
-        case .libraryUnavailable: return String(localized: "The workspace template library could not be loaded. Restore or remove the library file before saving templates.")
+        case .missingDirectory(let path):
+            return String(localized: "The directory “\(path)” is unavailable. Choose another project root or edit the template.")
+        case .invalidCommand:
+            return String(localized: "Use a valid startup program and arguments, or a login-shell initialization command.")
+        case .programNotExecutable(let program):
+            return String(localized: "The startup program “\(program)” is not an executable file on this Mac.")
+        case .invalidBrowserURL:
+            return String(localized: "Template browser pages must use HTTP or HTTPS URLs without embedded credentials.")
+        case .invalidRemote:
+            return String(
+                localized:
+                    "Remote templates need a saved host name, an absolute or ~/ remote directory and at least one terminal. Every terminal starts in that directory (“.”)."
+            )
+        case .unsupportedRemoteProject:
+            return String(localized: "Only local projects and projects on saved remote hosts can be saved as templates.")
+        case .remoteHostUnavailable(let name):
+            return String(
+                localized: "The saved remote host “\(name)” is not on this Mac. Choose another saved host, or add it in Remote Hosts.")
+        case .libraryUnavailable:
+            return String(
+                localized: "The workspace template library could not be loaded. Restore or remove the library file before saving templates."
+            )
         }
     }
 }

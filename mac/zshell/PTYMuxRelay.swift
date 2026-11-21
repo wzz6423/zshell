@@ -7,7 +7,8 @@ enum PTYMuxRelay {
     static func run() -> Never {
         do {
             guard let text = CommandLine.arguments.dropFirst(2).first,
-                  let id = UUID(uuidString: text) else {
+                let id = UUID(uuidString: text)
+            else {
                 throw PTYMuxError.message("A terminal id is required for the PTY relay.")
             }
             try pump(id: id)
@@ -84,8 +85,11 @@ enum PTYMuxRelay {
                 _ = try? PTYMuxCommandLine.exchange(method: "resize", params: dimensions(id: id))
             }
             var descriptors = [
-                pollfd(fd: socket, events: Int16((!ended && output.count < maximum ? POLLIN : 0)
-                    | (!input.isEmpty ? POLLOUT : 0)), revents: 0),
+                pollfd(
+                    fd: socket,
+                    events: Int16(
+                        (!ended && output.count < maximum ? POLLIN : 0)
+                            | (!input.isEmpty ? POLLOUT : 0)), revents: 0),
                 pollfd(fd: STDIN_FILENO, events: Int16(!ended && input.count < maximum ? POLLIN : 0), revents: 0),
                 pollfd(fd: STDOUT_FILENO, events: Int16(!output.isEmpty ? POLLOUT : 0), revents: 0),
             ]
@@ -93,15 +97,23 @@ enum PTYMuxRelay {
             if ready < 0 { if errno == EINTR { continue }; throw PTYMuxWire.errnoError("poll") }
             if descriptors[0].revents & Int16(POLLIN | POLLHUP) != 0 && !ended && output.count < maximum {
                 let count = Darwin.read(socket, &buffer, buffer.count)
-                if count > 0 { output.append(cursorRestore.process(Data(buffer.prefix(count)))) }
-                else if count == 0 { ended = true; output.append(cursorRestore.finish()) }
-                else if errno != EINTR && errno != EAGAIN { throw PTYMuxWire.errnoError("read") }
+                if count > 0 {
+                    output.append(cursorRestore.process(Data(buffer.prefix(count))))
+                } else if count == 0 {
+                    ended = true; output.append(cursorRestore.finish())
+                } else if errno != EINTR && errno != EAGAIN {
+                    throw PTYMuxWire.errnoError("read")
+                }
             }
             if descriptors[1].revents & Int16(POLLIN | POLLHUP) != 0 && !ended {
                 let count = Darwin.read(STDIN_FILENO, &buffer, buffer.count)
-                if count > 0 { input.append(contentsOf: buffer.prefix(count)) }
-                else if count == 0 { return }
-                else if errno != EINTR && errno != EAGAIN { return }
+                if count > 0 {
+                    input.append(contentsOf: buffer.prefix(count))
+                } else if count == 0 {
+                    return
+                } else if errno != EINTR && errno != EAGAIN {
+                    return
+                }
             }
             if descriptors[0].revents & Int16(POLLOUT) != 0 { try flush(&input, to: socket) }
             if descriptors[2].revents & Int16(POLLOUT) != 0 { try flush(&output, to: STDOUT_FILENO) }
@@ -110,15 +122,19 @@ enum PTYMuxRelay {
                 output.append(cursorRestore.finish())
             }
             if descriptors[1].revents & Int16(POLLERR | POLLNVAL) != 0
-                || descriptors[2].revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0 { return }
+                || descriptors[2].revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0
+            {
+                return
+            }
         }
     }
 
     private static func flush(_ data: inout Data, to descriptor: Int32) throws {
         guard !data.isEmpty else { return }
         let count = data.withUnsafeBytes { Darwin.write(descriptor, $0.baseAddress, $0.count) }
-        if count > 0 { data.removeFirst(count) }
-        else if count < 0 && errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK {
+        if count > 0 {
+            data.removeFirst(count)
+        } else if count < 0 && errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK {
             throw PTYMuxWire.errnoError("write")
         }
     }

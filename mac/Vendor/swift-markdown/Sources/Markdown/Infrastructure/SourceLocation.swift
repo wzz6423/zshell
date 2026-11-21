@@ -44,11 +44,12 @@ public struct SourceLocation: Hashable, CustomStringConvertible, Comparable, Sen
     }
 
     public var description: String {
-        let path = source.map {
-            $0.path.isEmpty
-                ? ""
-                : "\($0.path):"
-        } ?? ""
+        let path =
+            source.map {
+                $0.path.isEmpty
+                    ? ""
+                    : "\($0.path):"
+            } ?? ""
         return "\(path)\(line):\(column)"
     }
 }
@@ -56,7 +57,7 @@ public struct SourceLocation: Hashable, CustomStringConvertible, Comparable, Sen
 extension Range {
     /// Widen this range to contain another.
     mutating func widen(toFit other: Self) {
-        self = Swift.min(self.lowerBound, other.lowerBound)..<Swift.max(self.upperBound, other.upperBound)
+        self = Swift.min(self.lowerBound, other.lowerBound) ..< Swift.max(self.upperBound, other.upperBound)
     }
 }
 
@@ -66,7 +67,7 @@ public typealias SourceRange = Range<SourceLocation>
 extension SourceRange {
     @available(*, deprecated, message: "Use lowerBound..<upperBound initialization")
     public init(start: Bound, end: Bound) {
-        self = start..<end
+        self = start ..< end
     }
 
     @available(*, deprecated, renamed: "lowerBound")
@@ -75,7 +76,7 @@ extension SourceRange {
             return lowerBound
         }
         set {
-            self = newValue..<upperBound
+            self = newValue ..< upperBound
         }
     }
 
@@ -85,7 +86,7 @@ extension SourceRange {
             return upperBound
         }
         set {
-            self = lowerBound..<newValue
+            self = lowerBound ..< newValue
         }
     }
 

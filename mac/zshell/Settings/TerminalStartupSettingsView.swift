@@ -52,7 +52,7 @@ final class TerminalStartupSettingsView: NSView, NSTextFieldDelegate {
         customFields.rowSpacing = 8
         customFields.columnSpacing = 8
         customFields.column(at: 0).xPlacement = .trailing
-        let labelWidth = (0..<customFields.numberOfRows).reduce(CGFloat(72)) { width, row in
+        let labelWidth = (0 ..< customFields.numberOfRows).reduce(CGFloat(72)) { width, row in
             max(width, customFields.cell(atColumnIndex: 0, rowIndex: row).contentView?.fittingSize.width ?? 0)
         }
         customFields.column(at: 0).width = labelWidth
@@ -110,12 +110,14 @@ final class TerminalStartupSettingsView: NSView, NSTextFieldDelegate {
     }
 
     func apply(program: String, arguments: String) {
-        let isEditingCustomProgram = modeButton.indexOfSelectedItem == 1
+        let isEditingCustomProgram =
+            modeButton.indexOfSelectedItem == 1
             && programField.stringValue.isEmpty
             && program.isEmpty
             && window?.firstResponder === programField.currentEditor()
         guard !isEditingCustomProgram else { return }
-        guard programField.stringValue != program
+        guard
+            programField.stringValue != program
                 || argumentsField.stringValue != arguments
                 || modeButton.indexOfSelectedItem != (program.isEmpty ? 0 : 1)
         else { return }
@@ -163,13 +165,18 @@ final class TerminalStartupSettingsView: NSView, NSTextFieldDelegate {
             arguments: argumentsField.stringValue
         ) {
         case .success(.some):
-            detailLabel.stringValue = String(localized: "Arguments are parsed without a shell. Quotes and backslashes preserve argument boundaries.")
+            detailLabel.stringValue = String(
+                localized: "Arguments are parsed without a shell. Quotes and backslashes preserve argument boundaries.")
             detailLabel.textColor = .secondaryLabelColor
         case .success(nil), .failure(.programNotExecutable):
-            detailLabel.stringValue = String(localized: "Enter the full path to an executable file. New terminals use your login shell until the path is valid.")
+            detailLabel.stringValue = String(
+                localized: "Enter the full path to an executable file. New terminals use your login shell until the path is valid.")
             detailLabel.textColor = .systemOrange
         case .failure(.invalidArguments):
-            detailLabel.stringValue = String(localized: "Close every quote and do not end arguments with a backslash. New terminals use your login shell until the arguments are valid.")
+            detailLabel.stringValue = String(
+                localized:
+                    "Close every quote and do not end arguments with a backslash. New terminals use your login shell until the arguments are valid."
+            )
             detailLabel.textColor = .systemOrange
         }
     }

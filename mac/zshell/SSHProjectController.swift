@@ -322,10 +322,11 @@ final class SSHProjectController: NSObject {
         // One click on a row connects — the dialog's primary "one-click
         // invoke"; the row's trailing buttons handle edit and delete.
         tableView.action = #selector(rowClicked)
-        tableView.setAccessibilityLabel(String(
-            localized: "Saved SSH Projects",
-            comment: "Accessibility label of the saved SSH project list."
-        ))
+        tableView.setAccessibilityLabel(
+            String(
+                localized: "Saved SSH Projects",
+                comment: "Accessibility label of the saved SSH project list."
+            ))
 
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("project"))
         column.width = Self.windowWidth
@@ -456,20 +457,23 @@ final class SSHProjectController: NSObject {
         errorLabel.maximumNumberOfLines = 0
         errorLabel.isHidden = true
 
-        let formHeader = NSTextField(labelWithString: String(
-            localized: "Connection",
-            comment: "Header above the SSH connection form."
-        ))
+        let formHeader = NSTextField(
+            labelWithString: String(
+                localized: "Connection",
+                comment: "Header above the SSH connection form."
+            ))
         formHeader.font = .systemFont(ofSize: 12, weight: .semibold)
         formHeader.textColor = .secondaryLabelColor
 
         let privateKeyPathRow = NSStackView(views: [
             privateKeyPathField,
             NSButton(
-                image: NSImage(systemSymbolName: "folder", accessibilityDescription: String(
-                    localized: "Choose Private Key File",
-                    comment: "Accessibility label for the button choosing an SSH private key file."
-                )) ?? NSImage(),
+                image: NSImage(
+                    systemSymbolName: "folder",
+                    accessibilityDescription: String(
+                        localized: "Choose Private Key File",
+                        comment: "Accessibility label for the button choosing an SSH private key file."
+                    )) ?? NSImage(),
                 target: self,
                 action: #selector(choosePrivateKeyFile)
             ),
@@ -613,20 +617,23 @@ final class SSHProjectController: NSObject {
         let showsSavedProjects = displayMode == .savedProjects
         listContainer.isHidden = !showsSavedProjects
         formContainer.isHidden = showsSavedProjects
-        window?.title = showsSavedProjects
+        window?.title =
+            showsSavedProjects
             ? String(localized: "Saved SSH Projects")
             : String(localized: "New SSH Project")
 
         guard resizeWindow, let window else { return }
         let oldFrame = window.frame
-        let contentHeight = showsSavedProjects
+        let contentHeight =
+            showsSavedProjects
             ? Self.listContentHeight
             : formContentHeight()
         window.setContentSize(NSSize(width: Self.windowWidth, height: contentHeight))
-        window.setFrameOrigin(NSPoint(
-            x: oldFrame.midX - window.frame.width / 2,
-            y: oldFrame.maxY - window.frame.height
-        ))
+        window.setFrameOrigin(
+            NSPoint(
+                x: oldFrame.midX - window.frame.width / 2,
+                y: oldFrame.maxY - window.frame.height
+            ))
     }
 
     private func formContentHeight() -> CGFloat {
@@ -644,10 +651,12 @@ final class SSHProjectController: NSObject {
     }
 
     private func selectEntry(id: UUID) {
-        guard let row = displayRows.firstIndex(where: {
-            guard case .entry(let entry) = $0 else { return false }
-            return entry.id == id
-        }) else { return }
+        guard
+            let row = displayRows.firstIndex(where: {
+                guard case .entry(let entry) = $0 else { return false }
+                return entry.id == id
+            })
+        else { return }
         tableView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
         tableView.scrollRowToVisible(row)
     }
@@ -674,9 +683,11 @@ final class SSHProjectController: NSObject {
                 entriesByGroup[group]?.append(entry)
             }
             for group in seenGroups {
-                rows.append(.header(group.isEmpty
-                    ? String(localized: "Ungrouped", comment: "Section title for SSH projects without a group.")
-                    : group))
+                rows.append(
+                    .header(
+                        group.isEmpty
+                            ? String(localized: "Ungrouped", comment: "Section title for SSH projects without a group.")
+                            : group))
                 rows.append(
                     contentsOf: entriesByGroup[group, default: []].map { DisplayRow.entry($0) }
                 )
@@ -708,7 +719,8 @@ final class SSHProjectController: NSObject {
         groupField.removeAllItems()
         groupField.addItems(withObjectValues: groups)
         groupField.stringValue = currentValue
-        let groupHint = groups.isEmpty
+        let groupHint =
+            groups.isEmpty
             ? String(
                 localized: "No saved groups yet. Type a name to create one.",
                 comment: "SSH project group field hint when there are no saved groups."
@@ -855,7 +867,7 @@ final class SSHProjectController: NSObject {
         }
         if entry.authentication.requiresCredential {
             guard previousEntry?.authentication == entry.authentication,
-                  try SSHCredentialStore.shared.load(entry.id) != nil
+                try SSHCredentialStore.shared.load(entry.id) != nil
             else { throw SSHAuthentication.Error.missingCredential }
             return
         }
@@ -1065,18 +1077,20 @@ extension SSHProjectController: NSTableViewDataSource, NSTableViewDelegate {
     ) -> NSView? {
         switch displayRows[row] {
         case .header(let title):
-            let cell = (tableView.makeView(
-                withIdentifier: NSUserInterfaceItemIdentifier("sshGroupHeader"),
-                owner: nil
-            ) as? SSHGroupHeaderView) ?? SSHGroupHeaderView()
+            let cell =
+                (tableView.makeView(
+                    withIdentifier: NSUserInterfaceItemIdentifier("sshGroupHeader"),
+                    owner: nil
+                ) as? SSHGroupHeaderView) ?? SSHGroupHeaderView()
             cell.identifier = NSUserInterfaceItemIdentifier("sshGroupHeader")
             cell.configure(title: title)
             return cell
         case .entry(let entry):
-            let cell = (tableView.makeView(
-                withIdentifier: NSUserInterfaceItemIdentifier("sshProjectRow"),
-                owner: nil
-            ) as? SSHProjectRowView) ?? SSHProjectRowView()
+            let cell =
+                (tableView.makeView(
+                    withIdentifier: NSUserInterfaceItemIdentifier("sshProjectRow"),
+                    owner: nil
+                ) as? SSHProjectRowView) ?? SSHProjectRowView()
             cell.identifier = NSUserInterfaceItemIdentifier("sshProjectRow")
             cell.configure(entry: entry)
             cell.onEdit = { [weak self] in self?.editEntry(entry) }
@@ -1207,10 +1221,11 @@ private final class SSHProjectRowView: NSView {
         accessibilityLabel: String,
         action: Selector
     ) -> NSButton {
-        let button = NSButton(image: NSImage(
-            systemSymbolName: symbol,
-            accessibilityDescription: nil
-        ) ?? NSImage(), target: nil, action: action)
+        let button = NSButton(
+            image: NSImage(
+                systemSymbolName: symbol,
+                accessibilityDescription: nil
+            ) ?? NSImage(), target: nil, action: action)
         button.isBordered = false
         button.contentTintColor = .secondaryLabelColor
         button.setAccessibilityLabel(accessibilityLabel)

@@ -21,6 +21,9 @@ if ! command -v cargo >/dev/null 2>&1; then
   exit 1
 fi
 
+# rust-objcopy's rpath can miss the matching LLVM dylib in the sysroot.
+rust_dylib_path="$(rustc --print sysroot)/lib:${DYLD_FALLBACK_LIBRARY_PATH-${HOME}/lib:/usr/local/lib:/usr/lib}"
+
 mkdir -p "${BUILD_DIR}/remote" "${BUILD_DIR}/mac/Vendor/alacritty-bridge" "${BUILD_DIR}/mac/zshell/ThirdPartyNotices" "${OUTPUT_DIR}"
 # Compare contents so unchanged files keep their mtimes and Cargo stays incremental.
 rsync -c "${ROOT_DIR}/remote/Cargo.toml" "${ROOT_DIR}/remote/Cargo.lock" "${ROOT_DIR}/remote/build.rs" "${BUILD_DIR}/remote/"
@@ -41,7 +44,7 @@ for arch in ${=ARCHS}; do
     x86_64) target="x86_64-apple-darwin" ;;
     *) echo "error: unsupported server architecture ${arch}" >&2; exit 1 ;;
   esac
-  cargo build --release --locked --manifest-path "${BUILD_DIR}/remote/Cargo.toml" --target "${target}"
+  DYLD_FALLBACK_LIBRARY_PATH="${rust_dylib_path}" cargo build --release --locked --manifest-path "${BUILD_DIR}/remote/Cargo.toml" --target "${target}"
   slices+=("${CARGO_TARGET_DIR}/${target}/release/zshell-server")
 done
 if [[ ${#slices[@]} -eq 1 ]]; then cp "${slices[1]}" "${OUTPUT}"

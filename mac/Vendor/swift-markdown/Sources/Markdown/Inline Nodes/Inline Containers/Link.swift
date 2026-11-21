@@ -29,7 +29,8 @@ public struct Link: InlineMarkup, InlineContainer {
 
 public extension Link {
     /// Create a link with a destination and zero or more child inline elements.
-    init<Children: Sequence>(destination: String? = nil, title: String? = nil, _ children: Children) where Children.Element == RecurringInlineMarkup {
+    init<Children: Sequence>(destination: String? = nil, title: String? = nil, _ children: Children)
+    where Children.Element == RecurringInlineMarkup {
 
         let destinationToUse: String?
         if let d = destination, d.isEmpty {
@@ -68,7 +69,7 @@ public extension Link {
             }
         }
     }
-    
+
     /// The link's title.
     var title: String? {
         get {
@@ -81,16 +82,18 @@ public extension Link {
             if let t = newValue, t.isEmpty {
                 _data = _data.replacingSelf(.link(destination: destination, title: nil, parsedRange: nil, _data.raw.markup.copyChildren()))
             } else {
-                _data = _data.replacingSelf(.link(destination: destination, title: newValue, parsedRange: nil, _data.raw.markup.copyChildren()))
+                _data = _data.replacingSelf(
+                    .link(destination: destination, title: newValue, parsedRange: nil, _data.raw.markup.copyChildren()))
             }
         }
     }
 
     var isAutolink: Bool {
         guard let destination = destination,
-              childCount == 1,
-              let text = child(at: 0) as? Text,
-              destination == text.string else {
+            childCount == 1,
+            let text = child(at: 0) as? Text,
+            destination == text.string
+        else {
             return false
         }
         return true

@@ -123,11 +123,11 @@ class NSRangeApplyMutationTests: XCTestCase {
     }
 
     func testApplyTextChangePushingRangePastLimit() {
-        let range = NSRange(5..<10)
+        let range = NSRange(5 ..< 10)
 
-        let change = RangeMutation(range: NSRange(1..<1), delta: 1, limit: 10)
+        let change = RangeMutation(range: NSRange(1 ..< 1), delta: 1, limit: 10)
 
-        XCTAssertEqual(range.apply(change), NSRange(6..<11))
+        XCTAssertEqual(range.apply(change), NSRange(6 ..< 11))
     }
 
     func testApplyMutationToNotFound() {

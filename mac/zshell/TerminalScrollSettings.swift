@@ -2,7 +2,7 @@ import Foundation
 
 nonisolated enum TerminalScrollSettings {
     static let defaultMultiplier: Double = 1
-    static let multiplierRange: ClosedRange<Double> = 0.1...10
+    static let multiplierRange: ClosedRange<Double> = 0.1 ... 10
     static let maximumApplicationLines = 50
     static let maximumScrollbackLines = 10_000
     static let ghosttyWheelMultiplier: Double = 3

@@ -31,13 +31,15 @@ nonisolated enum GitProxy {
     static func normalized(_ address: String) -> String? {
         let value = address.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let components = URLComponents(string: value),
-              let scheme = components.scheme?.lowercased(),
-              ["http", "https", "socks5", "socks5h"].contains(scheme),
-              let host = components.host, !host.isEmpty,
-              components.port.map({ (1...65535).contains($0) }) ?? true,
-              components.query == nil, components.fragment == nil,
-              !value.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.contains($0)
-                  || CharacterSet.controlCharacters.contains($0) })
+            let scheme = components.scheme?.lowercased(),
+            ["http", "https", "socks5", "socks5h"].contains(scheme),
+            let host = components.host, !host.isEmpty,
+            components.port.map({ (1 ... 65535).contains($0) }) ?? true,
+            components.query == nil, components.fragment == nil,
+            !value.unicodeScalars.contains(where: {
+                CharacterSet.whitespacesAndNewlines.contains($0)
+                    || CharacterSet.controlCharacters.contains($0)
+            })
         else { return nil }
         return value
     }
@@ -71,7 +73,7 @@ nonisolated enum GitProxy {
             "GIT_CONFIG_KEY_\(index)": "http.proxy",
             "GIT_CONFIG_VALUE_\(index)": address,
         ]
-        for inherited in 0..<index {
+        for inherited in 0 ..< index {
             for key in ["GIT_CONFIG_KEY_\(inherited)", "GIT_CONFIG_VALUE_\(inherited)"] {
                 result[key] = environment[key]
             }

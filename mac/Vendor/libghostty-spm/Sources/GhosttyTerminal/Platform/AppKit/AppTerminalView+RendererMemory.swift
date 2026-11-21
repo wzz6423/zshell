@@ -9,8 +9,8 @@
         /// without resizing the terminal grid or its PTY.
         func compactRendererTargets() {
             guard !rendererTargetsCompacted,
-                  let surface,
-                  let layer
+                let surface,
+                let layer
             else { return }
 
             let maximumDimension = max(layer.bounds.width, layer.bounds.height)
@@ -28,7 +28,7 @@
             capturePresentationFrame()
             rendererTargetsCompacted = true
             updateActiveRendererLayer(scale: compactScale)
-            for _ in 0..<3 {
+            for _ in 0 ..< 3 {
                 surface.draw()
             }
             didRender()
@@ -45,7 +45,7 @@
             }
             guard let surface else { return }
             reattachPresentationCoverIfNeeded()
-            for _ in 0..<3 {
+            for _ in 0 ..< 3 {
                 surface.draw()
             }
             // Drawing can replace the attached IOSurface layer, so put the
@@ -61,7 +61,7 @@
         /// at the top-left instead of stretching with the view's new bounds.
         func capturePresentationFrame() {
             guard let sourceLayer = layer,
-                  let contents = sourceLayer.presentation()?.contents
+                let contents = sourceLayer.presentation()?.contents
                     ?? sourceLayer.contents
             else { return }
 
@@ -80,7 +80,7 @@
 
         func reattachPresentationCoverIfNeeded() {
             guard hasCapturedPresentationFrame,
-                  let layer
+                let layer
             else { return }
 
             CATransaction.begin()
@@ -102,8 +102,8 @@
             let generation = presentationCoverGeneration
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.075) { [weak self] in
                 guard let self,
-                      hasCapturedPresentationFrame,
-                      presentationCoverGeneration == generation
+                    hasCapturedPresentationFrame,
+                    presentationCoverGeneration == generation
                 else { return }
 
                 CATransaction.begin()

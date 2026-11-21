@@ -1,9 +1,9 @@
 struct SendableOpaquePointer: @unchecked Sendable {
-	let pointer: OpaquePointer
+    let pointer: OpaquePointer
 
-	init(_ pointer: OpaquePointer) {
-		self.pointer = pointer
-	}
+    init(_ pointer: OpaquePointer) {
+        self.pointer = pointer
+    }
 }
 
 extension SendableOpaquePointer: Equatable {}

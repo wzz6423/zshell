@@ -23,8 +23,9 @@ struct TerminalCommandHistoryPanelTests {
         let store = TerminalCommandHistoryStore(url: root.appendingPathComponent("panel/records.json"))
         try wait("panel history loads") { !store.isLoading }
         let manager = TerminalManager()
-        let host = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 680),
-                            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        let host = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 960, height: 680),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
         host.isReleasedWhenClosed = false
         host.identifier = NSUserInterfaceItemIdentifier("main-command-history-fixture")
         host.orderFront(nil)
@@ -45,14 +46,20 @@ struct TerminalCommandHistoryPanelTests {
         var inserted: UUID?
         var available = true
         controller.canReveal = { _ in available }
-        controller.reveal = { entry in revealed = entry.id; return false }
+        controller.reveal = { entry in
+            revealed = entry.id; return false
+        }
         controller.canInsert = { _ in available }
-        controller.insert = { entry in inserted = entry.id; return false }
+        controller.insert = { entry in
+            inserted = entry.id; return false
+        }
         let date = Date(timeIntervalSince1970: 1_790_000_000)
-        let first = TerminalCommandHistoryEntry(id: UUID(), terminalID: UUID(),
+        let first = TerminalCommandHistoryEntry(
+            id: UUID(), terminalID: UUID(),
             command: "printf '命令 👩🏽‍💻'\nprintf 'second line'", workingDirectory: "/tmp/项目/café",
             startedAt: date, finishedAt: date.addingTimeInterval(0.375), durationNanos: 375_000_000, exitCode: 7)
-        let second = TerminalCommandHistoryEntry(id: UUID(), terminalID: UUID(),
+        let second = TerminalCommandHistoryEntry(
+            id: UUID(), terminalID: UUID(),
             command: "echo other", workingDirectory: "/tmp/other", startedAt: date.addingTimeInterval(1),
             finishedAt: date.addingTimeInterval(1.01), durationNanos: 10_000_000, exitCode: 0)
         store.note(first)
@@ -78,12 +85,14 @@ struct TerminalCommandHistoryPanelTests {
         }
         host.makeKeyAndOrderFront(nil)
         try check(controller.validateMenuItem(historyItem), "history menu is available for the active workspace")
-        try check(NSApp.sendAction(action, to: historyItem.target, from: historyItem),
-                  "the installed menu action opens command history")
+        try check(
+            NSApp.sendAction(action, to: historyItem.target, from: historyItem),
+            "the installed menu action opens command history")
         guard let panel = host.childWindows?.first(where: { $0.identifier?.rawValue == "terminal-command-history" }),
-              let content = panel.contentView,
-              let search = view("command-history-search", in: content) as? NSSearchField,
-              let table = view("command-history-list", in: content) as? NSTableView else {
+            let content = panel.contentView,
+            let search = view("command-history-search", in: content) as? NSSearchField,
+            let table = view("command-history-list", in: content) as? NSTableView
+        else {
             throw HistoryPanelFailure.failed("history panel views missing")
         }
         try check(panel is NSPanel && table.numberOfRows == 2, "native history panel lists executed commands")
@@ -100,20 +109,23 @@ struct TerminalCommandHistoryPanelTests {
         try check(labels.contains(where: { $0.contains("👩🏽‍💻") && $0.contains("↵") }), "row preserves Unicode and shows multiline commands")
         try check(labels.contains(first.workingDirectory), "row displays the original directory")
         try check(labels.contains(where: { $0.contains("0.375") && $0.contains("7") }), "row displays duration and exit status")
-        try check(cell.accessibilityLabel()?.contains(first.workingDirectory) == true,
-                  "VoiceOver receives command and metadata")
+        try check(
+            cell.accessibilityLabel()?.contains(first.workingDirectory) == true,
+            "VoiceOver receives command and metadata")
 
         let pasteboard = NSPasteboard.general
-        let previous = pasteboard.pasteboardItems?.map { item in
-            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
-        } ?? []
+        let previous =
+            pasteboard.pasteboardItems?.map { item in
+                item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+            } ?? []
         defer {
             pasteboard.clearContents()
-            pasteboard.writeObjects(previous.map { values in
-                let item = NSPasteboardItem()
-                for (type, data) in values { item.setData(data, forType: type) }
-                return item
-            })
+            pasteboard.writeObjects(
+                previous.map { values in
+                    let item = NSPasteboardItem()
+                    for (type, data) in values { item.setData(data, forType: type) }
+                    return item
+                })
         }
         try click("command-history-copy", in: content)
         try check(pasteboard.string(forType: .string) == first.command, "Copy Command preserves exact multiline Unicode input")
@@ -123,11 +135,13 @@ struct TerminalCommandHistoryPanelTests {
         try check(inserted == first.id, "Insert into Terminal is an independent action")
         available = false
         controller.tableViewSelectionDidChange(Notification(name: NSTableView.selectionDidChangeNotification, object: table))
-        try check((view("command-history-show", in: content) as? NSButton)?.isEnabled == false
-                  && (view("command-history-insert", in: content) as? NSButton)?.isEnabled == false,
-                  "unavailable origin disables navigation and insertion")
-        try check((view("command-history-copy", in: content) as? NSButton)?.isEnabled == true,
-                  "copy stays available when the original pane is gone")
+        try check(
+            (view("command-history-show", in: content) as? NSButton)?.isEnabled == false
+                && (view("command-history-insert", in: content) as? NSButton)?.isEnabled == false,
+            "unavailable origin disables navigation and insertion")
+        try check(
+            (view("command-history-copy", in: content) as? NSButton)?.isEnabled == true,
+            "copy stays available when the original pane is gone")
 
         let originalLanguage = AppSettings.shared.language
         defer { AppSettings.shared.language = originalLanguage }
@@ -136,15 +150,20 @@ struct TerminalCommandHistoryPanelTests {
             pump(0.03)
             panel.setContentSize(NSSize(width: 620, height: 380))
             content.layoutSubtreeIfNeeded()
-            for id in ["command-history-show", "command-history-insert", "command-history-copy", "command-history-delete", "command-history-clear"] {
+            for id in [
+                "command-history-show", "command-history-insert", "command-history-copy", "command-history-delete", "command-history-clear",
+            ] {
                 guard let button = view(id, in: content) as? NSButton else { throw HistoryPanelFailure.failed(id) }
                 let frame = button.convert(button.bounds, to: content)
-                try check(frame.minX >= 0 && frame.maxX <= content.bounds.width && button.frame.width > 0,
-                          "\(language.rawValue) action \(id) fits minimum panel width")
-                try check(button.frame.width >= button.intrinsicContentSize.width - 1,
-                          "\(language.rawValue) action label remains untruncated")
-                try check(!button.title.isEmpty && button.accessibilityLabel() != "",
-                          "\(language.rawValue) action has a localized accessible name")
+                try check(
+                    frame.minX >= 0 && frame.maxX <= content.bounds.width && button.frame.width > 0,
+                    "\(language.rawValue) action \(id) fits minimum panel width")
+                try check(
+                    button.frame.width >= button.intrinsicContentSize.width - 1,
+                    "\(language.rawValue) action label remains untruncated")
+                try check(
+                    !button.title.isEmpty && button.accessibilityLabel() != "",
+                    "\(language.rawValue) action has a localized accessible name")
             }
         }
         AppSettings.shared.language = .english
@@ -172,13 +191,15 @@ struct TerminalCommandHistoryPanelTests {
         try check(host.firstResponder === previousResponder, "Escape restores the original responder")
         controller.show(for: manager)
         panel.performClose(nil)
-        try check(!panel.isVisible && panel.parent == nil && host.firstResponder === previousResponder,
-                  "the window close button also restores the original responder")
+        try check(
+            !panel.isVisible && panel.parent == nil && host.firstResponder === previousResponder,
+            "the window close button also restores the original responder")
         controller.show(for: manager)
         panel.makeFirstResponder(table)
         panel.cancelOperation(nil)
-        try check(!panel.isVisible && host.firstResponder === previousResponder,
-                  "Escape closes history from a table or button responder")
+        try check(
+            !panel.isVisible && host.firstResponder === previousResponder,
+            "Escape closes history from a table or button responder")
         controller.show(for: manager)
         controller.close(restoreFocus: false)
         try check(!panel.isVisible && panel.parent == nil, "successful actions can close without restoring the old pane")
@@ -199,18 +220,21 @@ struct TerminalCommandHistoryPanelTests {
         controller.close()
 
         let brokenURL = root.appendingPathComponent("broken-panel/records.json")
-        try FileManager.default.createDirectory(at: brokenURL.deletingLastPathComponent(), withIntermediateDirectories: true,
-                                               attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(
+            at: brokenURL.deletingLastPathComponent(), withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700])
         try PersistentCLIConnection.writePrivate(Data("broken".utf8), to: brokenURL)
         let broken = TerminalCommandHistoryStore(url: brokenURL)
         try wait("damaged panel history load settles") { !broken.isLoading }
         let brokenController = TerminalCommandHistoryController(store: broken)
         brokenController.show(for: manager)
         guard let brokenPanel = host.childWindows?.first(where: { $0.identifier?.rawValue == "terminal-command-history" }),
-              let brokenContent = brokenPanel.contentView else { throw HistoryPanelFailure.failed("damaged history panel missing") }
+            let brokenContent = brokenPanel.contentView
+        else { throw HistoryPanelFailure.failed("damaged history panel missing") }
         defer { brokenController.close() }
-        try check((view("command-history-clear", in: brokenContent) as? NSButton)?.isEnabled == true,
-                  "an empty damaged history can be repaired through Clear History")
+        try check(
+            (view("command-history-clear", in: brokenContent) as? NSButton)?.isEnabled == true,
+            "an empty damaged history can be repaired through Clear History")
         print("Command history AppKit panel: \(checks) checks passed")
     }
 

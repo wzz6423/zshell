@@ -61,12 +61,14 @@ struct TerminalSearchCallbackTests {
         var selectedPayload = ghostty_action_u()
         selectedPayload.search_selected = ghostty_action_search_selected_s(selected: 0)
 
-        #expect(bridge.handleAction(
-            ghostty_action_s(tag: GHOSTTY_ACTION_SEARCH_TOTAL, action: totalPayload)
-        ))
-        #expect(bridge.handleAction(
-            ghostty_action_s(tag: GHOSTTY_ACTION_SEARCH_SELECTED, action: selectedPayload)
-        ))
+        #expect(
+            bridge.handleAction(
+                ghostty_action_s(tag: GHOSTTY_ACTION_SEARCH_TOTAL, action: totalPayload)
+            ))
+        #expect(
+            bridge.handleAction(
+                ghostty_action_s(tag: GHOSTTY_ACTION_SEARCH_SELECTED, action: selectedPayload)
+            ))
 
         #expect(delegate.total == 6)
         #expect(delegate.selected == 0)
@@ -102,12 +104,14 @@ struct TerminalSearchCallbackTests {
     func `search actions are unhandled without a search delegate`() {
         let bridge = TerminalCallbackBridge(delegate: PlainDelegate())
 
-        #expect(!bridge.handleAction(
-            ghostty_action_s(tag: GHOSTTY_ACTION_END_SEARCH, action: ghostty_action_u())
-        ))
-        #expect(!bridge.handleAction(
-            ghostty_action_s(tag: GHOSTTY_ACTION_SEARCH_TOTAL, action: ghostty_action_u())
-        ))
+        #expect(
+            !bridge.handleAction(
+                ghostty_action_s(tag: GHOSTTY_ACTION_END_SEARCH, action: ghostty_action_u())
+            ))
+        #expect(
+            !bridge.handleAction(
+                ghostty_action_s(tag: GHOSTTY_ACTION_SEARCH_TOTAL, action: ghostty_action_u())
+            ))
     }
 }
 

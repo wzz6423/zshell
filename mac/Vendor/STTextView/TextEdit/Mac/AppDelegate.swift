@@ -25,8 +25,8 @@ private extension AppDelegate {
     func openSecondaryWindow() {
         let storyboard = NSStoryboard(name: "Main", bundle: nil)
         guard let windowController = storyboard.instantiateController(withIdentifier: "SecondaryWindowController") as? NSWindowController,
-              windowController.contentViewController is SecondaryTextEditViewController,
-              let window = windowController.window
+            windowController.contentViewController is SecondaryTextEditViewController,
+            let window = windowController.window
         else {
             assertionFailure("Failed to create secondary window controller")
             return

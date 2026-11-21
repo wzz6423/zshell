@@ -134,9 +134,10 @@ final class MarkdownImageLoader {
         request.timeoutInterval = 15
         // Whole-chunk callbacks keep large images fast while enforcing the cap
         // before buffering, even without Content-Length or after decompression.
-        guard let (data, _) = try? await BoundedHTTPData.data(
-            for: request, session: .shared, maximumBytes: maxBytes
-        )
+        guard
+            let (data, _) = try? await BoundedHTTPData.data(
+                for: request, session: .shared, maximumBytes: maxBytes
+            )
         else { return nil }
         return NSImage(data: data)
     }

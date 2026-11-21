@@ -10,7 +10,7 @@ import PackageDescription
     // statically.  More importantly, should this not hold, this will fail at
     // link time.
     let cSettings: [CSetting] = [
-        .define("CMARK_GFM_STATIC_DEFINE", .when(platforms: [.windows])),
+        .define("CMARK_GFM_STATIC_DEFINE", .when(platforms: [.windows]))
     ]
 #else
     let cSettings: [CSetting] = []
@@ -29,50 +29,55 @@ let package = Package(
         .executable(
             name: "cmark-gfm-bin",
             targets: ["cmark-gfm-bin"]),
-        .executable(name: "api_test",
-            targets: ["api_test"])
+        .executable(
+            name: "api_test",
+            targets: ["api_test"]),
     ],
     targets: [
-        .target(name: "cmark-gfm",
-          path: "src",
-          exclude: [
-            "scanners.re",
-            "libcmark-gfm.pc.in",
-            "config.h.in",
-            "CMakeLists.txt",
-          ],
-          cSettings: cSettings
+        .target(
+            name: "cmark-gfm",
+            path: "src",
+            exclude: [
+                "scanners.re",
+                "libcmark-gfm.pc.in",
+                "config.h.in",
+                "CMakeLists.txt",
+            ],
+            cSettings: cSettings
         ),
-        .target(name: "cmark-gfm-extensions",
-          dependencies: [
-            "cmark-gfm",
-          ],
-          path: "extensions",
-          exclude: [
-            "CMakeLists.txt",
-            "ext_scanners.re",
-          ],
-          cSettings: cSettings
+        .target(
+            name: "cmark-gfm-extensions",
+            dependencies: [
+                "cmark-gfm"
+            ],
+            path: "extensions",
+            exclude: [
+                "CMakeLists.txt",
+                "ext_scanners.re",
+            ],
+            cSettings: cSettings
         ),
-        .target(name: "cmark-gfm-bin",
-          dependencies: [
-            "cmark-gfm",
-            "cmark-gfm-extensions",
-          ],
-          path: "bin",
-          sources: [
-            "main.c",
-          ]
+        .target(
+            name: "cmark-gfm-bin",
+            dependencies: [
+                "cmark-gfm",
+                "cmark-gfm-extensions",
+            ],
+            path: "bin",
+            sources: [
+                "main.c"
+            ]
         ),
-        .target(name: "api_test",
-          dependencies: [
-            "cmark-gfm",
-            "cmark-gfm-extensions",
-          ],
-          path: "api_test",
-          exclude: [
-            "CMakeLists.txt",
-          ]
-        )
+        .target(
+            name: "api_test",
+            dependencies: [
+                "cmark-gfm",
+                "cmark-gfm-extensions",
+            ],
+            path: "api_test",
+            exclude: [
+                "CMakeLists.txt"
+            ]
+        ),
     ]
 )

@@ -71,7 +71,7 @@ final class RawMarkupToMarkupTests: XCTestCase {
         XCTAssertNoThrow(try InlineCode(.inlineCode(parsedRange: nil, code: "")))
         XCTAssertThrowsError(try InlineCode(.softBreak(parsedRange: nil)))
     }
-    
+
     func testInlineHTML() {
         XCTAssertNoThrow(try InlineHTML(.inlineHTML(parsedRange: nil, html: "")))
         XCTAssertThrowsError(try InlineHTML(.softBreak(parsedRange: nil)))

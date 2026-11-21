@@ -4,26 +4,26 @@
 import PackageDescription
 
 let package = Package(
-  name: "PierreDiffsSwift",
-  platforms: [
-    .macOS(.v14)
-  ],
-  products: [
-    .library(
-      name: "PierreDiffsSwift",
-      targets: ["PierreDiffsSwift"]
-    ),
-  ],
-  targets: [
-    .target(
-      name: "PierreDiffsSwift",
-      resources: [
-        .copy("Resources/pierre-diffs-bundle.js")
-      ]
-    ),
-    .testTarget(
-      name: "PierreDiffsSwiftTests",
-      dependencies: ["PierreDiffsSwift"]
-    ),
-  ]
+    name: "PierreDiffsSwift",
+    platforms: [
+        .macOS(.v14)
+    ],
+    products: [
+        .library(
+            name: "PierreDiffsSwift",
+            targets: ["PierreDiffsSwift"]
+        )
+    ],
+    targets: [
+        .target(
+            name: "PierreDiffsSwift",
+            resources: [
+                .copy("Resources/pierre-diffs-bundle.js")
+            ]
+        ),
+        .testTarget(
+            name: "PierreDiffsSwiftTests",
+            dependencies: ["PierreDiffsSwift"]
+        ),
+    ]
 )

@@ -23,11 +23,12 @@ extension InputEdit {
             assert(newEndPoint != nil)
         }
 
-        self.init(startByte: UInt32(range.location * 2),
-                  oldEndByte: UInt32(range.max * 2),
-                  newEndByte: UInt32(newEndLocation * 2),
-                  startPoint: startPoint ?? .zero,
-                  oldEndPoint: oldEndPoint,
-                  newEndPoint: newEndPoint ?? .zero)
+        self.init(
+            startByte: UInt32(range.location * 2),
+            oldEndByte: UInt32(range.max * 2),
+            newEndByte: UInt32(newEndLocation * 2),
+            startPoint: startPoint ?? .zero,
+            oldEndPoint: oldEndPoint,
+            newEndPoint: newEndPoint ?? .zero)
     }
 }

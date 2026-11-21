@@ -94,7 +94,8 @@ final class TerminalHintMode: NSObject {
             return
         }
         guard isPresented, let surface, surface.window != nil,
-              surface.window?.firstResponder === overlay else {
+            surface.window?.firstResponder === overlay
+        else {
             dismiss(restoringFocus: false)
             return
         }
@@ -151,8 +152,9 @@ final class TerminalHintMode: NSObject {
         } else if event.keyCode == 36 || event.keyCode == 76 {
             if matchingHints.count == 1 { select(matchingHints[0]) }
         } else if flags.isSubset(of: [.shift]),
-                  let letter = event.charactersIgnoringModifiers?.lowercased(),
-                  letter.count == 1, TerminalHintMatcher.alphabet.contains(letter) {
+            let letter = event.charactersIgnoringModifiers?.lowercased(),
+            letter.count == 1, TerminalHintMatcher.alphabet.contains(letter)
+        {
             let next = prefix + letter
             guard hints.contains(where: { $0.label.hasPrefix(next) }) else { return }
             prefix = next
@@ -278,8 +280,9 @@ private final class TerminalHintOverlay: NSView {
                 let label = hint.label.uppercased() as NSString
                 let size = label.size(withAttributes: attributes)
                 let width = max(size.width + 6, CGFloat(hint.label.count) * snapshot.cellSize.width)
-                let rect = CGRect(x: min(max(cell.minX, 0), max(0, bounds.width - width)), y: cell.minY,
-                                  width: width, height: max(cell.height, size.height + 2))
+                let rect = CGRect(
+                    x: min(max(cell.minX, 0), max(0, bounds.width - width)), y: cell.minY,
+                    width: width, height: max(cell.height, size.height + 2))
                 NSColor.controlAccentColor.setFill()
                 NSBezierPath(roundedRect: rect, xRadius: 2, yRadius: 2).fill()
                 label.draw(at: CGPoint(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2), withAttributes: attributes)
@@ -291,6 +294,8 @@ private final class TerminalHintOverlay: NSView {
         let statusRect = CGRect(x: 6, y: max(0, bounds.height - height - 6), width: max(0, bounds.width - 12), height: height)
         NSColor.windowBackgroundColor.withAlphaComponent(0.96).setFill()
         NSBezierPath(roundedRect: statusRect, xRadius: 5, yRadius: 5).fill()
-        status.draw(with: statusRect.insetBy(dx: 8, dy: 5), options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: statusAttributes)
+        status.draw(
+            with: statusRect.insetBy(dx: 8, dy: 5), options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
+            attributes: statusAttributes)
     }
 }

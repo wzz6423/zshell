@@ -3,27 +3,28 @@
 import Markdown
 
 let source = """
-The strong emphasis element is **going to be** deleted.
-"""
+    The strong emphasis element is **going to be** deleted.
+    """
 
 struct StrongDeleter: MarkupRewriter {
-  // Delete all ``Strong`` elements.
-  func visitStrong(_ strong: Strong) -> Markup? {
-    return nil
-  }
+    // Delete all ``Strong`` elements.
+    func visitStrong(_ strong: Strong) -> Markup? {
+        return nil
+    }
 }
 
 let document = Document(parsing: source)
 var deleter = StrongDeleter()
 let newDocument = deleter.visit(document) as! Document
 
-print("""
-## Original Markdown structure:
-\(document.debugDescription())
+print(
+    """
+    ## Original Markdown structure:
+    \(document.debugDescription())
 
-## New Markdown structure:
-\(newDocument.debugDescription())
-""")
+    ## New Markdown structure:
+    \(newDocument.debugDescription())
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

@@ -29,16 +29,17 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if os(macOS) && !targetEnvironment(macCatalyst)
-import AppKit
+    import AppKit
 #elseif os(iOS) || os(visionOS)
-import UIKit
+    import UIKit
 #endif
 
 extension NSTextRange {
 
     public convenience init?(_ nsRange: NSRange, in textContentManager: NSTextContentManager) {
         guard let start = textContentManager.location(textContentManager.documentRange.location, offsetBy: nsRange.location),
-              let end = textContentManager.location(start, offsetBy: nsRange.length) else {
+            let end = textContentManager.location(start, offsetBy: nsRange.length)
+        else {
             return nil
         }
         self.init(location: start, end: end)

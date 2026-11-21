@@ -45,7 +45,7 @@ final class PrimaryTextEditViewController: NSViewController {
             scrollView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
         ])
 
         applySampleDecorations()
@@ -78,17 +78,19 @@ final class PrimaryTextEditViewController: NSViewController {
                 return
             }
 
-            self.completions = arr
+            self.completions =
+                arr
                 .filter { $0.count > 2 }
                 .sorted { lhs, rhs in
                     lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
                 }
                 .map { word in
-                    let symbol = if let firstCharacter = word.first, firstCharacter.isASCII, firstCharacter.isLetter {
-                        "\(word.first!.lowercased()).square"
-                    } else {
-                        "note.text"
-                    }
+                    let symbol =
+                        if let firstCharacter = word.first, firstCharacter.isASCII, firstCharacter.isLetter {
+                            "\(word.first!.lowercased()).square"
+                        } else {
+                            "note.text"
+                        }
 
                     return Completion.Item(id: UUID().uuidString, label: word.localizedCapitalized, symbolName: symbol, insertText: word)
                 }
@@ -132,7 +134,7 @@ final class PrimaryTextEditViewController: NSViewController {
             textView.addAttributes(
                 [
                     .foregroundColor: NSColor.controlAccentColor,
-                    .font: NSFont.preferredFont(forTextStyle: .largeTitle)
+                    .font: NSFont.preferredFont(forTextStyle: .largeTitle),
                 ],
                 range: NSRange(firstLine, in: text)
             )
@@ -156,7 +158,8 @@ extension PrimaryTextEditViewController: STTextViewDelegate {
         if attachment is InteractiveButtonAttachment {
             let alert = NSAlert()
             alert.messageText = "Button Clicked!"
-            alert.informativeText = "The interactive button attachment was clicked and selected.\nThis works for both clicking the attachment character in text and clicking the button view directly!"
+            alert.informativeText =
+                "The interactive button attachment was clicked and selected.\nThis works for both clicking the attachment character in text and clicking the button view directly!"
             alert.runModal()
             return true
         } else if attachment is MyTextAttachment {

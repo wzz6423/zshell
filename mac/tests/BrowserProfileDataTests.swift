@@ -36,8 +36,9 @@ struct BrowserProfileDataTests {
         precondition(firefoxCookies.values[1].name == "session" && firefoxCookies.values[1].expires == -1)
         let bad = firefox.directory.appendingPathComponent("broken.jsonlz4")
         try Data("bad".utf8).write(to: bad)
-        do { _ = try BrowserProfileSessionReader.firefox(bad); fatalError("Invalid LZ4 accepted") }
-        catch BrowserProfileSessionReader.ReadError.invalidFile { }
+        do { _ = try BrowserProfileSessionReader.firefox(bad); fatalError("Invalid LZ4 accepted") } catch BrowserProfileSessionReader
+            .ReadError.invalidFile
+        {}
         let minimumIndex = firefox.directory.appendingPathComponent("minimum-index.jsonlz4")
         let maximumIndex = firefox.directory.appendingPathComponent("maximum-index.jsonlz4")
         for file in [minimumIndex, maximumIndex] {
@@ -59,13 +60,19 @@ struct BrowserProfileDataTests {
         for name in ["history-exclusive", "history-journal", "history-wal"] {
             let profile = BrowserProfile(kind: .chrome, name: name, directory: scratch.appendingPathComponent(name))
             let preview = BrowserProfileData.preview(profile, selection: [.history])
-            let expected = name == "history-wal"
+            let expected =
+                name == "history-wal"
                 ? ["https://example.test/wal", "https://example.test/committed"]
                 : ["https://example.test/committed"]
             guard preview.history.error == nil, preview.history.values.map(\.url) == expected,
-                  preview.history.values.allSatisfy({ $0.title == "Committed" }) else {
-                throw NSError(domain: "HistoryTest", code: 1, userInfo: [NSLocalizedDescriptionKey:
-                    "\(name): committed history unavailable: \(preview.history.error ?? "unexpected rows")"])
+                preview.history.values.allSatisfy({ $0.title == "Committed" })
+            else {
+                throw NSError(
+                    domain: "HistoryTest", code: 1,
+                    userInfo: [
+                        NSLocalizedDescriptionKey:
+                            "\(name): committed history unavailable: \(preview.history.error ?? "unexpected rows")"
+                    ])
             }
         }
         let temporary = FileManager.default.temporaryDirectory
@@ -108,27 +115,37 @@ struct BrowserProfileDataTests {
             ]
             if item.secure { properties[.secure] = "TRUE" }
             if item.httpOnly { properties[HTTPCookiePropertyKey("HttpOnly")] = "TRUE" }
-            if item.expires == -1 { properties[.discard] = "TRUE" }
-            else { properties[.expires] = Date(timeIntervalSince1970: item.expires) }
+            if item.expires == -1 {
+                properties[.discard] = "TRUE"
+            } else {
+                properties[.expires] = Date(timeIntervalSince1970: item.expires)
+            }
             let cookie = HTTPCookie(properties: properties)!
             await withCheckedContinuation { continuation in store.setCookie(cookie) { continuation.resume() } }
         }
         let stored = await withCheckedContinuation { continuation in
             store.getAllCookies { continuation.resume(returning: $0) }
         }
-        precondition(stored.count == imported.count,
-                     "WebKit retained \(stored.map(\.name)); expected \(imported.map(\.name))")
+        precondition(
+            stored.count == imported.count,
+            "WebKit retained \(stored.map(\.name)); expected \(imported.map(\.name))")
         for item in imported {
             let cookie = stored.first { $0.name == item.name }!
             precondition(cookie.value == item.value && cookie.isSecure == item.secure && cookie.isHTTPOnly == item.httpOnly)
             precondition(cookie.domain == item.domain && cookie.path == item.path)
-            if item.expires == -1 { precondition(cookie.expiresDate == nil) }
-            else { precondition(abs(cookie.expiresDate!.timeIntervalSince1970 - item.expires) < 1,
-                                "\(item.name) expiry \(cookie.expiresDate!.timeIntervalSince1970), source \(item.expires)") }
+            if item.expires == -1 {
+                precondition(cookie.expiresDate == nil)
+            } else {
+                precondition(
+                    abs(cookie.expiresDate!.timeIntervalSince1970 - item.expires) < 1,
+                    "\(item.name) expiry \(cookie.expiresDate!.timeIntervalSince1970), source \(item.expires)")
+            }
             precondition(cookie.sameSitePolicy?.rawValue.lowercased() == item.sameSite.lowercased())
         }
         withExtendedLifetime(dataStore) {}
-        print("Firefox missing/NULL/UNSET/unknown SameSite and explicit None restrictions passed; \(stored.count) cookies retained in real WebKit")
+        print(
+            "Firefox missing/NULL/UNSET/unknown SameSite and explicit None restrictions passed; \(stored.count) cookies retained in real WebKit"
+        )
     }
 
     /// An untraversable browser folder must surface as blocked; a missing one must not.

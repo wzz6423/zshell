@@ -79,11 +79,12 @@ final class CorpusHolder: Sendable {
             if line.isEmpty { continue }
             let fields = line.split(separator: "\t", omittingEmptySubsequences: false)
             guard fields.count >= 3 else { continue }
-            instruments.append(Instrument(
-                symbol: String(fields[0]),
-                name: String(fields[1]),
-                isin: String(fields[2])
-            ))
+            instruments.append(
+                Instrument(
+                    symbol: String(fields[0]),
+                    name: String(fields[1]),
+                    isin: String(fields[2])
+                ))
         }
         state.instruments = instruments
         state.symbolCandidates = instruments.map(\.symbol)
@@ -105,11 +106,12 @@ final class CorpusHolder: Sendable {
             if line.isEmpty { continue }
             let fields = line.split(separator: "\t", omittingEmptySubsequences: false)
             guard fields.count >= 3 else { continue }
-            queries.append(TestQuery(
-                text: String(fields[0]),
-                field: String(fields[1]),
-                category: String(fields[2])
-            ))
+            queries.append(
+                TestQuery(
+                    text: String(fields[0]),
+                    field: String(fields[1]),
+                    category: String(fields[2])
+                ))
         }
         state.queries = queries
         state.queriesByCategory = Dictionary(grouping: queries, by: \.category)

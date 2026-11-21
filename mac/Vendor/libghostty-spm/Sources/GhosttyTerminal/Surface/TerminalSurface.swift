@@ -390,9 +390,9 @@ public final class TerminalSurface {
 
         func selectionContainsQuicklookWord() -> Bool {
             guard let selected = readSelectionResult(),
-                  let word = quicklookWord(),
-                  !word.word.isEmpty,
-                  word.offsetLength > 0
+                let word = quicklookWord(),
+                !word.word.isEmpty,
+                word.offsetLength > 0
             else { return false }
 
             let selectionStart = UInt64(selected.offsetStart)

@@ -25,8 +25,9 @@ final class GitPullRequestBarView: NSView {
         button.alignment = .left
         button.lineBreakMode = .byTruncatingTail
         addSubview(button)
-        let refresh = NSMenuItem(title: String(localized: "Refresh Pull Request Status"),
-                                 action: #selector(refreshStatus), keyEquivalent: "")
+        let refresh = NSMenuItem(
+            title: String(localized: "Refresh Pull Request Status"),
+            action: #selector(refreshStatus), keyEquivalent: "")
         refresh.target = self
         menu = NSMenu()
         menu?.addItem(refresh)

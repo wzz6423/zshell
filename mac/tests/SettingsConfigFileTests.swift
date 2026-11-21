@@ -65,8 +65,9 @@ struct SettingsConfigFileTests {
         try manager.createSymbolicLink(atPath: backup.path, withDestinationPath: "../dotfiles/current")
         try SettingsConfigFile.backUp(at: config)
         var backupAttributes = stat()
-        check(lstat(backup.path, &backupAttributes) == 0
-            && backupAttributes.st_mode & S_IFMT == S_IFREG, "legacy linked backup becomes independent contents")
+        check(
+            lstat(backup.path, &backupAttributes) == 0
+                && backupAttributes.st_mode & S_IFMT == S_IFREG, "legacy linked backup becomes independent contents")
 
         let linkedDirectory = root.appendingPathComponent("linked-directory")
         try manager.createSymbolicLink(atPath: linkedDirectory.path, withDestinationPath: "dotfiles")
@@ -80,16 +81,17 @@ struct SettingsConfigFileTests {
 
         let cycle = root.appendingPathComponent("cycle")
         try manager.createSymbolicLink(atPath: cycle.path, withDestinationPath: "cycle")
-        do { _ = try SettingsConfigFile.read(at: cycle); fatalError("cyclic link was accepted") }
-        catch SettingsConfigFile.Failure.tooManyLinks {}
+        do { _ = try SettingsConfigFile.read(at: cycle); fatalError("cyclic link was accepted") } catch SettingsConfigFile.Failure
+            .tooManyLinks
+        {}
         let oversized = root.appendingPathComponent("oversized.toml")
         try Data(repeating: 65, count: SettingsConfigFile.maximumBytes + 1).write(to: oversized)
-        do { _ = try SettingsConfigFile.read(at: oversized); fatalError("oversized file was accepted") }
-        catch SettingsConfigFile.Failure.tooLarge {}
+        do { _ = try SettingsConfigFile.read(at: oversized); fatalError("oversized file was accepted") } catch SettingsConfigFile.Failure
+            .tooLarge
+        {}
         let pipe = root.appendingPathComponent("pipe.toml")
         check(mkfifo(pipe.path, 0o600) == 0, "create FIFO")
-        do { _ = try SettingsConfigFile.read(at: pipe); fatalError("FIFO was accepted") }
-        catch SettingsConfigFile.Failure.notRegularFile {}
+        do { _ = try SettingsConfigFile.read(at: pipe); fatalError("FIFO was accepted") } catch SettingsConfigFile.Failure.notRegularFile {}
 
         let events = Events()
         let monitor = SettingsConfigMonitor(url: config)
@@ -157,12 +159,14 @@ struct SettingsConfigFileTests {
         wait({ events.values.last == "" }, "stable empty file is valid")
 
         let beforeSave = events.values.count
-        for size in 8...32 { monitor.save("font-size = \(size)\n") }
+        for size in 8 ... 32 { monitor.save("font-size = \(size)\n") }
         monitor.flush()
         check(try SettingsConfigFile.read(at: config) == "font-size = 32\n", "flush persists latest queued UI save")
         Thread.sleep(forTimeInterval: 0.7)
         check(events.values.count == beforeSave, "own saves do not reload")
         check(!monitor.isCurrent(0), "stale read is rejected after save")
-        print("SettingsConfigFile: symlinks, permissions, bounded reads, live edits, atomic replacements, deletion, debounce and flush passed")
+        print(
+            "SettingsConfigFile: symlinks, permissions, bounded reads, live edits, atomic replacements, deletion, debounce and flush passed"
+        )
     }
 }

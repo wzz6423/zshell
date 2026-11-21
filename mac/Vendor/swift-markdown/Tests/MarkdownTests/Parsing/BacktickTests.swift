@@ -16,12 +16,12 @@ class BacktickTests: XCTestCase {
         let string = "Hello `test` String"
         let document = Document(parsing: string)
         let expectedDump = """
-        Document @1:1-1:20
-        └─ Paragraph @1:1-1:20
-           ├─ Text @1:1-1:7 "Hello "
-           ├─ InlineCode @1:7-1:13 `test`
-           └─ Text @1:13-1:20 " String"
-        """
+            Document @1:1-1:20
+            └─ Paragraph @1:1-1:20
+               ├─ Text @1:1-1:7 "Hello "
+               ├─ InlineCode @1:7-1:13 `test`
+               └─ Text @1:13-1:20 " String"
+            """
         XCTAssertEqual(expectedDump, document.debugDescription(options: .printSourceLocations))
     }
 
@@ -29,10 +29,10 @@ class BacktickTests: XCTestCase {
         let single = "`"
         let document = Document(parsing: single)
         let expectedDump = """
-        Document @1:1-1:2
-        └─ Paragraph @1:1-1:2
-           └─ Text @1:1-1:2 "`"
-        """
+            Document @1:1-1:2
+            └─ Paragraph @1:1-1:2
+               └─ Text @1:1-1:2 "`"
+            """
         XCTAssertEqual(expectedDump, document.debugDescription(options: .printSourceLocations))
     }
 
@@ -40,10 +40,10 @@ class BacktickTests: XCTestCase {
         let double = "``"
         let document = Document(parsing: double)
         let expectedDump = """
-        Document @1:1-1:3
-        └─ Paragraph @1:1-1:3
-           └─ Text @1:1-1:3 "``"
-        """
+            Document @1:1-1:3
+            └─ Paragraph @1:1-1:3
+               └─ Text @1:1-1:3 "``"
+            """
         XCTAssertEqual(expectedDump, document.debugDescription(options: .printSourceLocations))
     }
 
@@ -55,12 +55,12 @@ class BacktickTests: XCTestCase {
         let source = "Use `` ` `` to delimit"
         let document = Document(parsing: source, options: .parseSymbolLinks)
         let expectedDump = """
-        Document @1:1-1:23
-        └─ Paragraph @1:1-1:23
-           ├─ Text @1:1-1:5 "Use "
-           ├─ InlineCode @1:5-1:12 ```
-           └─ Text @1:12-1:23 " to delimit"
-        """
+            Document @1:1-1:23
+            └─ Paragraph @1:1-1:23
+               ├─ Text @1:1-1:5 "Use "
+               ├─ InlineCode @1:5-1:12 ```
+               └─ Text @1:12-1:23 " to delimit"
+            """
         XCTAssertEqual(expectedDump, document.debugDescription(options: .printSourceLocations))
     }
 
@@ -70,12 +70,12 @@ class BacktickTests: XCTestCase {
         let source = "Use ``` ` ``` to delimit"
         let document = Document(parsing: source, options: .parseSymbolLinks)
         let expectedDump = """
-        Document @1:1-1:25
-        └─ Paragraph @1:1-1:25
-           ├─ Text @1:1-1:5 "Use "
-           ├─ InlineCode @1:5-1:14 ```
-           └─ Text @1:14-1:25 " to delimit"
-        """
+            Document @1:1-1:25
+            └─ Paragraph @1:1-1:25
+               ├─ Text @1:1-1:5 "Use "
+               ├─ InlineCode @1:5-1:14 ```
+               └─ Text @1:14-1:25 " to delimit"
+            """
         XCTAssertEqual(expectedDump, document.debugDescription(options: .printSourceLocations))
     }
 
@@ -84,12 +84,12 @@ class BacktickTests: XCTestCase {
         let source = "See ``foo()`` for details"
         let document = Document(parsing: source, options: .parseSymbolLinks)
         let expectedDump = """
-        Document @1:1-1:26
-        └─ Paragraph @1:1-1:26
-           ├─ Text @1:1-1:5 "See "
-           ├─ SymbolLink @1:5-1:14 destination: foo()
-           └─ Text @1:14-1:26 " for details"
-        """
+            Document @1:1-1:26
+            └─ Paragraph @1:1-1:26
+               ├─ Text @1:1-1:5 "See "
+               ├─ SymbolLink @1:5-1:14 destination: foo()
+               └─ Text @1:14-1:26 " for details"
+            """
         XCTAssertEqual(expectedDump, document.debugDescription(options: .printSourceLocations))
     }
 
@@ -99,12 +99,12 @@ class BacktickTests: XCTestCase {
         let source = "Use ``` `` ``` in code"
         let document = Document(parsing: source, options: .parseSymbolLinks)
         let expectedDump = """
-        Document @1:1-1:23
-        └─ Paragraph @1:1-1:23
-           ├─ Text @1:1-1:5 "Use "
-           ├─ InlineCode @1:5-1:15 ````
-           └─ Text @1:15-1:23 " in code"
-        """
+            Document @1:1-1:23
+            └─ Paragraph @1:1-1:23
+               ├─ Text @1:1-1:5 "Use "
+               ├─ InlineCode @1:5-1:15 ````
+               └─ Text @1:15-1:23 " in code"
+            """
         XCTAssertEqual(expectedDump, document.debugDescription(options: .printSourceLocations))
     }
 }

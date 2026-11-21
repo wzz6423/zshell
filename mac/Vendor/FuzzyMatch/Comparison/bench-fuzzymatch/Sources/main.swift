@@ -93,7 +93,7 @@ struct App {
         print("=== Benchmark: FuzzyMatch (\(modeName)) scoring \(queries.count) queries x \(instruments.count) candidates ===")
         print("")
 
-        for iter in 0..<config.iterations {
+        for iter in 0 ..< config.iterations {
             var buffer = matcher.makeBuffer()
             let iterStart = now()
 
@@ -101,7 +101,8 @@ struct App {
                 let pool = candidates(for: q.field)
                 let prepared = matcher.prepare(q.text)
                 let qStart = now()
-                let (matchCount, _) = scoreQuery(matcher: matcher, prepared: prepared, buffer: &buffer, candidates: pool, useUTF8: config.useUTF8)
+                let (matchCount, _) = scoreQuery(
+                    matcher: matcher, prepared: prepared, buffer: &buffer, candidates: pool, useUTF8: config.useUTF8)
                 let qEnd = now()
                 queryTimingsMs[qi].append(msFrom(qStart, to: qEnd))
                 if iter == 0 {
@@ -180,7 +181,9 @@ struct App {
         let iterations = argValue(for: "--iterations", in: args).flatMap(Int.init) ?? 5
         let useSmithWaterman = args.contains("--sw")
         let useUTF8 = args.contains("--utf8")
-        return Config(tsvPath: tsvPath, queriesPath: queriesPath, iterations: max(1, iterations), useSmithWaterman: useSmithWaterman, useUTF8: useUTF8)
+        return Config(
+            tsvPath: tsvPath, queriesPath: queriesPath, iterations: max(1, iterations), useSmithWaterman: useSmithWaterman, useUTF8: useUTF8
+        )
     }
 
     static func argValue(for flag: String, in args: [String]) -> String? {
@@ -248,7 +251,9 @@ struct App {
         let medianTotal = iterationTotalsMs.sorted()[iterations / 2]
         let minTotal = iterationTotalsMs.min()!
         let maxTotal = iterationTotalsMs.max()!
-        print("Total time for \(queries.count) queries (min/median/max): \(String(format: "%.1f", minTotal))ms / \(String(format: "%.1f", medianTotal))ms / \(String(format: "%.1f", maxTotal))ms")
+        print(
+            "Total time for \(queries.count) queries (min/median/max): \(String(format: "%.1f", minTotal))ms / \(String(format: "%.1f", medianTotal))ms / \(String(format: "%.1f", maxTotal))ms"
+        )
 
         let totalScored = Double(candidateCount) * Double(queries.count)
         let throughput = totalScored / (medianTotal / 1000.0)
@@ -270,7 +275,9 @@ struct App {
         let present = Set(queries.map(\.category))
         let categories = categoryOrder.filter { present.contains($0) }
 
-        print("\(pad("Category", 22)) \(pad("Queries", 8, right: true)) \(pad("Med(ms)", 8, right: true)) \(pad("Min(ms)", 8, right: true)) \(pad("Matches", 8, right: true))")
+        print(
+            "\(pad("Category", 22)) \(pad("Queries", 8, right: true)) \(pad("Med(ms)", 8, right: true)) \(pad("Min(ms)", 8, right: true)) \(pad("Matches", 8, right: true))"
+        )
         print(String(repeating: "-", count: 60))
 
         for cat in categories {
@@ -282,7 +289,9 @@ struct App {
             let totalMin = indices.map { qi in queryTimingsMs[qi].min()! }.reduce(0, +)
             let totalMatches = indices.map { queryMatchCounts[$0] }.reduce(0, +)
 
-            print("\(pad(cat, 22)) \(pad("\(indices.count)", 8, right: true)) \(pad(fmtD(totalMedian, 2), 8, right: true)) \(pad(fmtD(totalMin, 2), 8, right: true)) \(pad("\(totalMatches)", 8, right: true))")
+            print(
+                "\(pad(cat, 22)) \(pad("\(indices.count)", 8, right: true)) \(pad(fmtD(totalMedian, 2), 8, right: true)) \(pad(fmtD(totalMin, 2), 8, right: true)) \(pad("\(totalMatches)", 8, right: true))"
+            )
         }
     }
 
@@ -294,7 +303,9 @@ struct App {
     ) {
         print("=== Per-Query Detail (sorted by median time, descending) ===")
         print("")
-        print("\(pad("Query", 32)) \(pad("Field", 8)) \(pad("Category", 16)) \(pad("Med(ms)", 8, right: true)) \(pad("Min(ms)", 8, right: true)) \(pad("Matches", 8, right: true))")
+        print(
+            "\(pad("Query", 32)) \(pad("Field", 8)) \(pad("Category", 16)) \(pad("Med(ms)", 8, right: true)) \(pad("Min(ms)", 8, right: true)) \(pad("Matches", 8, right: true))"
+        )
         print(String(repeating: "-", count: 96))
 
         let sorted = queries.indices.sorted { a, b in
@@ -306,7 +317,9 @@ struct App {
             let med = queryTimingsMs[qi].sorted()[iterations / 2]
             let minTime = queryTimingsMs[qi].min()!
             let display = q.text.count > 30 ? String(q.text.prefix(27)) + "..." : q.text
-            print("\(pad(display, 32)) \(pad(q.field, 8)) \(pad(q.category, 16)) \(pad(fmtD(med, 2), 8, right: true)) \(pad(fmtD(minTime, 2), 8, right: true)) \(pad("\(queryMatchCounts[qi])", 8, right: true))")
+            print(
+                "\(pad(display, 32)) \(pad(q.field, 8)) \(pad(q.category, 16)) \(pad(fmtD(med, 2), 8, right: true)) \(pad(fmtD(minTime, 2), 8, right: true)) \(pad("\(queryMatchCounts[qi])", 8, right: true))"
+            )
         }
     }
 

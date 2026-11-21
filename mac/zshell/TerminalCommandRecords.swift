@@ -18,8 +18,9 @@ struct TerminalCommandRecords {
 
     mutating func update(_ data: Data) -> Bool {
         guard data.count <= 64 * 1_024 * 1_024,
-              let snapshots = try? JSONDecoder().decode([TerminalCommandSnapshot].self, from: data),
-              snapshots.count <= 2_000 else { return false }
+            let snapshots = try? JSONDecoder().decode([TerminalCommandSnapshot].self, from: data),
+            snapshots.count <= 2_000
+        else { return false }
         let blockIDs = Set(snapshots.map(\.blockID))
         guard blockIDs.count == snapshots.count else { return false }
         identities = identities.filter { blockIDs.contains($0.key) }
@@ -44,6 +45,10 @@ struct TerminalCommandRecords {
 
 extension TerminalCommandTextPart {
     var nativeValue: UInt8 {
-        switch self { case .command: 0; case .output: 1; case .wholeBlock: 2 }
+        switch self {
+        case .command: 0;
+        case .output: 1;
+        case .wholeBlock: 2
+        }
     }
 }

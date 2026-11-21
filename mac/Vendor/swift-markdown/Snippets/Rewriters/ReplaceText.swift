@@ -22,19 +22,20 @@ struct TextReplacer: MarkupRewriter {
 }
 
 let source = """
-The word "foo" will be replaced with "bar".
-"""
+    The word "foo" will be replaced with "bar".
+    """
 let document = Document(parsing: source)
 var replacer = TextReplacer(replacing: "foo", with: "bar")
 let newDocument = replacer.visit(document) as! Document
 
-print("""
-## Original Markdown structure:
-\(document.debugDescription())
+print(
+    """
+    ## Original Markdown structure:
+    \(document.debugDescription())
 
-## New Markdown structure:
-\(newDocument.debugDescription())
-""")
+    ## New Markdown structure:
+    \(newDocument.debugDescription())
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

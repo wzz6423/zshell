@@ -48,26 +48,28 @@ private nonisolated final class Fixture {
 }
 
 private nonisolated let sleepingHelper = """
-trap '' TERM
-printf '%s\\n' "$$" > $PID_FILE
-/bin/sleep 3 &
-printf '%s\\n' "$!" >> $PID_FILE
-wait
-printf finished
-"""
+    trap '' TERM
+    printf '%s\\n' "$$" > $PID_FILE
+    /bin/sleep 3 &
+    printf '%s\\n' "$!" >> $PID_FILE
+    wait
+    printf finished
+    """
 
 private nonisolated func originalAlias(_ root: URL) {
     let args = ["-c", "alias.auditwait=!trap '' TERM; /bin/sleep 3; printf finished", "auditwait"]
     let start = DispatchTime.now()
     let runner = GitCommandRunner.runData(args, in: root.path, timeout: 0.1)
     let duration = elapsed(since: start)
-    require(runner.status == -2 && runner.stdout.isEmpty && duration < 0.8,
-            "Original hanging alias did not finish by its deadline")
+    require(
+        runner.status == -2 && runner.stdout.isEmpty && duration < 0.8,
+        "Original hanging alias did not finish by its deadline")
     let modelStart = DispatchTime.now()
     let model = GitStatusModel.runGit(args, in: root.path, timeout: 0.1)
     let modelDuration = elapsed(since: modelStart)
-    require(model.status == -2 && model.stdout.isEmpty && modelDuration < 0.8,
-            "Model still waits for the original alias's pipe EOF")
+    require(
+        model.status == -2 && model.stdout.isEmpty && modelDuration < 0.8,
+        "Model still waits for the original alias's pipe EOF")
     print("Original TERM-ignoring alias: runner \(String(format: "%.3f", duration))s / model \(String(format: "%.3f", modelDuration))s")
 }
 
@@ -92,17 +94,19 @@ private nonisolated func boundedTimeout(_ root: URL, model: Bool) throws {
 }
 
 private nonisolated func exitedParent(_ root: URL) throws {
-    let fixture = try Fixture(root, name: "exited-parent", body: """
-    (
-        trap '' TERM
-        /bin/sleep 3 &
-        printf '%s\\n' "$!" >> $PID_FILE
-        wait
-        printf finished
-    ) &
-    printf '%s\\n' "$!" >> $PID_FILE
-    exit 0
-    """)
+    let fixture = try Fixture(
+        root, name: "exited-parent",
+        body: """
+            (
+                trap '' TERM
+                /bin/sleep 3 &
+                printf '%s\\n' "$!" >> $PID_FILE
+                wait
+                printf finished
+            ) &
+            printf '%s\\n' "$!" >> $PID_FILE
+            exit 0
+            """)
     let start = DispatchTime.now()
     let result = GitCommandRunner.runData(fixture.arguments, in: root.path, timeout: 0.1)
     let duration = elapsed(since: start)
@@ -113,14 +117,17 @@ private nonisolated func exitedParent(_ root: URL) throws {
 }
 
 private nonisolated func successfulBackgroundHelper(_ root: URL) throws {
-    let fixture = try Fixture(root, name: "successful-background", body: """
-    /bin/sleep 2 </dev/null >/dev/null 2>&1 &
-    printf '%s\\n' "$!" > $PID_FILE
-    printf success
-    """)
+    let fixture = try Fixture(
+        root, name: "successful-background",
+        body: """
+            /bin/sleep 2 </dev/null >/dev/null 2>&1 &
+            printf '%s\\n' "$!" > $PID_FILE
+            printf success
+            """)
     let result = GitCommandRunner.runData(fixture.arguments, in: root.path, timeout: 1)
-    require(result.status == 0 && String(decoding: result.stdout, as: UTF8.self) == "success",
-            "Command with detached stdio did not succeed")
+    require(
+        result.status == 0 && String(decoding: result.stdout, as: UTF8.self) == "success",
+        "Command with detached stdio did not succeed")
     let pids = fixture.ownedPIDs()
     require(pids.count == 1 && Darwin.kill(pids[0], 0) == 0, "Success killed an unrelated-to-output helper")
     Darwin.kill(pids[0], SIGKILL)
@@ -133,24 +140,29 @@ private nonisolated func inheritedDescriptors(_ root: URL) throws {
     require(descriptor > STDERR_FILENO, "Could not create inherited descriptor fixture")
     defer { Darwin.close(descriptor) }
     require(fcntl(descriptor, F_SETFD, 0) == 0, "Could not make descriptor inheritable")
-    let fixture = try Fixture(root, name: "inherited-fds", body: """
-    if (printf leak >&\(descriptor)) 2>/dev/null; then exit 91; fi
-    printf isolated
-    """)
+    let fixture = try Fixture(
+        root, name: "inherited-fds",
+        body: """
+            if (printf leak >&\(descriptor)) 2>/dev/null; then exit 91; fi
+            printf isolated
+            """)
     let result = GitCommandRunner.runData(fixture.arguments, in: root.path, timeout: 1)
-    require(result.status == 0 && String(decoding: result.stdout, as: UTF8.self) == "isolated",
-            "Git inherited a nonstandard parent descriptor")
+    require(
+        result.status == 0 && String(decoding: result.stdout, as: UTF8.self) == "isolated",
+        "Git inherited a nonstandard parent descriptor")
     print("Git inherited only configured standard descriptors: passed")
 }
 
 private nonisolated func continuousOutput(_ root: URL) throws {
-    let fixture = try Fixture(root, name: "continuous-output", body: """
-    trap '' TERM
-    printf '%s\\n' "$$" > $PID_FILE
-    /usr/bin/perl -e 'alarm 3; while (1) { print "continuous-output" x 8192; print STDERR "continuous-error" x 8192; }' &
-    printf '%s\\n' "$!" >> $PID_FILE
-    wait
-    """)
+    let fixture = try Fixture(
+        root, name: "continuous-output",
+        body: """
+            trap '' TERM
+            printf '%s\\n' "$$" > $PID_FILE
+            /usr/bin/perl -e 'alarm 3; while (1) { print "continuous-output" x 8192; print STDERR "continuous-error" x 8192; }' &
+            printf '%s\\n' "$!" >> $PID_FILE
+            wait
+            """)
     let start = DispatchTime.now()
     let result = GitCommandRunner.runData(fixture.arguments, in: root.path, limit: 128, timeout: 0.1)
     let duration = elapsed(since: start)
@@ -163,8 +175,9 @@ private nonisolated func continuousOutput(_ root: URL) throws {
 private nonisolated func blockedInput(_ root: URL) throws {
     let fixture = try Fixture(root, name: "blocked-input", body: sleepingHelper)
     let start = DispatchTime.now()
-    let result = GitCommandRunner.runData(fixture.arguments, in: root.path,
-                                          input: Data(repeating: 42, count: 8 << 20), timeout: 0.1)
+    let result = GitCommandRunner.runData(
+        fixture.arguments, in: root.path,
+        input: Data(repeating: 42, count: 8 << 20), timeout: 0.1)
     let duration = elapsed(since: start)
     require(result.status == -2 && duration < 0.8, "Blocked stdin hid the deadline")
     fixture.requireStopped()
@@ -172,29 +185,37 @@ private nonisolated func blockedInput(_ root: URL) throws {
 }
 
 private nonisolated func outputs(_ root: URL) throws {
-    let fixture = try Fixture(root, name: "large-output", body: """
-    /usr/bin/perl -e 'for (1..768) { print STDOUT "a" x 16384; print STDERR "b" x 8192; }'
-    """)
+    let fixture = try Fixture(
+        root, name: "large-output",
+        body: """
+            /usr/bin/perl -e 'for (1..768) { print STDOUT "a" x 16384; print STDERR "b" x 8192; }'
+            """)
     let result = GitCommandRunner.runData(fixture.arguments, in: root.path, limit: .max, timeout: 10)
     require(result.status == 0 && !result.truncated, "Normal output was reported as incomplete")
     require(result.stdout == Data(repeating: 97, count: 12 << 20), "Normal stdout lost bytes")
     require(result.stderr == String(repeating: "b", count: 6 << 20), "Normal stderr lost bytes")
     let model = GitStatusModel.runGit(fixture.arguments, in: root.path, timeout: 10)
-    require(model.status == 0 && model.stdout == String(repeating: "a", count: 12 << 20)
+    require(
+        model.status == 0 && model.stdout == String(repeating: "a", count: 12 << 20)
             && model.stderr == result.stderr, "Model's unlimited output was capped")
     let limited = GitCommandRunner.runData(fixture.arguments, in: root.path, limit: 128, timeout: 10)
-    require(limited.status == 0 && limited.truncated && limited.stdout == Data(repeating: 97, count: 128)
+    require(
+        limited.status == 0 && limited.truncated && limited.stdout == Data(repeating: 97, count: 128)
             && limited.stderr == String(repeating: "b", count: 128), "Limited output was not drained to completion")
     let zero = GitCommandRunner.runData(fixture.arguments, in: root.path, limit: 0, timeout: 10)
-    require(zero.status == 0 && zero.truncated && zero.stdout.isEmpty && zero.stderr.isEmpty,
-            "Zero output limit failed to drain the pipes")
+    require(
+        zero.status == 0 && zero.truncated && zero.stdout.isEmpty && zero.stderr.isEmpty,
+        "Zero output limit failed to drain the pipes")
 
-    let unicode = try Fixture(root, name: "unicode", body: """
-    /usr/bin/perl -e 'print pack("C*", 0xe7, 0x95, 0x8c, 0xf0, 0x9f, 0x99, 0x82) x 20000;'
-    """)
+    let unicode = try Fixture(
+        root, name: "unicode",
+        body: """
+            /usr/bin/perl -e 'print pack("C*", 0xe7, 0x95, 0x8c, 0xf0, 0x9f, 0x99, 0x82) x 20000;'
+            """)
     let unicodeResult = GitStatusModel.runGit(unicode.arguments, in: root.path, timeout: 2)
-    require(unicodeResult.status == 0 && unicodeResult.stdout == String(repeating: "界🙂", count: 20000),
-            "UTF-8 split across read batches was damaged")
+    require(
+        unicodeResult.status == 0 && unicodeResult.stdout == String(repeating: "界🙂", count: 20000),
+        "UTF-8 split across read batches was damaged")
     print("Large stdout/stderr, truncation/zero limit, and Unicode: passed")
 }
 
@@ -209,20 +230,26 @@ private nonisolated func inputAndEnvironment(_ root: URL) throws {
     }
     let earlyClose = try Fixture(root, name: "stdin-close", body: "exec 0<&-\nprintf closed")
     let closed = GitCommandRunner.runData(earlyClose.arguments, in: root.path, input: input, timeout: 1)
-    require(closed.status == 0 && String(decoding: closed.stdout, as: UTF8.self) == "closed",
-            "Closing stdin triggered SIGPIPE or prevented completion")
+    require(
+        closed.status == 0 && String(decoding: closed.stdout, as: UTF8.self) == "closed",
+        "Closing stdin triggered SIGPIPE or prevented completion")
 
     GitProxy.update(enabled: true, address: "http://127.0.0.1:45678")
     defer { GitProxy.update(enabled: false, address: "") }
-    let environment = try Fixture(root, name: "environment", body: """
-    printf '%s|%s|%s|%s|%s|' "$GIT_OPTIONAL_LOCKS" "$GIT_TERMINAL_PROMPT" "$LC_ALL" "$AUDIT_MARKER" "$https_proxy"
-    /usr/bin/git config --get http.proxy
-    """)
-    let value = GitCommandRunner.runData(environment.arguments, in: root.path,
-                                        environment: ["AUDIT_MARKER": "自定义"], timeout: 1)
-    require(value.status == 0 && String(decoding: value.stdout, as: UTF8.self)
-            == "0|0|C|自定义|http://127.0.0.1:45678|http://127.0.0.1:45678\n",
-            "Git environment or proxy was lost")
+    let environment = try Fixture(
+        root, name: "environment",
+        body: """
+            printf '%s|%s|%s|%s|%s|' "$GIT_OPTIONAL_LOCKS" "$GIT_TERMINAL_PROMPT" "$LC_ALL" "$AUDIT_MARKER" "$https_proxy"
+            /usr/bin/git config --get http.proxy
+            """)
+    let value = GitCommandRunner.runData(
+        environment.arguments, in: root.path,
+        environment: ["AUDIT_MARKER": "自定义"], timeout: 1)
+    require(
+        value.status == 0
+            && String(decoding: value.stdout, as: UTF8.self)
+                == "0|0|C|自定义|http://127.0.0.1:45678|http://127.0.0.1:45678\n",
+        "Git environment or proxy was lost")
     print("Stdin round trip/nil/empty/early close and proxy/environment: passed")
 }
 
@@ -231,8 +258,9 @@ private nonisolated func errorsAndExitCodes(_ root: URL) throws {
     let result = GitCommandRunner.runData(fixture.arguments, in: root.path, timeout: 1)
     require(result.status == 37 && result.stderr == "diagnostic", "Ordinary nonzero exit changed")
     let signalled = try Fixture(root, name: "signal-exit", body: "kill -KILL $$")
-    require(GitCommandRunner.runData(signalled.arguments, in: root.path, timeout: 1).status != 0,
-            "Signal termination was reported as successful")
+    require(
+        GitCommandRunner.runData(signalled.arguments, in: root.path, timeout: 1).status != 0,
+        "Signal termination was reported as successful")
     let invalid = GitCommandRunner.runData(["--version"], in: root.appendingPathComponent("missing").path, timeout: 1)
     require(invalid.status == -1 && !invalid.stderr.isEmpty, "Invalid cwd did not return launch failure")
     let malformed = GitCommandRunner.runData(["bad\0argument"], in: root.path, timeout: 1)
@@ -260,17 +288,19 @@ private nonisolated func cancellation(_ root: URL, index: Int) async throws {
 }
 
 private nonisolated func cancellationAfterParentExit(_ root: URL) async throws {
-    let fixture = try Fixture(root, name: "cancel-exited-parent", body: """
-    (
-        trap '' TERM
-        /bin/sleep 3 &
-        printf '%s\\n' "$!" >> $PID_FILE
-        wait
-        printf finished
-    ) &
-    printf '%s\\n' "$!" >> $PID_FILE
-    exit 0
-    """)
+    let fixture = try Fixture(
+        root, name: "cancel-exited-parent",
+        body: """
+            (
+                trap '' TERM
+                /bin/sleep 3 &
+                printf '%s\\n' "$!" >> $PID_FILE
+                wait
+                printf finished
+            ) &
+            printf '%s\\n' "$!" >> $PID_FILE
+            exit 0
+            """)
     let arguments = fixture.arguments
     let directory = root.path
     let task = Task.detached { await GitCommandRunner().run(arguments, in: directory) }
@@ -297,8 +327,9 @@ private nonisolated func cancelledBeforeLaunch(_ root: URL) async throws {
         return await GitCommandRunner().run(arguments, in: directory)
     }
     let result = await task.value
-    require(result.status == -3 && !FileManager.default.fileExists(atPath: fixture.pids.path),
-            "Already-cancelled task launched Git")
+    require(
+        result.status == -3 && !FileManager.default.fileExists(atPath: fixture.pids.path),
+        "Already-cancelled task launched Git")
     print("Cancellation before launch: status \(result.status), no helper launched")
 }
 
@@ -337,13 +368,15 @@ struct GitCommandRunnerTests {
         try await Task.sleep(for: .milliseconds(100))
         let baselineThreads = threadCount()
         let baselineDescriptors = descriptorCount()
-        for index in 1...6 { try await cancellation(root, index: index) }
+        for index in 1 ... 6 { try await cancellation(root, index: index) }
         try await Task.sleep(for: .milliseconds(100))
         let finalThreads = threadCount()
         let finalDescriptors = descriptorCount()
         require(finalThreads <= baselineThreads + 2, "Repeated cancellation left growing reader/worker threads")
         require(finalDescriptors == baselineDescriptors, "Repeated cancellation leaked pipe descriptors")
-        print("Repeated cancellation resources: threads \(baselineThreads) -> \(finalThreads), FD bytes \(baselineDescriptors) -> \(finalDescriptors)")
+        print(
+            "Repeated cancellation resources: threads \(baselineThreads) -> \(finalThreads), FD bytes \(baselineDescriptors) -> \(finalDescriptors)"
+        )
         print("Git process timeout/cancellation regression: passed")
     }
 }

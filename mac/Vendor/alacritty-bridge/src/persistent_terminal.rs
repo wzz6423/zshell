@@ -440,14 +440,31 @@ impl ZshellPersistentTerminal {
         for row in self.term.screen_lines().saturating_sub(16)..self.term.screen_lines() {
             for column in 0..self.term.columns().min(240) {
                 let cell = &self.term.grid()[alacritty_terminal::index::Point::new(
-                    alacritty_terminal::index::Line(row as i32), alacritty_terminal::index::Column(column)
+                    alacritty_terminal::index::Line(row as i32),
+                    alacritty_terminal::index::Column(column),
                 )];
-                if cell.flags.intersects(Flags::WIDE_CHAR_SPACER | Flags::LEADING_WIDE_CHAR_SPACER) { continue; }
+                if cell
+                    .flags
+                    .intersects(Flags::WIDE_CHAR_SPACER | Flags::LEADING_WIDE_CHAR_SPACER)
+                {
+                    continue;
+                }
                 output.push(if cell.c == '\t' { ' ' } else { cell.c });
-                for mark in cell.zerowidth().into_iter().flatten().take(MAX_COMBINING_MARKS) { output.push(*mark); }
-                if output.len() > 32_768 { return String::new(); }
+                for mark in cell
+                    .zerowidth()
+                    .into_iter()
+                    .flatten()
+                    .take(MAX_COMBINING_MARKS)
+                {
+                    output.push(*mark);
+                }
+                if output.len() > 32_768 {
+                    return String::new();
+                }
             }
-            while output.ends_with([' ', '\t']) { output.pop(); }
+            while output.ends_with([' ', '\t']) {
+                output.pop();
+            }
             output.push('\n');
         }
         output
@@ -826,7 +843,10 @@ mod tests {
     fn viewport_footer_is_bounded_and_uses_the_live_grid() {
         let mut terminal = terminal();
         terminal.feed(b"old history\r\n\x1b[?1049h\x1b[Hbusy\r\n", false);
-        terminal.feed("────────────────────\r\n❯ restored\r\n────────────────────\r\n".as_bytes(), false);
+        terminal.feed(
+            "────────────────────\r\n❯ restored\r\n────────────────────\r\n".as_bytes(),
+            false,
+        );
         let footer = terminal.viewport_footer();
         assert!(footer.contains("❯ restored"));
         assert!(!footer.contains("old history"));

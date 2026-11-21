@@ -26,8 +26,10 @@ nonisolated struct EditorDraftRecord: Codable, Sendable {
     let diffState: DiffState?
     let previousPaths: [String]?
 
-    init(id: UUID, source: Source, text: String, baseline: FileSaveSnapshot,
-         editorState: EditorState? = nil, diffState: DiffState? = nil, previousPaths: [String]? = nil) {
+    init(
+        id: UUID, source: Source, text: String, baseline: FileSaveSnapshot,
+        editorState: EditorState? = nil, diffState: DiffState? = nil, previousPaths: [String]? = nil
+    ) {
         version = 1
         self.id = id
         updatedAt = Date()
@@ -49,20 +51,23 @@ nonisolated struct EditorDraftRecord: Codable, Sendable {
 
     var isValid: Bool {
         guard version == 1, updatedAt.timeIntervalSince1970.isFinite,
-              updatedAt <= Date().addingTimeInterval(300),
-              Self.absolutePath(baseline.destinationPath), baseline.isRegular,
-              let data = baseline.data, data.count <= FileSaveCoordinator.maxBytes,
-              baseline.text != nil, !text.contains("\0"),
-              text.utf8.count <= FileSaveCoordinator.maxBytes,
-              text != baseline.text, (previousPaths?.count ?? 0) <= 8,
-              previousPaths?.allSatisfy(Self.absolutePath) != false else { return false }
+            updatedAt <= Date().addingTimeInterval(300),
+            Self.absolutePath(baseline.destinationPath), baseline.isRegular,
+            let data = baseline.data, data.count <= FileSaveCoordinator.maxBytes,
+            baseline.text != nil, !text.contains("\0"),
+            text.utf8.count <= FileSaveCoordinator.maxBytes,
+            text != baseline.text, (previousPaths?.count ?? 0) <= 8,
+            previousPaths?.allSatisfy(Self.absolutePath) != false
+        else { return false }
         switch source {
         case .file(let path): return Self.absolutePath(path) && diffState == nil
         case .diff(let root, let path, _, let original):
             return Self.absolutePath(root) && Self.relativePath(path)
                 && original.map(Self.relativePath) != false
-                && diffState.map { $0.oldText.utf8.count <= FileSaveCoordinator.maxBytes
-                    && $0.editor?.isValid != false && ["split", "unified"].contains($0.style) } == true
+                && diffState.map {
+                    $0.oldText.utf8.count <= FileSaveCoordinator.maxBytes
+                        && $0.editor?.isValid != false && ["split", "unified"].contains($0.style)
+                } == true
         }
     }
 
@@ -115,7 +120,7 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
     deinit { cleanupTimer?.cancel() }
 
     func startExpiryCleanup(interval: TimeInterval = 60 * 60) {
-        queue.async {
+        queue.async { [self] in
             guard self.cleanupTimer == nil else { return }
             let timer = DispatchSource.makeTimerSource(queue: self.queue)
             timer.schedule(deadline: .now(), repeating: interval, leeway: .milliseconds(10))
@@ -133,8 +138,7 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
 
     func write(_ records: [EditorDraftRecord], completion: @escaping @Sendable (Error?) -> Void) {
         queue.async {
-            do { try self.writeNow(records); completion(nil) }
-            catch { completion(error) }
+            do { try self.writeNow(records); completion(nil) } catch { completion(error) }
         }
     }
 
@@ -167,9 +171,12 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
                     // A save may have reached disk just before the process
                     // exited. Never resurrect an already-saved stale backup.
                     if let current = try? FileSaveCoordinator.read(path: record.path),
-                       current.text == record.text {
+                        current.text == record.text
+                    {
                         continuation.resume(returning: nil)
-                    } else { continuation.resume(returning: record) }
+                    } else {
+                        continuation.resume(returning: record)
+                    }
                 } catch { continuation.resume(throwing: error) }
             }
         }
@@ -219,20 +226,24 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
         _ = fsync(descriptor)
     }
 
-    private func prune(in descriptor: Int32, written: [UUID: Date] = [:],
-                       validatingRecords: Bool = true,
-                       onRead: ((EditorDraftRecord) -> Void)? = nil) throws {
+    private func prune(
+        in descriptor: Int32, written: [UUID: Date] = [:],
+        validatingRecords: Bool = true,
+        onRead: ((EditorDraftRecord) -> Void)? = nil
+    ) throws {
         let entries = try entries(in: descriptor, removingTemporary: true).sorted { $0.modified > $1.modified }
         // Healthy writes and individual loads need only metadata cleanup.
         // Decode before quota eviction, listing, or scheduled cleanup.
-        let validate = validatingRecords || entries.count > Self.maximumEntries
+        let validate =
+            validatingRecords || entries.count > Self.maximumEntries
             || entries.reduce(0, { $0 + min($1.bytes, Self.maximumRecordBytes) }) > Self.maximumTotalBytes
         let cutoff = Date().addingTimeInterval(-Self.retention)
         var count = 0, bytes = 0
         for entry in entries {
             if entry.modified < cutoff || entry.bytes > Self.maximumRecordBytes
                 || written[entry.id].map({ $0 < cutoff }) == true
-                || count >= Self.maximumEntries || bytes + entry.bytes > Self.maximumTotalBytes {
+                || count >= Self.maximumEntries || bytes + entry.bytes > Self.maximumTotalBytes
+            {
                 _ = unlinkat(descriptor, entry.name, 0)
             } else {
                 // Only validated candidates may displace recoverable drafts;
@@ -267,7 +278,8 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
             }
             var info = stat()
             guard fstat(descriptor, &info) == 0, info.st_uid == geteuid(),
-                  info.st_mode & S_IFMT == S_IFDIR else { throw Failure.unsafeDirectory }
+                info.st_mode & S_IFMT == S_IFDIR
+            else { throw Failure.unsafeDirectory }
             if create {
                 guard fchmod(descriptor, 0o700) == 0 else { throw posixError() }
             } else {
@@ -297,7 +309,8 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
                 $0.withMemoryRebound(to: CChar.self, capacity: Int(entry.pointee.d_namlen) + 1) { String(cString: $0) }
             }
             if removingTemporary, name.hasPrefix("."), name.hasSuffix(".tmp"),
-               UUID(uuidString: String(name.dropFirst().dropLast(4))) != nil {
+                UUID(uuidString: String(name.dropFirst().dropLast(4))) != nil
+            {
                 // A crash between fsync and rename leaves only an unpublished
                 // private temporary file. It must not accumulate across restarts.
                 _ = unlinkat(descriptor, name, 0)
@@ -306,10 +319,13 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
             guard name.hasSuffix(".json"), let id = UUID(uuidString: String(name.dropLast(5))) else { continue }
             var info = stat()
             guard fstatat(descriptor, name, &info, AT_SYMLINK_NOFOLLOW) == 0,
-                  info.st_mode & S_IFMT == S_IFREG, info.st_uid == geteuid(),
-                  info.st_nlink == 1, info.st_size >= 0 else { continue }
-            result.append(Entry(id: id, name: name, bytes: Int(info.st_size),
-                                modified: Date(timeIntervalSince1970: Double(info.st_mtimespec.tv_sec))))
+                info.st_mode & S_IFMT == S_IFREG, info.st_uid == geteuid(),
+                info.st_nlink == 1, info.st_size >= 0
+            else { continue }
+            result.append(
+                Entry(
+                    id: id, name: name, bytes: Int(info.st_size),
+                    modified: Date(timeIntervalSince1970: Double(info.st_mtimespec.tv_sec))))
         }
         return result
     }
@@ -321,7 +337,8 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
         defer { try? file.close() }
         var before = stat()
         guard fstat(descriptor, &before) == 0, before.st_mode & S_IFMT == S_IFREG,
-              before.st_uid == geteuid(), before.st_nlink == 1, before.st_mode & 0o077 == 0 else { throw Failure.unsafeFile }
+            before.st_uid == geteuid(), before.st_nlink == 1, before.st_mode & 0o077 == 0
+        else { throw Failure.unsafeFile }
         guard before.st_mtimespec.tv_sec >= Int(Date().addingTimeInterval(-Self.retention).timeIntervalSince1970) else {
             _ = unlinkat(parent, "\(id.uuidString.lowercased()).json", 0)
             _ = fsync(parent)
@@ -335,11 +352,12 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
         }
         var after = stat()
         guard fstat(descriptor, &after) == 0,
-              before.st_size == after.st_size,
-              before.st_mtimespec.tv_sec == after.st_mtimespec.tv_sec,
-              before.st_mtimespec.tv_nsec == after.st_mtimespec.tv_nsec,
-              before.st_ctimespec.tv_sec == after.st_ctimespec.tv_sec,
-              before.st_ctimespec.tv_nsec == after.st_ctimespec.tv_nsec else { throw Failure.unsafeFile }
+            before.st_size == after.st_size,
+            before.st_mtimespec.tv_sec == after.st_mtimespec.tv_sec,
+            before.st_mtimespec.tv_nsec == after.st_mtimespec.tv_nsec,
+            before.st_ctimespec.tv_sec == after.st_ctimespec.tv_sec,
+            before.st_ctimespec.tv_nsec == after.st_ctimespec.tv_nsec
+        else { throw Failure.unsafeFile }
         let record = try JSONDecoder().decode(EditorDraftRecord.self, from: data)
         guard record.id == id, record.isValid else { throw Failure.invalidRecord }
         guard record.updatedAt >= Date().addingTimeInterval(-Self.retention) else {
@@ -371,7 +389,9 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
         var target = stat()
         if fstatat(parent, name, &target, AT_SYMLINK_NOFOLLOW) == 0 {
             guard target.st_mode & S_IFMT == S_IFREG, target.st_uid == geteuid(), target.st_nlink == 1 else { throw Failure.unsafeFile }
-        } else if errno != ENOENT { throw posixError() }
+        } else if errno != ENOENT {
+            throw posixError()
+        }
         guard renameat(parent, temporary, parent, name) == 0 else { throw posixError() }
     }
 
@@ -396,17 +416,18 @@ final class EditorDraftStore: ObservableObject {
 
     private init() {
         #if DEBUG
-        let name = "zshell-dev"
+            let name = "zshell-dev"
         #else
-        let name = "zshell"
+            let name = "zshell"
         #endif
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         // Resolve an existing prefix even when this fresh home's Library is
         // absent; Foundation leaves /tmp unresolved in that case.
         let base = ((try? SettingsConfigFile.resolve(support)) ?? support)
             .appendingPathComponent(name, isDirectory: true)
-        archive = EditorDraftArchive(directory: base.appendingPathComponent("editor-drafts", isDirectory: true),
-                                     enabled: AppSettings.shared.recoverEditorDrafts)
+        archive = EditorDraftArchive(
+            directory: base.appendingPathComponent("editor-drafts", isDirectory: true),
+            enabled: AppSettings.shared.recoverEditorDrafts)
         settingsObservation = AppSettings.shared.$recoverEditorDrafts.removeDuplicates().dropFirst()
             .sink { [weak self] enabled in
                 self?.archive.setEnabled(enabled)
@@ -462,8 +483,7 @@ final class EditorDraftStore: ObservableObject {
         timer = nil
         let snapshots = AppSettings.shared.recoverEditorDrafts ? clients.keys.compactMap(snapshot) : []
         pending.removeAll()
-        do { try archive.flush(snapshots) }
-        catch { report(error) }
+        do { try archive.flush(snapshots) } catch { report(error) }
     }
 
     private func startTimer() {
@@ -485,8 +505,7 @@ final class EditorDraftStore: ObservableObject {
         archive.write(records) { [weak self] error in
             Task { @MainActor [weak self] in
                 self?.writing = false
-                if let error { self?.report(error) }
-                else { self?.lastError = nil }
+                if let error { self?.report(error) } else { self?.lastError = nil }
                 self?.startTimer()
             }
         }

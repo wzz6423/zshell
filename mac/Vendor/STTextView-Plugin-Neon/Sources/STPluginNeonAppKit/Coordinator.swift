@@ -23,14 +23,13 @@ public class Coordinator {
 
         tsClient = try! TreeSitterClient(language: tsLanguage) { codePointIndex in
             guard let location = textView.textContentManager.location(at: codePointIndex),
-                  let position = textView.textContentManager.position(location)
+                let position = textView.textContentManager.position(location)
             else {
                 return .zero
             }
 
             return Point(row: position.row, column: position.column)
         }
-
 
         tsClient.invalidationHandler = { [weak self] indexSet in
             self?.highlighter?.invalidate(.set(indexSet))
@@ -39,41 +38,43 @@ public class Coordinator {
         // set textview default font to theme default font
         textView.font = theme.font(forToken: "plain") ?? textView.font
 
-        highlighter = Neon.Highlighter(textInterface: STTextViewSystemInterface(textView: textView) { neonToken in
-            var attributes: [NSAttributedString.Key: Any] = [:]
-            attributes[.font] = textView.font
+        highlighter = Neon.Highlighter(
+            textInterface: STTextViewSystemInterface(textView: textView) { neonToken in
+                var attributes: [NSAttributedString.Key: Any] = [:]
+                attributes[.font] = textView.font
 
-            if let themeColor = theme.color(forToken: TokenName(neonToken.name)) {
-                attributes[.foregroundColor] = themeColor
-                
-                // TODO: Remove this later.
-                // print("themeColor \(themeColor) for token \(TokenName(neonToken.name))")
+                if let themeColor = theme.color(forToken: TokenName(neonToken.name)) {
+                    attributes[.foregroundColor] = themeColor
 
-                if let themeFont = theme.font(forToken: TokenName(neonToken.name)) {
-                    attributes[.font] = themeFont
+                    // TODO: Remove this later.
+                    // print("themeColor \(themeColor) for token \(TokenName(neonToken.name))")
+
+                    if let themeFont = theme.font(forToken: TokenName(neonToken.name)) {
+                        attributes[.font] = themeFont
+                    }
+                } else if let themeDefaultColor = theme.color(forToken: "plain") {
+                    attributes[.foregroundColor] = themeDefaultColor
+
+                    // TODO: Remove this later.
+                    // print("themeDefaultColor \(themeDefaultColor) for token \(TokenName(neonToken.name))")
+
+                    if let themeFont = theme.font(forToken: TokenName(neonToken.name)) {
+                        attributes[.font] = themeFont
+                    }
                 }
-            } else if let themeDefaultColor = theme.color(forToken: "plain") {
-                attributes[.foregroundColor] = themeDefaultColor
-                
-                // TODO: Remove this later.
-                // print("themeDefaultColor \(themeDefaultColor) for token \(TokenName(neonToken.name))")
 
-                if let themeFont = theme.font(forToken: TokenName(neonToken.name)) {
-                    attributes[.font] = themeFont
-                }
-            }
-
-            return !attributes.isEmpty ? attributes : nil
-        }, tokenProvider: tokenProvider(textContentManager: textView.textContentManager))
+                return !attributes.isEmpty ? attributes : nil
+            }, tokenProvider: tokenProvider(textContentManager: textView.textContentManager))
 
         // initial parse of the whole content
         tsClient.willChangeContent(in: NSRange(textView.textContentManager.documentRange, in: textView.textContentManager))
-        tsClient.didChangeContent(in: NSRange(textView.textContentManager.documentRange, in: textView.textContentManager),
-                                  delta: textView.textContentManager.length,
-                                  limit: textView.textContentManager.length,
-                                  readHandler: Parser.readFunction(for: textView.textContentManager.attributedString(in: nil)?.string ?? ""),
-                                  completionHandler: {
-        })
+        tsClient.didChangeContent(
+            in: NSRange(textView.textContentManager.documentRange, in: textView.textContentManager),
+            delta: textView.textContentManager.length,
+            limit: textView.textContentManager.length,
+            readHandler: Parser.readFunction(for: textView.textContentManager.attributedString(in: nil)?.string ?? ""),
+            completionHandler: {
+            })
     }
 
     private func tokenProvider(textContentManager: NSTextContentManager) -> Neon.TokenProvider? {

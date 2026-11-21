@@ -110,7 +110,7 @@ struct GitHistorySurfaceTests {
         let bounded = GitStatusModel.RecentCommit(
             hash: "bounded", shortHash: "bounded", subject: "large commit", author: "Fixture",
             date: Date(), parentHash: nil, references: [],
-            files: (0..<200).map { .init(status: "A", path: "file-\($0)", originalPath: nil) },
+            files: (0 ..< 200).map { .init(status: "A", path: "file-\($0)", originalPath: nil) },
             omittedFileCount: 321
         )
         graph.configure(
@@ -123,6 +123,7 @@ struct GitHistorySurfaceTests {
         check(!summary.accessibilityPerformPress(), "Omitted file summary cannot open a diff")
         check(summary.accessibilityLabel()?.contains("321") == true, "Summary exposes the omitted count")
         check(model.detailError == nil && model.statusError == nil, "Refreshed status has no errors")
-        print("Git history surfaces: \(checks) passed, 0 failed; 35 commits, pagination, signed diagnostics, native graph and rename action")
+        print(
+            "Git history surfaces: \(checks) passed, 0 failed; 35 commits, pagination, signed diagnostics, native graph and rename action")
     }
 }

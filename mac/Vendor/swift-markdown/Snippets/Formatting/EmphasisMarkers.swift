@@ -3,21 +3,22 @@
 import Markdown
 
 let source = """
-This document uses a mix of *star* and _underbar_ emphasized elements.
-"""
+    This document uses a mix of *star* and _underbar_ emphasized elements.
+    """
 
 let document = Document(parsing: source)
 // Use only * for emphasis markers.
 let emphasisMarker = MarkupFormatter.Options.EmphasisMarker.star
 let formattedSource = document.format(options: .init(emphasisMarker: emphasisMarker))
 
-print("""
-## Original source:
-\(source)
+print(
+    """
+    ## Original source:
+    \(source)
 
-## Formatted source:
-\(formattedSource)
-""")
+    ## Formatted source:
+    \(formattedSource)
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

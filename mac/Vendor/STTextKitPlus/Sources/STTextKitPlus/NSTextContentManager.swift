@@ -29,9 +29,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if os(macOS) && !targetEnvironment(macCatalyst)
-import AppKit
+    import AppKit
 #elseif os(iOS) || os(visionOS)
-import UIKit
+    import UIKit
 #endif
 
 public extension NSTextContentManager {
@@ -104,9 +104,9 @@ public extension NSTextContentManager {
         result.beginEditing()
         enumerateTextElements(from: range?.location) { textElement in
             if let range = range,
-               let textParagraph = textElement as? NSTextParagraph,
-               let elementRange = textElement.elementRange,
-               let textContentManager = textElement.textContentManager
+                let textParagraph = textElement as? NSTextParagraph,
+                let elementRange = textElement.elementRange,
+                let textContentManager = textElement.textContentManager
             {
                 var shouldStop = false
                 var needAdjustment = false
@@ -129,7 +129,9 @@ public extension NSTextContentManager {
                 }
 
                 if needAdjustment {
-                    if let constrainedRangeInDocument = NSTextRange(location: constrainedElementRange.location, end: constrainedElementRange.endLocation) {
+                    if let constrainedRangeInDocument = NSTextRange(
+                        location: constrainedElementRange.location, end: constrainedElementRange.endLocation)
+                    {
                         let constrainedRangeInDocumentLength = constrainedRangeInDocument.length(in: textContentManager)
                         let leadingOffset = textContentManager.offset(from: elementRange.location, to: constrainedElementRange.location)
 
@@ -169,7 +171,7 @@ public extension NSTextContentManager {
 
         return result
     }
-    
+
     /// Returns an array of text elements that intersect with the range you specify.
     /// - Parameter range: An NSTextRange that describes the range of text to process.
     /// - Returns: An array of NSTextElement.

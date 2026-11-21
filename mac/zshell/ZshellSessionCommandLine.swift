@@ -65,7 +65,9 @@ enum ZshellSessionCommandLine {
                 guard let uuid = UUID(uuidString: id) else { throw CLIError.message("--project requires a project UUID.") }
                 options.projectID = uuid.uuidString
             case "--session":
-                guard command == "check" || command == "close" else { throw CLIError.message("--session is only valid for check or close.") }
+                guard command == "check" || command == "close" else {
+                    throw CLIError.message("--session is only valid for check or close.")
+                }
                 let id = try value(option)
                 guard let uuid = UUID(uuidString: id) else { throw CLIError.message("--session requires a terminal UUID.") }
                 options.sessionID = uuid.uuidString
@@ -133,25 +135,26 @@ enum ZshellSessionCommandLine {
     }
 
     private static func printHelp() {
-        print("""
-        Usage: zshell +session COMMAND [options]
+        print(
+            """
+            Usage: zshell +session COMMAND [options]
 
-          projects                                      List open project IDs
-          list [--project ID]                           List terminal sessions
-          new [--project ID] [--cwd DIR] [--focus] [-- command [arguments...]]
-          new [--project ID] --branch BRANCH [--worktree NEW_DIR]
-              [--base default|HEAD|REF] [--cwd REPO] [--focus] [-- command [arguments...]]
-          check [--project ID] --session ID              Inspect worktree cleanup safety
-          close [--project ID] --session ID [--keep-worktree|--remove-worktree]
+              projects                                      List open project IDs
+              list [--project ID]                           List terminal sessions
+              new [--project ID] [--cwd DIR] [--focus] [-- command [arguments...]]
+              new [--project ID] --branch BRANCH [--worktree NEW_DIR]
+                  [--base default|HEAD|REF] [--cwd REPO] [--focus] [-- command [arguments...]]
+              check [--project ID] --session ID              Inspect worktree cleanup safety
+              close [--project ID] --session ID [--keep-worktree|--remove-worktree]
 
-        External terminals require --project for every command except projects.
-        --connection FILE selects a particular running instance's owner-only connection.
-        Inside Zshell, commands stay scoped to the invoking terminal's project,
-        including programs that clear the bridge environment variables.
-        New branches start from the repository default branch; HEAD is an explicit opt-in.
-        Existing branches keep their current commit. Existing directories are refused.
-        Closing keeps the worktree by default. Cleanup refuses dirty, unmerged,
-        locked, changed, or shared worktrees and always preserves the Git branch.
-        """)
+            External terminals require --project for every command except projects.
+            --connection FILE selects a particular running instance's owner-only connection.
+            Inside Zshell, commands stay scoped to the invoking terminal's project,
+            including programs that clear the bridge environment variables.
+            New branches start from the repository default branch; HEAD is an explicit opt-in.
+            Existing branches keep their current commit. Existing directories are refused.
+            Closing keeps the worktree by default. Cleanup refuses dirty, unmerged,
+            locked, changed, or shared worktrees and always preserves the Git branch.
+            """)
     }
 }

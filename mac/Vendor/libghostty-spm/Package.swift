@@ -15,7 +15,7 @@ let package = Package(
         .library(name: "GhosttyTheme", targets: ["GhosttyTheme"]),
     ],
     dependencies: [
-        .package(path: "../MSDisplayLink"),
+        .package(path: "../MSDisplayLink")
     ],
     targets: [
         .target(

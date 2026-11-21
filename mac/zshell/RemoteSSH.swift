@@ -43,10 +43,11 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
         }
         let user = user?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let user, !user.isEmpty,
-           user.contains("@") || user.contains(where: \Character.isWhitespace) {
+            user.contains("@") || user.contains(where: \Character.isWhitespace)
+        {
             throw ValidationError.invalidUser
         }
-        if let port, !(1...65_535).contains(port) {
+        if let port, !(1 ... 65_535).contains(port) {
             throw ValidationError.invalidPort
         }
         self.host = host
@@ -63,10 +64,11 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
         authentication: SSHAuthentication = .agent,
         identityFile: String? = nil
     ) throws -> [String] {
-        var arguments = try connectionArguments + authentication.arguments(identityFile: identityFile) + [
-            "-o", "StrictHostKeyChecking=ask",
-            "-o", "ConnectTimeout=10",
-        ]
+        var arguments =
+            try connectionArguments + authentication.arguments(identityFile: identityFile) + [
+                "-o", "StrictHostKeyChecking=ask",
+                "-o", "ConnectTimeout=10",
+            ]
         arguments.append(contentsOf: ["-t", destination])
         if let remoteDirectory {
             arguments.append(
@@ -126,8 +128,9 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
         guard let path = environment["ZSHELL_SSH_CONFIG_FILE"], !path.isEmpty else { return [] }
         var isDirectory = ObjCBool(false)
         guard path.hasPrefix("/"), !path.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains),
-              FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), !isDirectory.boolValue,
-              FileManager.default.isReadableFile(atPath: path) else { throw ValidationError.invalidConfiguration }
+            FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), !isDirectory.boolValue,
+            FileManager.default.isReadableFile(atPath: path)
+        else { throw ValidationError.invalidConfiguration }
         return ["-F", path]
     }
 
@@ -148,9 +151,11 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
             let user = value[..<slash]
             // Only a plain user name may stay unquoted; anything odd falls
             // back to a fully quoted, unexpanded word.
-            let isPlainName = !user.isEmpty && user.dropFirst().allSatisfy {
-                $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" || $0 == "."
-            }
+            let isPlainName =
+                !user.isEmpty
+                && user.dropFirst().allSatisfy {
+                    $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" || $0 == "."
+                }
             tildePrefix = isPlainName ? String(user) + "/" : nil
         } else if value.dropFirst().allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" || $0 == "." }) {
             return value
@@ -273,12 +278,12 @@ nonisolated enum SSHAuthentication: Equatable, Sendable {
             return nil
         case .password:
             guard let credentialID,
-                  let secret = try credentialStore.load(credentialID)
+                let secret = try credentialStore.load(credentialID)
             else { throw Error.missingCredential }
             return try SSHAuthenticationMaterial(password: secret)
         case .privateKeyContent:
             guard let credentialID,
-                  let secret = try credentialStore.load(credentialID)
+                let secret = try credentialStore.load(credentialID)
             else { throw Error.missingCredential }
             return try SSHAuthenticationMaterial(privateKey: secret)
         }
@@ -368,8 +373,8 @@ nonisolated struct SSHCredentialStore {
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status == errSecItemNotFound { return nil }
         guard status == errSecSuccess,
-              let data = result as? Data,
-              let value = String(data: data, encoding: .utf8)
+            let data = result as? Data,
+            let value = String(data: data, encoding: .utf8)
         else { throw Error.keychain(status) }
         return value
     }
@@ -508,8 +513,9 @@ extension ProjectLocation {
         }
         if container.contains(.shared) {
             let shared = try container.nestedContainer(keyedBy: SharedCodingKeys.self, forKey: .shared)
-            self = .shared(host: try shared.decode(RemoteHost.self, forKey: .host),
-                           directory: try shared.decode(String.self, forKey: .directory))
+            self = .shared(
+                host: try shared.decode(RemoteHost.self, forKey: .host),
+                directory: try shared.decode(String.self, forKey: .directory))
             return
         }
         let ssh = try container.nestedContainer(keyedBy: SSHCodingKeys.self, forKey: .ssh)
@@ -595,7 +601,8 @@ nonisolated struct BoundedProcessRunner {
                 let descriptor = inputPipe.fileHandleForWriting.fileDescriptor
                 let flags = fcntl(descriptor, F_GETFL, 0)
                 guard flags >= 0, fcntl(descriptor, F_SETFL, flags | O_NONBLOCK) == 0,
-                      fcntl(descriptor, F_SETNOSIGPIPE, 1) == 0 else { return }
+                    fcntl(descriptor, F_SETNOSIGPIPE, 1) == 0
+                else { return }
                 let deadline = Date().addingTimeInterval(max(0, timeout))
                 standardInput.withUnsafeBytes { bytes in
                     var offset = 0
@@ -605,9 +612,13 @@ nonisolated struct BoundedProcessRunner {
                         if status == 0 || status < 0 && errno == EINTR { continue }
                         guard status > 0, ready.revents & Int16(POLLERR | POLLHUP | POLLNVAL) == 0 else { return }
                         let written = Darwin.write(descriptor, bytes.baseAddress!.advanced(by: offset), bytes.count - offset)
-                        if written > 0 { offset += written }
-                        else if written < 0, errno == EINTR || errno == EAGAIN { continue }
-                        else { return }
+                        if written > 0 {
+                            offset += written
+                        } else if written < 0, errno == EINTR || errno == EAGAIN {
+                            continue
+                        } else {
+                            return
+                        }
                     }
                 }
             }
@@ -755,18 +766,21 @@ nonisolated struct OpenSSHTransport: Sendable {
     ) throws -> [SSHEndpoint.DirectoryEntry] {
         let output = try run(
             endpoint: endpoint,
-            command: ["/bin/sh", "-c", """
-            test -d "$1" && test -r "$1" && test -x "$1" || exit 1
-            for item in "$1"/.[!.]* "$1"/..?* "$1"/*; do
-              test -e "$item" || test -L "$item" || continue
-              name=${item##*/}
-              test "$name" != .git || continue
-              case "$name" in .zshell-trash|.zshell-file-*) continue ;; esac
-              kind=0
-              if test ! -L "$item" && test -d "$item"; then kind=1; fi
-              printf '%s\\0%s\\0' "$kind" "$name"
-            done
-            """, "zshell-files", directory],
+            command: [
+                "/bin/sh", "-c",
+                """
+                test -d "$1" && test -r "$1" && test -x "$1" || exit 1
+                for item in "$1"/.[!.]* "$1"/..?* "$1"/*; do
+                  test -e "$item" || test -L "$item" || continue
+                  name=${item##*/}
+                  test "$name" != .git || continue
+                  case "$name" in .zshell-trash|.zshell-file-*) continue ;; esac
+                  kind=0
+                  if test ! -L "$item" && test -d "$item"; then kind=1; fi
+                  printf '%s\\0%s\\0' "$kind" "$name"
+                done
+                """, "zshell-files", directory,
+            ],
             authentication: authentication, credentialID: credentialID
         )
         guard !output.wasTruncated, output.stdoutIsValidUTF8 else { throw TransportError.failed(status: -1, output: output) }
@@ -798,8 +812,9 @@ nonisolated final class OpenSSHDynamicForward: @unchecked Sendable {
     ) throws {
         directory = URL(fileURLWithPath: "/tmp", isDirectory: true)
             .appendingPathComponent("zsb-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false,
-                                               attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: false,
+            attributes: [.posixPermissions: 0o700])
         let controlPath = directory.appendingPathComponent("control").path
         process = Process()
         let errors = Pipe()
@@ -843,7 +858,7 @@ nonisolated final class OpenSSHDynamicForward: @unchecked Sendable {
                 }
                 Thread.sleep(forTimeInterval: 0.05)
             }
-            for attempt in 0..<3 {
+            for attempt in 0 ..< 3 {
                 try Task.checkCancellation()
                 let candidate = try Self.availableLoopbackPort()
                 let forward = try BoundedProcessRunner.run(

@@ -19,8 +19,7 @@ private final class FindProbe: NSObject {
 @main
 struct WorkspaceLogSearchSurfaceTests {
     @MainActor static func main() {
-        do { try run() }
-        catch { fputs("Workspace log test failed: \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("Workspace log test failed: \(error)\n", stderr); exit(1) }
     }
 
     @MainActor private static func run() throws {
@@ -56,16 +55,19 @@ struct WorkspaceLogSearchSurfaceTests {
                 (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber).map { CGDisplayBounds($0.uint32Value) }
             }
             let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
-            return !NSApp.isActive && windows.filter { ($0[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == getpid() }.allSatisfy { record in
-                guard let bounds = record[kCGWindowBounds as String] as? [String: Any],
-                      let frame = CGRect(dictionaryRepresentation: bounds as CFDictionary) else { return false }
-                return frame.isEmpty || !displays.contains { $0.intersects(frame) }
-            }
+            return !NSApp.isActive
+                && windows.filter { ($0[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == getpid() }.allSatisfy { record in
+                    guard let bounds = record[kCGWindowBounds as String] as? [String: Any],
+                        let frame = CGRect(dictionaryRepresentation: bounds as CFDictionary)
+                    else { return false }
+                    return frame.isEmpty || !displays.contains { $0.intersects(frame) }
+                }
         }
         func session(_ name: String) -> TerminalSession {
-            TerminalSession(initialDirectory: NSTemporaryDirectory(),
-                            commandArguments: ["/usr/bin/python3", "-u", fixture, name],
-                            allowsPersistence: false)
+            TerminalSession(
+                initialDirectory: NSTemporaryDirectory(),
+                commandArguments: ["/usr/bin/python3", "-u", fixture, name],
+                allowsPersistence: false)
         }
         func capture(_ session: TerminalSession) -> String {
             TerminalHistorySerializer.takeLogCapture(from: session.surface)?.read() ?? ""
@@ -76,7 +78,9 @@ struct WorkspaceLogSearchSurfaceTests {
 
         let mainMenu = NSMenu()
         let find = FindProbe()
-        for (title, action, key) in [("Zshell", nil, ""), ("Edit", #selector(FindProbe.find(_:)), "f"), ("Terminal", nil, "")] as [(String, Selector?, String)] {
+        for (title, action, key) in [("Zshell", nil, ""), ("Edit", #selector(FindProbe.find(_:)), "f"), ("Terminal", nil, "")]
+            as [(String, Selector?, String)]
+        {
             let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
             if title == "Terminal" { item.identifier = .init(AppMenuController.Menu.terminal.rawValue) }
             item.submenu = NSMenu(title: title)
@@ -95,9 +99,10 @@ struct WorkspaceLogSearchSurfaceTests {
             $0.action == NSSelectorFromString("searchTerminalLogs")
         }
         guard searchItems.count == 1, let searchItem = searchItems.first,
-              searchItem.menu?.title == String(localized: "Terminal"),
-              searchItem.title == String(localized: "Search Terminal Logs"),
-              searchItem.keyEquivalent == "f", searchItem.keyEquivalentModifierMask == [.command, .shift] else {
+            searchItem.menu?.title == String(localized: "Terminal"),
+            searchItem.title == String(localized: "Search Terminal Logs"),
+            searchItem.keyEquivalent == "f", searchItem.keyEquivalentModifierMask == [.command, .shift]
+        else {
             throw Failure.check("Terminal menu does not contain one Search Terminal Logs command with Command-Shift-F")
         }
         print("PASS \(backend): Terminal menu contains Search Terminal Logs with Command-Shift-F")
@@ -118,8 +123,9 @@ struct WorkspaceLogSearchSurfaceTests {
         manager.projects = [project]
         manager.selectedProjectID = project.id
 
-        let window = LogTestWindow(contentRect: NSRect(x: 0, y: 0, width: 900, height: 480),
-                                   styleMask: [.titled], backing: .buffered, defer: false)
+        let window = LogTestWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 480),
+            styleMask: [.titled], backing: .buffered, defer: false)
         window.identifier = NSUserInterfaceItemIdentifier("main-log-fixture")
         QuickTerminalOffscreen.prepare(window)
         let content = NSView(frame: window.contentRect(forFrameRect: window.frame))
@@ -162,9 +168,10 @@ struct WorkspaceLogSearchSurfaceTests {
         }
         withExtendedLifetime(delegate) {}
         guard let panel = app.windows.first(where: { $0.identifier?.rawValue == "workspace-log-search-panel" }), panel.isVisible,
-              let content = panel.contentView,
-              let field = descendants(content).compactMap({ $0 as? NSSearchField }).first,
-              let table = descendants(content).compactMap({ $0 as? NSTableView }).first else {
+            let content = panel.contentView,
+            let field = descendants(content).compactMap({ $0 as? NSSearchField }).first,
+            let table = descendants(content).compactMap({ $0 as? NSTableView }).first
+        else {
             throw Failure.check("search panel was not installed")
         }
         field.stringValue = "NEEDLE"
@@ -184,7 +191,7 @@ struct WorkspaceLogSearchSurfaceTests {
         try wait("search results refresh after terminal output") { table.numberOfRows == 9 }
 
         var target: Int?
-        for row in 0..<table.numberOfRows {
+        for row in 0 ..< table.numberOfRows {
             guard let cell = table.view(atColumn: 0, row: row, makeIfNecessary: true) else { continue }
             if descendants(cell).compactMap({ $0 as? NSTextField }).contains(where: { $0.stringValue.contains("OLD-B-needle") }) {
                 target = row
@@ -215,7 +222,7 @@ struct WorkspaceLogSearchSurfaceTests {
         try wait("combining-character results are listed") { table.numberOfRows == 3 }
         a.surface.setFrameSize(NSSize(width: 350, height: 440))
         var unicodeTarget: Int?
-        for row in 0..<table.numberOfRows {
+        for row in 0 ..< table.numberOfRows {
             guard let cell = table.view(atColumn: 0, row: row, makeIfNecessary: true) else { continue }
             if descendants(cell).compactMap({ $0 as? NSTextField }).contains(where: { $0.stringValue.contains("OLD-A-needle") }) {
                 unicodeTarget = row
@@ -237,7 +244,7 @@ struct WorkspaceLogSearchSurfaceTests {
         controller.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
         try wait("a tab is indexed as the blank it draws") { table.numberOfRows == 3 }
         var tabTarget: Int?
-        for row in 0..<table.numberOfRows {
+        for row in 0 ..< table.numberOfRows {
             guard let cell = table.view(atColumn: 0, row: row, makeIfNecessary: true) else { continue }
             if descendants(cell).compactMap({ $0 as? NSTextField }).contains(where: { $0.stringValue.contains("TAB-B") }) {
                 tabTarget = row
@@ -259,7 +266,7 @@ struct WorkspaceLogSearchSurfaceTests {
         }
         try wait("busy pane is producing output") { capture(a).contains("INPUT-A-busy") }
         var busyTarget: Int?
-        for row in 0..<table.numberOfRows {
+        for row in 0 ..< table.numberOfRows {
             guard let cell = table.view(atColumn: 0, row: row, makeIfNecessary: true) else { continue }
             if descendants(cell).compactMap({ $0 as? NSTextField }).contains(where: { $0.stringValue.contains("OLD-A-needle") }) {
                 busyTarget = row

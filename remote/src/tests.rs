@@ -109,11 +109,17 @@ fn profile_context_tracks_the_real_foreground_process_and_directory() {
     let (mut stream, _, _) = fixture.attach(&id, 80, 24);
     input(&mut stream, "cd ../other; printf '\\nPROFILE_READY\\n'\r");
     collect_until(&mut stream, |_, output| {
-        output.windows(15).any(|bytes| bytes == b"PROFILE_READY\r\n")
+        output
+            .windows(15)
+            .any(|bytes| bytes == b"PROFILE_READY\r\n")
     });
     let context = fixture.get(&id)["profileContext"].clone();
-    assert!(context["host"].as_str().is_some_and(|value| !value.is_empty()));
-    assert!(context["user"].as_str().is_some_and(|value| !value.is_empty()));
+    assert!(context["host"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
+    assert!(context["user"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
     assert_eq!(
         fs::canonicalize(context["directory"].as_str().unwrap()).unwrap(),
         fs::canonicalize(&fixture.other).unwrap()
@@ -123,7 +129,10 @@ fn profile_context_tracks_the_real_foreground_process_and_directory() {
     let mut foreground = false;
     for _ in 0..30 {
         let context = fixture.get(&id)["profileContext"].clone();
-        if context["program"].as_str().is_some_and(|value| value.ends_with("/sleep")) {
+        if context["program"]
+            .as_str()
+            .is_some_and(|value| value.ends_with("/sleep"))
+        {
             foreground = true;
             break;
         }
@@ -135,7 +144,8 @@ fn profile_context_tracks_the_real_foreground_process_and_directory() {
         let frame = read_frame(&mut stream).unwrap();
         if frame.kind == "pong" {
             assert!(frame.result.unwrap()["profileContext"]["program"]
-                .as_str().is_some_and(|value| value.ends_with("/sleep")));
+                .as_str()
+                .is_some_and(|value| value.ends_with("/sleep")));
             break;
         }
     }
@@ -160,48 +170,77 @@ fn zsh_completions_use_remote_pty_and_clean_up_after_exit() {
          _fixture() {{ compadd alpha bravo; }}; compdef _fixture zfixture\n\
          zfixture() {{ print ran >| {}; }}\n\
          _dump() {{ print -rn -- \"$BUFFER\" >| {}; }}; zle -N _dump; bindkey '^T' _dump\n",
-        quote(&sentinel), quote(&dump)
+        quote(&sentinel),
+        quote(&dump)
     );
     fs::write(home.join(".zshrc"), &config).unwrap();
     let id = new_id().unwrap();
     let mut request = fixture.request("create", &id);
     request.shell_completions = Some(true);
-    request.environment = Some([
-        ("HOME".into(), home.to_string_lossy().into_owned()),
-        ("ZDOTDIR".into(), home.to_string_lossy().into_owned()),
-        ("LC_ALL".into(), "en_US.UTF-8".into()),
-    ].into());
+    request.environment = Some(
+        [
+            ("HOME".into(), home.to_string_lossy().into_owned()),
+            ("ZDOTDIR".into(), home.to_string_lossy().into_owned()),
+            ("LC_ALL".into(), "en_US.UTF-8".into()),
+        ]
+        .into(),
+    );
     fixture.daemon.request(&request).unwrap();
     let state = fixture.root.join("state");
-    let integration = fs::read_dir(&state).unwrap()
+    let integration = fs::read_dir(&state)
+        .unwrap()
         .map(|entry| entry.unwrap().path())
-        .find(|path| path.file_name().unwrap().to_string_lossy().starts_with("shell-completions-"))
+        .find(|path| {
+            path.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("shell-completions-")
+        })
         .expect("private completion integration exists while the shell is running");
-    assert_eq!(fs::metadata(&integration).unwrap().permissions().mode() & 0o777, 0o700);
+    assert_eq!(
+        fs::metadata(&integration).unwrap().permissions().mode() & 0o777,
+        0o700
+    );
 
     let (mut active, snapshot, _) = fixture.attach(&id, 80, 24);
     if !String::from_utf8_lossy(&snapshot).contains("READY> ") {
-        collect_until(&mut active, |_, output| String::from_utf8_lossy(output).contains("READY> "));
+        collect_until(&mut active, |_, output| {
+            String::from_utf8_lossy(output).contains("READY> ")
+        });
     }
     input(&mut active, "zfixture ");
-    collect_until(&mut active, |_, output| String::from_utf8_lossy(output).contains("alpha"));
+    collect_until(&mut active, |_, output| {
+        String::from_utf8_lossy(output).contains("alpha")
+    });
     let (mut inactive, _, _) = fixture.attach(&id, 80, 24);
     input(&mut inactive, "UNWANTED");
     write_frame(&mut inactive, &Frame::new("ping")).unwrap();
     collect_until(&mut inactive, |frame, _| frame.kind == "pong");
     input(&mut active, "\t");
-    collect_until(&mut active, |_, output| String::from_utf8_lossy(output).contains("bravo"));
+    collect_until(&mut active, |_, output| {
+        String::from_utf8_lossy(output).contains("bravo")
+    });
     input(&mut active, "\u{1b}[C\r\u{14}");
     let deadline = Instant::now() + Duration::from_secs(4);
-    while !dump.exists() && Instant::now() < deadline { thread::sleep(Duration::from_millis(10)); }
+    while !dump.exists() && Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(10));
+    }
     assert_eq!(fs::read_to_string(&dump).unwrap(), "zfixture bravo ");
-    assert!(!sentinel.exists(), "accepting a completion must not execute it");
+    assert!(
+        !sentinel.exists(),
+        "accepting a completion must not execute it"
+    );
     assert_eq!(fs::read_to_string(home.join(".zshrc")).unwrap(), config);
 
     input(&mut active, "\u{15}exit\r");
     let deadline = Instant::now() + Duration::from_secs(4);
-    while integration.exists() && Instant::now() < deadline { thread::sleep(Duration::from_millis(10)); }
-    assert!(!integration.exists(), "session resources must be removed after shell exit");
+    while integration.exists() && Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert!(
+        !integration.exists(),
+        "session resources must be removed after shell exit"
+    );
     inactive.shutdown();
     active.shutdown();
 }
@@ -395,16 +434,31 @@ fn exited_sessions_make_room_for_new_sessions() {
     let exited: Vec<_> = (1..MAX_SESSIONS)
         .map(|index| {
             let id = new_id().unwrap();
-            fixture.create(&id, if index == 1 { vec!["/bin/sh", "-c", &script] } else { vec!["/bin/sh", "-c", "exit 0"] });
+            fixture.create(
+                &id,
+                if index == 1 {
+                    vec!["/bin/sh", "-c", &script]
+                } else {
+                    vec!["/bin/sh", "-c", "exit 0"]
+                },
+            );
             id
         })
         .collect();
     let deadline = Instant::now() + Duration::from_secs(10);
-    while [&watched].into_iter().chain(&exited).any(|id| fixture.get(id)["running"] == true) {
+    while [&watched]
+        .into_iter()
+        .chain(&exited)
+        .any(|id| fixture.get(id)["running"] == true)
+    {
         assert!(Instant::now() < deadline, "Sessions did not exit");
         thread::sleep(Duration::from_millis(20));
     }
-    let survivor: i32 = fs::read_to_string(&survivor).unwrap().trim().parse().unwrap();
+    let survivor: i32 = fs::read_to_string(&survivor)
+        .unwrap()
+        .trim()
+        .parse()
+        .unwrap();
     assert_eq!(unsafe { libc::kill(survivor, 0) }, 0);
     // A launch that fails after reserving a slot keeps the exited sessions.
     let mut failing = fixture.request("create", &new_id().unwrap());
@@ -413,13 +467,26 @@ fn exited_sessions_make_room_for_new_sessions() {
     assert!(fixture.daemon.request(&failing).is_err());
     assert_eq!(fixture.get(&exited[0])["running"], false);
     let fresh = new_id().unwrap();
-    assert_eq!(fixture.create(&fresh, vec!["/bin/sh", "-i"])["running"], true);
+    assert_eq!(
+        fixture.create(&fresh, vec!["/bin/sh", "-i"])["running"],
+        true
+    );
     assert_eq!(fixture.get(&watched)["exitCode"], 3);
-    assert!(fixture.daemon.request(&fixture.request("get", &exited[0])).is_err());
+    assert!(fixture
+        .daemon
+        .request(&fixture.request("get", &exited[0]))
+        .is_err());
     thread::sleep(Duration::from_millis(700));
     let alive = unsafe { libc::kill(survivor, 0) } == 0;
-    if alive { unsafe { libc::kill(survivor, libc::SIGKILL); } }
-    assert!(!alive, "An evicted session left its SIGHUP-ignoring child running");
+    if alive {
+        unsafe {
+            libc::kill(survivor, libc::SIGKILL);
+        }
+    }
+    assert!(
+        !alive,
+        "An evicted session left its SIGHUP-ignoring child running"
+    );
     assert_eq!(fixture.get(&exited[1])["running"], false);
     stream.shutdown();
 }
@@ -435,16 +502,32 @@ fn concurrent_creates_spawn_one_session_per_id() {
             thread::spawn(move || {
                 let mut frame = fixture.request("create", &id);
                 frame.command = Some(vec!["/bin/sh".into(), "-i".into()]);
-                fixture.daemon.request(&frame).ok().map(|info| info["pid"].as_i64())
+                fixture
+                    .daemon
+                    .request(&frame)
+                    .ok()
+                    .map(|info| info["pid"].as_i64())
             })
         })
         .collect();
-    let pids: Vec<_> = workers.into_iter().filter_map(|worker| worker.join().unwrap()).collect();
+    let pids: Vec<_> = workers
+        .into_iter()
+        .filter_map(|worker| worker.join().unwrap())
+        .collect();
     assert!(!pids.is_empty());
     assert!(pids.iter().all(|pid| *pid == pids[0]));
     let mut list = Frame::new("list");
     list.project = fixture.request("list", &id).project;
-    assert_eq!(fixture.daemon.request(&list).unwrap().as_array().unwrap().len(), 1);
+    assert_eq!(
+        fixture
+            .daemon
+            .request(&list)
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
 }
 
 #[test]
@@ -468,7 +551,11 @@ fn shutdown_ends_sessions_that_are_still_starting() {
             let id = id.clone();
             thread::spawn(move || {
                 let mut frame = fixture.request("create", &id);
-                frame.command = Some(["/bin/sh", "-c", "trap '' HUP; exec sleep 5"].map(str::to_owned).to_vec());
+                frame.command = Some(
+                    ["/bin/sh", "-c", "trap '' HUP; exec sleep 5"]
+                        .map(str::to_owned)
+                        .to_vec(),
+                );
                 loop {
                     // The probe below may win the reservation for a moment.
                     if let Ok(info) = fixture.daemon.request(&frame) {
@@ -492,12 +579,21 @@ fn shutdown_ends_sessions_that_are_still_starting() {
             fixture.daemon.request(&Frame::new("shutdown")).unwrap();
         }
         let pid = create.join().unwrap();
-        if !spawning { continue; }
+        if !spawning {
+            continue;
+        }
         raced += 1;
         thread::sleep(Duration::from_millis(700));
         let alive = unsafe { libc::kill(pid, 0) } == 0;
-        if alive { unsafe { libc::kill(pid, libc::SIGKILL); } }
-        assert!(!alive, "A session that was starting during shutdown outlived it");
+        if alive {
+            unsafe {
+                libc::kill(pid, libc::SIGKILL);
+            }
+        }
+        assert!(
+            !alive,
+            "A session that was starting during shutdown outlived it"
+        );
     }
     assert!(raced > 0);
 }
@@ -543,8 +639,15 @@ fn processes_lists_only_the_sessions_own_descendants() {
     let mut names = Vec::new();
     for _ in 0..50 {
         let result = fixture.daemon.request(&request).unwrap();
-        names = result.as_array().unwrap().iter().map(|item| item["name"].as_str().unwrap().to_owned()).collect();
-        if !names.is_empty() { break; }
+        names = result
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item["name"].as_str().unwrap().to_owned())
+            .collect();
+        if !names.is_empty() {
+            break;
+        }
         thread::sleep(Duration::from_millis(50));
     }
     assert_eq!(names, ["sleep"]);
@@ -554,7 +657,10 @@ fn processes_lists_only_the_sessions_own_descendants() {
     let mut other = request.clone();
     other.project = Some(fixture.other.to_str().unwrap().into());
     assert!(fixture.daemon.request(&other).is_err());
-    fixture.daemon.request(&fixture.request("terminate", &id)).unwrap();
+    fixture
+        .daemon
+        .request(&fixture.request("terminate", &id))
+        .unwrap();
     assert!(fixture.daemon.request(&request).is_err());
 }
 
@@ -562,24 +668,34 @@ fn processes_lists_only_the_sessions_own_descendants() {
 #[test]
 fn processes_report_the_full_linux_executable() {
     let fixture = Fixture::new();
-    let worker = fs::canonicalize(&fixture.root).unwrap().join("long-running-process-worker");
+    let worker = fs::canonicalize(&fixture.root)
+        .unwrap()
+        .join("long-running-process-worker");
     let id = new_id().unwrap();
     // The session copies the binary itself: a copy written here can still be
     // open in a child another test thread just forked, and exec then fails
     // with ETXTBSY. A shell is copied, not `sleep`: a multi-call coreutils
     // (uutils on Ubuntu 26.04) refuses to run under an unknown name.
-    let script = format!("cp /bin/sh '{0}' && '{0}' -c \"sleep 30; exit 0\"; exit 0", worker.display());
+    let script = format!(
+        "cp /bin/sh '{0}' && '{0}' -c \"sleep 30; exit 0\"; exit 0",
+        worker.display()
+    );
     fixture.create(&id, vec!["/bin/sh", "-c", &script]);
     let request = fixture.request("processes", &id);
     let mut result = Value::Null;
     for _ in 0..100 {
         result = fixture.daemon.request(&request).unwrap();
-        if result[0]["name"] == "long-running-process-worker" { break; }
+        if result[0]["name"] == "long-running-process-worker" {
+            break;
+        }
         thread::sleep(Duration::from_millis(50));
     }
     assert_eq!(result[0]["name"], "long-running-process-worker");
     assert_eq!(result[0]["executable"], worker.to_str().unwrap());
-    fixture.daemon.request(&fixture.request("terminate", &id)).unwrap();
+    fixture
+        .daemon
+        .request(&fixture.request("terminate", &id))
+        .unwrap();
 }
 
 #[test]

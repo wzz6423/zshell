@@ -43,7 +43,12 @@ fn main() {
         let query = parts[0];
         let field = parts[1];
 
-        let pattern = Pattern::new(query, CaseMatching::Ignore, Normalization::Smart, AtomKind::Fuzzy);
+        let pattern = Pattern::new(
+            query,
+            CaseMatching::Ignore,
+            Normalization::Smart,
+            AtomKind::Fuzzy,
+        );
 
         let mut results: Vec<(u32, usize)> = Vec::new();
         let mut buf = Vec::new();

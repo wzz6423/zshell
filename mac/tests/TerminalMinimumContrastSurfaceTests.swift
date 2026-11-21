@@ -26,8 +26,8 @@ private struct ContrastPixels {
         let top = max(0, Int((rect.minY * scaleY).rounded(.down)))
         let bottom = min(height, Int((rect.maxY * scaleY).rounded(.up)))
         guard right > left, bottom > top else { return [] }
-        return (top..<bottom).flatMap { y in
-            Array(bytes[((y * width + left) * 4)..<((y * width + right) * 4)])
+        return (top ..< bottom).flatMap { y in
+            Array(bytes[((y * width + left) * 4) ..< ((y * width + right) * 4)])
         }
     }
 }
@@ -38,8 +38,7 @@ private struct ContrastPixels {
         if PTYMuxCommandLine.shouldRunRelay { PTYMuxRelay.run() }
         if PTYMuxCommandLine.shouldRunDaemon { PTYMuxCommandLine.runDaemon() }
         MainActor.assumeIsolated {
-            do { try run() }
-            catch { fputs("FAIL minimum contrast: \(error)\n", stderr); exit(1) }
+            do { try run() } catch { fputs("FAIL minimum contrast: \(error)\n", stderr); exit(1) }
         }
     }
 
@@ -77,34 +76,40 @@ private struct ContrastPixels {
             pixelFormat: .bgra8Unorm, width: frame.width, height: frame.height, mipmapped: false)
         descriptor.storageMode = .shared
         guard let device = MTLCreateSystemDefaultDevice(),
-              let texture = device.makeTexture(descriptor: descriptor, iosurface: frame, plane: 0),
-              let queue = device.makeCommandQueue(), let command = queue.makeCommandBuffer(),
-              let buffer = device.makeBuffer(length: frame.width * frame.height * 4, options: .storageModeShared),
-              let blit = command.makeBlitCommandEncoder() else {
-            throw NSError(domain: "TerminalMinimumContrast", code: 4,
-                          userInfo: [NSLocalizedDescriptionKey: "native IOSurface Metal readback unavailable"])
+            let texture = device.makeTexture(descriptor: descriptor, iosurface: frame, plane: 0),
+            let queue = device.makeCommandQueue(), let command = queue.makeCommandBuffer(),
+            let buffer = device.makeBuffer(length: frame.width * frame.height * 4, options: .storageModeShared),
+            let blit = command.makeBlitCommandEncoder()
+        else {
+            throw NSError(
+                domain: "TerminalMinimumContrast", code: 4,
+                userInfo: [NSLocalizedDescriptionKey: "native IOSurface Metal readback unavailable"])
         }
         let stride = frame.width * 4
-        blit.copy(from: texture, sourceSlice: 0, sourceLevel: 0, sourceOrigin: .init(),
-                  sourceSize: MTLSize(width: frame.width, height: frame.height, depth: 1),
-                  to: buffer, destinationOffset: 0, destinationBytesPerRow: stride,
-                  destinationBytesPerImage: stride * frame.height)
+        blit.copy(
+            from: texture, sourceSlice: 0, sourceLevel: 0, sourceOrigin: .init(),
+            sourceSize: MTLSize(width: frame.width, height: frame.height, depth: 1),
+            to: buffer, destinationOffset: 0, destinationBytesPerRow: stride,
+            destinationBytesPerImage: stride * frame.height)
         blit.endEncoding()
         command.commit()
         command.waitUntilCompleted()
         guard command.status == .completed else {
-            throw NSError(domain: "TerminalMinimumContrast", code: 5,
-                          userInfo: [NSLocalizedDescriptionKey: "Metal readback failed"])
+            throw NSError(
+                domain: "TerminalMinimumContrast", code: 5,
+                userInfo: [NSLocalizedDescriptionKey: "Metal readback failed"])
         }
         let base = buffer.contents().assumingMemoryBound(to: UInt8.self)
-        let bytes = (0..<frame.height).flatMap { y in
+        let bytes = (0 ..< frame.height).flatMap { y in
             Array(UnsafeBufferPointer(start: base.advanced(by: y * stride), count: frame.width * 4))
         }
         return ContrastPixels(width: frame.width, height: frame.height, bytes: bytes)
     }
 
-    @MainActor private static func region(_ frame: ContrastPixels, surface: any TerminalBackendSurface,
-                                          grid: TerminalViewportSnapshot, row: Int, columns: Range<Int>) -> [UInt8] {
+    @MainActor private static func region(
+        _ frame: ContrastPixels, surface: any TerminalBackendSurface,
+        grid: TerminalViewportSnapshot, row: Int, columns: Range<Int>
+    ) -> [UInt8] {
         // A balanced half-point origin can overlap the next row after rounding.
         frame.crop(grid.rect(row: row, columns: columns).insetBy(dx: 1, dy: 1), bounds: surface.bounds)
     }
@@ -158,20 +163,30 @@ private struct ContrastPixels {
         defer {
             for session in sessions { session.sendCommand("\u{4}"); session.terminate() }
             pump()
-            windows.forEach { $0.contentView = nil; $0.close() }
+            windows.forEach {
+                $0.contentView = nil; $0.close()
+            }
             manager.close(project)
         }
         do {
             try wait("both native PTYs are ready") {
-                sessions.allSatisfy { ($0.surface.readVisibleText(maxLines: 30, maxColumns: 100) ?? "").contains("CONTRAST_READY") && $0.shellPid != nil }
+                sessions.allSatisfy {
+                    ($0.surface.readVisibleText(maxLines: 30, maxColumns: 100) ?? "").contains("CONTRAST_READY") && $0.shellPid != nil
+                }
             }
         } catch {
             for session in sessions {
-                print("PTY diagnostic: pid=\(String(describing: session.shellPid)), exited=\(session.hasExited), text=\(session.surface.readVisibleText(maxLines: 30, maxColumns: 100) ?? "<unavailable>")")
-                if let result = try? PTYMuxCommandLine.exchange(method: "get", params: [
-                    "id": .string(session.id.uuidString), "tailBytes": .number(1024)
-                ]).result?.objectValue, let encoded = result["tailBase64"]?.stringValue,
-                   let data = Data(base64Encoded: encoded) {
+                print(
+                    "PTY diagnostic: pid=\(String(describing: session.shellPid)), exited=\(session.hasExited), text=\(session.surface.readVisibleText(maxLines: 30, maxColumns: 100) ?? "<unavailable>")"
+                )
+                if let result = try? PTYMuxCommandLine.exchange(
+                    method: "get",
+                    params: [
+                        "id": .string(session.id.uuidString), "tailBytes": .number(1024),
+                    ]
+                ).result?.objectValue, let encoded = result["tailBase64"]?.stringValue,
+                    let data = Data(base64Encoded: encoded)
+                {
                     print("PTY tail: \(String(decoding: data, as: UTF8.self))")
                 }
             }
@@ -190,46 +205,54 @@ private struct ContrastPixels {
             pump()
             for (index, session) in sessions.enumerated() {
                 let grid = session.surface.readVisibleSnapshot()!
-                try check(grid.columns == initialGrids[index].columns && grid.cellSize == initialGrids[index].cellSize,
-                          "\(backend) \(ratio):1 keeps pane \(index) geometry")
+                try check(
+                    grid.columns == initialGrids[index].columns && grid.cellSize == initialGrids[index].cellSize,
+                    "\(backend) \(ratio):1 keeps pane \(index) geometry")
                 frames[index][ratio] = try pixels(session.surface)
             }
         }
         for (index, session) in sessions.enumerated() {
             let grid = initialGrids[index]
-            func row(_ ratio: Double, _ row: Int, columns: Range<Int> = 0..<6) -> [UInt8] {
+            func row(_ ratio: Double, _ row: Int, columns: Range<Int> = 0 ..< 6) -> [UInt8] {
                 region(frames[index][ratio]!, surface: session.surface, grid: grid, row: row, columns: columns)
             }
             try check(brightest(row(1, 0)) == 72, "\(backend) 1:1 renders original 24/24/24 true color")
             try check(brightest(row(3, 0)) > brightest(row(1, 0)) + 120, "\(backend) low contrast brightens in pane \(index)")
-            try check(row(1, 1) == row(3, 1) && brightest(row(7, 1)) > brightest(row(3, 1)) + 100,
-                      "\(backend) mid contrast preserves 3:1 and improves at 7:1")
+            try check(
+                row(1, 1) == row(3, 1) && brightest(row(7, 1)) > brightest(row(3, 1)) + 100,
+                "\(backend) mid contrast preserves 3:1 and improves at 7:1")
             try check(row(1, 2) == row(21, 2), "\(backend) high contrast keeps original ANSI color")
             for flaggedRow in [3, 4, 5, 7] {
-                try check(brightest(row(7, flaggedRow)) > brightest(row(1, flaggedRow)) + 100,
-                          "\(backend) inverse/bold/dim/Unicode row \(flaggedRow) uses resolved background")
+                try check(
+                    brightest(row(7, flaggedRow)) > brightest(row(1, flaggedRow)) + 100,
+                    "\(backend) inverse/bold/dim/Unicode row \(flaggedRow) uses resolved background")
             }
             try check(row(1, 6) == row(21, 6), "\(backend) invisible text remains invisible")
-            try check(row(1, 8, columns: 0..<4) == row(21, 8, columns: 0..<4), "\(backend) emoji pixels preserve intrinsic colors")
-            let image1 = row(1, 9, columns: 0..<8) + row(1, 10, columns: 0..<8)
-            let image21 = row(21, 9, columns: 0..<8) + row(21, 10, columns: 0..<8)
+            try check(row(1, 8, columns: 0 ..< 4) == row(21, 8, columns: 0 ..< 4), "\(backend) emoji pixels preserve intrinsic colors")
+            let image1 = row(1, 9, columns: 0 ..< 8) + row(1, 10, columns: 0 ..< 8)
+            let image21 = row(21, 9, columns: 0 ..< 8) + row(21, 10, columns: 0 ..< 8)
             try check(image1 == image21 && image1.contains(26), "\(backend) Kitty image pixels retain their low-contrast color")
             for paletteRow in [15, 16] {
-                try check(brightest(row(3, paletteRow)) > brightest(row(1, paletteRow)) + 200,
-                          "\(backend) 16/256-color ANSI row \(paletteRow) improves contrast")
+                try check(
+                    brightest(row(3, paletteRow)) > brightest(row(1, paletteRow)) + 200,
+                    "\(backend) 16/256-color ANSI row \(paletteRow) improves contrast")
             }
-            try check(row(1, 14, columns: 2..<3) == row(3, 14, columns: 2..<3),
-                      "\(backend) disabling ANSI adjustment keeps the existing cursor color")
+            try check(
+                row(1, 14, columns: 2 ..< 3) == row(3, 14, columns: 2 ..< 3),
+                "\(backend) disabling ANSI adjustment keeps the existing cursor color")
             if backend == "alacritty" {
-                try check(row(1, 14, columns: 2..<3) == row(21, 14, columns: 2..<3),
-                          "Alacritty keeps its native independent block cursor color")
+                try check(
+                    row(1, 14, columns: 2 ..< 3) == row(21, 14, columns: 2 ..< 3),
+                    "Alacritty keeps its native independent block cursor color")
             } else {
-                try check(brightest(row(7, 14, columns: 2..<3)) >= brightest(row(3, 14, columns: 2..<3)),
-                          "Ghostty keeps its native readable block cursor policy")
+                try check(
+                    brightest(row(7, 14, columns: 2 ..< 3)) >= brightest(row(3, 14, columns: 2 ..< 3)),
+                    "Ghostty keeps its native readable block cursor policy")
             }
         }
-        try check(sessions.map { $0.shellPid! } == pids && pids.allSatisfy { kill($0, 0) == 0 },
-                  "\(backend) contrast hot updates keep both original PTYs alive")
+        try check(
+            sessions.map { $0.shellPid! } == pids && pids.allSatisfy { kill($0, 0) == 0 },
+            "\(backend) contrast hot updates keep both original PTYs alive")
 
         var profile = TerminalProfile(name: "Contrast profile")
         profile.host = "contrast-manual-profile.invalid"
@@ -245,17 +268,21 @@ private struct ContrastPixels {
         settings.terminalMinimumContrast = 7
         pump()
         let profileAdjusted = try pixels(sessions[0].surface)
-        try check(brightest(region(profileAdjusted, surface: sessions[0].surface, grid: profileGrid, row: 0, columns: 0..<6))
-                  > brightest(region(profileOriginal, surface: sessions[0].surface, grid: profileGrid, row: 0, columns: 0..<6)) + 200,
-                  "\(backend) profile appearance uses the global contrast setting")
+        try check(
+            brightest(region(profileAdjusted, surface: sessions[0].surface, grid: profileGrid, row: 0, columns: 0 ..< 6))
+                > brightest(region(profileOriginal, surface: sessions[0].surface, grid: profileGrid, row: 0, columns: 0 ..< 6)) + 200,
+            "\(backend) profile appearance uses the global contrast setting")
         try selection(sessions[0].surface)
         try transparent(sessions[1].surface)
         try quickTerminal(settings: settings, backend: backend)
         try configuration(settings: settings, session: sessions[1])
         try switchedBackend(settings: settings, manager: manager, backend: backend)
-        try check(sessions.map { $0.shellPid! } == pids && pids.allSatisfy { kill($0, 0) == 0 },
-                  "\(backend) reload/reset/backend switch preserve existing PTYs")
-        print("Native minimum contrast passed: \(backend), 1/3/7/21, ANSI flags, Unicode, emoji, Kitty, profile, selection, cursor, transparency, Quick Terminal")
+        try check(
+            sessions.map { $0.shellPid! } == pids && pids.allSatisfy { kill($0, 0) == 0 },
+            "\(backend) reload/reset/backend switch preserve existing PTYs")
+        print(
+            "Native minimum contrast passed: \(backend), 1/3/7/21, ANSI flags, Unicode, emoji, Kitty, profile, selection, cursor, transparency, Quick Terminal"
+        )
     }
 
     @MainActor private static func shutdownPTYs() {
@@ -277,7 +304,7 @@ private struct ContrastPixels {
         let surface = session.surface
         let grid = surface.readVisibleSnapshot()!
         func brightness() throws -> Int {
-            brightest(region(try pixels(surface), surface: surface, grid: grid, row: 0, columns: 0..<6))
+            brightest(region(try pixels(surface), surface: surface, grid: grid, row: 0, columns: 0 ..< 6))
         }
         let exported = settings.serializedConfig()
         var imported = TOML.parseStrictly(text: exported).values
@@ -288,8 +315,9 @@ private struct ContrastPixels {
         try check(original == 72, "import turns off ANSI adjustment on the existing surface")
         var restored = TOML.parseStrictly(text: exported).values
         restored["terminal.minimum-contrast"] = .number(7)
-        try SettingsConfigFile.write(settings.serializedConfig().replacingOccurrences(
-            of: "terminal.minimum-contrast = 1", with: "terminal.minimum-contrast = 7"), at: AppSettings.configURL)
+        try SettingsConfigFile.write(
+            settings.serializedConfig().replacingOccurrences(
+                of: "terminal.minimum-contrast = 1", with: "terminal.minimum-contrast = 7"), at: AppSettings.configURL)
         try wait("live config reload reaches production settings") { settings.terminalMinimumContrast == 7 }
         pump()
         let reloaded = try brightness()
@@ -305,8 +333,9 @@ private struct ContrastPixels {
         pump()
         let resetGrid = surface.readVisibleSnapshot()!
         let resetPixels = try pixels(surface)
-        try check(brightest(region(resetPixels, surface: surface, grid: resetGrid, row: 0, columns: 0..<6)) > original + 200,
-                  "reset 3:1 keeps original process and readable pixels")
+        try check(
+            brightest(region(resetPixels, surface: surface, grid: resetGrid, row: 0, columns: 0 ..< 6)) > original + 200,
+            "reset 3:1 keeps original process and readable pixels")
     }
 
     @MainActor private static func switchedBackend(settings: AppSettings, manager: TerminalManager, backend: String) throws {
@@ -315,8 +344,9 @@ private struct ContrastPixels {
         let project = manager.newProject()
         let session = project.sessions[0]
         let surface = session.surface
-        let window = ContrastTestWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
-                                        styleMask: [.titled], backing: .buffered, defer: false)
+        let window = ContrastTestWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+            styleMask: [.titled], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.contentView = surface
         surface.frame = NSRect(x: 0, y: 0, width: 800, height: 600)
@@ -342,10 +372,11 @@ private struct ContrastPixels {
         settings.terminalMinimumContrast = 7
         pump()
         let adjusted = try pixels(surface)
-        try check(session.backend == settings.terminalBackend &&
-                  brightest(region(adjusted, surface: surface, grid: grid, row: 0, columns: 0..<6))
-                  > brightest(region(original, surface: surface, grid: grid, row: 0, columns: 0..<6)) + 200,
-                  "Settings backend switch gives the new terminal live contrast")
+        try check(
+            session.backend == settings.terminalBackend
+                && brightest(region(adjusted, surface: surface, grid: grid, row: 0, columns: 0 ..< 6))
+                    > brightest(region(original, surface: surface, grid: grid, row: 0, columns: 0 ..< 6)) + 200,
+            "Settings backend switch gives the new terminal live contrast")
         try check(session.shellPid == pid, "switched backend hot update keeps its native PTY")
     }
 
@@ -356,14 +387,17 @@ private struct ContrastPixels {
         cell.bg = 0
         for ratio in [1.0, 3, 7, 21] {
             cache.setMinimumRatio(ratio)
-            try check(cache.foreground(of: cell, default: 0x777777) == (ratio == 1 ? 0x181818 : 0xffffff),
-                      "production color cache \(ratio):1 uses cell background")
+            try check(
+                cache.foreground(of: cell, default: 0x777777) == (ratio == 1 ? 0x181818 : 0xffffff),
+                "production color cache \(ratio):1 uses cell background")
             cell.flags = UInt16(ZSHELL_CELL_BOLD)
             try check(cache.foreground(of: cell, default: 0) == (ratio == 1 ? 0x181818 : 0xffffff), "bold uses the same contrast policy")
             cell.flags = UInt16(ZSHELL_CELL_INVERSE)
             cell.fg = 0
             cell.bg = 0x181818
-            try check(cache.foreground(of: cell, default: 0xffffff) == (ratio == 1 ? 0x181818 : 0xffffff), "inverse colors resolve before contrast")
+            try check(
+                cache.foreground(of: cell, default: 0xffffff) == (ratio == 1 ? 0x181818 : 0xffffff),
+                "inverse colors resolve before contrast")
             cell.fg = 0x181818
             cell.bg = 0
             cell.flags = 0
@@ -374,20 +408,26 @@ private struct ContrastPixels {
         cell.flags = UInt16(ZSHELL_CELL_SELECTED)
         let selected = cache.foreground(of: cell, default: 0)
         cache.setMinimumRatio(3)
-        try check(cache.foreground(of: cell, default: 0) == selected, "selection retains its existing minimum readability when ANSI adjustment is disabled")
+        try check(
+            cache.foreground(of: cell, default: 0) == selected,
+            "selection retains its existing minimum readability when ANSI adjustment is disabled")
         cell.flags = 0
         cell.fg = 0x777777
         cell.bg = 0x777777
         cache.setMinimumRatio(21)
-        try check([UInt32(0), 0xffffff].contains(cache.foreground(of: cell, default: 0)), "unattainable ratio keeps the existing best-readable fallback")
+        try check(
+            [UInt32(0), 0xffffff].contains(cache.foreground(of: cell, default: 0)),
+            "unattainable ratio keeps the existing best-readable fallback")
     }
 
     @MainActor private static func selection(_ surface: any TerminalBackendSurface) throws {
         let grid = surface.readVisibleSnapshot()!
         func event(_ type: NSEvent.EventType, column: CGFloat) -> NSEvent {
-            let point = NSPoint(x: grid.origin.x + column * grid.cellSize.width,
-                                y: surface.bounds.maxY - grid.origin.y - grid.cellSize.height * 0.5)
-            return NSEvent.mouseEvent(with: type, location: surface.convert(point, to: nil), modifierFlags: [],
+            let point = NSPoint(
+                x: grid.origin.x + column * grid.cellSize.width,
+                y: surface.bounds.maxY - grid.origin.y - grid.cellSize.height * 0.5)
+            return NSEvent.mouseEvent(
+                with: type, location: surface.convert(point, to: nil), modifierFlags: [],
                 timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: surface.window!.windowNumber,
                 context: nil, eventNumber: 1, clickCount: 1, pressure: 1)!
         }
@@ -409,8 +449,10 @@ private struct ContrastPixels {
         AppSettings.shared.terminalMinimumContrast = 3
         pump()
         let second = try pixels(surface)
-        try check(region(first, surface: surface, grid: grid, row: 0, columns: 0..<6)
-                  == region(second, surface: surface, grid: grid, row: 0, columns: 0..<6), "native selection stays readable with ANSI adjustment off")
+        try check(
+            region(first, surface: surface, grid: grid, row: 0, columns: 0 ..< 6)
+                == region(second, surface: surface, grid: grid, row: 0, columns: 0 ..< 6),
+            "native selection stays readable with ANSI adjustment off")
     }
 
     @MainActor private static func transparent(_ surface: any TerminalBackendSurface) throws {
@@ -422,9 +464,10 @@ private struct ContrastPixels {
         AppSettings.shared.terminalMinimumContrast = 7
         pump()
         let second = try pixels(surface)
-        try check(brightest(region(second, surface: surface, grid: grid, row: 0, columns: 0..<6))
-                  > brightest(region(first, surface: surface, grid: grid, row: 0, columns: 0..<6)) + 200,
-                  "transparent terminal adjusts against resolved cell background")
+        try check(
+            brightest(region(second, surface: surface, grid: grid, row: 0, columns: 0 ..< 6))
+                > brightest(region(first, surface: surface, grid: grid, row: 0, columns: 0 ..< 6)) + 200,
+            "transparent terminal adjusts against resolved cell background")
     }
 
     @MainActor private static func quickTerminal(settings: AppSettings, backend: String) throws {
@@ -446,11 +489,13 @@ private struct ContrastPixels {
         settings.terminalMinimumContrast = 7
         pump()
         let adjusted = try pixels(session.surface)
-        try check(brightest(region(adjusted, surface: session.surface, grid: grid, row: 0, columns: 0..<6))
-                  > brightest(region(original, surface: session.surface, grid: grid, row: 0, columns: 0..<6)) + 200,
-                  "\(backend) already-open Quick Terminal changes contrast")
-        try check(session.shellPid == pid && session.surface.readVisibleSnapshot()?.columns == grid.columns,
-                  "\(backend) Quick Terminal keeps its process and grid")
+        try check(
+            brightest(region(adjusted, surface: session.surface, grid: grid, row: 0, columns: 0 ..< 6))
+                > brightest(region(original, surface: session.surface, grid: grid, row: 0, columns: 0 ..< 6)) + 200,
+            "\(backend) already-open Quick Terminal changes contrast")
+        try check(
+            session.shellPid == pid && session.surface.readVisibleSnapshot()?.columns == grid.columns,
+            "\(backend) Quick Terminal keeps its process and grid")
 
         overlay.stop()
         settings.quickTerminalMode = .reuse
@@ -467,7 +512,9 @@ private struct ContrastPixels {
         } catch {
             print("QUICK diagnostic: \(overlay.allSessions.count) sessions, mode=\(settings.quickTerminalMode)")
             for item in overlay.allSessions {
-                print("QUICK pane: \(item.surface.bounds), pid=\(String(describing: item.shellPid)), exited=\(item.hasExited), text=\(item.surface.readVisibleText(maxLines: 30, maxColumns: 100) ?? "<unavailable>")")
+                print(
+                    "QUICK pane: \(item.surface.bounds), pid=\(String(describing: item.shellPid)), exited=\(item.hasExited), text=\(item.surface.readVisibleText(maxLines: 30, maxColumns: 100) ?? "<unavailable>")"
+                )
             }
             throw error
         }
@@ -500,10 +547,12 @@ private struct ContrastPixels {
             resumed = try? pixels(reusable.surface)
             return resumed != nil
         }
-        try check(overlay.allSessions.first?.id == reusable.id && reusable.shellPid == reusablePID,
-                  "\(backend) dismissed reusable Quick Terminal keeps its PTY")
-        try check(brightest(region(resumed!, surface: reusable.surface, grid: reusableGrid, row: 0, columns: 0..<6))
-                  > brightest(region(parkedOriginal, surface: reusable.surface, grid: reusableGrid, row: 0, columns: 0..<6)) + 200,
-                  "\(backend) hidden Quick Terminal receives contrast before reopening")
+        try check(
+            overlay.allSessions.first?.id == reusable.id && reusable.shellPid == reusablePID,
+            "\(backend) dismissed reusable Quick Terminal keeps its PTY")
+        try check(
+            brightest(region(resumed!, surface: reusable.surface, grid: reusableGrid, row: 0, columns: 0 ..< 6))
+                > brightest(region(parkedOriginal, surface: reusable.surface, grid: reusableGrid, row: 0, columns: 0 ..< 6)) + 200,
+            "\(backend) hidden Quick Terminal receives contrast before reopening")
     }
 }

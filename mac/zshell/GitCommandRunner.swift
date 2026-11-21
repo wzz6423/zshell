@@ -104,8 +104,9 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
             guard !lock.withLock({ isCancelled }) else {
                 return GitCommandDataResult(status: -3, stdout: Data(), stderr: "", truncated: false)
             }
-            let pid = try Self.spawn(args, in: directory, environment: environment,
-                                     stdout: stdout, stderr: stderr, stdin: stdin)
+            let pid = try Self.spawn(
+                args, in: directory, environment: environment,
+                stdout: stdout, stderr: stderr, stdin: stdin)
             stdout.closeWrite()
             stderr.closeWrite()
             stdin?.closeRead()
@@ -132,20 +133,25 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
                 if exitStatus == nil, ownsChild {
                     var info = siginfo_t()
                     let result = waitid(P_PID, id_t(pid), &info, WEXITED | WNOHANG | WNOWAIT)
-                    if result == 0, info.si_pid == pid { exitStatus = info.si_status }
-                    else if result < 0 {
-                        if errno == ECHILD { ownsChild = false }
-                        else if errno != EINTR { failure = Self.error(errno).localizedDescription }
+                    if result == 0, info.si_pid == pid {
+                        exitStatus = info.si_status
+                    } else if result < 0 {
+                        if errno == ECHILD { ownsChild = false } else if errno != EINTR { failure = Self.error(errno).localizedDescription }
                     }
                 }
-                let pipesClosed = stdout.readDescriptor < 0 && stderr.readDescriptor < 0
+                let pipesClosed =
+                    stdout.readDescriptor < 0 && stderr.readDescriptor < 0
                     && (stdin?.writeDescriptor ?? -1) < 0
                 if (exitStatus != nil || !ownsChild), pipesClosed, killDeadline == nil { break }
 
                 if interruption == nil {
-                    if lock.withLock({ isCancelled }) { interruption = -3 }
-                    else if let deadline, now >= deadline { interruption = -2 }
-                    else if failure != nil { interruption = -1 }
+                    if lock.withLock({ isCancelled }) {
+                        interruption = -3
+                    } else if let deadline, now >= deadline {
+                        interruption = -2
+                    } else if failure != nil {
+                        interruption = -1
+                    }
                     if interruption != nil {
                         if ownsChild { Self.signalGroup(pid, SIGTERM) }
                         stdin?.closeWrite()
@@ -161,42 +167,51 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
                 }
                 if let reapDeadline, now >= reapDeadline { break }
                 if (exitStatus != nil || !ownsChild), stdout.readDescriptor < 0,
-                   stderr.readDescriptor < 0, (stdin?.writeDescriptor ?? -1) < 0,
-                   killDeadline == nil { break }
+                    stderr.readDescriptor < 0, (stdin?.writeDescriptor ?? -1) < 0,
+                    killDeadline == nil
+                {
+                    break
+                }
 
-                let pollingForExit = ownsChild && exitStatus == nil && pipesClosed
+                let pollingForExit =
+                    ownsChild && exitStatus == nil && pipesClosed
                     && interruption == nil && shortExitPolls > 0
                 let pollInterval: UInt64 = pollingForExit ? 5_000_000 : 50_000_000
                 if pollingForExit { shortExitPolls -= 1 }
                 let nextDeadline = interruption == nil ? deadline : (killDeadline ?? reapDeadline)
-                let remaining = nextDeadline.map {
-                    $0.uptimeNanoseconds > now.uptimeNanoseconds
-                        ? min(pollInterval, $0.uptimeNanoseconds - now.uptimeNanoseconds) : 0
-                } ?? pollInterval
+                let remaining =
+                    nextDeadline.map {
+                        $0.uptimeNanoseconds > now.uptimeNanoseconds
+                            ? min(pollInterval, $0.uptimeNanoseconds - now.uptimeNanoseconds) : 0
+                    } ?? pollInterval
                 var descriptors = [
                     pollfd(fd: stdout.readDescriptor, events: Int16(POLLIN), revents: 0),
                     pollfd(fd: stderr.readDescriptor, events: Int16(POLLIN), revents: 0),
                     pollfd(fd: stdin?.writeDescriptor ?? -1, events: Int16(POLLOUT), revents: 0),
                 ]
-                let ready = Darwin.poll(&descriptors, nfds_t(descriptors.count),
-                                        Int32((remaining + 999_999) / 1_000_000))
+                let ready = Darwin.poll(
+                    &descriptors, nfds_t(descriptors.count),
+                    Int32((remaining + 999_999) / 1_000_000))
                 if ready < 0 {
                     if errno != EINTR { failure = Self.error(errno).localizedDescription }
                     continue
                 }
                 if descriptors[0].revents != 0 {
-                    Self.drain(stdout, into: &output, buffer: &buffer,
-                               limit: outputLimit, truncated: &truncated)
+                    Self.drain(
+                        stdout, into: &output, buffer: &buffer,
+                        limit: outputLimit, truncated: &truncated)
                 }
                 if descriptors[1].revents != 0 {
-                    Self.drain(stderr, into: &errorOutput, buffer: &buffer,
-                               limit: outputLimit, truncated: &truncated)
+                    Self.drain(
+                        stderr, into: &errorOutput, buffer: &buffer,
+                        limit: outputLimit, truncated: &truncated)
                 }
                 if let stdin, let input, descriptors[2].revents != 0 {
                     let written = input.withUnsafeBytes { bytes in
-                        Darwin.write(stdin.writeDescriptor,
-                                     bytes.baseAddress!.advanced(by: inputOffset),
-                                     min(buffer.count, input.count - inputOffset))
+                        Darwin.write(
+                            stdin.writeDescriptor,
+                            bytes.baseAddress!.advanced(by: inputOffset),
+                            min(buffer.count, input.count - inputOffset))
                     }
                     if written > 0 {
                         inputOffset += written
@@ -222,8 +237,9 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
                 truncated: truncated
             )
         } catch {
-            return GitCommandDataResult(status: -1, stdout: Data(),
-                                        stderr: error.localizedDescription, truncated: false)
+            return GitCommandDataResult(
+                status: -1, stdout: Data(),
+                stderr: error.localizedDescription, truncated: false)
         }
     }
 
@@ -253,10 +269,13 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
         var attributes: posix_spawnattr_t?
         try check(posix_spawnattr_init(&attributes))
         defer { posix_spawnattr_destroy(&attributes) }
-        try check(posix_spawnattr_setflags(
-            &attributes, Int16(POSIX_SPAWN_CLOEXEC_DEFAULT | POSIX_SPAWN_SETPGROUP
-                               | POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSIGDEF)
-        ))
+        try check(
+            posix_spawnattr_setflags(
+                &attributes,
+                Int16(
+                    POSIX_SPAWN_CLOEXEC_DEFAULT | POSIX_SPAWN_SETPGROUP
+                        | POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSIGDEF)
+            ))
         try check(posix_spawnattr_setpgroup(&attributes, 0))
         var signals = sigset_t()
         sigemptyset(&signals)
@@ -290,7 +309,7 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
     ) {
         // Yield between batches so a helper writing continuously cannot hide
         // cancellation or the deadline behind an always-readable pipe.
-        for _ in 0..<4 {
+        for _ in 0 ..< 4 {
             let count = Darwin.read(pipe.readDescriptor, &buffer, buffer.count)
             if count > 0 {
                 let retained = min(count, limit - output.count)
@@ -301,7 +320,9 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
             } else if count == 0 || (errno != EINTR && errno != EAGAIN) {
                 pipe.closeRead()
                 return
-            } else { return }
+            } else {
+                return
+            }
         }
     }
 
@@ -371,8 +392,9 @@ private nonisolated final class GitProcessReaper: @unchecked Sendable {
 
     static func reapOnExit(_ pid: pid_t) {
         let reaper = GitProcessReaper()
-        let source = DispatchSource.makeProcessSource(identifier: pid, eventMask: .exit,
-                                                     queue: .global(qos: .utility))
+        let source = DispatchSource.makeProcessSource(
+            identifier: pid, eventMask: .exit,
+            queue: .global(qos: .utility))
         reaper.source = source
         source.setEventHandler {
             var status: Int32 = 0

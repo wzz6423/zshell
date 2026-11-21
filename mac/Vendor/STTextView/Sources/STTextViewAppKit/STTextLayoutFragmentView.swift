@@ -57,7 +57,8 @@ final class STTextLayoutFragmentView: NSView {
     private func layoutAttachmentView() {
         for attachmentViewProvider in layoutFragment.textAttachmentViewProviders {
             guard let attachmentView = attachmentViewProvider.view,
-                  let textAttachment = attachmentViewProvider.textAttachment else {
+                let textAttachment = attachmentViewProvider.textAttachment
+            else {
                 continue
             }
 
@@ -96,8 +97,9 @@ final class STTextLayoutFragmentView: NSView {
             // Try to get a meaningful label from the attachment
             if let textAttachment = provider.textAttachment {
                 if let _ = textAttachment.contents,
-                   let _ = textAttachment.fileType,
-                   let fileName = textAttachment.fileWrapper?.filename {
+                    let _ = textAttachment.fileType,
+                    let fileName = textAttachment.fileWrapper?.filename
+                {
                     attachmentView.setAccessibilityLabel("Attachment: \(fileName)")
                 } else {
                     attachmentView.setAccessibilityLabel("Text attachment")
@@ -126,7 +128,8 @@ final class STTextLayoutFragmentView: NSView {
 
         context.saveGState()
 
-        textLayoutManager.enumerateRenderingAttributes(in: layoutFragment.rangeInElement, reverse: false) { textLayoutManager, attrs, attrTextRange in
+        textLayoutManager.enumerateRenderingAttributes(in: layoutFragment.rangeInElement, reverse: false) {
+            textLayoutManager, attrs, attrTextRange in
             if let spellingState = attrs[.spellingState] as? String {
                 if spellingState == "1" {
                     context.setStrokeColor(NSColor.systemRed.withAlphaComponent(0.8).cgColor)
@@ -136,7 +139,10 @@ final class STTextLayoutFragmentView: NSView {
 
                 if let segmentFrame = textLayoutManager.textSegmentFrame(in: attrTextRange, type: .standard) {
                     let pointSize: CGFloat = 2.5
-                    let frameRect = CGRect(origin: CGPoint(x: segmentFrame.origin.x + pointSize, y: segmentFrame.origin.y - layoutFragment.layoutFragmentFrame.origin.y), size: CGSize(width: segmentFrame.size.width - pointSize, height: segmentFrame.size.height))
+                    let frameRect = CGRect(
+                        origin: CGPoint(
+                            x: segmentFrame.origin.x + pointSize, y: segmentFrame.origin.y - layoutFragment.layoutFragmentFrame.origin.y),
+                        size: CGSize(width: segmentFrame.size.width - pointSize, height: segmentFrame.size.height))
                     if frameRect.intersects(dirtyRect) {
                         drawUnderline(under: frameRect, lineWidth: pointSize)
                     }

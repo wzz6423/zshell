@@ -24,7 +24,7 @@ struct SidebarResizeHandle: NSViewRepresentable {
         view.update(
             edge: edge,
             width: width,
-            range: minimum...range.upperBound,
+            range: minimum ... range.upperBound,
             defaultWidth: defaultWidth,
             onWidthChange: { width = $0 }
         )
@@ -42,7 +42,7 @@ struct SidebarResizeHandle: NSViewRepresentable {
 final class SidebarResizeHandleNSView: NSView {
     private var edge = HorizontalEdge.trailing
     private var width: Double = 0
-    private var range: ClosedRange<Double> = 0...0
+    private var range: ClosedRange<Double> = 0 ... 0
     private var defaultWidth: Double = 0
     private var onWidthChange: ((Double) -> Void)?
     private var baselineWidth: Double?

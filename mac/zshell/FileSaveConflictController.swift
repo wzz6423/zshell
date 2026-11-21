@@ -19,13 +19,16 @@ final class FileSaveConflictController: NSObject {
     ) throws -> SaveResult {
         var overwrite: FileSaveSnapshot?
         while true {
-            switch try FileSaveCoordinator.save(text: text, path: path, baseline: baseline,
-                                                protectionEnabled: protectionEnabled, overwrite: overwrite) {
+            switch try FileSaveCoordinator.save(
+                text: text, path: path, baseline: baseline,
+                protectionEnabled: protectionEnabled, overwrite: overwrite)
+            {
             case .saved(let snapshot): return .saved(snapshot)
             case .conflict(let conflict):
                 let choice: Choice
-                if let resolveConflict { choice = resolveConflict(conflict, text) }
-                else {
+                if let resolveConflict {
+                    choice = resolveConflict(conflict, text)
+                } else {
                     guard AppWindowPresentation.hostWindow(relativeTo: window) != nil else { return .cancelled }
                     choice = FileSaveConflictController(conflict: conflict, draft: text).resolve()
                 }
@@ -54,13 +57,21 @@ final class FileSaveConflictController: NSObject {
         let name = URL(fileURLWithPath: conflict.path).lastPathComponent
         if let remotePath {
             alert.messageText = String(localized: "“\(name)” changed on the remote host.")
-            alert.informativeText = remotePath + "\n" + String(localized: "Compare the remote version with your draft before saving. The compared version is checked again before overwriting.")
+            alert.informativeText =
+                remotePath + "\n"
+                + String(
+                    localized:
+                        "Compare the remote version with your draft before saving. The compared version is checked again before overwriting."
+                )
         } else {
             alert.messageText = String(
                 localized: "“\(name)” changed on disk.",
                 comment: "Save conflict title. The placeholder is a file name."
             )
-            alert.informativeText = String(localized: "Compare the disk version with your draft before saving. Reloading discards your draft; overwriting replaces the disk version.")
+            alert.informativeText = String(
+                localized:
+                    "Compare the disk version with your draft before saving. Reloading discards your draft; overwriting replaces the disk version."
+            )
         }
         let keep = alert.addButton(withTitle: String(localized: "Keep Draft"))
         keep.keyEquivalent = "\u{1b}"
@@ -90,7 +101,8 @@ final class FileSaveConflictController: NSObject {
 
     @objc private func compare() {
         guard let accessory = alert.accessoryView as? NSStackView,
-              accessory.arrangedSubviews.first === compareButton else { return }
+            accessory.arrangedSubviews.first === compareButton
+        else { return }
         let diskText: String
         if conflict.current.isMissing {
             diskText = String(localized: "The file was deleted.")
@@ -128,10 +140,11 @@ final class FileSaveConflictController: NSObject {
             height.constant = min(height.constant, max(80, available.height - alert.window.frame.height + height.constant))
             layoutAccessory()
             let frame = alert.window.frame
-            alert.window.setFrameOrigin(NSPoint(
-                x: min(max(frame.minX, available.minX), available.maxX - frame.width),
-                y: min(max(frame.minY, available.minY), available.maxY - frame.height)
-            ))
+            alert.window.setFrameOrigin(
+                NSPoint(
+                    x: min(max(frame.minX, available.minX), available.maxX - frame.width),
+                    y: min(max(frame.minY, available.minY), available.maxY - frame.height)
+                ))
         }
     }
 

@@ -106,14 +106,14 @@ import Testing
 
     // Cover all match kinds: exact, prefix, substring, acronym, nil
     let cases: [(candidate: String, query: String)] = [
-        ("User", "user"),                                       // exact
-        ("getUserById", "get"),                                 // prefix
-        ("getCurrentUser", "user"),                             // substring
-        ("International Consolidated Airlines Group", "icag"),  // acronym
-        ("abc", "xyz"),                                         // nil
-        ("a", "a"),                                             // exact single char
-        ("apple", "apl"),                                       // prefix with edit
-        ("Bristol-Myers Squibb", "bms")                        // acronym
+        ("User", "user"), // exact
+        ("getUserById", "get"), // prefix
+        ("getCurrentUser", "user"), // substring
+        ("International Consolidated Airlines Group", "icag"), // acronym
+        ("abc", "xyz"), // nil
+        ("a", "a"), // exact single char
+        ("apple", "apl"), // prefix with edit
+        ("Bristol-Myers Squibb", "bms"), // acronym
     ]
 
     for (candidate, queryStr) in cases {
@@ -123,10 +123,14 @@ import Testing
         var buffer = matcher.makeBuffer()
         let buffered = matcher.score(candidate, against: query, buffer: &buffer)
 
-        #expect(oneShot?.score == buffered?.score,
-                "Score mismatch for \(candidate)/\(queryStr): oneShot=\(String(describing: oneShot?.score)) buffered=\(String(describing: buffered?.score))")
-        #expect(oneShot?.kind == buffered?.kind,
-                "Kind mismatch for \(candidate)/\(queryStr): oneShot=\(String(describing: oneShot?.kind)) buffered=\(String(describing: buffered?.kind))")
+        #expect(
+            oneShot?.score == buffered?.score,
+            "Score mismatch for \(candidate)/\(queryStr): oneShot=\(String(describing: oneShot?.score)) buffered=\(String(describing: buffered?.score))"
+        )
+        #expect(
+            oneShot?.kind == buffered?.kind,
+            "Kind mismatch for \(candidate)/\(queryStr): oneShot=\(String(describing: oneShot?.kind)) buffered=\(String(describing: buffered?.kind))"
+        )
     }
 }
 
@@ -137,7 +141,7 @@ import Testing
         ("Goldman Sachs", "Goldamn"),
         ("Boeing", "Voeing"),
         ("Blackstone Inc", "blakstone"),
-        ("Mastercard", "Mastecard")
+        ("Mastercard", "Mastecard"),
     ]
 
     for (candidate, queryStr) in cases {
@@ -147,10 +151,12 @@ import Testing
         var buffer = matcher.makeBuffer()
         let buffered = matcher.score(candidate, against: query, buffer: &buffer)
 
-        #expect(oneShot?.score == buffered?.score,
-                "Score mismatch for \(candidate)/\(queryStr)")
-        #expect(oneShot?.kind == buffered?.kind,
-                "Kind mismatch for \(candidate)/\(queryStr)")
+        #expect(
+            oneShot?.score == buffered?.score,
+            "Score mismatch for \(candidate)/\(queryStr)")
+        #expect(
+            oneShot?.kind == buffered?.kind,
+            "Kind mismatch for \(candidate)/\(queryStr)")
     }
 }
 
@@ -171,7 +177,7 @@ import Testing
     let candidates = ["getUserById", "setUser", "userService", "fetchData", "currentUser"]
 
     let results = matcher.topMatches(candidates, against: query, limit: 10)
-    for i in 1..<results.count {
+    for i in 1 ..< results.count {
         #expect(results[i - 1].match.score >= results[i].match.score)
     }
 }
@@ -179,7 +185,7 @@ import Testing
 @Test func topMatchesRespectsLimit() {
     let matcher = FuzzyMatcher()
     let query = matcher.prepare("a")
-    let candidates = (0..<20).map { "a\($0)item" }
+    let candidates = (0 ..< 20).map { "a\($0)item" }
 
     let results = matcher.topMatches(candidates, against: query, limit: 5)
     #expect(results.count == 5)
@@ -188,7 +194,7 @@ import Testing
 @Test func topMatchesDefaultLimitIs10() {
     let matcher = FuzzyMatcher()
     let query = matcher.prepare("a")
-    let candidates = (0..<20).map { "a\($0)item" }
+    let candidates = (0 ..< 20).map { "a\($0)item" }
 
     let results = matcher.topMatches(candidates, against: query)
     #expect(results.count == 10)
@@ -251,11 +257,11 @@ import Testing
     let matcher = FuzzyMatcher()
     let query = matcher.prepare("get")
     let candidates = [
-        "get",           // exact — highest score
-        "getUser",       // prefix
-        "getConfig",     // prefix
-        "widget",        // substring (weaker)
-        "budgetTracker" // substring (weaker)
+        "get", // exact — highest score
+        "getUser", // prefix
+        "getConfig", // prefix
+        "widget", // substring (weaker)
+        "budgetTracker", // substring (weaker)
     ]
 
     let top2 = matcher.topMatches(candidates, against: query, limit: 2)
@@ -276,7 +282,7 @@ import Testing
     let query = matcher.prepare("config")
     let candidates = [
         "appConfig", "configManager", "database", "userConfig",
-        "systemConfiguration", "settings", "configPath", "reconfigure"
+        "systemConfiguration", "settings", "configPath", "reconfigure",
     ]
 
     let convenience = matcher.topMatches(candidates, against: query, limit: 3)
@@ -293,11 +299,13 @@ import Testing
     let manualTop3 = Array(manual.prefix(3))
 
     #expect(convenience.count == manualTop3.count)
-    for i in 0..<convenience.count {
-        #expect(convenience[i].candidate == manualTop3[i].0,
-                "Candidate mismatch at index \(i)")
-        #expect(convenience[i].match.score == manualTop3[i].1.score,
-                "Score mismatch at index \(i)")
+    for i in 0 ..< convenience.count {
+        #expect(
+            convenience[i].candidate == manualTop3[i].0,
+            "Candidate mismatch at index \(i)")
+        #expect(
+            convenience[i].match.score == manualTop3[i].1.score,
+            "Score mismatch at index \(i)")
     }
 }
 
@@ -331,7 +339,7 @@ import Testing
     let candidates = ["get", "getUser", "widget", "getConfig"]
 
     let results = matcher.matches(candidates, against: query)
-    for i in 1..<results.count {
+    for i in 1 ..< results.count {
         #expect(results[i - 1].match.score >= results[i].match.score)
     }
 }
@@ -360,12 +368,12 @@ import Testing
     let matcher = FuzzyMatcher()
     let query = matcher.prepare("item")
     // 500 candidates, all matching
-    let candidates = (0..<500).map { "item\($0)_data" }
+    let candidates = (0 ..< 500).map { "item\($0)_data" }
 
     let results = matcher.matches(candidates, against: query)
     #expect(results.count == 500)
     // Verify sorted
-    for i in 1..<results.count {
+    for i in 1 ..< results.count {
         #expect(results[i - 1].match.score >= results[i].match.score)
     }
 }
@@ -377,7 +385,7 @@ import Testing
     let query = matcher.prepare("get")
     let candidates = [
         "get", "getUser", "widget", "getConfig", "budgetTracker",
-        "forgetting", "target", "gadget"
+        "forgetting", "target", "gadget",
     ]
 
     let convenience = matcher.matches(candidates, against: query)
@@ -392,15 +400,19 @@ import Testing
     }
     manual.sort { $0.1.score > $1.1.score }
 
-    #expect(convenience.count == manual.count,
-            "Count mismatch: convenience=\(convenience.count) manual=\(manual.count)")
-    for i in 0..<convenience.count {
-        #expect(convenience[i].candidate == manual[i].0,
-                "Candidate mismatch at index \(i): \(convenience[i].candidate) vs \(manual[i].0)")
-        #expect(convenience[i].match.score == manual[i].1.score,
-                "Score mismatch at index \(i) for \(convenience[i].candidate)")
-        #expect(convenience[i].match.kind == manual[i].1.kind,
-                "Kind mismatch at index \(i) for \(convenience[i].candidate)")
+    #expect(
+        convenience.count == manual.count,
+        "Count mismatch: convenience=\(convenience.count) manual=\(manual.count)")
+    for i in 0 ..< convenience.count {
+        #expect(
+            convenience[i].candidate == manual[i].0,
+            "Candidate mismatch at index \(i): \(convenience[i].candidate) vs \(manual[i].0)")
+        #expect(
+            convenience[i].match.score == manual[i].1.score,
+            "Score mismatch at index \(i) for \(convenience[i].candidate)")
+        #expect(
+            convenience[i].match.kind == manual[i].1.kind,
+            "Kind mismatch at index \(i) for \(convenience[i].candidate)")
     }
 }
 
@@ -411,14 +423,14 @@ import Testing
 
     // Cover all match kinds: exact, prefix, substring, acronym, nil
     let cases: [(candidate: String, query: String)] = [
-        ("User", "user"),                                       // exact
-        ("getUserById", "get"),                                 // prefix
-        ("getCurrentUser", "user"),                             // substring
-        ("International Consolidated Airlines Group", "icag"),  // acronym
-        ("abc", "xyz"),                                         // nil
-        ("a", "a"),                                             // exact single char
-        ("apple", "apl"),                                       // prefix with edit
-        ("Bristol-Myers Squibb", "bms")                        // acronym
+        ("User", "user"), // exact
+        ("getUserById", "get"), // prefix
+        ("getCurrentUser", "user"), // substring
+        ("International Consolidated Airlines Group", "icag"), // acronym
+        ("abc", "xyz"), // nil
+        ("a", "a"), // exact single char
+        ("apple", "apl"), // prefix with edit
+        ("Bristol-Myers Squibb", "bms"), // acronym
     ]
 
     for (candidate, queryStr) in cases {
@@ -431,10 +443,14 @@ import Testing
             matcher.score(utf8: utf8, against: query, buffer: &buffer)
         }
 
-        #expect(stringResult?.score == utf8Result?.score,
-                "Score mismatch for \(candidate)/\(queryStr): string=\(String(describing: stringResult?.score)) utf8=\(String(describing: utf8Result?.score))")
-        #expect(stringResult?.kind == utf8Result?.kind,
-                "Kind mismatch for \(candidate)/\(queryStr): string=\(String(describing: stringResult?.kind)) utf8=\(String(describing: utf8Result?.kind))")
+        #expect(
+            stringResult?.score == utf8Result?.score,
+            "Score mismatch for \(candidate)/\(queryStr): string=\(String(describing: stringResult?.score)) utf8=\(String(describing: utf8Result?.score))"
+        )
+        #expect(
+            stringResult?.kind == utf8Result?.kind,
+            "Kind mismatch for \(candidate)/\(queryStr): string=\(String(describing: stringResult?.kind)) utf8=\(String(describing: utf8Result?.kind))"
+        )
     }
 }
 
@@ -445,7 +461,7 @@ import Testing
         ("Goldman Sachs", "Goldamn"),
         ("Boeing", "Voeing"),
         ("Blackstone Inc", "blakstone"),
-        ("Mastercard", "Mastecard")
+        ("Mastercard", "Mastecard"),
     ]
 
     for (candidate, queryStr) in cases {
@@ -458,10 +474,12 @@ import Testing
             matcher.score(utf8: utf8, against: query, buffer: &buffer)
         }
 
-        #expect(stringResult?.score == utf8Result?.score,
-                "Score mismatch for \(candidate)/\(queryStr)")
-        #expect(stringResult?.kind == utf8Result?.kind,
-                "Kind mismatch for \(candidate)/\(queryStr)")
+        #expect(
+            stringResult?.score == utf8Result?.score,
+            "Score mismatch for \(candidate)/\(queryStr)")
+        #expect(
+            stringResult?.kind == utf8Result?.kind,
+            "Kind mismatch for \(candidate)/\(queryStr)")
     }
 }
 
@@ -474,7 +492,7 @@ import Testing
         ("getCurrentUser", "user"),
         ("International Consolidated Airlines Group", "icag"),
         ("abc", "xyz"),
-        ("Bristol-Myers Squibb", "bms")
+        ("Bristol-Myers Squibb", "bms"),
     ]
 
     for (candidate, queryStr) in cases {
@@ -487,10 +505,12 @@ import Testing
             matcher.score(utf8: utf8, against: query, buffer: &buffer)
         }
 
-        #expect(stringResult?.score == utf8Result?.score,
-                "SW score mismatch for \(candidate)/\(queryStr)")
-        #expect(stringResult?.kind == utf8Result?.kind,
-                "SW kind mismatch for \(candidate)/\(queryStr)")
+        #expect(
+            stringResult?.score == utf8Result?.score,
+            "SW score mismatch for \(candidate)/\(queryStr)")
+        #expect(
+            stringResult?.kind == utf8Result?.kind,
+            "SW kind mismatch for \(candidate)/\(queryStr)")
     }
 }
 
@@ -560,11 +580,13 @@ import Testing
         secondPass.append(result)
     }
 
-    for i in 0..<candidates.count {
-        #expect(firstPass[i]?.score == secondPass[i]?.score,
-                "Buffer reuse score mismatch for \(candidates[i])")
-        #expect(firstPass[i]?.kind == secondPass[i]?.kind,
-                "Buffer reuse kind mismatch for \(candidates[i])")
+    for i in 0 ..< candidates.count {
+        #expect(
+            firstPass[i]?.score == secondPass[i]?.score,
+            "Buffer reuse score mismatch for \(candidates[i])")
+        #expect(
+            firstPass[i]?.kind == secondPass[i]?.kind,
+            "Buffer reuse kind mismatch for \(candidates[i])")
     }
 }
 
@@ -577,7 +599,7 @@ import Testing
     let query = matcher.prepare("app")
     let candidates = [
         "appDelegate", "application", "myApp", "wrapper",
-        "disappear", "snapshot", "appConfig", "mappable"
+        "disappear", "snapshot", "appConfig", "mappable",
     ]
 
     let all = matcher.matches(candidates, against: query)
@@ -585,11 +607,13 @@ import Testing
 
     let allTop3 = Array(all.prefix(3))
     #expect(top3.count == allTop3.count)
-    for i in 0..<top3.count {
-        #expect(top3[i].candidate == allTop3[i].candidate,
-                "Candidate mismatch at \(i): topMatches=\(top3[i].candidate) matches=\(allTop3[i].candidate)")
-        #expect(top3[i].match.score == allTop3[i].match.score,
-                "Score mismatch at \(i)")
+    for i in 0 ..< top3.count {
+        #expect(
+            top3[i].candidate == allTop3[i].candidate,
+            "Candidate mismatch at \(i): topMatches=\(top3[i].candidate) matches=\(allTop3[i].candidate)")
+        #expect(
+            top3[i].match.score == allTop3[i].match.score,
+            "Score mismatch at \(i)")
     }
 }
 

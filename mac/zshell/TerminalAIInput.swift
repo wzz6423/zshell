@@ -28,22 +28,22 @@ struct TerminalAIInputSnapshot {
         cursorRow: Int, cursorPrefix: String
     ) {
         guard lines.indices.contains(cursorRow), columns >= 10,
-              let firstRow = (0...cursorRow).last(where: {
-                  lines[$0].hasPrefix("❯ ") || lines[$0].hasPrefix("❯\u{a0}")
-              }), firstRow > 0,
-              Self.isRule(lines[firstRow - 1], columns: columns),
-              let bottom = ((firstRow + 1)..<lines.count).first(where: {
-                  Self.isRule(lines[$0], columns: columns)
-              }), cursorRow < bottom,
-              cursorPrefix.count >= 2,
-              !lines.contains(where: { $0.contains("-- NORMAL --") || $0.contains("-- VISUAL") })
+            let firstRow = (0 ... cursorRow).last(where: {
+                lines[$0].hasPrefix("❯ ") || lines[$0].hasPrefix("❯\u{a0}")
+            }), firstRow > 0,
+            Self.isRule(lines[firstRow - 1], columns: columns),
+            let bottom = ((firstRow + 1) ..< lines.count).first(where: {
+                Self.isRule(lines[$0], columns: columns)
+            }), cursorRow < bottom,
+            cursorPrefix.count >= 2,
+            !lines.contains(where: { $0.contains("-- NORMAL --") || $0.contains("-- VISUAL") })
         else { return nil }
 
-        let inputLines = Array(lines[firstRow..<bottom])
+        let inputLines = Array(lines[firstRow ..< bottom])
         guard inputLines.dropFirst().allSatisfy({ $0.hasPrefix("  ") }),
-              !inputLines.contains(where: {
-                  $0.contains("[Pasted text") || $0.contains("[Image")
-              })
+            !inputLines.contains(where: {
+                $0.contains("[Pasted text") || $0.contains("[Image")
+            })
         else { return nil }
         let rows = inputLines.map { line in
             var text = String(line.dropFirst(2))
@@ -136,13 +136,15 @@ final class TerminalAIInputEditor {
     func endPointer(at caret: TerminalAIInputCaret?, in snapshot: TerminalAIInputSnapshot?, dragged: Bool) {
         defer { drag = nil }
         guard let drag, let caret, let snapshot,
-              snapshot.containsSameInput(as: drag.snapshot)
+            snapshot.containsSameInput(as: drag.snapshot)
         else { return }
         // Sent cursor keys cannot be cancelled. Finish their acknowledgement
         // before measuring another gesture against the terminal's live caret.
         if deferWhileBusy({ [weak self] in
             self?.applyPointer(from: drag.caret, to: caret, in: snapshot, dragged: dragged)
-        }) { return }
+        }) {
+            return
+        }
         applyPointer(from: drag.caret, to: caret, in: snapshot, dragged: dragged)
     }
 
@@ -183,11 +185,14 @@ final class TerminalAIInputEditor {
             return false
         }
         if modifiers.isEmpty, let text = event.characters, !text.isEmpty,
-           text.unicodeScalars.allSatisfy({ $0.value >= 0x20 && !((0xf700...0xf8ff).contains($0.value)) }) {
+            text.unicodeScalars.allSatisfy({ $0.value >= 0x20 && !((0xf700 ... 0xf8ff).contains($0.value)) })
+        {
             return replaceSelection(then: replay)
         }
-        if !modifiers.isEmpty || [36, 48, 53, 76, 115, 116, 119, 121, 123, 124, 125, 126]
-            .contains(Int(event.keyCode)) {
+        if !modifiers.isEmpty
+            || [36, 48, 53, 76, 115, 116, 119, 121, 123, 124, 125, 126]
+                .contains(Int(event.keyCode))
+        {
             selection = nil
         }
         return false
@@ -261,37 +266,43 @@ final class TerminalAIInputEditor {
             completion(TerminalAIInputCaret(row: target.row, offset: min(target.offset, end)))
             return
         }
-        guard target.offset > max(
-            expected.rows[target.row].count,
-            target.row == expected.cursor.row ? expected.cursor.offset : 0
-        ) else { completion(target); return }
+        guard
+            target.offset
+                > max(
+                    expected.rows[target.row].count,
+                    target.row == expected.cursor.row ? expected.cursor.offset : 0
+                )
+        else { completion(target); return }
 
         let start = TerminalAIInputCaret(row: target.row, offset: 0)
         move(to: start, in: expected) { [weak self] positioned in
             guard let self else { return }
             self.sendControl("\u{05}")
-            let unchanged: (() -> Void)? = expected.rows[target.row].isEmpty ? { [weak self] in
-                // An empty logical line makes Ctrl-E a no-op. Cross its
-                // newline and come back so the PTY still acknowledges a move.
-                guard let self, target.row + 1 < expected.rows.count else { self?.fail(); return }
-                let next = TerminalAIInputCaret(row: target.row + 1, offset: 0)
-                self.sendControl("\u{1b}[C")
-                self.waitForCursor(in: positioned, matching: { $0 == next }) { [weak self] crossed in
-                    guard let self else { return }
-                    self.sendControl("\u{1b}[D")
-                    self.waitForCursor(in: crossed, matching: { $0.row == target.row }) { [weak self] end in
-                        self?.rowEnds[target.row] = end.cursor.offset
-                        completion(TerminalAIInputCaret(row: target.row, offset: min(target.offset, end.cursor.offset)))
+            let unchanged: (() -> Void)? =
+                expected.rows[target.row].isEmpty
+                ? { [weak self] in
+                    // An empty logical line makes Ctrl-E a no-op. Cross its
+                    // newline and come back so the PTY still acknowledges a move.
+                    guard let self, target.row + 1 < expected.rows.count else { self?.fail(); return }
+                    let next = TerminalAIInputCaret(row: target.row + 1, offset: 0)
+                    self.sendControl("\u{1b}[C")
+                    self.waitForCursor(in: positioned, matching: { $0 == next }) { [weak self] crossed in
+                        guard let self else { return }
+                        self.sendControl("\u{1b}[D")
+                        self.waitForCursor(in: crossed, matching: { $0.row == target.row }) { [weak self] end in
+                            self?.rowEnds[target.row] = end.cursor.offset
+                            completion(TerminalAIInputCaret(row: target.row, offset: min(target.offset, end.cursor.offset)))
+                        }
                     }
-                }
-            } : nil
+                } : nil
             self.waitForCursor(in: positioned, onUnchanged: unchanged, matching: { $0 > start }) { [weak self] lineEnd in
                 guard let self else { return }
                 self.rowEnds[lineEnd.cursor.row] = lineEnd.cursor.offset
                 if lineEnd.cursor.row == target.row {
-                    completion(TerminalAIInputCaret(
-                        row: target.row, offset: min(target.offset, lineEnd.cursor.offset)
-                    ))
+                    completion(
+                        TerminalAIInputCaret(
+                            row: target.row, offset: min(target.offset, lineEnd.cursor.offset)
+                        ))
                     return
                 }
 
@@ -328,19 +339,21 @@ final class TerminalAIInputEditor {
         let horizontal = target.offset - current.cursor.offset
         let distance = abs(vertical == 0 ? horizontal : vertical)
         guard distance <= Self.maxCursorSteps else { fail(); return }
-        let key = vertical == 0
+        let key =
+            vertical == 0
             ? (horizontal > 0 ? "\u{1b}[C" : "\u{1b}[D")
             : (vertical > 0 ? "\u{1b}[B" : "\u{1b}[A")
         sendControl(String(repeating: key, count: distance))
-        waitForCursor(in: expected, matching: {
-            if vertical != 0 { return $0.row == target.row }
-            return $0 == target || (
-                horizontal > 0 && target.offset >= expected.rows[target.row].count
-                    && $0 == TerminalAIInputCaret(row: target.row + 1, offset: 0)
-            )
-        }) { [weak self] current in
-            if vertical == 0 { completion(current) }
-            else { self?.move(to: target, in: expected, completion: completion) }
+        waitForCursor(
+            in: expected,
+            matching: {
+                if vertical != 0 { return $0.row == target.row }
+                return $0 == target
+                    || (horizontal > 0 && target.offset >= expected.rows[target.row].count
+                        && $0 == TerminalAIInputCaret(row: target.row + 1, offset: 0))
+            }
+        ) { [weak self] current in
+            if vertical == 0 { completion(current) } else { self?.move(to: target, in: expected, completion: completion) }
         }
     }
 
@@ -364,13 +377,17 @@ final class TerminalAIInputEditor {
         }
         guard count + steps <= Self.maxCursorSteps else { fail(); return }
         sendControl(String(repeating: "\u{1b}[D", count: steps))
-        waitForCursor(in: current, matching: { caret in
-            if let destination { return caret == destination }
-            return caret < current.cursor
-        }) { [weak self] next in
+        waitForCursor(
+            in: current,
+            matching: { caret in
+                if let destination { return caret == destination }
+                return caret < current.cursor
+            }
+        ) { [weak self] next in
             if destination == nil, next.cursor < target,
-               target.offset >= current.rows[target.row].count,
-               current.cursor == TerminalAIInputCaret(row: target.row + 1, offset: 0) {
+                target.offset >= current.rows[target.row].count,
+                current.cursor == TerminalAIInputCaret(row: target.row + 1, offset: 0)
+            {
                 // A soft wrap has no character at the preceding row's end.
                 // The probe crossed it; put back that one non-selected glyph.
                 self?.sendControl("\u{1b}[C")
@@ -395,13 +412,15 @@ final class TerminalAIInputEditor {
                 guard let self, self.isBusy else { timer.invalidate(); return }
                 let current = self.readSnapshot()
                 if let current, current.containsSameInput(as: expected),
-                   predicate(current.cursor) {
+                    predicate(current.cursor)
+                {
                     timer.invalidate()
                     self.timer = nil
                     completion(current)
                 } else if ProcessInfo.processInfo.systemUptime >= deadline {
                     if let current, current.containsSameInput(as: expected),
-                       current.cursor == expected.cursor, let onUnchanged {
+                        current.cursor == expected.cursor, let onUnchanged
+                    {
                         timer.invalidate()
                         self.timer = nil
                         onUnchanged()

@@ -16,7 +16,7 @@ final class STTextInputTokenizer: NSObject, UITextInputTokenizer {
         inDirection direction: UITextDirection
     ) -> UITextRange? {
         guard let textLayoutManager = self.textLayoutManager,
-              let position = position as? STTextLocation
+            let position = position as? STTextLocation
         else {
             return nil
         }
@@ -48,7 +48,7 @@ final class STTextInputTokenizer: NSObject, UITextInputTokenizer {
         inDirection direction: UITextDirection
     ) -> UITextPosition? {
         guard let textLayoutManager = self.textLayoutManager,
-              let position = position as? STTextLocation
+            let position = position as? STTextLocation
         else {
             return nil
         }
@@ -71,7 +71,7 @@ final class STTextInputTokenizer: NSObject, UITextInputTokenizer {
         inDirection direction: UITextDirection
     ) -> Bool {
         guard let textLayoutManager = self.textLayoutManager,
-              let position = position as? STTextLocation
+            let position = position as? STTextLocation
         else {
             return false
         }
@@ -111,7 +111,7 @@ final class STTextInputTokenizer: NSObject, UITextInputTokenizer {
         inDirection direction: UITextDirection
     ) -> Bool {
         guard let textLayoutManager = self.textLayoutManager,
-              let position = position as? STTextLocation
+            let position = position as? STTextLocation
         else {
             return false
         }

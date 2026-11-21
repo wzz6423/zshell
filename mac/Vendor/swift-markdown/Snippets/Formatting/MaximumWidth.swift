@@ -3,8 +3,8 @@
 import Markdown
 
 let source = """
-This is a really, really, really, really, really, really, really, really, really, really, really long line.
-"""
+    This is a really, really, really, really, really, really, really, really, really, really, really long line.
+    """
 
 let document = Document(parsing: source)
 // Break lines longer than 80 characters in width with a soft break.
@@ -12,13 +12,14 @@ let lineLimit = MarkupFormatter.Options.PreferredLineLimit(maxLength: 80, breakW
 let formattingOptions = MarkupFormatter.Options(preferredLineLimit: lineLimit)
 let formattedSource = document.format(options: formattingOptions)
 
-print("""
-## Original source:
-\(source)
+print(
+    """
+    ## Original source:
+    \(source)
 
-## Formatted source:
-\(formattedSource)
-""")
+    ## Formatted source:
+    \(formattedSource)
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

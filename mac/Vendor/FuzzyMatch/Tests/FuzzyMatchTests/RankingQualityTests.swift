@@ -88,11 +88,13 @@ private func assertRanksHigher(
 }
 
 @Test func exactSubstringRanksAboveNearPrefixMatches() {
-    let results = rank("alpd", against: [
-        "Alpha - Demo One",
-        "Alpine Delta - User",
-        "Alpine Delta - Account (alpd)"
-    ])
+    let results = rank(
+        "alpd",
+        against: [
+            "Alpha - Demo One",
+            "Alpine Delta - User",
+            "Alpine Delta - Account (alpd)",
+        ])
 
     #expect(results.count == 3)
     #expect(results[0].candidate == "Alpine Delta - Account (alpd)")
@@ -157,11 +159,13 @@ private func assertRanksHigher(
 
 @Test func tradingEquitySymbolSearch() {
     // Searching for "apple" should prefer the well-known equity name
-    let results = rank("apple", against: [
-        "Apple Inc",
-        "Maple Finance",
-        "Snapple Group"
-    ])
+    let results = rank(
+        "apple",
+        against: [
+            "Apple Inc",
+            "Maple Finance",
+            "Snapple Group",
+        ])
     #expect(results.count >= 1)
     if let first = results.first {
         #expect(first.candidate == "Apple Inc")
@@ -170,31 +174,37 @@ private func assertRanksHigher(
 
 @Test func tradingDottedSymbolSearch() {
     // Dotted symbols like "MSFT.OQ" should be findable
-    let results = rank("msft", against: [
-        "MSFT.OQ",
-        "MSFT.N",
-        "MICROSOFT CORP"
-    ])
+    let results = rank(
+        "msft",
+        against: [
+            "MSFT.OQ",
+            "MSFT.N",
+            "MICROSOFT CORP",
+        ])
     #expect(results.count >= 2)
 }
 
 @Test func tradingSlashedPairSearch() {
     // Slash-separated pairs like "EUR/USD" should be searchable
-    let results = rank("eur", against: [
-        "EUR/USD",
-        "EUR/GBP",
-        "NEURAL TECH"
-    ])
+    let results = rank(
+        "eur",
+        against: [
+            "EUR/USD",
+            "EUR/GBP",
+            "NEURAL TECH",
+        ])
     #expect(results.count >= 2)
 }
 
 @Test func tradingISharesGrouping() {
     // "ishares" should match iShares ETFs
-    let results = rank("ishares", against: [
-        "iShares Core S&P 500",
-        "iShares MSCI World",
-        "First Trust Shares"
-    ])
+    let results = rank(
+        "ishares",
+        against: [
+            "iShares Core S&P 500",
+            "iShares MSCI World",
+            "First Trust Shares",
+        ])
     // iShares entries should rank higher (prefix match)
     if results.count >= 2 {
         #expect(results[0].candidate.hasPrefix("iShares"))
@@ -204,11 +214,13 @@ private func assertRanksHigher(
 // MARK: - Ranking Consistency
 
 @Test func exactMatchScoresOne() {
-    let results = rank("test", against: [
+    let results = rank(
         "test",
-        "contest",
-        "attest"
-    ])
+        against: [
+            "test",
+            "contest",
+            "attest",
+        ])
     // Exact match should have score 1.0
     let exactMatch = results.first { $0.candidate == "test" }
     #expect(exactMatch != nil)
@@ -216,10 +228,12 @@ private func assertRanksHigher(
 }
 
 @Test func prefixMatchRanksAboveSubstring() {
-    let results = rank("get", against: [
-        "getUser",
-        "budgetTracker"
-    ])
+    let results = rank(
+        "get",
+        against: [
+            "getUser",
+            "budgetTracker",
+        ])
     #expect(results.count == 2)
     #expect(results[0].candidate == "getUser")
 }
@@ -257,10 +271,12 @@ private func assertRanksHigher(
 @Test func shorterCandidateWithSameMatchPreferred() {
     // When both are prefix matches, shorter candidate should score higher
     // (less "gap" after the match)
-    let results = rank("get", against: [
-        "getUser",
-        "getUserByIdAndName"
-    ])
+    let results = rank(
+        "get",
+        against: [
+            "getUser",
+            "getUserByIdAndName",
+        ])
     if results.count == 2 {
         #expect(results[0].candidate == "getUser")
     }
@@ -311,12 +327,14 @@ private func assertRanksHigher(
 @Test func marketPickerXSTOvsSTOXUsingRankHelper() {
     // End-to-end ranking test using the rank helper, confirming XSTO sorts first
     let config = MatchConfig(algorithm: .editDistance(EditDistanceConfig(prefixWeight: 4.0, substringWeight: 0.5)))
-    let results = rank("xsto", against: [
-        "STOX",
-        "STOXX LIMITED",
-        "XSTO",
-        "NASDAQ STOCKHOLM AB"
-    ], config: config)
+    let results = rank(
+        "xsto",
+        against: [
+            "STOX",
+            "STOXX LIMITED",
+            "XSTO",
+            "NASDAQ STOCKHOLM AB",
+        ], config: config)
 
     // XSTO should be first (exact match, score 1.0)
     #expect(results.first?.candidate == "XSTO")

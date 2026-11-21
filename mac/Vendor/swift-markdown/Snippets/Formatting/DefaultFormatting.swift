@@ -3,10 +3,10 @@
 import Markdown
 
 let source = """
-|a|b|c|
-|-|:-|-:|
-|*Some text*|x|<https://swift.org>|
-"""
+    |a|b|c|
+    |-|:-|-:|
+    |*Some text*|x|<https://swift.org>|
+    """
 
 // There is not an option for formatting tables per se but is useful to show the behavior for tables.
 // Table columns are automatically expanded to fit the column's largest
@@ -15,13 +15,14 @@ let source = """
 let document = Document(parsing: source)
 let formattedSource = document.format()
 
-print("""
-## Original source:
-\(source)
+print(
+    """
+    ## Original source:
+    \(source)
 
-## Formatted source:
-\(formattedSource)
-""")
+    ## Formatted source:
+    \(formattedSource)
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

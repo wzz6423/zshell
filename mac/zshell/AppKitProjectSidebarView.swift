@@ -30,8 +30,7 @@ private final class ProjectSidebarDocumentView: NSView {
     override var isFlipped: Bool { true }
 
     override func mouseDown(with event: NSEvent) {
-        if event.modifierFlags.contains(.control) { rightMouseDown(with: event) }
-        else if event.clickCount == 2 { onDoubleClick?(event) }
+        if event.modifierFlags.contains(.control) { rightMouseDown(with: event) } else if event.clickCount == 2 { onDoubleClick?(event) }
     }
 
     override func rightMouseDown(with event: NSEvent) { onContextMenu?(event) }
@@ -104,7 +103,8 @@ final class ProjectSidebarNSView: NSView {
     private let scrollView = NSScrollView()
     private let document = ProjectSidebarDocumentView()
     private let sidebarButton = WorkspaceChromeButton(symbol: "sidebar.left", label: AppCommand.toggleLeftSidebar.title)
-    private let historyButton = WorkspaceChromeButton(symbol: "clock.arrow.circlepath", label: String(localized: "Agent Conversation History"))
+    private let historyButton = WorkspaceChromeButton(
+        symbol: "clock.arrow.circlepath", label: String(localized: "Agent Conversation History"))
     private let updateButton = WorkspaceChromeButton(symbol: "arrow.down.circle", label: String(localized: "Update Available")) {
         Updater.shared.showAvailableUpdate()
     }
@@ -150,12 +150,14 @@ final class ProjectSidebarNSView: NSView {
         scrollView.contentView.postsBoundsChangedNotifications = true
         document.onDoubleClick = { [weak self] event in
             guard let self, AppSettings.shared.sidebarDoubleClickNewSession,
-                  self.isBlankSpace(at: event) else { return }
+                self.isBlankSpace(at: event)
+            else { return }
             self.manager.newSession()
         }
         document.onContextMenu = { [weak self] event in
             guard let self, self.isBlankSpace(at: event) else { return }
-            self.menuPresenter.popUp(items: self.sidebarMenu(),
+            self.menuPresenter.popUp(
+                items: self.sidebarMenu(),
                 at: self.document.convert(event.locationInWindow, from: nil), in: self.document)
         }
         fpsLabel.font = .monospacedDigitSystemFont(ofSize: 10, weight: .medium)
@@ -167,23 +169,32 @@ final class ProjectSidebarNSView: NSView {
         historyButton.onAction = { [weak manager] in manager?.showConversationHistory() }
         footerButtons = [
             WorkspaceChromeButton(symbol: "plus", label: AppCommand.newProject.title) { [weak manager] in manager?.newProject() },
-            WorkspaceChromeButton(symbol: "folder.badge.plus", label: String(localized: "New Group")) { [weak self] in self?.showNewGroupMenu() },
-            WorkspaceChromeButton(symbol: "network", label: String(localized: "Remote Connections")) { [weak self] in self?.showRemoteMenu() },
-            WorkspaceChromeButton(symbol: "bolt", label: String(localized: "Quick Launch (⌘O)")) { [weak manager] in manager?.toggleQuickLaunch() },
+            WorkspaceChromeButton(symbol: "folder.badge.plus", label: String(localized: "New Group")) { [weak self] in
+                self?.showNewGroupMenu()
+            },
+            WorkspaceChromeButton(symbol: "network", label: String(localized: "Remote Connections")) { [weak self] in self?.showRemoteMenu()
+            },
+            WorkspaceChromeButton(symbol: "bolt", label: String(localized: "Quick Launch (⌘O)")) { [weak manager] in
+                manager?.toggleQuickLaunch()
+            },
             WorkspaceChromeButton(symbol: "exclamationmark.bubble", label: String(localized: "Send Feedback")) {
                 NSWorkspace.shared.open(URL(string: "https://github.com/wzz6423/zshell/issues/new")!)
             },
-            WorkspaceChromeButton(symbol: "gearshape", label: String(localized: "Settings (⌘,)")) { SettingsWindowController.shared.show() },
+            WorkspaceChromeButton(symbol: "gearshape", label: String(localized: "Settings (⌘,)")) {
+                SettingsWindowController.shared.show()
+            },
         ]
         footerButtons.forEach(addSubview)
         addSubview(updateButton)
         addSubview(outline)
         outline.setAccessibilityElement(false)
-        for publisher in [manager.objectWillChange.eraseToAnyPublisher(),
-                          Updater.shared.objectWillChange.eraseToAnyPublisher(),
-                          groupStore.objectWillChange.eraseToAnyPublisher(),
-                          AppSettings.shared.objectWillChange.eraseToAnyPublisher(),
-                          Theme.changes.objectWillChange.eraseToAnyPublisher()] {
+        for publisher in [
+            manager.objectWillChange.eraseToAnyPublisher(),
+            Updater.shared.objectWillChange.eraseToAnyPublisher(),
+            groupStore.objectWillChange.eraseToAnyPublisher(),
+            AppSettings.shared.objectWillChange.eraseToAnyPublisher(),
+            Theme.changes.objectWillChange.eraseToAnyPublisher(),
+        ] {
             publisher.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.scheduleRefresh() }
                 .store(in: &observations)
         }
@@ -213,16 +224,18 @@ final class ProjectSidebarNSView: NSView {
         for item in manager.sidebarTopLevelItems {
             items.append(item)
             guard case .group(let id) = item,
-                  let group = groupStore.group(id: id),
-                  !group.isCollapsed else { continue }
+                let group = groupStore.group(id: id),
+                !group.isCollapsed
+            else { continue }
             items += manager.projects.filter { $0.groupID == id }.map { .project($0.id) }
         }
         let valid = Set(items)
         for key in rows.keys where !valid.contains(key) { rows.removeValue(forKey: key)?.removeFromSuperview() }
         order = items
-        let shortcuts = Dictionary(uniqueKeysWithValues: manager.visibleSidebarProjects.prefix(9).enumerated().map {
-            ($0.element.id, "⌘\($0.offset + 1)")
-        })
+        let shortcuts = Dictionary(
+            uniqueKeysWithValues: manager.visibleSidebarProjects.prefix(9).enumerated().map {
+                ($0.element.id, "⌘\($0.offset + 1)")
+            })
         for item in items {
             let row = rows[item] ?? WorkspaceItemView(frame: .zero)
             if rows[item] == nil { rows[item] = row; document.addSubview(row) }
@@ -245,7 +258,8 @@ final class ProjectSidebarNSView: NSView {
         outline.drawsOuterEdge = material.isHidden
         outline.needsDisplay = true
         sidebarButton.configure(symbol: "sidebar.left", command: .toggleLeftSidebar, pointSize: 12 * scale)
-        historyButton.configure(symbol: "clock.arrow.circlepath", label: String(localized: "Agent Conversation History"), pointSize: 12 * scale)
+        historyButton.configure(
+            symbol: "clock.arrow.circlepath", label: String(localized: "Agent Conversation History"), pointSize: 12 * scale)
         footerButtons[0].configure(symbol: "plus", command: .newProject, pointSize: 12 * scale)
         let footerItems = [
             ("folder.badge.plus", String(localized: "New Group")),
@@ -258,7 +272,8 @@ final class ProjectSidebarNSView: NSView {
             button.configure(symbol: item.0, label: item.1, pointSize: 12 * scale)
         }
         updateButton.isHidden = Updater.shared.availableUpdateVersion == nil
-        let updateLabel = Updater.shared.availableUpdateVersion.map { String(localized: "Update available: \($0)") }
+        let updateLabel =
+            Updater.shared.availableUpdateVersion.map { String(localized: "Update available: \($0)") }
             ?? String(localized: "Update Available")
         updateButton.toolTip = updateLabel
         updateButton.setAccessibilityLabel(updateLabel)
@@ -272,21 +287,27 @@ final class ProjectSidebarNSView: NSView {
 
     private func configure(_ row: WorkspaceItemView, project: Project, shortcut: String?) {
         let subtitle: String?
-        if project.sharedHost != nil { subtitle = project.selectedSession?.remoteStatus?.label ?? String(localized: "Connecting…") }
-        else if project.sessions.count > 1 { subtitle = String(localized: "\(project.sessions.count) sessions") }
-        else { subtitle = project.selectedSession?.directoryLabel }
+        if project.sharedHost != nil {
+            subtitle = project.selectedSession?.remoteStatus?.label ?? String(localized: "Connecting…")
+        } else if project.sessions.count > 1 {
+            subtitle = String(localized: "\(project.sessions.count) sessions")
+        } else {
+            subtitle = project.selectedSession?.directoryLabel
+        }
         let groupColor = groupStore.group(id: project.groupID).map {
             $0.markerColor ?? .defaultColor
         }
         let title = project.sharedHost.map { "\(project.name) — \($0.name)" } ?? project.name
-        row.apply(title: title, subtitle: subtitle,
-                  icon: NSImage(systemSymbolName: project.isRemote ? "network" : "folder", accessibilityDescription: nil),
-                  selected: project.id == manager.selectedProjectID, pinned: project.isPinned,
-                  marker: groupColor ?? project.markerColor, rollup: project.agentRollup, sidebar: true,
-                  indent: project.groupID == nil ? 0 : groupMemberIndent, scale: fontScale, shortcut: shortcut,
-                  actionLabel: String(localized: "Close Project"), action: { [weak manager, weak project] in
-                      if let project { manager?.close(project) }
-                  })
+        row.apply(
+            title: title, subtitle: subtitle,
+            icon: NSImage(systemSymbolName: project.isRemote ? "network" : "folder", accessibilityDescription: nil),
+            selected: project.id == manager.selectedProjectID, pinned: project.isPinned,
+            marker: groupColor ?? project.markerColor, rollup: project.agentRollup, sidebar: true,
+            indent: project.groupID == nil ? 0 : groupMemberIndent, scale: fontScale, shortcut: shortcut,
+            actionLabel: String(localized: "Close Project"),
+            action: { [weak manager, weak project] in
+                if let project { manager?.close(project) }
+            })
         row.toolTip = [project.name, project.customDirectory ?? subtitle].compactMap { $0 }.joined(separator: "\n")
         row.onSelect = { [weak manager, weak project] in if let project { manager?.selectedProjectID = project.id } }
         row.onRename = { [weak row, weak project] in
@@ -312,9 +333,10 @@ final class ProjectSidebarNSView: NSView {
     private func isBlankSpace(at event: NSEvent) -> Bool {
         let point = document.convert(event.locationInWindow, from: nil)
         guard document.visibleRect.contains(point), document.bounds.contains(point),
-              draggedItem == nil, !isFolderDropTarget,
-              tabDrag.drag == nil, tabDrag.paneDrag == nil,
-              tabDrag.projectDrag == nil, tabDrag.groupDrag == nil else { return false }
+            draggedItem == nil, !isFolderDropTarget,
+            tabDrag.drag == nil, tabDrag.paneDrag == nil,
+            tabDrag.projectDrag == nil, tabDrag.groupDrag == nil
+        else { return false }
         return !rows.contains { item, row in
             let frame = if case .group = item { row.frame.insetBy(dx: -8, dy: -4) } else { row.frame }
             return frame.contains(point)
@@ -323,10 +345,11 @@ final class ProjectSidebarNSView: NSView {
 
     private func configure(_ row: WorkspaceItemView, group: ProjectGroup) {
         let count = manager.projects.filter { $0.groupID == group.id }.count
-        row.apply(title: group.name, icon: nil,
-                  selected: manager.selectedProject?.groupID == group.id, group: true, collapsed: group.isCollapsed,
-                  marker: group.markerColor ?? .defaultColor, count: count, sidebar: true,
-                  fillsGroupRow: true, scale: fontScale, groupControlScale: scale)
+        row.apply(
+            title: group.name, icon: nil,
+            selected: manager.selectedProject?.groupID == group.id, group: true, collapsed: group.isCollapsed,
+            marker: group.markerColor ?? .defaultColor, count: count, sidebar: true,
+            fillsGroupRow: true, scale: fontScale, groupControlScale: scale)
         row.toolTip = [group.name, group.folderPath].compactMap { $0 }.joined(separator: "\n")
         row.onSelect = { [weak groupStore] in
             guard var current = groupStore?.group(id: group.id) else { return }
@@ -337,7 +360,8 @@ final class ProjectSidebarNSView: NSView {
             guard let current = groupStore?.group(id: group.id) else { return }
             row?.beginRename(value: current.name) { [weak groupStore] name in
                 guard let name = Project.normalizedCustomName(name),
-                      var current = groupStore?.group(id: group.id) else { return }
+                    var current = groupStore?.group(id: group.id)
+                else { return }
                 current.name = name
                 groupStore?.update(current)
             }
@@ -369,11 +393,12 @@ final class ProjectSidebarNSView: NSView {
                 },
             ]
             if current.markerColor != nil {
-                items.append(.action(title: String(localized: "Remove Color Marker")) { [weak self] in
-                    guard let self, var updated = self.groupStore.group(id: group.id) else { return }
-                    updated.markerColor = nil
-                    self.groupStore.update(updated)
-                })
+                items.append(
+                    .action(title: String(localized: "Remove Color Marker")) { [weak self] in
+                        guard let self, var updated = self.groupStore.group(id: group.id) else { return }
+                        updated.markerColor = nil
+                        self.groupStore.update(updated)
+                    })
             }
             items += [.separator, .action(title: String(localized: "Remove Group")) { self.manager.deleteProjectGroup(current) }]
             return items
@@ -388,8 +413,10 @@ final class ProjectSidebarNSView: NSView {
         outline.needsDisplay = true
         let headerHeight: CGFloat = 38
         let buttonSize = min(34, max(24, 24 * scale))
-        sidebarButton.frame = NSRect(x: bounds.width - buttonSize - 8, y: (headerHeight - buttonSize) / 2, width: buttonSize, height: buttonSize)
-        historyButton.frame = NSRect(x: sidebarButton.frame.minX - buttonSize - 4, y: sidebarButton.frame.minY, width: buttonSize, height: buttonSize)
+        sidebarButton.frame = NSRect(
+            x: bounds.width - buttonSize - 8, y: (headerHeight - buttonSize) / 2, width: buttonSize, height: buttonSize)
+        historyButton.frame = NSRect(
+            x: sidebarButton.frame.minX - buttonSize - 4, y: sidebarButton.frame.minY, width: buttonSize, height: buttonSize)
         windowDrag.frame = NSRect(x: 0, y: 0, width: historyButton.frame.minX, height: headerHeight)
         fpsLabel.isHidden = !manager.isFPSCounterVisible || bounds.width < 250
         fpsLabel.frame = NSRect(x: historyButton.frame.minX - 55, y: 12, width: 52, height: 16)
@@ -400,8 +427,9 @@ final class ProjectSidebarNSView: NSView {
             let x = index < 4 ? 8 + CGFloat(index) * side : bounds.width - 8 - CGFloat(6 - index) * side
             button.frame = NSRect(x: x, y: footerY + (bottomBarHeight - side) / 2, width: side, height: side)
         }
-        updateButton.frame = NSRect(x: bounds.width - 8 - 3 * side,
-                                    y: footerY + (bottomBarHeight - side) / 2, width: side, height: side)
+        updateButton.frame = NSRect(
+            x: bounds.width - 8 - 3 * side,
+            y: footerY + (bottomBarHeight - side) / 2, width: side, height: side)
         var y: CGFloat = 7
         let rowWidth = max(0, scrollView.contentSize.width - 16)
         for item in order {
@@ -474,7 +502,8 @@ final class ProjectSidebarNSView: NSView {
             }
         }
         let newProjectButton = footerButtons[0]
-        tabDrag.updateSidebarFrames(projects: projects, groups: groups,
+        tabDrag.updateSidebarFrames(
+            projects: projects, groups: groups,
             ungrouped: scrollView.workspaceGlobalRect(scrollView.bounds),
             ungroupedFooter: newProjectButton.workspaceGlobalRect(newProjectButton.bounds))
     }
@@ -492,7 +521,8 @@ final class ProjectSidebarNSView: NSView {
         }
         let tabDropsOnWorkspace = tabDrop == .ungroupedWorkspace
         let tabDropsOnFooter = tabDrop == .ungroupedFooter
-        outline.workspaceDropFrame = isUngroupedWorkspaceDropTarget || tabDropsOnWorkspace
+        outline.workspaceDropFrame =
+            isUngroupedWorkspaceDropTarget || tabDropsOnWorkspace
             ? scrollView.frame
             : nil
         outline.needsDisplay = true
@@ -562,7 +592,8 @@ final class ProjectSidebarNSView: NSView {
     private func finishDrag(item: Item, event: NSEvent) {
         let target = self.item(at: event, extendingGroupTargets: true)
         if case .project(let id) = item,
-           let project = manager.projects.first(where: { $0.id == id }) {
+            let project = manager.projects.first(where: { $0.id == id })
+        {
             var handled = false
             switch target {
             case .group(let groupID):
@@ -635,7 +666,8 @@ final class ProjectSidebarNSView: NSView {
 
     private func navigate(from item: Item, key: UInt16) {
         if case .group(let id) = item, key == 123 || key == 124,
-           var group = groupStore.group(id: id) {
+            var group = groupStore.group(id: id)
+        {
             group.isCollapsed = key == 123
             groupStore.update(group)
             return
@@ -663,10 +695,11 @@ final class ProjectSidebarNSView: NSView {
     }
 
     private func showRemoteMenu() {
-        menuPresenter.popUp(items: [
-            .action(title: String(localized: "Remote Hosts…")) { [weak manager] in manager?.promptForRemoteHosts() },
-            .action(title: String(localized: "New SSH Project")) { [weak manager] in manager?.promptForSSHProject() },
-        ], at: NSPoint(x: 0, y: 0), in: footerButtons[2])
+        menuPresenter.popUp(
+            items: [
+                .action(title: String(localized: "Remote Hosts…")) { [weak manager] in manager?.promptForRemoteHosts() },
+                .action(title: String(localized: "New SSH Project")) { [weak manager] in manager?.promptForSSHProject() },
+            ], at: NSPoint(x: 0, y: 0), in: footerButtons[2])
     }
 
     private func createGroup(kind: ProjectGroup.Kind) {
@@ -702,40 +735,55 @@ final class ProjectSidebarNSView: NSView {
         }
         if project.groupID != nil {
             if !groups.isEmpty { groups.append(.separator) }
-            groups.append(.action(title: String(localized: "Remove from Group")) { [weak manager] in manager?.moveProject(project, to: nil) })
+            groups.append(
+                .action(title: String(localized: "Remove from Group")) { [weak manager] in manager?.moveProject(project, to: nil) })
         }
         var items: [AppKitContextMenuItem] = [
-            .action(title: String(localized: project.isPinned ? "Unpin Project" : "Pin Project")) { [weak manager] in manager?.setPinned(!project.isPinned, for: project) },
+            .action(title: String(localized: project.isPinned ? "Unpin Project" : "Pin Project")) { [weak manager] in
+                manager?.setPinned(!project.isPinned, for: project)
+            },
             .action(title: String(localized: "Rename…")) { [weak row] in row?.onRename?() },
         ]
         if project.sharedHost != nil {
             items += [
                 .separator,
-                .action(title: String(localized: "Reconnect Remote Host")) { project.sessions.forEach { $0.remoteConnection?.reconnect() } },
+                .action(title: String(localized: "Reconnect Remote Host")) {
+                    project.sessions.forEach { $0.remoteConnection?.reconnect() }
+                },
                 .action(title: String(localized: "Remote Hosts…")) { [weak manager] in manager?.promptForRemoteHosts() },
             ]
             if let session = project.selectedSession, !session.hasExited, let connection = session.remoteConnection {
                 items += [
                     .action(title: String(localized: "Take Terminal Control")) { connection.takeControl() },
                     .action(title: String(localized: "Detach Remote Session")) { connection.detach() },
-                    .action(title: String(localized: "End Remote Session…")) { [weak row] in RemoteHostsController.endSession(session, relativeTo: row?.window) },
+                    .action(title: String(localized: "End Remote Session…")) { [weak row] in
+                        RemoteHostsController.endSession(session, relativeTo: row?.window)
+                    },
                 ]
             }
         }
         if project.customName != nil { items.append(.action(title: String(localized: "Use Automatic Title")) { project.customName = nil }) }
         if !groups.isEmpty { items += [.separator, .submenu(title: String(localized: "Move to Group"), items: groups)] }
         items.append(.separator)
-        items.append(.action(title: String(localized: "Set Color Marker…")) {
-            ProjectTabColorPanelController.shared.present(project: project, hostWindow: row?.window)
-        })
-        if project.markerColor != nil { items.append(.action(title: String(localized: "Remove Color Marker")) { project.markerColor = nil }) }
+        items.append(
+            .action(title: String(localized: "Set Color Marker…")) {
+                ProjectTabColorPanelController.shared.present(project: project, hostWindow: row?.window)
+            })
+        if project.markerColor != nil {
+            items.append(.action(title: String(localized: "Remove Color Marker")) { project.markerColor = nil })
+        }
         if !project.isRemote {
-            items += [.separator, .action(title: String(localized: "Set Project Directory…")) { [weak self] in
-                self?.pickFolder(initial: project.customDirectory ?? project.selectedSession?.currentDirectoryPath) { path in
-                    if let path { project.customDirectory = path }
-                }
-            }]
-            if project.customDirectory != nil { items.append(.action(title: String(localized: "Use Automatic Directory")) { project.customDirectory = nil }) }
+            items += [
+                .separator,
+                .action(title: String(localized: "Set Project Directory…")) { [weak self] in
+                    self?.pickFolder(initial: project.customDirectory ?? project.selectedSession?.currentDirectoryPath) { path in
+                        if let path { project.customDirectory = path }
+                    }
+                },
+            ]
+            if project.customDirectory != nil {
+                items.append(.action(title: String(localized: "Use Automatic Directory")) { project.customDirectory = nil })
+            }
         }
         items += [.separator, .action(title: String(localized: "Close Project")) { [weak manager] in manager?.close(project) }]
         items.append(.submenu(title: String(localized: "Project Sidebar"), items: sidebarMenu()))
@@ -780,12 +828,15 @@ final class ProjectSidebarNSView: NSView {
             return false
         }
         let count = manager.openOrFocusDirectories(directories)
-        announce(count == 0 ? String(localized: "Project already open. Focused it in the sidebar.") : String(localized: "Added folder as a project."))
+        announce(
+            count == 0
+                ? String(localized: "Project already open. Focused it in the sidebar.") : String(localized: "Added folder as a project."))
         return true
     }
 
     private func announce(_ message: String) {
-        NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
+        NSAccessibility.post(
+            element: NSApp as Any, notification: .announcementRequested,
             userInfo: [.announcement: message, .priority: NSAccessibilityPriorityLevel.medium.rawValue])
     }
 }

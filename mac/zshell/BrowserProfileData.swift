@@ -9,8 +9,10 @@ nonisolated struct BrowserProfile: Sendable {
         case chrome, firefox
         var browserName: String { self == .chrome ? "Google Chrome" : "Firefox" }
         func root(home: URL) -> URL {
-            home.appendingPathComponent(self == .chrome ? "Library/Application Support/Google/Chrome"
-                                                        : "Library/Application Support/Firefox", isDirectory: true)
+            home.appendingPathComponent(
+                self == .chrome
+                    ? "Library/Application Support/Google/Chrome"
+                    : "Library/Application Support/Firefox", isDirectory: true)
         }
     }
     let kind: Kind
@@ -73,10 +75,12 @@ nonisolated enum BrowserProfileData {
             let json = state.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
             let cache = (json?["profile"] as? [String: Any])?["info_cache"] as? [String: [String: Any]] ?? [:]
             for directory in try manager.contentsOfDirectory(at: chrome, includingPropertiesForKeys: nil)
-                where directory.lastPathComponent == "Default" || directory.lastPathComponent.hasPrefix("Profile ") {
-                guard manager.fileExists(atPath: directory.appendingPathComponent("History").path)
+            where directory.lastPathComponent == "Default" || directory.lastPathComponent.hasPrefix("Profile ") {
+                guard
+                    manager.fileExists(atPath: directory.appendingPathComponent("History").path)
                         || manager.fileExists(atPath: directory.appendingPathComponent("Cookies").path)
-                        || manager.fileExists(atPath: directory.appendingPathComponent("Network/Cookies").path) else { continue }
+                        || manager.fileExists(atPath: directory.appendingPathComponent("Network/Cookies").path)
+                else { continue }
                 let name = cache[directory.lastPathComponent]?["name"] as? String ?? directory.lastPathComponent
                 profiles.append(BrowserProfile(kind: .chrome, name: name, directory: directory))
             }
@@ -98,7 +102,8 @@ nonisolated enum BrowserProfileData {
             if let current { sections.append(current) }
             for section in sections {
                 guard let path = section["Path"], !path.isEmpty else { continue }
-                let directory = section["IsRelative"] == "1"
+                let directory =
+                    section["IsRelative"] == "1"
                     ? firefox.appendingPathComponent(path, isDirectory: true)
                     : URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true)
                 guard manager.fileExists(atPath: directory.path) else { continue }
@@ -155,7 +160,9 @@ nonisolated enum BrowserProfileData {
                 let sameSite = columns.contains("samesite") ? "samesite" : "-1"
                 var key: Data?
                 var keyError: Error?
-                try db.rows("SELECT host_key,name,value,encrypted_value,path,expires_utc,is_secure,is_httponly,\(hasExpires),\(sameSite),\(partition) FROM cookies") { row in
+                try db.rows(
+                    "SELECT host_key,name,value,encrypted_value,path,expires_utc,is_secure,is_httponly,\(hasExpires),\(sameSite),\(partition) FROM cookies"
+                ) { row in
                     result.total += 1
                     let host = Database.text(row, 0)
                     guard Database.text(row, 10).isEmpty else { result.skipped += 1; return }
@@ -163,8 +170,7 @@ nonisolated enum BrowserProfileData {
                     var value = Database.text(row, 2)
                     if !encrypted.isEmpty {
                         if key == nil && keyError == nil {
-                            do { key = try chromeKey(password: password ?? keychainPassword()) }
-                            catch { keyError = error }
+                            do { key = try chromeKey(password: password ?? keychainPassword()) } catch { keyError = error }
                         }
                         guard let key, let decrypted = try? decrypt(encrypted, key: key, domain: host, version: version) else {
                             result.skipped += 1
@@ -174,9 +180,11 @@ nonisolated enum BrowserProfileData {
                     }
                     let expires = sqlite3_column_int(row, 8) == 0 ? -1 : Double(sqlite3_column_int64(row, 5)) / 1_000_000 - chromeEpoch
                     let same = sqlite3_column_int(row, 9)
-                    result.values.append(BrowserProfileCookie(name: Database.text(row, 1), value: value, domain: host,
-                        path: Database.text(row, 4), expires: expires, secure: sqlite3_column_int(row, 6) != 0,
-                        httpOnly: sqlite3_column_int(row, 7) != 0, sameSite: same == 0 ? "None" : same == 2 ? "Strict" : "Lax"))
+                    result.values.append(
+                        BrowserProfileCookie(
+                            name: Database.text(row, 1), value: value, domain: host,
+                            path: Database.text(row, 4), expires: expires, secure: sqlite3_column_int(row, 6) != 0,
+                            httpOnly: sqlite3_column_int(row, 7) != 0, sameSite: same == 0 ? "None" : same == 2 ? "Strict" : "Lax"))
                 }
                 if let keyError { result.error = keyError.localizedDescription }
             } else {
@@ -194,10 +202,13 @@ nonisolated enum BrowserProfileData {
                     guard attributes.isEmpty || attributes == "{}" else { result.skipped += 1; return }
                     let same = sqlite3_column_int(row, 7)
                     guard same != 0 || sqlite3_column_int(row, 5) != 0 else { result.skipped += 1; return }
-                    result.values.append(BrowserProfileCookie(name: Database.text(row, 1), value: Database.text(row, 2),
-                        domain: Database.text(row, 0), path: Database.text(row, 3),
-                        expires: Double(sqlite3_column_int64(row, 4)) / expiryScale, secure: sqlite3_column_int(row, 5) != 0,
-                        httpOnly: sqlite3_column_int(row, 6) != 0, sameSite: same == 2 ? "Strict" : same == 0 && sqlite3_column_int(row, 5) != 0 ? "None" : "Lax"))
+                    result.values.append(
+                        BrowserProfileCookie(
+                            name: Database.text(row, 1), value: Database.text(row, 2),
+                            domain: Database.text(row, 0), path: Database.text(row, 3),
+                            expires: Double(sqlite3_column_int64(row, 4)) / expiryScale, secure: sqlite3_column_int(row, 5) != 0,
+                            httpOnly: sqlite3_column_int(row, 6) != 0,
+                            sameSite: same == 2 ? "Strict" : same == 0 && sqlite3_column_int(row, 5) != 0 ? "None" : "Lax"))
                 }
                 do {
                     if let session = try firefoxSessionFile(profile) {
@@ -255,15 +266,18 @@ nonisolated enum BrowserProfileData {
 
     private static func firefoxSessionFile(_ profile: BrowserProfile) throws -> URL? {
         let directory = profile.directory
-        let candidates = [directory.appendingPathComponent("sessionstore-backups/recovery.jsonlz4"),
-                          directory.appendingPathComponent("sessionstore.jsonlz4"),
-                          directory.appendingPathComponent("sessionstore-backups/previous.jsonlz4")]
+        let candidates = [
+            directory.appendingPathComponent("sessionstore-backups/recovery.jsonlz4"),
+            directory.appendingPathComponent("sessionstore.jsonlz4"),
+            directory.appendingPathComponent("sessionstore-backups/previous.jsonlz4"),
+        ]
         for candidate in candidates {
             do {
                 _ = try FileManager.default.attributesOfItem(atPath: candidate.path)
                 return candidate
-            } catch let error as NSError where error.domain == NSCocoaErrorDomain &&
-                (error.code == NSFileNoSuchFileError || error.code == NSFileReadNoSuchFileError) {
+            } catch let error as NSError
+                where error.domain == NSCocoaErrorDomain && (error.code == NSFileNoSuchFileError || error.code == NSFileReadNoSuchFileError)
+            {
                 continue
             }
         }
@@ -277,13 +291,19 @@ nonisolated enum BrowserProfileData {
     }
 
     private static func keychainPassword() throws -> Data {
-        let query: [CFString: Any] = [kSecClass: kSecClassGenericPassword, kSecAttrService: "Chrome Safe Storage",
-                                      kSecReturnData: true, kSecMatchLimit: kSecMatchLimitOne]
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword, kSecAttrService: "Chrome Safe Storage",
+            kSecReturnData: true, kSecMatchLimit: kSecMatchLimitOne,
+        ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess, let data = item as? Data, !data.isEmpty else {
-            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status), userInfo: [NSLocalizedDescriptionKey:
-                (SecCopyErrorMessageString(status, nil) as String?) ?? "Keychain access failed."])
+            throw NSError(
+                domain: NSOSStatusErrorDomain, code: Int(status),
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        (SecCopyErrorMessageString(status, nil) as String?) ?? "Keychain access failed."
+                ])
         }
         return data
     }
@@ -293,7 +313,8 @@ nonisolated enum BrowserProfileData {
         var key = Data(count: kCCKeySizeAES128)
         let status = key.withUnsafeMutableBytes { output in
             password.withUnsafeBytes { input in
-                CCKeyDerivationPBKDF(CCPBKDFAlgorithm(kCCPBKDF2), input.baseAddress?.assumingMemoryBound(to: Int8.self),
+                CCKeyDerivationPBKDF(
+                    CCPBKDFAlgorithm(kCCPBKDF2), input.baseAddress?.assumingMemoryBound(to: Int8.self),
                     password.count, salt, salt.count, CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA1), 1003,
                     output.baseAddress?.assumingMemoryBound(to: UInt8.self), kCCKeySizeAES128)
             }
@@ -311,7 +332,8 @@ nonisolated enum BrowserProfileData {
         let status = plain.withUnsafeMutableBytes { output in
             key.withUnsafeBytes { keyBytes in
                 cipher.withUnsafeBytes { input in
-                    CCCrypt(CCOperation(kCCDecrypt), CCAlgorithm(kCCAlgorithmAES), CCOptions(kCCOptionPKCS7Padding),
+                    CCCrypt(
+                        CCOperation(kCCDecrypt), CCAlgorithm(kCCAlgorithmAES), CCOptions(kCCOptionPKCS7Padding),
                         keyBytes.baseAddress, key.count, iv, input.baseAddress, cipher.count,
                         output.baseAddress, cipher.count + kCCBlockSizeAES128, &written)
                 }
@@ -336,7 +358,8 @@ nonisolated enum BrowserProfileData {
             let source: URL
             if snapshot {
                 let manager = FileManager.default
-                let directory = manager.temporaryDirectory.appendingPathComponent("zshell-browser-database-\(UUID().uuidString)", isDirectory: true)
+                let directory = manager.temporaryDirectory.appendingPathComponent(
+                    "zshell-browser-database-\(UUID().uuidString)", isDirectory: true)
                 try manager.createDirectory(at: directory, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
                 do {
                     source = try Self.copySnapshot(file, into: directory)
@@ -345,7 +368,9 @@ nonisolated enum BrowserProfileData {
                     try? manager.removeItem(at: directory)
                     throw error
                 }
-            } else { source = file }
+            } else {
+                source = file
+            }
             // Chrome 的历史库持有独占锁；只在私有副本恢复日志，原浏览器文件始终只读。
             let flags = (snapshot ? SQLITE_OPEN_READWRITE : SQLITE_OPEN_READONLY) | SQLITE_OPEN_NOMUTEX
             let status = sqlite3_open_v2(source.path, &handle, flags, nil)
@@ -370,13 +395,14 @@ nonisolated enum BrowserProfileData {
                 try files.enumerated().map { index, file in
                     do {
                         let attributes = try manager.attributesOfItem(atPath: file.path)
-                        return FileVersion(size: (attributes[.size] as? NSNumber)?.uint64Value ?? 0,
-                                           modified: attributes[.modificationDate] as? Date ?? .distantPast,
-                                           inode: (attributes[.systemFileNumber] as? NSNumber)?.uint64Value ?? 0)
-                    } catch where index > 0 && BrowserProfileData.isMissing(error) { return nil }
+                        return FileVersion(
+                            size: (attributes[.size] as? NSNumber)?.uint64Value ?? 0,
+                            modified: attributes[.modificationDate] as? Date ?? .distantPast,
+                            inode: (attributes[.systemFileNumber] as? NSNumber)?.uint64Value ?? 0)
+                    } catch  where index > 0 && BrowserProfileData.isMissing(error) { return nil }
                 }
             }
-            for _ in 0..<3 {
+            for _ in 0 ..< 3 {
                 let before = try versions()
                 for (index, file) in files.enumerated() where before[index] != nil {
                     try manager.copyItem(at: file, to: directory.appendingPathComponent(file.lastPathComponent))
@@ -408,8 +434,9 @@ nonisolated enum BrowserProfileData {
             return result
         }
         private func error() -> NSError {
-            NSError(domain: "SQLite", code: Int(sqlite3_errcode(handle)),
-                    userInfo: [NSLocalizedDescriptionKey: String(cString: sqlite3_errmsg(handle))])
+            NSError(
+                domain: "SQLite", code: Int(sqlite3_errcode(handle)),
+                userInfo: [NSLocalizedDescriptionKey: String(cString: sqlite3_errmsg(handle))])
         }
         static func text(_ row: OpaquePointer, _ index: Int32) -> String {
             guard let value = sqlite3_column_text(row, index) else { return "" }

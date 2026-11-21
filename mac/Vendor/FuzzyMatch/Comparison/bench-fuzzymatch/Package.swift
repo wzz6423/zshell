@@ -16,6 +16,6 @@ let package = Package(
                 .product(name: "HeapModule", package: "swift-collections"),
             ],
             path: "Sources"
-        ),
+        )
     ]
 )

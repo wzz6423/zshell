@@ -49,7 +49,8 @@
                 return
             }
 
-            let action: ghostty_input_action_e = event.isARepeat
+            let action: ghostty_input_action_e =
+                event.isARepeat
                 ? GHOSTTY_ACTION_REPEAT : GHOSTTY_ACTION_PRESS
             let translationEvent = translatedEvent(for: event, on: surface)
 
@@ -132,22 +133,23 @@
 
             var action = GHOSTTY_ACTION_RELEASE
             if mods.rawValue & mod != 0 {
-                let sidePressed: Bool = switch event.keyCode {
-                case 0x3C:
-                    event.modifierFlags.rawValue
-                        & UInt(NX_DEVICERSHIFTKEYMASK) != 0
-                case 0x3E:
-                    event.modifierFlags.rawValue
-                        & UInt(NX_DEVICERCTLKEYMASK) != 0
-                case 0x3D:
-                    event.modifierFlags.rawValue
-                        & UInt(NX_DEVICERALTKEYMASK) != 0
-                case 0x36:
-                    event.modifierFlags.rawValue
-                        & UInt(NX_DEVICERCMDKEYMASK) != 0
-                default:
-                    true
-                }
+                let sidePressed: Bool =
+                    switch event.keyCode {
+                    case 0x3C:
+                        event.modifierFlags.rawValue
+                            & UInt(NX_DEVICERSHIFTKEYMASK) != 0
+                    case 0x3E:
+                        event.modifierFlags.rawValue
+                            & UInt(NX_DEVICERCTLKEYMASK) != 0
+                    case 0x3D:
+                        event.modifierFlags.rawValue
+                            & UInt(NX_DEVICERALTKEYMASK) != 0
+                    case 0x36:
+                        event.modifierFlags.rawValue
+                            & UInt(NX_DEVICERCMDKEYMASK) != 0
+                    default:
+                        true
+                    }
 
                 if sidePressed {
                     action = GHOSTTY_ACTION_PRESS
@@ -173,8 +175,8 @@
             )
             input.composing = composing
             guard includeText,
-                  let chars = translationEvent.filteredCharacters,
-                  !chars.isEmpty
+                let chars = translationEvent.filteredCharacters,
+                !chars.isEmpty
             else {
                 surface.sendKeyEvent(input)
                 return
@@ -302,8 +304,8 @@
             input.consumed_mods = TerminalInputModifiers(from: consumedFlags).ghosttyMods
 
             if type == .keyDown || type == .keyUp,
-               let chars = characters(byApplyingModifiers: []),
-               let codepoint = chars.unicodeScalars.first
+                let chars = characters(byApplyingModifiers: []),
+                let codepoint = chars.unicodeScalars.first
             {
                 input.unshifted_codepoint = codepoint.value
             }
@@ -316,7 +318,7 @@
                 return nil
             }
             guard filtered.count == 1,
-                  let scalar = filtered.unicodeScalars.first
+                let scalar = filtered.unicodeScalars.first
             else {
                 return filtered
             }

@@ -21,7 +21,9 @@ enum ZshellAgentLifecycleHooks {
     enum HookError: Error, LocalizedError {
         case message(String)
         var errorDescription: String? {
-            switch self { case .message(let message): message }
+            switch self {
+            case .message(let message): message
+            }
         }
     }
 
@@ -113,7 +115,8 @@ enum ZshellAgentLifecycleHooks {
             let root = provider.installationRoot(homeURL: homeURL, environment: environment)
             var directory: ObjCBool = false
             guard FileManager.default.fileExists(atPath: root.path, isDirectory: &directory),
-                  directory.boolValue else { return nil }
+                directory.boolValue
+            else { return nil }
             return try plan(
                 provider: provider, root: root,
                 sourceURL: try installing ? sourceURL(bundle: bundle ?? .main) : nil,
@@ -143,7 +146,8 @@ enum ZshellAgentLifecycleHooks {
         let previous = manifest?.commands ?? [:]
         let command = "/bin/sh \(shellQuote(link.path)) \(provider.rawValue) _lifecycle"
         guard previous.values.allSatisfy({ $0 == command }),
-              Set(previous.keys).isSubset(of: Set(lifecycleHooks(provider: provider).map(\.event))) else {
+            Set(previous.keys).isSubset(of: Set(lifecycleHooks(provider: provider).map(\.event)))
+        else {
             throw HookError.message("Zshell's hook manifest at \(manifestURL.path) has local changes.")
         }
         var next: [String: String] = [:]
@@ -166,7 +170,8 @@ enum ZshellAgentLifecycleHooks {
                 var remaining: [[String: Any]] = []
                 for handler in handlers {
                     if let command = handler["command"] as? String,
-                       command == previous[event] {
+                        command == previous[event]
+                    {
                         let expected: [String: Any] = ["type": "command", "command": command, "timeout": 5]
                         guard NSDictionary(dictionary: handler).isEqual(to: expected) else {
                             throw HookError.message(("Zshell's integration at \(eventPath) has local changes."))
@@ -184,7 +189,7 @@ enum ZshellAgentLifecycleHooks {
                 }
             }
             if installing, let hook = requested.first(where: { $0.event == event }) {
-                guard hook.action.utf8.allSatisfy({ (97...122).contains($0) || $0 == 45 || $0 == 95 }) else {
+                guard hook.action.utf8.allSatisfy({ (97 ... 122).contains($0) || $0 == 45 || $0 == 95 }) else {
                     throw HookError.message(("Invalid provider hooks at \(eventPath)."))
                 }
                 let command = "/bin/sh \(shellQuote(link.path)) \(provider.rawValue) \(hook.action)"
@@ -195,22 +200,27 @@ enum ZshellAgentLifecycleHooks {
                 next[event] = command
                 changed = true
             }
-            if kept.isEmpty { events.removeValue(forKey: event) }
-            else { events[event] = kept }
+            if kept.isEmpty { events.removeValue(forKey: event) } else { events[event] = kept }
         }
-        if events.isEmpty { settings.removeValue(forKey: "hooks") }
-        else { settings["hooks"] = events }
+        if events.isEmpty { settings.removeValue(forKey: "hooks") } else { settings["hooks"] = events }
 
         let updated: Data?
         if changed {
-            var serialized = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+            var serialized = try JSONSerialization.data(
+                withJSONObject: settings, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
             serialized.append(0x0A)
             if let original,
-               NSDictionary(dictionary: try object(from: original, path: config.path)).isEqual(to: settings) {
+                NSDictionary(dictionary: try object(from: original, path: config.path)).isEqual(to: settings)
+            {
                 updated = original
-            } else { updated = serialized }
-        } else { updated = original }
-        let manifestData = installing
+            } else {
+                updated = serialized
+            }
+        } else {
+            updated = original
+        }
+        let manifestData =
+            installing
             ? try JSONEncoder().encode(Manifest(version: 1, provider: provider, commands: next, configFile: nil))
             : nil
         return Plan(
@@ -222,10 +232,11 @@ enum ZshellAgentLifecycleHooks {
     }
 
     private static func lifecycleHooks(provider: Provider) -> [Hook] {
-        var events = ["SessionStart", "UserPromptSubmit", "PostToolUse", "PermissionRequest",
-                      "SubagentStart", "SubagentStop", "Stop", "SessionEnd"]
-        if provider == .codex { events.append("Interrupt") }
-        else { events += ["StopFailure", "Elicitation", "ElicitationResult"] }
+        var events = [
+            "SessionStart", "UserPromptSubmit", "PostToolUse", "PermissionRequest",
+            "SubagentStart", "SubagentStop", "Stop", "SessionEnd",
+        ]
+        if provider == .codex { events.append("Interrupt") } else { events += ["StopFailure", "Elicitation", "ElicitationResult"] }
         var hooks = events.map { Hook(event: $0) }
         hooks.append(Hook(event: "PreToolUse", matcher: "AskUserQuestion|request_user_input"))
         if provider == .claude {
@@ -237,7 +248,8 @@ enum ZshellAgentLifecycleHooks {
     private static func apply(_ plan: Plan, installing: Bool) throws {
         // Never overwrite a settings edit made since the multi-provider preflight.
         guard try readFileIfPresent(plan.configURL) == plan.original,
-              try readFileIfPresent(plan.manifestURL) == plan.originalManifest else {
+            try readFileIfPresent(plan.manifestURL) == plan.originalManifest
+        else {
             throw HookError.message(("\(plan.configURL.path) changed while Zshell was updating hooks."))
         }
         if installing, let source = plan.sourceURL {
@@ -263,8 +275,9 @@ enum ZshellAgentLifecycleHooks {
     ) throws -> URL {
         for subdirectory in directories {
             if let url = bundle.url(forResource: name, withExtension: suffix, subdirectory: subdirectory),
-               let data = try? Data(contentsOf: url),
-               String(decoding: data, as: UTF8.self).contains(marker) {
+                let data = try? Data(contentsOf: url),
+                String(decoding: data, as: UTF8.self).contains(marker)
+            {
                 return url.standardizedFileURL
             }
         }
@@ -274,7 +287,8 @@ enum ZshellAgentLifecycleHooks {
     private static func readManifest(at url: URL, provider: Provider) throws -> Manifest? {
         guard let data = try readFileIfPresent(url) else { return nil }
         guard let manifest = try? JSONDecoder().decode(Manifest.self, from: data),
-              manifest.version == 1, manifest.provider == provider else {
+            manifest.version == 1, manifest.provider == provider
+        else {
             throw HookError.message(("Zshell's hook manifest at \(url.path) has local changes."))
         }
         return manifest
@@ -283,7 +297,8 @@ enum ZshellAgentLifecycleHooks {
     private static func object(from data: Data?, path: String) throws -> [String: Any] {
         guard let data, !data.isEmpty else { return [:] }
         guard data.count <= 1_048_576,
-              let value = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            let value = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
             throw HookError.message(("\(path) must be a JSON object."))
         }
         return value
@@ -298,14 +313,13 @@ enum ZshellAgentLifecycleHooks {
     }
 
     private static func readFileIfPresent(_ url: URL) throws -> Data? {
-        do { return try Data(contentsOf: url) }
-        catch CocoaError.fileReadNoSuchFile { return nil }
-        catch { throw error }
+        do { return try Data(contentsOf: url) } catch CocoaError.fileReadNoSuchFile { return nil } catch { throw error }
     }
 
     private static func isManagedLink(_ url: URL, sourceURL: URL?) -> Bool {
         guard let path = try? FileManager.default.destinationOfSymbolicLink(atPath: url.path) else { return false }
-        let target = path.hasPrefix("/")
+        let target =
+            path.hasPrefix("/")
             ? URL(fileURLWithPath: path)
             : url.deletingLastPathComponent().appendingPathComponent(path)
         if target.standardizedFileURL == sourceURL?.standardizedFileURL { return true }

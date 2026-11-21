@@ -40,7 +40,7 @@ final class SecondaryTextEditViewController: NSViewController {
             scrollView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
         ])
 
         updateCompletionsInBackground()
@@ -72,17 +72,19 @@ final class SecondaryTextEditViewController: NSViewController {
                 return
             }
 
-            self.completions = arr
+            self.completions =
+                arr
                 .filter { $0.count > 2 }
                 .sorted { lhs, rhs in
                     lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
                 }
                 .map { word in
-                    let symbol = if let firstCharacter = word.first, firstCharacter.isASCII, firstCharacter.isLetter {
-                        "\(word.first!.lowercased()).square"
-                    } else {
-                        "note.text"
-                    }
+                    let symbol =
+                        if let firstCharacter = word.first, firstCharacter.isASCII, firstCharacter.isLetter {
+                            "\(word.first!.lowercased()).square"
+                        } else {
+                            "note.text"
+                        }
 
                     return Completion.Item(id: UUID().uuidString, label: word.localizedCapitalized, symbolName: symbol, insertText: word)
                 }

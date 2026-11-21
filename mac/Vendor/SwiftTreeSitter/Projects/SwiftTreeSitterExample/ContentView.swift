@@ -15,100 +15,101 @@ struct ContentView: View {
             Text("Hello, world!")
         }
         .padding()
-		.onAppear {
-			do {
-//				try runTreeSitterTest()
-				try runTreeSitterDocumentTest()
-			} catch {
-				print("error: ", error)
-			}
-		}
+        .onAppear {
+            do {
+                //				try runTreeSitterTest()
+                try runTreeSitterDocumentTest()
+            } catch {
+                print("error: ", error)
+            }
+        }
     }
 
-	func runTreeSitterTest() throws {
-		let swiftConfig = try LanguageConfiguration(tree_sitter_swift(), name: "Swift")
+    func runTreeSitterTest() throws {
+        let swiftConfig = try LanguageConfiguration(tree_sitter_swift(), name: "Swift")
 
-		let parser = Parser()
-		try parser.setLanguage(swiftConfig.language)
+        let parser = Parser()
+        try parser.setLanguage(swiftConfig.language)
 
-		let input = """
-func main() {}
-"""
-		let tree = parser.parse(input)!
+        let input = """
+            func main() {}
+            """
+        let tree = parser.parse(input)!
 
-		let query = swiftConfig.queries[.highlights]!
+        let query = swiftConfig.queries[.highlights]!
 
-		let cursor = query.execute(in: tree)
-		let highlights = cursor
-			.resolve(with: .init(string: input))
-			.highlights()
+        let cursor = query.execute(in: tree)
+        let highlights =
+            cursor
+            .resolve(with: .init(string: input))
+            .highlights()
 
-		for namedRange in highlights {
-			print("range: ", namedRange)
-		}
-	}
+        for namedRange in highlights {
+            print("range: ", namedRange)
+        }
+    }
 
-	func runTreeSitterDocumentTest() throws {
-		let markdownConfig = try LanguageConfiguration(tree_sitter_markdown(), name: "Markdown")
-		let markdownInlineConfig = try LanguageConfiguration(
-			tree_sitter_markdown_inline(),
-			name: "MarkdownInline",
-			bundleName: "TreeSitterMarkdown_TreeSitterMarkdownInline"
-		)
-		let swiftConfig = try LanguageConfiguration(tree_sitter_swift(), name: "Swift")
+    func runTreeSitterDocumentTest() throws {
+        let markdownConfig = try LanguageConfiguration(tree_sitter_markdown(), name: "Markdown")
+        let markdownInlineConfig = try LanguageConfiguration(
+            tree_sitter_markdown_inline(),
+            name: "MarkdownInline",
+            bundleName: "TreeSitterMarkdown_TreeSitterMarkdownInline"
+        )
+        let swiftConfig = try LanguageConfiguration(tree_sitter_swift(), name: "Swift")
 
-		let config = LanguageLayer.Configuration(
-			languageProvider: {
-				name in
-				switch name {
-				case "markdown":
-					return markdownConfig
-				case "markdown_inline":
-					return markdownInlineConfig
-				case "swift":
-					return swiftConfig
-				default:
-					return nil
-				}
-			}
-		)
+        let config = LanguageLayer.Configuration(
+            languageProvider: {
+                name in
+                switch name {
+                case "markdown":
+                    return markdownConfig
+                case "markdown_inline":
+                    return markdownInlineConfig
+                case "swift":
+                    return swiftConfig
+                default:
+                    return nil
+                }
+            }
+        )
 
-		let rootLayer = try! LanguageLayer(languageConfig: markdownConfig, configuration: config)
+        let rootLayer = try! LanguageLayer(languageConfig: markdownConfig, configuration: config)
 
-		let source = """
-# this is markdown
+        let source = """
+            # this is markdown
 
-```swift
-func main(a: Int) {
-}
-```
+            ```swift
+            func main(a: Int) {
+            }
+            ```
 
-## also markdown
+            ## also markdown
 
-```swift
-let value = "abc"
-```
-"""
+            ```swift
+            let value = "abc"
+            ```
+            """
 
-		rootLayer.replaceContent(with: source)
+        rootLayer.replaceContent(with: source)
 
-		let fullRange = NSRange(source.startIndex..<source.endIndex, in: source)
+        let fullRange = NSRange(source.startIndex ..< source.endIndex, in: source)
 
-		let membershipProvider: SwiftTreeSitter.Predicate.GroupMembershipProvider = { query, range, _ in
-			guard query == "local" else { return false }
+        let membershipProvider: SwiftTreeSitter.Predicate.GroupMembershipProvider = { query, range, _ in
+            guard query == "local" else { return false }
 
-			return false
-		}
+            return false
+        }
 
-		let context = Predicate.Context(textProvider: source.predicateTextProvider, groupMembershipProvider: membershipProvider)
+        let context = Predicate.Context(textProvider: source.predicateTextProvider, groupMembershipProvider: membershipProvider)
 
-		let provider = source.predicateTextProvider
-		let highlights = try rootLayer.highlights(in: fullRange, provider: provider)
+        let provider = source.predicateTextProvider
+        let highlights = try rootLayer.highlights(in: fullRange, provider: provider)
 
-		for namedRange in highlights {
-			print("\(namedRange.name): \(namedRange.range)")
-		}
-	}
+        for namedRange in highlights {
+            print("\(namedRange.name): \(namedRange.range)")
+        }
+    }
 }
 
 struct ContentView_Previews: PreviewProvider {

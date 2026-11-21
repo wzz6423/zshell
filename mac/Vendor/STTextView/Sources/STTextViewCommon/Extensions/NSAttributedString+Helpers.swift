@@ -17,7 +17,9 @@ package extension NSAttributedString {
         return usedAttributes
     }
 
-    func attribute(_ attrName: NSAttributedString.Key, in range: NSRange, options: NSAttributedString.EnumerationOptions = []) -> [(range: NSRange, value: Any?)] {
+    func attribute(_ attrName: NSAttributedString.Key, in range: NSRange, options: NSAttributedString.EnumerationOptions = []) -> [(
+        range: NSRange, value: Any?
+    )] {
         var ranges: [(range: NSRange, value: Any?)] = []
         enumerateAttribute(attrName, in: range, options: options) { value, range, _ in
             // enumeration block executed at least once without a good reason FB12863947

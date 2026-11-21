@@ -41,7 +41,10 @@ open class STGutterView: UIView {
     /// Initialized with a textView font value and does not update automatically when
     /// text view font changes.
     @Invalidating(.display)
-    open var font = adjustGutterFont(UIFont(descriptor: UIFont.monospacedDigitSystemFont(ofSize: 0, weight: .regular).fontDescriptor.withSymbolicTraits(.traitCondensed)!, size: 0))
+    open var font = adjustGutterFont(
+        UIFont(
+            descriptor: UIFont.monospacedDigitSystemFont(ofSize: 0, weight: .regular).fontDescriptor.withSymbolicTraits(.traitCondensed)!,
+            size: 0))
 
     /// The insets of the ruler view.
     @Invalidating(.display)
@@ -217,7 +220,8 @@ open class STGutterView: UIView {
                 marker.view.frame.size.height = lineNumberCell.textSize.height
                 marker.view.frame.origin.x = lineNumberCell.frame.size.width - marker.view.frame.size.width - 1.5 /* separator */
                 // Center marker vertically on the line number text
-                marker.view.frame.origin.y = lineNumberCell.frame.origin.y + lineNumberCell.textCenterY - (marker.view.frame.size.height / 2)
+                marker.view.frame.origin.y =
+                    lineNumberCell.frame.origin.y + lineNumberCell.textCenterY - (marker.view.frame.size.height / 2)
                 markerContainerView.addSubview(marker.view)
             }
         }
@@ -230,28 +234,28 @@ private func adjustGutterFont(_ font: UIFont) -> UIFont {
     let features: [[UIFontDescriptor.FeatureKey: Int]] = [
         [
             .type: kTextSpacingType,
-            .selector: kMonospacedTextSelector
+            .selector: kMonospacedTextSelector,
         ],
         [
             .type: kNumberSpacingType,
-            .selector: kMonospacedNumbersSelector
+            .selector: kMonospacedNumbersSelector,
         ],
         [
             .type: kNumberCaseType,
-            .selector: kUpperCaseNumbersSelector
+            .selector: kUpperCaseNumbersSelector,
         ],
         [
             .type: kStylisticAlternativesType,
-            .selector: kStylisticAltOneOnSelector
+            .selector: kStylisticAltOneOnSelector,
         ],
         [
             .type: kStylisticAlternativesType,
-            .selector: kStylisticAltTwoOnSelector
+            .selector: kStylisticAltTwoOnSelector,
         ],
         [
             .type: kTypographicExtrasType,
-            .selector: kSlashedZeroOnSelector
-        ]
+            .selector: kSlashedZeroOnSelector,
+        ],
     ]
 
     return UIFont(descriptor: font.fontDescriptor.addingAttributes([.featureSettings: features]), size: 0)

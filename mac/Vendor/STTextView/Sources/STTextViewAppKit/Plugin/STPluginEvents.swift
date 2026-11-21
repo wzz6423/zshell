@@ -24,7 +24,6 @@ public class STPluginEvents {
         return self
     }
 
-
     @discardableResult
     public func shouldChangeText(_ handler: @escaping (_ affectedCharRange: NSTextRange, _ replacementString: String?) -> Bool) -> Self {
         shouldChangeTextHandler = handler

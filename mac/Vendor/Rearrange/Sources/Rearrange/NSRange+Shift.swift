@@ -66,7 +66,7 @@ extension NSRange {
         if location == NSNotFound {
             return nil
         }
-        
+
         let newLength = length + delta
 
         if newLength < 0 {
@@ -90,6 +90,6 @@ extension NSRange {
         let start = Swift.min(location, limit)
         let end = Swift.min(max, limit)
 
-        return NSRange(start..<end)
+        return NSRange(start ..< end)
     }
 }

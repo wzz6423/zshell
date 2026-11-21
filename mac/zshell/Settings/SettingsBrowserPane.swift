@@ -13,7 +13,9 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
     private var blockingGroup: SettingsGroup?
     private var filterGroup: SettingsGroup?
     private lazy var applyButton = SettingsActionButton(title: String(localized: "Apply Lists")) { [weak self] in self?.applyLists() }
-    private lazy var updateButton = SettingsActionButton(title: String(localized: "Update Lists Now")) { BrowserContentBlocker.shared.refresh() }
+    private lazy var updateButton = SettingsActionButton(title: String(localized: "Update Lists Now")) {
+        BrowserContentBlocker.shared.refresh()
+    }
 
     override func makeGroups() -> [NSView] {
         easyListSwitch.target = self
@@ -43,7 +45,8 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
         listEditor.heightAnchor.constraint(equalToConstant: 110).isActive = true
 
         customLists.toolTip = String(localized: "One HTTP or HTTPS ABP list URL per line. Up to 8 lists total. HTTP lists are unencrypted.")
-        enabledSwitch.toolTip = String(localized: "Applies to future page requests in every browser pane. Reload open pages after changing rules.")
+        enabledSwitch.toolTip = String(
+            localized: "Applies to future page requests in every browser pane. Reload open pages after changing rules.")
         for label in [statusLabel, validationLabel] {
             label.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
             label.textColor = .secondaryLabelColor
@@ -63,11 +66,13 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
         status.spacing = 8
         statusLabel.widthAnchor.constraint(equalTo: status.widthAnchor).isActive = true
         observe(BrowserContentBlocker.shared.$status.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.syncFromSettings() })
-        let filters = SettingsGroup(header: String(localized: "Filter Lists"), rows: [
-            SettingsRow(title: "EasyList", control: easyListSwitch),
-            SettingsRow(title: "EasyPrivacy", control: easyPrivacySwitch),
-            SettingsCustomRow(editor),
-        ])
+        let filters = SettingsGroup(
+            header: String(localized: "Filter Lists"),
+            rows: [
+                SettingsRow(title: "EasyList", control: easyListSwitch),
+                SettingsRow(title: "EasyPrivacy", control: easyPrivacySwitch),
+                SettingsCustomRow(editor),
+            ])
         filterGroup = filters
         let blocking = SettingsGroup(rows: [
             SettingsRow(title: String(localized: "Block ads and trackers"), control: enabledSwitch, symbolName: "hand.raised.fill"),
@@ -75,22 +80,24 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
         ])
         blockingGroup = blocking
         return [
-            SettingsGroup(rows: [SettingsButtonFlowRow(views: [
-                SettingsActionButton(title: String(localized: "Manage Extensions")) { [weak self] in
-                    BrowserWebExtensionManager.shared.show(relativeTo: self?.view.window)
-                },
-                SettingsActionButton(title: String(localized: "Import Browser Data")) {
-                    guard let manager = TerminalManager.activeWindowManager else { return }
-                    BrowserProfileImportController.shared.show(for: manager)
-                },
-                SettingsActionButton(title: String(localized: "Browser Data Access")) {
-                    BrowserProfileImportController.shared.openAccessSettings()
-                },
-                SettingsActionButton(title: String(localized: "Imported Browser History")) {
-                    guard let manager = TerminalManager.activeWindowManager else { return }
-                    BrowserImportedHistoryController.shared.show(manager: manager)
-                },
-            ])]),
+            SettingsGroup(rows: [
+                SettingsButtonFlowRow(views: [
+                    SettingsActionButton(title: String(localized: "Manage Extensions")) { [weak self] in
+                        BrowserWebExtensionManager.shared.show(relativeTo: self?.view.window)
+                    },
+                    SettingsActionButton(title: String(localized: "Import Browser Data")) {
+                        guard let manager = TerminalManager.activeWindowManager else { return }
+                        BrowserProfileImportController.shared.show(for: manager)
+                    },
+                    SettingsActionButton(title: String(localized: "Browser Data Access")) {
+                        BrowserProfileImportController.shared.openAccessSettings()
+                    },
+                    SettingsActionButton(title: String(localized: "Imported Browser History")) {
+                        guard let manager = TerminalManager.activeWindowManager else { return }
+                        BrowserImportedHistoryController.shared.show(manager: manager)
+                    },
+                ])
+            ]),
             blocking,
             filters,
         ] + accessPane.makeGroups()
@@ -105,7 +112,8 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
         easyListSwitch.isOn = lists.contains(BrowserFilterSource.catalog[0].url.absoluteString)
         easyPrivacySwitch.isOn = lists.contains(BrowserFilterSource.catalog[1].url.absoluteString)
         if !isEditingLists {
-            customLists.string = lists.filter { url in !BrowserFilterSource.catalog.contains { $0.url.absoluteString == url } }.joined(separator: "\n")
+            customLists.string = lists.filter { url in !BrowserFilterSource.catalog.contains { $0.url.absoluteString == url } }.joined(
+                separator: "\n")
         }
         statusLabel.stringValue = BrowserContentBlocker.shared.status.text
         updateButton.isEnabled = settings.browserContentBlocking && BrowserContentBlocker.shared.status != .updating
@@ -127,7 +135,8 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
             settings.browserFilterLists = sources.map { $0.url.absoluteString }.joined(separator: "\n")
         } catch {
             isEditingLists = true
-            validationLabel.stringValue = String(localized: "Enter valid HTTP or HTTPS URLs without credentials or fragments, with at most 8 lists total.")
+            validationLabel.stringValue = String(
+                localized: "Enter valid HTTP or HTTPS URLs without credentials or fragments, with at most 8 lists total.")
             validationLabel.isHidden = false
         }
     }

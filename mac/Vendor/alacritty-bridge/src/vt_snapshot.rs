@@ -18,6 +18,7 @@ pub const ZSHELL_CELL_HIDDEN: u16 = 1 << 6;
 pub const ZSHELL_CELL_WIDE: u16 = 1 << 7;
 pub const ZSHELL_CELL_WIDE_SPACER: u16 = 1 << 8;
 pub const ZSHELL_CELL_SELECTED: u16 = 1 << 9;
+#[cfg(feature = "renderer")]
 pub const ZSHELL_CELL_WRAPPED: u16 = 1 << 10;
 pub const ZSHELL_CELL_EXPLICIT_BACKGROUND: u16 = 1 << 11;
 pub const ZSHELL_CELL_SEMANTIC_PROMPT: u16 = 1 << 12;

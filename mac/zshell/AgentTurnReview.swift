@@ -29,10 +29,11 @@ nonisolated enum AgentReviewError: Error, LocalizedError {
         case .active: String(localized: "Wait for all agents in this repository to finish before reverting.")
         case .overlapping: String(localized: "Concurrent agent turns share this snapshot. Revert is unavailable.")
         case .missingParent: String(localized: "This file cannot be safely reviewed or reverted.")
-        case .concurrent(let path): String(
-            localized: "Concurrent edits were preserved at \(path). Inspect them before retrying.",
-            comment: "The placeholder is the path holding a concurrent edit that could not be restored safely."
-        )
+        case .concurrent(let path):
+            String(
+                localized: "Concurrent edits were preserved at \(path). Inspect them before retrying.",
+                comment: "The placeholder is the path holding a concurrent edit that could not be restored safely."
+            )
         }
     }
 }
@@ -55,9 +56,10 @@ nonisolated struct AgentReviewFile: Identifiable, Sendable {
     var excluded = false
     var id: String { path }
     var supportsHunks: Bool {
-        !excluded && [beforeMode, afterMode].allSatisfy {
-            $0 == "000000" || $0 == "100644" || $0 == "100755"
-        }
+        !excluded
+            && [beforeMode, afterMode].allSatisfy {
+                $0 == "000000" || $0 == "100644" || $0 == "100755"
+            }
     }
 }
 
@@ -117,7 +119,8 @@ nonisolated enum AgentReviewGit {
         _ = try command(["read-tree", head ?? "--empty"], in: canonicalRoot, environment: environment)
 
         let tracked = try command(
-            head == nil ? ["ls-files", "--cached", "-z"]
+            head == nil
+                ? ["ls-files", "--cached", "-z"]
                 : ["diff", "--name-only", "--no-renames", "--no-ext-diff", "--no-textconv", "-z", head!, "--"],
             in: canonicalRoot
         )
@@ -174,10 +177,11 @@ nonisolated enum AgentReviewGit {
         from before: AgentWorkspaceSnapshot, to after: AgentWorkspaceSnapshot
     ) throws -> [AgentReviewFile] {
         guard before.root == after.root else { throw AgentReviewError.stale }
-        let raw = try command([
-            "diff", "--raw", "--no-abbrev", "--no-renames", "--no-ext-diff", "-z",
-            before.tree, after.tree, "--",
-        ], in: after.root)
+        let raw = try command(
+            [
+                "diff", "--raw", "--no-abbrev", "--no-renames", "--no-ext-diff", "-z",
+                before.tree, after.tree, "--",
+            ], in: after.root)
         guard let text = String(data: raw, encoding: .utf8) else { throw AgentReviewError.unsafePath }
         let records = text.split(separator: "\0", omittingEmptySubsequences: true)
         var entries: [AgentReviewFile] = []
@@ -188,12 +192,13 @@ nonisolated enum AgentReviewGit {
             guard fields.count == 5, fields[0].first == ":" else { throw AgentReviewError.unsafePath }
             let path = String(records[index + 1])
             if !excluded.contains(path) {
-                entries.append(AgentReviewFile(
-                    path: path, status: String(fields[4]),
-                    beforeMode: String(fields[0].dropFirst()), afterMode: String(fields[1]),
-                    beforeBlob: fields[2].allSatisfy({ $0 == "0" }) ? nil : String(fields[2]),
-                    afterBlob: fields[3].allSatisfy({ $0 == "0" }) ? nil : String(fields[3])
-                ))
+                entries.append(
+                    AgentReviewFile(
+                        path: path, status: String(fields[4]),
+                        beforeMode: String(fields[0].dropFirst()), afterMode: String(fields[1]),
+                        beforeBlob: fields[2].allSatisfy({ $0 == "0" }) ? nil : String(fields[2]),
+                        afterBlob: fields[3].allSatisfy({ $0 == "0" }) ? nil : String(fields[3])
+                    ))
             }
             index += 2
         }
@@ -215,9 +220,11 @@ nonisolated enum AgentReviewGit {
         if branch {
             let remoteHead = try? string(["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"], in: root)
             let candidates = [reference, remoteHead, "refs/heads/main", "refs/heads/master"].compactMap { $0 }
-            guard let reference = candidates.first(where: {
-                (try? string(["rev-parse", "--verify", $0], in: root)) != nil
-            }) else { throw AgentReviewError.unavailable }
+            guard
+                let reference = candidates.first(where: {
+                    (try? string(["rev-parse", "--verify", $0], in: root)) != nil
+                })
+            else { throw AgentReviewError.unavailable }
             base = try string(["merge-base", "HEAD", reference], in: root)
         }
         if base == nil {
@@ -234,18 +241,20 @@ nonisolated enum AgentReviewGit {
         func blob(_ oid: String?) throws -> Data? {
             guard let oid else { return nil }
             guard let size = Int(try string(["cat-file", "-s", oid], in: after.root)),
-                  size <= maxFileBytes else { throw AgentReviewError.limit }
+                size <= maxFileBytes
+            else { throw AgentReviewError.limit }
             return try command(["cat-file", "blob", oid], in: after.root, limit: maxFileBytes)
         }
         let old = try blob(file.beforeBlob)
         let new = try blob(file.afterBlob)
         guard file.supportsHunks,
-              [old, new].allSatisfy({ $0 == nil || (!$0!.contains(0) && String(data: $0!, encoding: .utf8) != nil) })
+            [old, new].allSatisfy({ $0 == nil || (!$0!.contains(0) && String(data: $0!, encoding: .utf8) != nil) })
         else { return AgentReviewFileContents(before: old, after: new, hunks: []) }
-        let patch = try command([
-            "diff", "--no-color", "--no-ext-diff", "--no-textconv", "--no-renames", "--unified=3",
-            before.tree, after.tree, "--", file.path,
-        ], in: after.root)
+        let patch = try command(
+            [
+                "diff", "--no-color", "--no-ext-diff", "--no-textconv", "--no-renames", "--unified=3",
+                before.tree, after.tree, "--", file.path,
+            ], in: after.root)
         return AgentReviewFileContents(before: old, after: new, hunks: try parseHunks(patch))
     }
 
@@ -271,10 +280,11 @@ nonisolated enum AgentReviewGit {
             guard let header else { return }
             let fingerprint = SHA256.hash(data: Data((header + before.joined() + "\0" + after.joined()).utf8))
                 .map { String(format: "%02x", $0) }.joined()
-            hunks.append(AgentReviewHunk(
-                id: fingerprint, header: header, oldStart: oldStart, newStart: newStart,
-                before: before, after: after
-            ))
+            hunks.append(
+                AgentReviewHunk(
+                    id: fingerprint, header: header, oldStart: oldStart, newStart: newStart,
+                    before: before, after: after
+                ))
         }
         for line in try lines(patch) {
             let range = NSRange(line.startIndex..., in: line)
@@ -320,9 +330,9 @@ nonisolated enum AgentReviewGit {
         for hunk in contents.hunks.reversed() where revertedIDs.contains(hunk.id) {
             let start = max(0, hunk.newStart - 1)
             guard start <= result.count, start + hunk.after.count <= result.count,
-                  Array(result[start..<(start + hunk.after.count)]) == hunk.after
+                Array(result[start ..< (start + hunk.after.count)]) == hunk.after
             else { throw AgentReviewError.stale }
-            result.replaceSubrange(start..<(start + hunk.after.count), with: hunk.before)
+            result.replaceSubrange(start ..< (start + hunk.after.count), with: hunk.before)
         }
         return Data(result.joined().utf8)
     }
@@ -333,7 +343,7 @@ nonisolated enum AgentReviewGit {
         before: AgentWorkspaceSnapshot, after: AgentWorkspaceSnapshot
     ) throws {
         guard file.supportsHunks, contents.hunks.contains(where: { $0.id == hunk.id }),
-              !revertedIDs.contains(hunk.id)
+            !revertedIDs.contains(hunk.id)
         else { throw AgentReviewError.unsafePath }
         let head = try? string(["rev-parse", "--verify", "HEAD"], in: after.root)
         let branch = try? string(["symbolic-ref", "--quiet", "--short", "HEAD"], in: after.root)
@@ -393,7 +403,8 @@ nonisolated enum AgentReviewGit {
             }
             let mode = file.afterBlob == nil ? file.beforeMode : file.afterMode
             guard fchmod(descriptor, permissions ?? (mode == "100755" ? 0o755 : 0o644)) == 0,
-                  fsync(descriptor) == 0 else { throw POSIXError(.init(rawValue: errno) ?? .EIO) }
+                fsync(descriptor) == 0
+            else { throw POSIXError(.init(rawValue: errno) ?? .EIO) }
             guard try verify() == permissions else { throw AgentReviewError.stale }
             let flags = wasDeleted ? UInt32(RENAME_EXCL) : UInt32(RENAME_SWAP)
             guard renameatx_np(parent, temporary, parent, name, flags) == 0 else {
@@ -448,16 +459,18 @@ nonisolated enum AgentReviewGit {
         var data = Data()
         while data.count <= maxFileBytes {
             guard let chunk = try handle.read(upToCount: min(64 << 10, maxFileBytes + 1 - data.count)),
-                  !chunk.isEmpty else { break }
+                !chunk.isEmpty
+            else { break }
             data.append(chunk)
         }
         guard data.count <= maxFileBytes else { throw AgentReviewError.limit }
         var final = stat()
         guard fstat(descriptor, &final) == 0,
-              initial.st_size == final.st_size,
-              initial.st_mtimespec.tv_sec == final.st_mtimespec.tv_sec,
-              initial.st_mtimespec.tv_nsec == final.st_mtimespec.tv_nsec,
-              data.count == initial.st_size else { throw AgentReviewError.stale }
+            initial.st_size == final.st_size,
+            initial.st_mtimespec.tv_sec == final.st_mtimespec.tv_sec,
+            initial.st_mtimespec.tv_nsec == final.st_mtimespec.tv_nsec,
+            data.count == initial.st_size
+        else { throw AgentReviewError.stale }
         return WorktreeFile(
             data: data, mode: initial.st_mode & 0o111 == 0 ? "100644" : "100755",
             permissions: initial.st_mode & 0o7777
@@ -469,7 +482,8 @@ nonisolated enum AgentReviewGit {
     ) throws -> T {
         let components = path.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
         guard !path.hasPrefix("/"), components.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." }),
-              let name = components.last else { throw AgentReviewError.unsafePath }
+            let name = components.last
+        else { throw AgentReviewError.unsafePath }
         var descriptor = open(root, O_RDONLY | O_DIRECTORY | O_NOFOLLOW)
         guard descriptor >= 0 else { throw AgentReviewError.unsafePath }
         defer { close(descriptor) }
@@ -546,7 +560,8 @@ final class AgentTurnReviewStore: ObservableObject {
             directory: canonicalDirectory, startedAt: Date()
         )
         if turns.count >= 64,
-           let oldest = turns.values.filter({ !$0.isActive }).min(by: { $0.startedAt < $1.startedAt }) {
+            let oldest = turns.values.filter({ !$0.isActive }).min(by: { $0.startedAt < $1.startedAt })
+        {
             turns.removeValue(forKey: oldest.sessionID)
         }
         turns[sessionID] = turn
@@ -585,7 +600,8 @@ final class AgentTurnReviewStore: ObservableObject {
 
     private func finishTurn(sessionID: UUID, turn: AgentReviewTurn) async {
         if let baseline = try? await starts[sessionID]?.value,
-           turns[sessionID]?.id == turn.id, turns[sessionID]?.before == nil {
+            turns[sessionID]?.id == turn.id, turns[sessionID]?.before == nil
+        {
             turns[sessionID]?.before = baseline
         }
         if let before = turns[sessionID]?.before {
@@ -632,15 +648,17 @@ final class AgentTurnReviewStore: ObservableObject {
         contents: AgentReviewFileContents, hunk: AgentReviewHunk
     ) async throws {
         guard let current = turns[turn.sessionID], current.id == turn.id,
-              !current.isActive, let before = current.before, let after = current.after else {
+            !current.isActive, let before = current.before, let after = current.after
+        else {
             throw AgentReviewError.unavailable
         }
         guard !hasActiveTurn(in: after.root), !mutations.contains(after.root) else { throw AgentReviewError.active }
         guard !current.overlapped else { throw AgentReviewError.overlapping }
         let key = Self.decisionKey(file: file, hunk: hunk)
-        let reverted = Set(contents.hunks.filter {
-            current.reverted.contains(Self.decisionKey(file: file, hunk: $0))
-        }.map(\.id))
+        let reverted = Set(
+            contents.hunks.filter {
+                current.reverted.contains(Self.decisionKey(file: file, hunk: $0))
+            }.map(\.id))
         mutations.insert(after.root)
         defer { mutations.remove(after.root) }
         try await Task.detached(priority: .userInitiated) {

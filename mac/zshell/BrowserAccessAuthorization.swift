@@ -3,12 +3,14 @@ import Foundation
 
 nonisolated enum BrowserAccessStorage {
     static func prepare(_ directory: URL) throws {
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
-                                               attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700])
         var metadata = stat()
         guard lstat(directory.path, &metadata) == 0,
-              metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFDIR), metadata.st_uid == getuid(),
-              metadata.st_mode & 0o777 == 0o700 else {
+            metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFDIR), metadata.st_uid == getuid(),
+            metadata.st_mode & 0o777 == 0o700
+        else {
             throw BrowserAccessError.message(String(localized: "Browser access requires a private state directory."))
         }
     }
@@ -20,8 +22,9 @@ nonisolated enum BrowserAccessStorage {
         defer { Darwin.close(descriptor) }
         var metadata = stat()
         guard fstat(descriptor, &metadata) == 0, metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG),
-              metadata.st_uid == getuid(), metadata.st_mode & 0o777 == 0o600,
-              metadata.st_nlink == 1, metadata.st_size >= 0, metadata.st_size <= limit else {
+            metadata.st_uid == getuid(), metadata.st_mode & 0o777 == 0o600,
+            metadata.st_nlink == 1, metadata.st_size >= 0, metadata.st_size <= limit
+        else {
             throw BrowserAccessError.message(String(localized: "Browser access state must be a private regular file."))
         }
         var data = Data(count: Int(metadata.st_size))
@@ -85,8 +88,11 @@ nonisolated final class BrowserAccessAuthorization {
         if let data = try BrowserAccessStorage.read(stateURL, limit: 64 * 1024) {
             let stored = try JSONDecoder().decode([BrowserAccessClient].self, from: data)
             guard stored.count <= BrowserAccessLimits.clients, Set(stored.map(\.id)).count == stored.count,
-                  stored.allSatisfy({ BrowserAccessSecret.isValid($0.tokenDigest) && $0.name.utf8.count <= 128
-                      && $0.origin.utf8.count <= 128 && $0.address.utf8.count <= 64 }) else {
+                stored.allSatisfy({
+                    BrowserAccessSecret.isValid($0.tokenDigest) && $0.name.utf8.count <= 128
+                        && $0.origin.utf8.count <= 128 && $0.address.utf8.count <= 64
+                })
+            else {
                 throw BrowserAccessError.message(String(localized: "Browser access authorization state is invalid."))
             }
             clients = stored.filter { $0.expiresAt > now() }
@@ -103,17 +109,20 @@ nonisolated final class BrowserAccessAuthorization {
     func begin(name: String, address: String, origin: String) throws -> (ticket: String, code: String) {
         expire()
         guard pairings.count < BrowserAccessLimits.pendingPairings,
-              clients.count < BrowserAccessLimits.clients, allowAttempt(address),
-              !name.isEmpty, name.utf8.count <= 128,
-              !name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
+            clients.count < BrowserAccessLimits.clients, allowAttempt(address),
+            !name.isEmpty, name.utf8.count <= 128,
+            !name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
+        else {
             throw BrowserAccessError.message(String(localized: "Pairing is unavailable. Try again later."))
         }
         let ticket = try BrowserAccessSecret.random()
         let digits = try BrowserAccessSecret.random().prefix(8).uppercased()
         let code = String(digits.prefix(4)) + "-" + String(digits.suffix(4))
-        pairings.append(BrowserAccessPairing(id: UUID(), name: name, address: address, origin: origin,
-            code: code, expiresAt: now().addingTimeInterval(BrowserAccessLimits.pairingSeconds),
-            ticketDigest: BrowserAccessSecret.digest(ticket)))
+        pairings.append(
+            BrowserAccessPairing(
+                id: UUID(), name: name, address: address, origin: origin,
+                code: code, expiresAt: now().addingTimeInterval(BrowserAccessLimits.pairingSeconds),
+                ticketDigest: BrowserAccessSecret.digest(ticket)))
         return (ticket, code)
     }
 
@@ -121,12 +130,15 @@ nonisolated final class BrowserAccessAuthorization {
         expire()
         guard let index = pairings.firstIndex(where: { $0.id == id && $0.state == .pending }) else { return }
         guard clients.count < BrowserAccessLimits.clients else {
-            throw BrowserAccessError.message(String(localized:
-                "The authorized client limit has been reached. Revoke a client before approving another."))
+            throw BrowserAccessError.message(
+                String(
+                    localized:
+                        "The authorized client limit has been reached. Revoke a client before approving another."))
         }
         let token = try BrowserAccessSecret.random()
         let pairing = pairings[index]
-        let client = BrowserAccessClient(id: UUID(), name: pairing.name, address: pairing.address,
+        let client = BrowserAccessClient(
+            id: UUID(), name: pairing.name, address: pairing.address,
             origin: pairing.origin, approvedAt: now(), expiresAt: now().addingTimeInterval(90 * 24 * 3600),
             tokenDigest: BrowserAccessSecret.digest(token))
         try persist(clients + [client])
@@ -146,9 +158,10 @@ nonisolated final class BrowserAccessAuthorization {
     func status(ticket: String, address: String, origin: String) -> (state: String, token: String?) {
         expire()
         guard BrowserAccessSecret.isValid(ticket),
-              let index = pairings.firstIndex(where: {
-                  $0.ticketDigest == BrowserAccessSecret.digest(ticket) && $0.address == address && $0.origin == origin
-              }) else { return ("expired", nil) }
+            let index = pairings.firstIndex(where: {
+                $0.ticketDigest == BrowserAccessSecret.digest(ticket) && $0.address == address && $0.origin == origin
+            })
+        else { return ("expired", nil) }
         switch pairings[index].state {
         case .pending: return ("pending", nil)
         case .denied: pairings.remove(at: index); return ("denied", nil)

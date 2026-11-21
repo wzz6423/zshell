@@ -56,37 +56,43 @@ private class MarkerView: UIView {
 
         // Start point and first curve
         path.move(to: CGPoint(x: 0, y: y(3)))
-        path.addCurve(to: CGPoint(x: 2.97836, y: y(0)),
-                      controlPoint1: CGPoint(x: 0, y: y(1.34315)),
-                      controlPoint2: CGPoint(x: 1.3215, y: y(0)))
+        path.addCurve(
+            to: CGPoint(x: 2.97836, y: y(0)),
+            controlPoint1: CGPoint(x: 0, y: y(1.34315)),
+            controlPoint2: CGPoint(x: 1.3215, y: y(0)))
 
         // Line through middle points to 66,0
         path.addLine(to: CGPoint(x: 66, y: y(0)))
 
         // Right side curves
-        path.addCurve(to: CGPoint(x: 73.5, y: y(3.5)),
-                      controlPoint1: CGPoint(x: 69, y: y(0)),
-                      controlPoint2: CGPoint(x: 70.8165, y: y(1.35322)))
+        path.addCurve(
+            to: CGPoint(x: 73.5, y: y(3.5)),
+            controlPoint1: CGPoint(x: 69, y: y(0)),
+            controlPoint2: CGPoint(x: 70.8165, y: y(1.35322)))
 
-        path.addCurve(to: CGPoint(x: 82.5, y: y(18.5)),
-                      controlPoint1: CGPoint(x: 76.1835, y: y(5.64678)),
-                      controlPoint2: CGPoint(x: 82.5, y: y(13.5)))
+        path.addCurve(
+            to: CGPoint(x: 82.5, y: y(18.5)),
+            controlPoint1: CGPoint(x: 76.1835, y: y(5.64678)),
+            controlPoint2: CGPoint(x: 82.5, y: y(13.5)))
 
-        path.addCurve(to: CGPoint(x: 73.5, y: y(34)),
-                      controlPoint1: CGPoint(x: 82.5, y: y(23.5)),
-                      controlPoint2: CGPoint(x: 75.5, y: y(32)))
+        path.addCurve(
+            to: CGPoint(x: 73.5, y: y(34)),
+            controlPoint1: CGPoint(x: 82.5, y: y(23.5)),
+            controlPoint2: CGPoint(x: 75.5, y: y(32)))
 
-        path.addCurve(to: CGPoint(x: 66, y: y(38)),
-                      controlPoint1: CGPoint(x: 71.5, y: y(36)),
-                      controlPoint2: CGPoint(x: 69, y: y(38)))
+        path.addCurve(
+            to: CGPoint(x: 66, y: y(38)),
+            controlPoint1: CGPoint(x: 71.5, y: y(36)),
+            controlPoint2: CGPoint(x: 69, y: y(38)))
 
         // Line back through middle points
         path.addLine(to: CGPoint(x: 2.97836, y: y(38)))
 
         // Final curve to close the path
-        path.addCurve(to: CGPoint(x: 0, y: y(35)),
-                      controlPoint1: CGPoint(x: 1.32151, y: y(38)),
-                      controlPoint2: CGPoint(x: 0, y: y(36.6569)))
+        path.addCurve(
+            to: CGPoint(x: 0, y: y(35)),
+            controlPoint1: CGPoint(x: 1.32151, y: y(38)),
+            controlPoint2: CGPoint(x: 0, y: y(36.6569)))
 
         path.addLine(to: CGPoint(x: 0, y: y(3)))
         path.close()

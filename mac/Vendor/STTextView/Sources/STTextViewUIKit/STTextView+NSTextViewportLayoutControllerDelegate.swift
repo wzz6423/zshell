@@ -35,10 +35,14 @@ extension STTextView: NSTextViewportLayoutControllerDelegate {
         lastUsedFragmentViews = Set(fragmentViewMap.objectEnumerator()?.allObjects as? [STTextLayoutFragmentView] ?? [])
     }
 
-    public func textViewportLayoutController(_ textViewportLayoutController: NSTextViewportLayoutController, configureRenderingSurfaceFor textLayoutFragment: NSTextLayoutFragment) {
+    public func textViewportLayoutController(
+        _ textViewportLayoutController: NSTextViewportLayoutController,
+        configureRenderingSurfaceFor textLayoutFragment: NSTextLayoutFragment
+    ) {
         var needsDisplay = false
         if let textLayoutFragment = textLayoutFragment as? STTextLayoutFragment,
-           textLayoutFragment.showsInvisibleCharacters != showsInvisibleCharacters {
+            textLayoutFragment.showsInvisibleCharacters != showsInvisibleCharacters
+        {
             textLayoutFragment.showsInvisibleCharacters = showsInvisibleCharacters
             needsDisplay = true
         }

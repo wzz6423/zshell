@@ -19,9 +19,10 @@ final class NewWorktreeSessionController: NSObject, NSComboBoxDelegate {
     private init(repository: SessionWorktreeService.Repository) {
         self.repository = repository
         super.init()
-        branchField.addItems(withObjectValues: repository.branches.filter { branch in
-            !repository.worktrees.contains(where: { $0.branch == branch })
-        })
+        branchField.addItems(
+            withObjectValues: repository.branches.filter { branch in
+                !repository.worktrees.contains(where: { $0.branch == branch })
+            })
         branchField.completes = true
         branchField.delegate = self
         branchField.setAccessibilityIdentifier("worktreeSessionBranch")
@@ -74,11 +75,13 @@ final class NewWorktreeSessionController: NSObject, NSComboBoxDelegate {
             controller.alert.window.initialFirstResponder = controller.branchField
             let response = await controller.alert.beginSheetModal(for: host)
             guard response == .alertFirstButtonReturn else { return }
-            let base: SessionWorktreeService.Base = controller.basePicker.indexOfSelectedItem == 1
+            let base: SessionWorktreeService.Base =
+                controller.basePicker.indexOfSelectedItem == 1
                 ? .currentHead : .repositoryDefault
-            _ = try await manager.newWorktreeSession(in: project, branch: controller.branchField.stringValue,
-                                                    directory: controller.directoryField.stringValue,
-                                                    sourceDirectory: source, base: base, expectedHead: repository.head)
+            _ = try await manager.newWorktreeSession(
+                in: project, branch: controller.branchField.stringValue,
+                directory: controller.directoryField.stringValue,
+                sourceDirectory: source, base: base, expectedHead: repository.head)
         } catch {
             await manager.showWorktreeError(error, in: host)
         }
@@ -97,7 +100,8 @@ final class NewWorktreeSessionController: NSObject, NSComboBoxDelegate {
         let selected = max(0, basePicker.indexOfSelectedItem)
         basePicker.removeAllItems()
         if let reference = repository.defaultReference {
-            basePicker.addItem(withTitle: String(localized: "Default Branch (\(reference.replacingOccurrences(of: "refs/heads/", with: "")))"))
+            basePicker.addItem(
+                withTitle: String(localized: "Default Branch (\(reference.replacingOccurrences(of: "refs/heads/", with: "")))"))
         } else {
             basePicker.addItem(withTitle: String(localized: "Default Branch Unavailable"))
             basePicker.item(at: 0)?.isEnabled = false
@@ -125,7 +129,8 @@ final class NewWorktreeSessionController: NSObject, NSComboBoxDelegate {
             directoryField.stringValue = SessionWorktreeService.defaultPath(repositoryRoot: repository.root, branch: branch)
         }
         basePicker.isEnabled = !repository.branches.contains(branch)
-        helpLabel.stringValue = basePicker.isEnabled
+        helpLabel.stringValue =
+            basePicker.isEnabled
             ? String(localized: "New branches start from the selected baseline. Choose a directory that does not exist yet.")
             : String(localized: "Existing branches keep their current commit. Choose a directory that does not exist yet.")
         alert.buttons[0].isEnabled = !branch.isEmpty
@@ -137,7 +142,8 @@ final class NewWorktreeSessionController: NSObject, NSComboBoxDelegate {
         panel.prompt = String(localized: "Choose")
         panel.canCreateDirectories = true
         let current = URL(fileURLWithPath: directoryField.stringValue, isDirectory: true)
-        panel.directoryURL = FileManager.default.fileExists(atPath: current.deletingLastPathComponent().path)
+        panel.directoryURL =
+            FileManager.default.fileExists(atPath: current.deletingLastPathComponent().path)
             ? current.deletingLastPathComponent() : URL(fileURLWithPath: repository.root).deletingLastPathComponent()
         panel.nameFieldStringValue = current.lastPathComponent
         panel.beginSheetModal(for: alert.window) { [weak self] response in

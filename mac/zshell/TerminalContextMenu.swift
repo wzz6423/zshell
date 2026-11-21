@@ -5,7 +5,8 @@ enum TerminalContextMenu {
     static func handleRightClick(
         for surface: any TerminalBackendSurface, event: NSEvent, linkTarget: TerminalLinkTarget?
     ) {
-        let forceMenu = event.type != .rightMouseDown
+        let forceMenu =
+            event.type != .rightMouseDown
             || !event.modifierFlags.intersection([.shift, .command, .control]).isEmpty
         let action: TerminalRightClickAction = forceMenu ? .contextMenu : AppSettings.shared.terminalRightClickAction
         switch action {
@@ -48,7 +49,8 @@ enum TerminalContextMenu {
         if let upload = surface.events?.terminalFileUploadMenuItem { menu.addItem(upload) }
         menu.addItem(TerminalOutputExportController.shared.menuItem(for: surface))
         if let event, let location = surface.commandLocation(for: event),
-           surface.commandRegion(at: location) != nil {
+            surface.commandRegion(at: location) != nil
+        {
             menu.addItem(.separator())
             TerminalCommandBlockMenuTarget(surface: surface, location: location).items().forEach(menu.addItem)
         }
@@ -124,14 +126,16 @@ private final class TerminalCommandBlockMenuTarget: NSObject, NSMenuItemValidati
 
     private func copy(_ part: TerminalCommandTextPart) {
         guard let surface, surface.commandRegion(at: location) != nil,
-              let text = surface.commandText(at: location, part: part), !text.isEmpty else { return }
+            let text = surface.commandText(at: location, part: part), !text.isEmpty
+        else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
     }
 
     @objc private func selectOutput(_ sender: NSMenuItem) {
         guard let surface, let region = surface.commandRegion(at: location),
-              region.outputStart < region.outputEnd else { return }
+            region.outputStart < region.outputEnd
+        else { return }
         surface.selectCommand(at: location)
     }
 
@@ -142,8 +146,9 @@ private final class TerminalCommandBlockMenuTarget: NSObject, NSMenuItemValidati
 
     private func insertionEntry() -> TerminalCommandHistoryEntry? {
         guard let surface, surface.commandRegion(at: location) != nil,
-              let session = surface.events as? TerminalSession, session.surface === surface,
-              let record = surface.commandRecords.first(where: { $0.outputLocation == location }) else { return nil }
+            let session = surface.events as? TerminalSession, session.surface === surface,
+            let record = surface.commandRecords.first(where: { $0.outputLocation == location })
+        else { return nil }
         return .init(record: record, terminalID: session.id)
     }
 }

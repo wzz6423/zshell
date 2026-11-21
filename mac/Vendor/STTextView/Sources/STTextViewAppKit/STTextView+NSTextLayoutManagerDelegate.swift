@@ -5,7 +5,9 @@ import AppKit
 
 extension STTextView: NSTextLayoutManagerDelegate {
 
-    public func textLayoutManager(_ textLayoutManager: NSTextLayoutManager, textLayoutFragmentFor location: NSTextLocation, in textElement: NSTextElement) -> NSTextLayoutFragment {
+    public func textLayoutManager(
+        _ textLayoutManager: NSTextLayoutManager, textLayoutFragmentFor location: NSTextLocation, in textElement: NSTextElement
+    ) -> NSTextLayoutFragment {
         STTextLayoutFragment(
             textElement: textElement,
             range: textElement.elementRange,

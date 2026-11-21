@@ -292,7 +292,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .curl, .wget, .rclone, .posting, .poppler, .wireshark, .mysql:
             .networkAndData
         case .cmake, .gnuMake, .ninja, .gcc, .go, .rust, .nodeJS, .deno, .python, .ruby,
-             .openJDK17, .maven, .groovy, .cocoaPods, .pyenv, .pipx, .uv, .pnpm, .tectonic, .packer, .ytt:
+            .openJDK17, .maven, .groovy, .cocoaPods, .pyenv, .pipx, .uv, .pnpm, .tectonic, .packer, .ytt:
             .developmentToolchain
         case .ytDLP, .libreOffice, .keka:
             .utility

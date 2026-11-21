@@ -23,11 +23,15 @@ enum QuickTerminalPaddingColorTests {
         let backend = CommandLine.arguments[1]
         let fixture = CommandLine.arguments[2]
         let directory = URL(fileURLWithPath: CommandLine.arguments[3], isDirectory: true)
-        guard ["/tmp/zshell-padding-probe-", "/private/tmp/zshell-padding-probe-"]
-            .contains(where: FileManager.default.homeDirectoryForCurrentUser.path.hasPrefix) else {
+        guard
+            ["/tmp/zshell-padding-probe-", "/private/tmp/zshell-padding-probe-"]
+                .contains(where: FileManager.default.homeDirectoryForCurrentUser.path.hasPrefix)
+        else {
             throw NSError(domain: "Disposable HOME is required", code: 1)
         }
-        let evidence = CommandLine.arguments[4].isEmpty ? nil
+        let evidence =
+            CommandLine.arguments[4].isEmpty
+            ? nil
             : URL(fileURLWithPath: CommandLine.arguments[4], isDirectory: true)
         if let evidence { try FileManager.default.createDirectory(at: evidence, withIntermediateDirectories: true) }
         let settings = AppSettings.shared
@@ -60,12 +64,14 @@ enum QuickTerminalPaddingColorTests {
         }
         func state(_ session: TerminalSession) -> [String: Any]? {
             guard let pid = session.shellPid,
-                  let data = try? Data(contentsOf: directory.appendingPathComponent("\(pid)/frame.json")) else { return nil }
+                let data = try? Data(contentsOf: directory.appendingPathComponent("\(pid)/frame.json"))
+            else { return nil }
             return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         }
         func settled(_ session: TerminalSession) -> Bool {
             guard let state = state(session), let generation = state["generation"] as? Int,
-                  let grid = session.surface.readVisibleSnapshot() else { return false }
+                let grid = session.surface.readVisibleSnapshot()
+            else { return false }
             return session.title == "PADDING_READY_\(generation)"
                 && grid.columns == state["columns"] as? Int && grid.rows.count == state["rows"] as? Int
         }
@@ -81,9 +87,10 @@ enum QuickTerminalPaddingColorTests {
         }
         func pin(_ window: NSWindow) throws {
             guard let content = window.contentView,
-                  let button = descendants(content).compactMap({ $0 as? NSButton }).first(where: {
-                      $0.action.map(NSStringFromSelector) == "pinPressed"
-                  }) else { throw NSError(domain: "Native pin control missing", code: 1) }
+                let button = descendants(content).compactMap({ $0 as? NSButton }).first(where: {
+                    $0.action.map(NSStringFromSelector) == "pinPressed"
+                })
+            else { throw NSError(domain: "Native pin control missing", code: 1) }
             if button.toolTip == "Pin quick terminal" { button.performClick(nil) }
             try check(button.toolTip == "Unpin quick terminal", "\(backend) native Quick Terminal pin control applies")
             window.delegate?.windowDidResignKey?(Notification(name: NSWindow.didResignKeyNotification, object: window))
@@ -122,14 +129,17 @@ enum QuickTerminalPaddingColorTests {
                     let view = session.surface
                     guard let grid = view.readVisibleSnapshot() else { throw NSError(domain: "Quick grid missing", code: 1) }
                     let image = try pixels(view)
-                    try check(ObjectIdentifier(view) == identities[index] && state(session)?["pid"] as? Int == pids[index],
-                              "\(backend) \(stage) \(policy.rawValue) pane \(index) keeps its surface and PTY")
+                    try check(
+                        ObjectIdentifier(view) == identities[index] && state(session)?["pid"] as? Int == pids[index],
+                        "\(backend) \(stage) \(policy.rawValue) pane \(index) keeps its surface and PTY")
                     try check(grid == grids[index], "\(backend) \(stage) \(policy.rawValue) pane \(index) keeps its grid")
                     let plain = CGPoint(x: grid.origin.x + 4.5 * grid.cellSize.width, y: grid.origin.y + 1.5 * grid.cellSize.height)
-                    try check(abs(Int(image.at(plain, in: view.bounds.size)[3]) - 128) <= 2,
-                              "\(backend) \(stage) \(policy.rawValue) pane \(index) keeps Quick Terminal opacity")
-                    try check((view.layer?.sublayers?.count ?? 0) <= 4,
-                              "\(backend) \(stage) \(policy.rawValue) pane \(index) keeps compositor layers bounded")
+                    try check(
+                        abs(Int(image.at(plain, in: view.bounds.size)[3]) - 128) <= 2,
+                        "\(backend) \(stage) \(policy.rawValue) pane \(index) keeps Quick Terminal opacity")
+                    try check(
+                        (view.layer?.sublayers?.count ?? 0) <= 4,
+                        "\(backend) \(stage) \(policy.rawValue) pane \(index) keeps compositor layers bounded")
                     if let evidence {
                         try image.png(to: evidence.appendingPathComponent("\(backend)-quick-\(stage)-\(index)-\(policy.rawValue).png"))
                     }
@@ -148,12 +158,17 @@ enum QuickTerminalPaddingColorTests {
                 lifetime.view = window.contentView.flatMap { descendants($0).compactMap { $0 as? QuickTerminalWorkspaceView }.first }
                 try draw("m", in: tab.sessions)
                 try verifyPolicies(tab, stage: mode.rawValue, automaticVertical: false)
-                if mode == .fresh, let duration = ProcessInfo.processInfo.environment["ZSHELL_PADDING_TEST_HOLD_SECONDS"].flatMap(Double.init), duration > 0 {
+                if mode == .fresh,
+                    let duration = ProcessInfo.processInfo.environment["ZSHELL_PADDING_TEST_HOLD_SECONDS"].flatMap(Double.init),
+                    duration > 0
+                {
                     if ProcessInfo.processInfo.environment["ZSHELL_PADDING_TEST_SHOW_SETTINGS"] == "1" {
                         SettingsWindowController.shared.show(category: .appearance)
                         if let preferences = SettingsWindowController.shared.window, let screen = NSScreen.main {
-                            preferences.setFrameOrigin(NSPoint(x: screen.visibleFrame.maxX - preferences.frame.width,
-                                                               y: screen.visibleFrame.maxY - preferences.frame.height))
+                            preferences.setFrameOrigin(
+                                NSPoint(
+                                    x: screen.visibleFrame.maxX - preferences.frame.width,
+                                    y: screen.visibleFrame.maxY - preferences.frame.height))
                         }
                     }
                     print("PADDING_QUICK_READY backend=\(backend) pid=\(getpid()) home=\(directory.path)")
@@ -177,17 +192,19 @@ enum QuickTerminalPaddingColorTests {
                 try wait("\(backend) \(mode.rawValue) Quick Terminal reopens") { quickWindow() != nil }
                 if mode == .fresh {
                     (window, tab) = try splitWorkspace()
-                    try check(tab !== oldTab && tab.sessions.map { ObjectIdentifier($0.surface) } != oldSurfaces,
-                              "\(backend) fresh reopening creates new split surfaces")
+                    try check(
+                        tab !== oldTab && tab.sessions.map { ObjectIdentifier($0.surface) } != oldSurfaces,
+                        "\(backend) fresh reopening creates new split surfaces")
                     lifetime.view = window.contentView.flatMap { descendants($0).compactMap { $0 as? QuickTerminalWorkspaceView }.first }
                 } else {
                     guard let reopened = quickWindow() else { throw NSError(domain: "Reusable window missing", code: 1) }
                     window = reopened
                     try pin(window)
                     try wait("\(backend) reusable grids settle after reopening") { tab.sessions.allSatisfy(settled) }
-                    try check(overlay.workspace === tab && tab.sessions.compactMap(\.shellPid) == oldPIDs
-                              && tab.sessions.map { ObjectIdentifier($0.surface) } == oldSurfaces,
-                              "\(backend) reusable reopening keeps every split and PTY")
+                    try check(
+                        overlay.workspace === tab && tab.sessions.compactMap(\.shellPid) == oldPIDs
+                            && tab.sessions.map { ObjectIdentifier($0.surface) } == oldSurfaces,
+                        "\(backend) reusable reopening keeps every split and PTY")
                 }
                 try draw("q", in: tab.sessions)
                 try verifyPolicies(tab, stage: "\(mode.rawValue)-reopened", automaticVertical: true)
@@ -199,32 +216,40 @@ enum QuickTerminalPaddingColorTests {
                         let view = session.surface
                         let image = try pixels(view)
                         let grid = view.readVisibleSnapshot()!
-                        let selected = CGPoint(x: grid.origin.x + grid.cellSize.width * 0.1,
-                                               y: grid.origin.y + grid.cellSize.height * 0.1)
-                        try check(view.hasSelection && image.at(selected, in: view.bounds.size)[3] == 255,
-                                  "\(backend) \(mode.rawValue) \(policy.rawValue) preserves opaque mouse selection")
+                        let selected = CGPoint(
+                            x: grid.origin.x + grid.cellSize.width * 0.1,
+                            y: grid.origin.y + grid.cellSize.height * 0.1)
+                        try check(
+                            view.hasSelection && image.at(selected, in: view.bounds.size)[3] == 255,
+                            "\(backend) \(mode.rawValue) \(policy.rawValue) preserves opaque mouse selection")
                         let alpha = image.at(CGPoint(x: 2, y: 2), in: view.bounds.size)[3]
-                        try check(policy == .background ? abs(Int(alpha) - 128) <= 2 : alpha == 255,
-                                  "\(backend) \(mode.rawValue) \(policy.rawValue) selection padding follows policy")
+                        try check(
+                            policy == .background ? abs(Int(alpha) - 128) <= 2 : alpha == 255,
+                            "\(backend) \(mode.rawValue) \(policy.rawValue) selection padding follows policy")
                     }
                 }
                 let inputs = tab.sessions.map { $0.surface as! any NSTextInputClient }
                 for input in inputs {
-                    input.setMarkedText("中文", selectedRange: NSRange(location: 2, length: 0),
-                                        replacementRange: NSRange(location: NSNotFound, length: 0))
+                    input.setMarkedText(
+                        "中文", selectedRange: NSRange(location: 2, length: 0),
+                        replacementRange: NSRange(location: NSNotFound, length: 0))
                 }
                 let carets = inputs.map { $0.firstRect(forCharacterRange: NSRange(location: 0, length: 0), actualRange: nil) }
                 for policy in TerminalPaddingColor.allCases {
                     settings.terminalPaddingColor = policy
                     pump(0.12)
                     for (index, input) in inputs.enumerated() {
-                        try check(input.hasMarkedText() && input.firstRect(forCharacterRange: NSRange(location: 0, length: 0), actualRange: nil) == carets[index],
-                                  "\(backend) \(mode.rawValue) \(policy.rawValue) preserves Chinese IME and candidate anchor")
+                        try check(
+                            input.hasMarkedText()
+                                && input.firstRect(forCharacterRange: NSRange(location: 0, length: 0), actualRange: nil) == carets[index],
+                            "\(backend) \(mode.rawValue) \(policy.rawValue) preserves Chinese IME and candidate anchor")
                     }
                 }
                 for input in inputs { input.unmarkText() }
                 if !visible {
-                    try check(QuickTerminalOffscreen.isSafe(), "\(backend) \(mode.rawValue) pinned integration stays offscreen without input capture")
+                    try check(
+                        QuickTerminalOffscreen.isSafe(),
+                        "\(backend) \(mode.rawValue) pinned integration stays offscreen without input capture")
                 }
                 while overlay.workspace != nil { overlay.closeFocusedPane(); pump(0.05) }
                 try check(overlay.allSessions.isEmpty, "\(backend) closing every Quick Terminal pane removes its sessions")
@@ -232,20 +257,25 @@ enum QuickTerminalPaddingColorTests {
             try wait("\(backend) \(mode.rawValue) closing releases the settings observer owner") { lifetime.view == nil }
             settings.terminalPaddingColor = .background
             pump(0.08)
-            try check(lifetime.view == nil && overlay.allSessions.isEmpty,
-                      "\(backend) closed workspace cannot be retained by later settings changes")
+            try check(
+                lifetime.view == nil && overlay.allSessions.isEmpty,
+                "\(backend) closed workspace cannot be retained by later settings changes")
         }
-        print("Quick Terminal padding color tests passed: \(backend), \(checks) checks (production pinned fresh/reuse splits, PTYs, pixels, settings)")
+        print(
+            "Quick Terminal padding color tests passed: \(backend), \(checks) checks (production pinned fresh/reuse splits, PTYs, pixels, settings)"
+        )
     }
 
     private static func pixels(_ view: any TerminalBackendSurface) throws -> PaddingPixels {
         guard let layer = view.layer, let contents = layer.contents,
-              CFGetTypeID(contents as CFTypeRef) == IOSurfaceGetTypeID() else {
+            CFGetTypeID(contents as CFTypeRef) == IOSurfaceGetTypeID()
+        else {
             throw NSError(domain: "Quick Terminal has no retained IOSurface", code: 1)
         }
-        return try PaddingPixels(compositing: layer, size: view.bounds.size,
-                                 scale: view.window?.backingScaleFactor ?? 2,
-                                 colorSpace: CGColorSpace(name: view is ZshellTerminalView ? CGColorSpace.displayP3 : CGColorSpace.sRGB)!)
+        return try PaddingPixels(
+            compositing: layer, size: view.bounds.size,
+            scale: view.window?.backingScaleFactor ?? 2,
+            colorSpace: CGColorSpace(name: view is ZshellTerminalView ? CGColorSpace.displayP3 : CGColorSpace.sRGB)!)
     }
 
     private static func matches(_ view: any TerminalBackendSurface, policy: TerminalPaddingColor, automaticVertical: Bool) -> Bool {
@@ -278,9 +308,10 @@ enum QuickTerminalPaddingColorTests {
         }
         func mouse(_ type: NSEvent.EventType, at point: CGPoint) -> NSEvent {
             let local = CGPoint(x: point.x, y: view.isFlipped ? point.y : view.bounds.height - point.y)
-            return NSEvent.mouseEvent(with: type, location: view.convert(local, to: nil), modifierFlags: [.shift],
-                                     timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
-                                     context: nil, eventNumber: 1, clickCount: 1, pressure: 1)!
+            return NSEvent.mouseEvent(
+                with: type, location: view.convert(local, to: nil), modifierFlags: [.shift],
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                context: nil, eventNumber: 1, clickCount: 1, pressure: 1)!
         }
         let end = CGPoint(x: grid.origin.x + grid.cellSize.width * 4.9, y: grid.origin.y + grid.cellSize.height * 0.5)
         let down = mouse(.leftMouseDown, at: CGPoint(x: grid.origin.x + 0.1, y: grid.origin.y + 0.1))
@@ -298,7 +329,9 @@ enum QuickTerminalPaddingColorTests {
     private static func send(_ text: String, to view: any TerminalBackendSurface) {
         if let ghostty = view as? ZshellTerminalView {
             ghostty.performBindingAction("text:" + text.utf8.map { String(format: "\\x%02x", $0) }.joined())
-        } else { view.sendText(text) }
+        } else {
+            view.sendText(text)
+        }
     }
 
     private static func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }

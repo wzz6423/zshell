@@ -22,21 +22,26 @@ nonisolated enum RemoteServerInstaller {
 
     static var bundledExecutable: URL? {
         guard let url = Bundle.main.url(forResource: "zshell-server", withExtension: nil),
-              FileManager.default.isExecutableFile(atPath: url.path) else { return nil }
+            FileManager.default.isExecutableFile(atPath: url.path)
+        else { return nil }
         return url
     }
 
     static func inspect(host: RemoteHost) throws -> RemoteServerTarget {
-        let output = try run(host: host, script: """
-            printf 'ZSHELL_TARGET:%s\\n' "$(uname -s)"
-            printf 'ZSHELL_ARCH:%s\\n' "$(uname -m)"
-            if [ -x \(SSHEndpoint.shellWord(host.serverPath)) ]; then \(SSHEndpoint.shellWord(host.serverPath)) --version --json; fi
-            exit 0
-            """).stdout
+        let output = try run(
+            host: host,
+            script: """
+                printf 'ZSHELL_TARGET:%s\\n' "$(uname -s)"
+                printf 'ZSHELL_ARCH:%s\\n' "$(uname -m)"
+                if [ -x \(SSHEndpoint.shellWord(host.serverPath)) ]; then \(SSHEndpoint.shellWord(host.serverPath)) --version --json; fi
+                exit 0
+                """
+        ).stdout
         let lines = output.split(whereSeparator: \.isNewline).map(String.init)
         guard let rawPlatform = lines.first(where: { $0.hasPrefix("ZSHELL_TARGET:") })?.dropFirst(14),
-              let rawArchitecture = lines.first(where: { $0.hasPrefix("ZSHELL_ARCH:") })?.dropFirst(12),
-              let platform = normalizePlatform(String(rawPlatform)), let architecture = normalizeArchitecture(String(rawArchitecture)) else {
+            let rawArchitecture = lines.first(where: { $0.hasPrefix("ZSHELL_ARCH:") })?.dropFirst(12),
+            let platform = normalizePlatform(String(rawPlatform)), let architecture = normalizeArchitecture(String(rawArchitecture))
+        else {
             throw RemoteHostError.message(String(localized: "The host returned an unsupported server platform."))
         }
         let installed = lines.compactMap { try? JSONDecoder().decode(RemoteServerVersion.self, from: Data($0.utf8)) }.last
@@ -45,17 +50,21 @@ nonisolated enum RemoteServerInstaller {
 
     static func bundledExecutable(for target: RemoteServerTarget) -> URL? {
         guard target.platform == "macos", let url = bundledExecutable else { return nil }
-        guard let result = try? BoundedProcessRunner.run(executableURL: url, arguments: ["--version", "--json"],
-            timeout: 5, outputLimit: 4096), result.terminationStatus == 0, !result.timedOut,
-              let version = try? JSONDecoder().decode(RemoteServerVersion.self, from: Data(result.output.stdout.utf8)),
-              version.architecture == target.architecture else { return nil }
+        guard
+            let result = try? BoundedProcessRunner.run(
+                executableURL: url, arguments: ["--version", "--json"],
+                timeout: 5, outputLimit: 4096), result.terminationStatus == 0, !result.timedOut,
+            let version = try? JSONDecoder().decode(RemoteServerVersion.self, from: Data(result.output.stdout.utf8)),
+            version.architecture == target.architecture
+        else { return nil }
         return url
     }
 
     static func install(host: RemoteHost, target: RemoteServerTarget, executable: URL) throws -> RemoteServerVersion {
         let metadata = try executable.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey, .isSymbolicLinkKey])
         guard metadata.isRegularFile == true, metadata.isSymbolicLink != true,
-              let size = metadata.fileSize, (1...maximumBinaryBytes).contains(size) else {
+            let size = metadata.fileSize, (1 ... maximumBinaryBytes).contains(size)
+        else {
             throw RemoteHostError.message(String(localized: "Choose a regular server executable smaller than 128 MiB."))
         }
         let bytes = try Data(contentsOf: executable, options: .mappedIfSafe)
@@ -66,16 +75,19 @@ nonisolated enum RemoteServerInstaller {
         let temporaryPath = host.serverPath + ".upload-" + UUID().uuidString.lowercased()
         var encoded = Data()
         for offset in stride(from: 0, to: bytes.count, by: 48 * 1024) {
-            encoded.append(bytes.subdata(in: offset..<min(bytes.count, offset + 48 * 1024)).base64EncodedData())
+            encoded.append(bytes.subdata(in: offset ..< min(bytes.count, offset + 48 * 1024)).base64EncodedData())
             encoded.append(10)
         }
         defer { _ = try? run(host: host, script: cleanup(host: host, path: temporaryPath)) }
         let uploaded = try run(host: host, script: upload(host: host, temporaryPath: temporaryPath, digest: digest), input: encoded)
-        guard let version = uploaded.stdout.split(whereSeparator: \.isNewline).compactMap({
-            try? JSONDecoder().decode(RemoteServerVersion.self, from: Data($0.utf8))
-        }).last, version.platform == target.platform, version.architecture == target.architecture,
-              version.protocolVersion == 1, version.version == RemoteServerVersion.supportedVersion else {
-            throw RemoteHostError.message(String(localized: "The server executable has an incompatible platform, architecture, version, or protocol."))
+        guard
+            let version = uploaded.stdout.split(whereSeparator: \.isNewline).compactMap({
+                try? JSONDecoder().decode(RemoteServerVersion.self, from: Data($0.utf8))
+            }).last, version.platform == target.platform, version.architecture == target.architecture,
+            version.protocolVersion == 1, version.version == RemoteServerVersion.supportedVersion
+        else {
+            throw RemoteHostError.message(
+                String(localized: "The server executable has an incompatible platform, architecture, version, or protocol."))
         }
         _ = try run(host: host, script: replace(host: host, temporaryPath: temporaryPath, digest: digest))
         return version
@@ -86,7 +98,8 @@ nonisolated enum RemoteServerInstaller {
             throw RemoteHostError.message(String(localized: "Use SSH to install remote agent integrations."))
         }
         do {
-            _ = try OpenSSHTransport(timeout: 30, outputLimit: 64 * 1024).run(endpoint: endpoint,
+            _ = try OpenSSHTransport(timeout: 30, outputLimit: 64 * 1024).run(
+                endpoint: endpoint,
                 command: host.serverCommand(["agent-hooks", "install"]))
         } catch OpenSSHTransport.TransportError.failed(_, let output) {
             let text = output.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -150,10 +163,18 @@ nonisolated enum RemoteServerInstaller {
     }
 
     static func normalizePlatform(_ value: String) -> String? {
-        switch value.lowercased() { case "darwin", "macos": "macos"; case "linux": "linux"; default: nil }
+        switch value.lowercased() {
+        case "darwin", "macos": "macos";
+        case "linux": "linux";
+        default: nil
+        }
     }
 
     static func normalizeArchitecture(_ value: String) -> String? {
-        switch value.lowercased() { case "x86_64", "amd64": "x86_64"; case "arm64", "aarch64": "aarch64"; default: nil }
+        switch value.lowercased() {
+        case "x86_64", "amd64": "x86_64";
+        case "arm64", "aarch64": "aarch64";
+        default: nil
+        }
     }
 }

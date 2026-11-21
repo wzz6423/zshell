@@ -36,6 +36,8 @@ the original feature bullet instead of adding separate entries for them.
   commands that scroll through terminal history.
 - Keep action icons centered in the file tree, Git panel, workspace controls,
   search panel, session information, and Quick Terminal at every interface scale.
+- Align settings row icons with the top of their titles, including rows with
+  multiline descriptions.
 
 ## [0.1.17]
 

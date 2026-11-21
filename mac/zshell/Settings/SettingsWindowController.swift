@@ -258,7 +258,7 @@ final class SettingsWindowController: NSWindowController, NSToolbarDelegate {
     private var restoredCategory: SettingsCategory {
         content.category
             ?? UserDefaults.standard.string(forKey: Self.categoryDefaultsKey)
-                .flatMap(SettingsCategory.init(rawValue:))
+            .flatMap(SettingsCategory.init(rawValue:))
             ?? .general
     }
 
@@ -273,7 +273,7 @@ final class SettingsWindowController: NSWindowController, NSToolbarDelegate {
             content.reveal(SettingsSearchResult(category: .browser, title: section, section: section, searchText: ""))
         }
         if recordHistory, historyIndex < 0 || history[historyIndex] != category {
-            history.removeSubrange((historyIndex + 1)..<history.count)
+            history.removeSubrange((historyIndex + 1) ..< history.count)
             history.append(category)
             historyIndex = history.count - 1
         }
@@ -413,12 +413,14 @@ private final class SettingsContentViewController: NSViewController {
     }
 
     func show(_ category: SettingsCategory) {
-        let pane = panes[category] ?? {
-            let pane = category.makePane()
-            pane.setCategory(category)
-            panes[category] = pane
-            return pane
-        }()
+        let pane =
+            panes[category]
+            ?? {
+                let pane = category.makePane()
+                pane.setCategory(category)
+                panes[category] = pane
+                return pane
+            }()
         guard self.category != category || children.first !== pane else { return }
 
         let paneView = pane.view
@@ -460,7 +462,8 @@ private final class SettingsContentViewController: NSViewController {
 
     private func updateSearchPrompt(hasResults: Bool) {
         promptTitle.stringValue = hasResults ? String(localized: "Select a Setting") : String(localized: "No Settings Found")
-        promptDescription.stringValue = hasResults
+        promptDescription.stringValue =
+            hasResults
             ? String(localized: "Choose a search result to view its settings.")
             : String(localized: "Try a different search.")
         clearSearchButton.title = String(localized: "Clear Search")

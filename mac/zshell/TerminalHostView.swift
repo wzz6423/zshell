@@ -33,7 +33,9 @@ struct TerminalHostView: NSViewRepresentable {
         let didFocus = onFocused
         container.terminal = terminal
         container.focusOnAppear = isFocused
-        terminal.onBecomeFirstResponder = { [weak session] in session?.terminalDidBecomeFocused(); didFocus() }
+        terminal.onBecomeFirstResponder = { [weak session] in
+            session?.terminalDidBecomeFocused(); didFocus()
+        }
         terminal.splitTarget.onSplit = onSplit
         terminal.splitTarget.onNewBrowserTab = onNewBrowserTab
         terminal.splitTarget.onNewBrowserPane = onNewBrowserPane
@@ -57,9 +59,11 @@ struct TerminalHostView: NSViewRepresentable {
         // check also self-heals transfers: a surface arriving from another
         // window, a split reparent, or the parking host always remounts.
         if let container = view as? TerminalContainerView,
-           session.surface.superview !== container {
-            container.mount(session.surface, scrollbar: session.overlayScrollbar,
-                            queueBar: session.promptQueueBar)
+            session.surface.superview !== container
+        {
+            container.mount(
+                session.surface, scrollbar: session.overlayScrollbar,
+                queueBar: session.promptQueueBar)
             // Height changes come from the bar's own model subscriptions; route
             // them into an immediate pane re-layout instead of waiting a frame.
             session.promptQueueBar.onLayoutChange = { [weak container] in
@@ -67,7 +71,9 @@ struct TerminalHostView: NSViewRepresentable {
             }
         }
         let didFocus = onFocused
-        session.surface.onBecomeFirstResponder = { [weak session] in session?.terminalDidBecomeFocused(); didFocus() }
+        session.surface.onBecomeFirstResponder = { [weak session] in
+            session?.terminalDidBecomeFocused(); didFocus()
+        }
         session.surface.splitTarget.onSplit = onSplit
         session.surface.splitTarget.onNewBrowserTab = onNewBrowserTab
         session.surface.splitTarget.onNewBrowserPane = onNewBrowserPane
@@ -88,7 +94,7 @@ struct TerminalHostView: NSViewRepresentable {
 
     static func dismantleNSView(_ view: NSView, coordinator: Coordinator) {
         guard let container = view as? TerminalContainerView,
-              let terminal = container.terminal as? any TerminalBackendSurface
+            let terminal = container.terminal as? any TerminalBackendSurface
         else { return }
         // The closures below originate on PaneView and therefore capture its
         // PaneContent, including the same TerminalSession that owns `terminal`.
@@ -380,11 +386,11 @@ final class TerminalContainerView: NSView {
             synchronizePointerPresence()
         }
         guard needsSurfaceActivation,
-              window != nil,
-              bounds.width > 0, bounds.height > 0,
-              let terminal = terminal as? any TerminalBackendSurface,
-              terminal.window != nil,
-              terminal.bounds.width > 0, terminal.bounds.height > 0
+            window != nil,
+            bounds.width > 0, bounds.height > 0,
+            let terminal = terminal as? any TerminalBackendSurface,
+            terminal.window != nil,
+            terminal.bounds.width > 0, terminal.bounds.height > 0
         else { return }
         needsSurfaceActivation = false
         terminal.setSurfaceVisible(true)
@@ -453,19 +459,19 @@ final class TerminalContainerView: NSView {
         pointerWasInside = inside
         lastPointerLocation = location
         guard entered,
-              AppSettings.shared.focusFollowsMouse,
-              window.isKeyWindow, window.isVisible, !window.isMiniaturized,
-              NSApp.isActive || window.styleMask.contains(.nonactivatingPanel),
-              window.attachedSheet == nil, window.sheetParent == nil, NSApp.modalWindow == nil,
-              activeMenus.isEmpty, activePopovers.isEmpty,
-              RunLoop.current.currentMode != .eventTracking,
-              NSEvent.pressedMouseButtons == 0,
-              event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty,
-              !TerminalCommandRouting.isBlockingCommands(in: window),
-              let terminal, terminal.superview === self, terminal.window === window,
-              window.firstResponder !== terminal,
-              (window.firstResponder as? NSTextView)?.isEditable != true,
-              let root = window.contentView?.superview
+            AppSettings.shared.focusFollowsMouse,
+            window.isKeyWindow, window.isVisible, !window.isMiniaturized,
+            NSApp.isActive || window.styleMask.contains(.nonactivatingPanel),
+            window.attachedSheet == nil, window.sheetParent == nil, NSApp.modalWindow == nil,
+            activeMenus.isEmpty, activePopovers.isEmpty,
+            RunLoop.current.currentMode != .eventTracking,
+            NSEvent.pressedMouseButtons == 0,
+            event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty,
+            !TerminalCommandRouting.isBlockingCommands(in: window),
+            let terminal, terminal.superview === self, terminal.window === window,
+            window.firstResponder !== terminal,
+            (window.firstResponder as? NSTextView)?.isEditable != true,
+            let root = window.contentView?.superview
         else { return }
         let point = root.superview?.convert(location, from: nil) ?? location
         guard let hit = root.hitTest(point), hit === terminal || hit.isDescendant(of: terminal) else { return }
@@ -474,8 +480,8 @@ final class TerminalContainerView: NSView {
 
     private func isPointerInsideTerminal(at location: NSPoint) -> Bool {
         guard !isHiddenOrHasHiddenAncestor, alphaValue > 0.01,
-              let terminal, terminal.superview === self,
-              !terminal.isHiddenOrHasHiddenAncestor, terminal.alphaValue > 0.01
+            let terminal, terminal.superview === self,
+            !terminal.isHiddenOrHasHiddenAncestor, terminal.alphaValue > 0.01
         else { return false }
         let point = convert(location, from: nil)
         return NSIntersectionRect(bounds, visibleRect).contains(point) && terminal.frame.contains(point)

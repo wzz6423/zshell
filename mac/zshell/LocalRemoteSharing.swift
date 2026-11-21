@@ -19,12 +19,13 @@ final class LocalRemoteSharing: ObservableObject {
     var isRunning: Bool { process != nil || generation != nil }
 
     init(stateURL: URL? = nil) {
-        self.stateURL = stateURL ?? AppSettings.configURL.deletingLastPathComponent().appendingPathComponent("shared-host", isDirectory: true)
+        self.stateURL =
+            stateURL ?? AppSettings.configURL.deletingLastPathComponent().appendingPathComponent("shared-host", isDirectory: true)
     }
 
     func start(port: Int, allowedUsers: [String], executable: URL? = RemoteServerInstaller.bundledExecutable) async throws {
         guard process == nil, generation == nil else { return }
-        guard (1...65_535).contains(port), let executable else {
+        guard (1 ... 65_535).contains(port), let executable else {
             throw RemoteHostError.message(String(localized: "The bundled remote server is unavailable."))
         }
         guard allowedUsers.allSatisfy({ !$0.isEmpty && $0 != "*" && !$0.contains(where: \.isWhitespace) }) else {
@@ -47,12 +48,14 @@ final class LocalRemoteSharing: ObservableObject {
             let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
             var metadata = stat()
             guard fstat(descriptor, &metadata) == 0, metadata.st_uid == getuid(),
-                  metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), metadata.st_mode & 0o777 == 0o600 else {
+                metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), metadata.st_mode & 0o777 == 0o600
+            else {
                 throw RemoteHostError.message(String(localized: "The sharing log must be a private regular file."))
             }
             let process = Process()
             process.executableURL = executable
-            process.arguments = ["serve", "--state", stateURL.path, "--listen", "tailscale://:\(port)"]
+            process.arguments =
+                ["serve", "--state", stateURL.path, "--listen", "tailscale://:\(port)"]
                 + allowedUsers.flatMap { ["--allow-user", $0] }
             process.environment = environment
             process.standardInput = FileHandle.nullDevice
@@ -76,11 +79,15 @@ final class LocalRemoteSharing: ObservableObject {
             let result = try await Task.detached(priority: .utility) {
                 let deadline = Date().addingTimeInterval(8)
                 while Date() < deadline {
-                    let result = try BoundedProcessRunner.run(executableURL: executable,
+                    let result = try BoundedProcessRunner.run(
+                        executableURL: executable,
                         arguments: ["status", "--state", state.path], timeout: 1, outputLimit: 4096)
                     if result.terminationStatus == 0, !result.timedOut,
-                       let status = try? JSONSerialization.jsonObject(with: Data(result.output.stdout.utf8)) as? [String: Any],
-                       (status["daemonPID"] as? NSNumber)?.int32Value == processID { return true }
+                        let status = try? JSONSerialization.jsonObject(with: Data(result.output.stdout.utf8)) as? [String: Any],
+                        (status["daemonPID"] as? NSNumber)?.int32Value == processID
+                    {
+                        return true
+                    }
                     try await Task.sleep(for: .milliseconds(50))
                 }
                 return false
@@ -107,11 +114,14 @@ final class LocalRemoteSharing: ObservableObject {
         let processID = process.processIdentifier
         return Task.detached(priority: .utility) {
             if let executable {
-                let status = try? BoundedProcessRunner.run(executableURL: executable, arguments: ["status", "--state", state.path], timeout: 1, outputLimit: 4096)
+                let status = try? BoundedProcessRunner.run(
+                    executableURL: executable, arguments: ["status", "--state", state.path], timeout: 1, outputLimit: 4096)
                 if let status, status.terminationStatus == 0,
-                   let value = try? JSONSerialization.jsonObject(with: Data(status.output.stdout.utf8)) as? [String: Any],
-                   (value["daemonPID"] as? NSNumber)?.int32Value == processID {
-                    _ = try? BoundedProcessRunner.run(executableURL: executable, arguments: ["stop", "--state", state.path], timeout: 2, outputLimit: 4096)
+                    let value = try? JSONSerialization.jsonObject(with: Data(status.output.stdout.utf8)) as? [String: Any],
+                    (value["daemonPID"] as? NSNumber)?.int32Value == processID
+                {
+                    _ = try? BoundedProcessRunner.run(
+                        executableURL: executable, arguments: ["stop", "--state", state.path], timeout: 2, outputLimit: 4096)
                 }
             }
             if process.isRunning { process.terminate() }
@@ -124,23 +134,27 @@ final class LocalRemoteSharing: ObservableObject {
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         var metadata = stat()
         guard lstat(url.path, &metadata) == 0, metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFDIR),
-              metadata.st_uid == getuid(), metadata.st_mode & 0o777 == 0o700 else {
+            metadata.st_uid == getuid(), metadata.st_mode & 0o777 == 0o700
+        else {
             throw RemoteHostError.message(String(localized: "Sharing requires a private state directory."))
         }
     }
 
     private nonisolated static func tailscaleAddress() throws -> String {
-        let candidates = (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":").map { String($0) + "/tailscale" }
+        let candidates =
+            (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":").map { String($0) + "/tailscale" }
             + ["/opt/homebrew/bin/tailscale", "/usr/local/bin/tailscale", "/Applications/Tailscale.app/Contents/MacOS/Tailscale"]
         guard let path = candidates.first(where: FileManager.default.isExecutableFile(atPath:)) else {
             throw RemoteHostError.message(String(localized: "Install and connect Tailscale to share this Mac."))
         }
-        let result = try BoundedProcessRunner.run(executableURL: URL(fileURLWithPath: path), arguments: ["status", "--json"],
+        let result = try BoundedProcessRunner.run(
+            executableURL: URL(fileURLWithPath: path), arguments: ["status", "--json"],
             timeout: 5, outputLimit: 2 * 1024 * 1024, environment: ["TAILSCALE_BE_CLI": "1"])
         guard !result.timedOut, result.terminationStatus == 0, !result.output.wasTruncated,
-              let status = try JSONSerialization.jsonObject(with: Data(result.output.stdout.utf8)) as? [String: Any],
-              status["BackendState"] as? String == "Running", let own = status["Self"] as? [String: Any],
-              let address = (own["TailscaleIPs"] as? [String])?.first(where: RemoteHostTransport.isTailnetAddress) else {
+            let status = try JSONSerialization.jsonObject(with: Data(result.output.stdout.utf8)) as? [String: Any],
+            status["BackendState"] as? String == "Running", let own = status["Self"] as? [String: Any],
+            let address = (own["TailscaleIPs"] as? [String])?.first(where: RemoteHostTransport.isTailnetAddress)
+        else {
             throw RemoteHostError.message(String(localized: "Tailscale is not connected."))
         }
         return address

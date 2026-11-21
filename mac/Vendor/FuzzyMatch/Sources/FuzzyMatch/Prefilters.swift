@@ -63,9 +63,7 @@ internal func isLatinExtendedLead(_ byte: UInt8) -> Bool {
 /// - 0xD0, 0xD1: Cyrillic basic (U+0400-U+047F)
 @inlinable
 internal func isMultiByteLead(_ byte: UInt8) -> Bool {
-    byte == 0xC3 ||
-    byte == 0xCE || byte == 0xCF ||
-    byte == 0xD0 || byte == 0xD1
+    byte == 0xC3 || byte == 0xCE || byte == 0xCF || byte == 0xD0 || byte == 0xD1
 }
 
 /// Checks if a 2-byte UTF-8 sequence is a combining diacritical mark (U+0300–U+036F).
@@ -78,8 +76,7 @@ internal func isMultiByteLead(_ byte: UInt8) -> Bool {
 /// stripped during matching so that decomposed forms match their base characters.
 @inlinable
 internal func isCombiningMark(lead: UInt8, second: UInt8) -> Bool {
-    (lead == 0xCC && second >= 0x80 && second <= 0xBF) ||
-    (lead == 0xCD && second >= 0x80 && second <= 0xAF)
+    (lead == 0xCC && second >= 0x80 && second <= 0xBF) || (lead == 0xCD && second >= 0x80 && second <= 0xAF)
 }
 
 /// Maps a lowercased Latin-1 Supplement second byte to its ASCII base letter.
@@ -96,16 +93,16 @@ internal func isCombiningMark(lead: UInt8, second: UInt8) -> Bool {
 @inlinable
 internal func latin1ToASCII(_ lowercasedSecondByte: UInt8) -> UInt8 {
     switch lowercasedSecondByte {
-    case 0xA0...0xA5: return 0x61  // à-å → a
-    case 0xA7: return 0x63          // ç → c
-    case 0xA8...0xAB: return 0x65  // è-ë → e
-    case 0xAC...0xAF: return 0x69  // ì-ï → i
-    case 0xB1: return 0x6E          // ñ → n
-    case 0xB2...0xB6: return 0x6F  // ò-ö → o
-    case 0xB9...0xBC: return 0x75  // ù-ü → u
-    case 0xBD: return 0x79          // ý → y
-    case 0xBF: return 0x79          // ÿ → y
-    default: return 0               // æ, ð, ø, þ, ß, ×, ÷ — no ASCII base
+    case 0xA0 ... 0xA5: return 0x61 // à-å → a
+    case 0xA7: return 0x63 // ç → c
+    case 0xA8 ... 0xAB: return 0x65 // è-ë → e
+    case 0xAC ... 0xAF: return 0x69 // ì-ï → i
+    case 0xB1: return 0x6E // ñ → n
+    case 0xB2 ... 0xB6: return 0x6F // ò-ö → o
+    case 0xB9 ... 0xBC: return 0x75 // ù-ü → u
+    case 0xBD: return 0x79 // ý → y
+    case 0xBF: return 0x79 // ÿ → y
+    default: return 0 // æ, ð, ø, þ, ß, ×, ÷ — no ASCII base
     }
 }
 
@@ -148,7 +145,7 @@ internal func confusable3ByteToASCII(second: UInt8, third: UInt8) -> UInt8 {
     switch (second, third) {
     case (0x80, 0x98), (0x80, 0x99): return 0x27 // curly single quotes → '
     case (0x80, 0x9C), (0x80, 0x9D): return 0x22 // curly double quotes → "
-    case (0x80, 0x90...0x94): return 0x2D // hyphens/dashes → -
+    case (0x80, 0x90 ... 0x94): return 0x2D // hyphens/dashes → -
     case (0x88, 0x92): return 0x2D // minus sign → -
     default: return 0
     }
@@ -269,7 +266,7 @@ internal func lowercaseUTF8(
     return destination.withUnsafeMutableBufferPointer { destPtr in
         let dest = destPtr.baseAddress!
         if isASCII {
-            for i in 0..<count {
+            for i in 0 ..< count {
                 dest[i] = confusableASCIIToCanonical(lowercaseASCII(source[i]))
                 mapping?[i] = i
             }
@@ -500,11 +497,11 @@ internal func computeCharBitmaskCaseInsensitive(_ bytes: UnsafeBufferPointer<UIn
 @usableFromInline
 internal let charBitmaskLookup: ContiguousArray<UInt64> = {
     var table = ContiguousArray<UInt64>(repeating: 0, count: 256)
-    for b in UInt8(0x61)...UInt8(0x7A) { table[Int(b)] = UInt64(1) << (b &- 0x61) }  // a-z
-    for b in UInt8(0x41)...UInt8(0x5A) { table[Int(b)] = UInt64(1) << (b &- 0x41) }  // A-Z
-    for b in UInt8(0x30)...UInt8(0x39) { table[Int(b)] = UInt64(1) << (b &- 0x30 &+ 26) }  // 0-9
-    table[0x5F] = UInt64(1) << 36  // underscore
-    for b in 0x80...0xFF { table[b] = UInt64(1) << 63 }  // non-ASCII sentinel
+    for b in UInt8(0x61) ... UInt8(0x7A) { table[Int(b)] = UInt64(1) << (b &- 0x61) } // a-z
+    for b in UInt8(0x41) ... UInt8(0x5A) { table[Int(b)] = UInt64(1) << (b &- 0x41) } // A-Z
+    for b in UInt8(0x30) ... UInt8(0x39) { table[Int(b)] = UInt64(1) << (b &- 0x30 &+ 26) } // 0-9
+    table[0x5F] = UInt64(1) << 36 // underscore
+    for b in 0x80 ... 0xFF { table[b] = UInt64(1) << 63 } // non-ASCII sentinel
     return table
 }()
 
@@ -532,7 +529,7 @@ internal let charBitmaskMask: UInt64 = (UInt64(1) << 37) &- 1
 @inlinable
 internal func computeCharBitmaskWithASCIICheck(_ bytes: UnsafeBufferPointer<UInt8>) -> (mask: UInt64, isASCII: Bool) {
     var mask: UInt64 = 0
-    for i in 0..<bytes.count {
+    for i in 0 ..< bytes.count {
         mask |= charBitmaskLookup[Int(bytes[i])]
     }
     // Check sentinel bit: if set, at least one byte was >= 0x80

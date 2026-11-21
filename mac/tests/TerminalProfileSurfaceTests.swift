@@ -13,8 +13,7 @@ private func pumpProfiles(_ seconds: TimeInterval) {
 @main
 struct TerminalProfileSurfaceTests {
     @MainActor static func main() {
-        do { try run() }
-        catch { fputs("FAIL: \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("FAIL: \(error)\n", stderr); exit(1) }
     }
 
     @MainActor private static func run() throws {
@@ -62,8 +61,9 @@ struct TerminalProfileSurfaceTests {
         let second = TerminalSession(initialDirectory: secondDirectory.path, additionalEnvironment: environment)
         let sessions = [first, second]
         let windows = sessions.enumerated().map { index, session in
-            let window = NSWindow(contentRect: NSRect(x: CGFloat(80 + index * 40), y: CGFloat(80 + index * 40), width: 800, height: 600),
-                                  styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            let window = NSWindow(
+                contentRect: NSRect(x: CGFloat(80 + index * 40), y: CGFloat(80 + index * 40), width: 800, height: 600),
+                styleMask: [.titled, .closable], backing: .buffered, defer: false)
             window.identifier = NSUserInterfaceItemIdentifier("main-profile-test-\(index)")
             window.contentView = session.surface
             window.orderFront(nil)
@@ -73,7 +73,9 @@ struct TerminalProfileSurfaceTests {
         defer {
             sessions.forEach { $0.terminate() }
             pumpProfiles(0.3)
-            windows.forEach { $0.contentView = nil; $0.close() }
+            windows.forEach {
+                $0.contentView = nil; $0.close()
+            }
         }
 
         func check(_ condition: @autoclosure () -> Bool, _ label: String) throws {
@@ -130,11 +132,13 @@ struct TerminalProfileSurfaceTests {
         pumpProfiles(1)
         let originalGrid = try grid("original-grid")
         print("GRID: \(backend) profile=\(profileGrid) original=\(originalGrid)")
-        try check(profileGrid.count == 2 && originalGrid.count == 2 && originalGrid[1] > profileGrid[1],
-                  "font change resizes the real PTY")
+        try check(
+            profileGrid.count == 2 && originalGrid.count == 2 && originalGrid[1] > profileGrid[1],
+            "font change resizes the real PTY")
         first.selectTerminalProfile(.profile(foreground.id))
-        try check(first.activeTerminalProfileID == foreground.id && first.surface.profileAppearance.fontSize == 28,
-                  "manual profile selection")
+        try check(
+            first.activeTerminalProfileID == foreground.id && first.surface.profileAppearance.fontSize == 28,
+            "manual profile selection")
         try check(second.activeTerminalProfileID == nil, "manual selection stays pane-local")
         first.selectTerminalProfile(.automatic)
         try wait("automatic selection") { first.activeTerminalProfileID == base.id }
@@ -143,8 +147,9 @@ struct TerminalProfileSurfaceTests {
         try wait("shell directory changes") { processWorkingDirectory(pid: firstPID) == secondDirectory.path }
         first.terminalDidChangeWorkingDirectory(firstDirectory.path)
         try wait("directory mismatch restores original") { first.activeTerminalProfileID == nil }
-        try check(first.terminalProfileContext.directory == secondDirectory.path,
-                  "profile matching uses the live directory with a stale OSC 7 report")
+        try check(
+            first.terminalProfileContext.directory == secondDirectory.path,
+            "profile matching uses the live directory with a stale OSC 7 report")
         try check(first.surface.profileAppearance.fontSize == nil, "unmatched profile restores appearance")
         command(first, "cd " + quote(firstDirectory.path))
         try wait("directory match returns") { first.activeTerminalProfileID == base.id }
@@ -155,19 +160,22 @@ struct TerminalProfileSurfaceTests {
         first.selectTerminalProfile(.automatic)
         try check(first.activeTerminalProfileID == nil, "automatic selection respects the disabled preference")
         let disabledProfileSession = TerminalSession(initialDirectory: firstDirectory.path, additionalEnvironment: environment)
-        try check(disabledProfileSession.launchTerminalProfileID == nil
-                  && disabledProfileSession.surface.profileAppearance.fontSize == nil,
-                  "new terminals skip automatic profile launch and appearance overrides")
+        try check(
+            disabledProfileSession.launchTerminalProfileID == nil
+                && disabledProfileSession.surface.profileAppearance.fontSize == nil,
+            "new terminals skip automatic profile launch and appearance overrides")
         disabledProfileSession.terminate()
         settings.automaticallyApplyTerminalProfiles = true
         try wait("enabling matching restores existing sessions") { first.activeTerminalProfileID == base.id }
         command(first, "/bin/sleep 3")
         try wait("foreground program match", timeout: 2) { first.activeTerminalProfileID == foreground.id }
         try wait("foreground program exits", timeout: 6) { first.activeTerminalProfileID == base.id }
-        try check(first.shellPid == firstPID && second.shellPid == secondPID && kill(firstPID, 0) == 0,
-                  "profile switches keep the shell processes alive")
-        try check(!FileManager.default.fileExists(atPath: unexpectedCommand.path),
-                  "switching profiles never runs a startup command")
+        try check(
+            first.shellPid == firstPID && second.shellPid == secondPID && kill(firstPID, 0) == 0,
+            "profile switches keep the shell processes alive")
+        try check(
+            !FileManager.default.fileExists(atPath: unexpectedCommand.path),
+            "switching profiles never runs a startup command")
         func opacity(_ session: TerminalSession) -> Double? {
             Mirror(reflecting: session.surface).children.first { $0.label == "backgroundOpacity" }
                 .flatMap { ($0.value as? Double) ?? ($0.value as? CGFloat).map(Double.init) }
@@ -178,7 +186,9 @@ struct TerminalProfileSurfaceTests {
         try check(opacity(first).map { abs($0 - 0.4) < 0.001 } == true, "profile switches keep host background opacity")
         first.applyTheme()
         first.selectTerminalProfile(.automatic)
-        try wait("automatic selection after opacity") { first.activeTerminalProfileID == foreground.id || first.activeTerminalProfileID == base.id }
+        try wait("automatic selection after opacity") {
+            first.activeTerminalProfileID == foreground.id || first.activeTerminalProfileID == base.id
+        }
         let currentEnvironment = root.appendingPathComponent("current-environment")
         command(first, "builtin print -r -- ${PROFILE_CASE:-none} > " + quote(currentEnvironment.path))
         try wait("live environment") {
@@ -194,8 +204,9 @@ struct TerminalProfileSurfaceTests {
         startupProfile.startupArguments = "-c 'printf profile-started > \(startupMarker.path)'"
         settings.terminalProfiles = [foreground, base, startupProfile]
         let startupSession = TerminalSession(initialDirectory: secondDirectory.path, additionalEnvironment: environment)
-        let startupWindow = NSWindow(contentRect: NSRect(x: 120, y: 120, width: 800, height: 600),
-                                     styleMask: [.titled], backing: .buffered, defer: false)
+        let startupWindow = NSWindow(
+            contentRect: NSRect(x: 120, y: 120, width: 800, height: 600),
+            styleMask: [.titled], backing: .buffered, defer: false)
         startupWindow.contentView = startupSession.surface
         startupWindow.orderFront(nil)
         startupSession.surface.setSurfaceVisible(true)
@@ -207,14 +218,17 @@ struct TerminalProfileSurfaceTests {
         let plainMarker = root.appendingPathComponent("plain-startup-command")
         startupProfile.startupArguments = "-c 'printf profile-started > \(plainMarker.path)'"
         settings.terminalProfiles = [foreground, base, startupProfile]
-        let plainSession = TerminalSession(initialDirectory: secondDirectory.path, additionalEnvironment: environment,
-                                           usesConfiguredStartupCommand: false)
+        let plainSession = TerminalSession(
+            initialDirectory: secondDirectory.path, additionalEnvironment: environment,
+            usesConfiguredStartupCommand: false)
         defer { plainSession.terminate() }
-        try check(plainSession.supportsCommandTaskShellIntegration,
-                  "automation command panes skip the profile startup command")
+        try check(
+            plainSession.supportsCommandTaskShellIntegration,
+            "automation command panes skip the profile startup command")
         pumpProfiles(1)
-        try check(!FileManager.default.fileExists(atPath: plainMarker.path),
-                  "plain shell pane never runs the profile startup command")
+        try check(
+            !FileManager.default.fileExists(atPath: plainMarker.path),
+            "plain shell pane never runs the profile startup command")
         var multiline = base
         multiline.launchSettings.environmentVariables = [.init(name: "MULTI", value: "first\nBAR=second\\n\\")]
         settings.terminalProfiles = [foreground, multiline]
@@ -230,16 +244,19 @@ struct TerminalProfileSurfaceTests {
         add.performClick(nil)
         let startupLabel = String(localized: "Startup program")
         guard let startup = views().compactMap({ $0 as? NSTextField }).first(where: { $0.accessibilityLabel() == startupLabel }),
-              let save = views().compactMap({ $0 as? NSButton }).first(where: { $0.action == NSSelectorFromString("saveProfiles") }) else {
+            let save = views().compactMap({ $0 as? NSButton }).first(where: { $0.action == NSSelectorFromString("saveProfiles") })
+        else {
             throw NSError(domain: "profile editor fields", code: 1)
         }
         startup.stringValue = "/remote-only/profile-executable"
         save.performClick(nil)
         try wait("profile editor save") { windows[0].attachedSheet == nil }
-        try check(settings.terminalProfiles.contains { $0.startupProgram == "/remote-only/profile-executable" },
-                  "editor saves a remote-only executable")
-        try check(settings.terminalProfiles.first { $0.id == base.id }?.launchSettings.environmentVariables
-                    == multiline.launchSettings.environmentVariables,
-                  "editor keeps multiline environment values intact")
+        try check(
+            settings.terminalProfiles.contains { $0.startupProgram == "/remote-only/profile-executable" },
+            "editor saves a remote-only executable")
+        try check(
+            settings.terminalProfiles.first { $0.id == base.id }?.launchSettings.environmentVariables
+                == multiline.launchSettings.environmentVariables,
+            "editor keeps multiline environment values intact")
     }
 }

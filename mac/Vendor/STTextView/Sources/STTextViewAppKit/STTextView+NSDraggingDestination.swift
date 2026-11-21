@@ -54,7 +54,8 @@ extension STTextView {
             NSRange($0, in: textContentManager).location > NSRange($1, in: textContentManager).location
         }
 
-        let textToInsert = sortedSelections
+        let textToInsert =
+            sortedSelections
             .compactMap { textLayoutManager.textAttributedString(in: $0) }
             .enumerated()
             .reduce(NSMutableAttributedString()) { result, item in
@@ -64,7 +65,8 @@ extension STTextView {
             }
 
         let insertionOffset = NSRange(insertionPoint.location, in: textContentManager).location
-        let deletedBeforeInsertion = sortedSelections
+        let deletedBeforeInsertion =
+            sortedSelections
             .map { NSRange($0, in: textContentManager) }
             .filter { $0.upperBound <= insertionOffset }
             .reduce(0) { $0 + $1.length }

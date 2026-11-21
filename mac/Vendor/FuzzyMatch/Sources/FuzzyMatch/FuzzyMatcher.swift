@@ -170,7 +170,7 @@ public struct FuzzyMatcher: Sendable {
 
         // Truncate to actual length (combining marks may have been stripped)
         if lowercasedLength < lowercased.count {
-            lowercased.removeSubrange(lowercasedLength..<lowercased.count)
+            lowercased.removeSubrange(lowercasedLength ..< lowercased.count)
         }
 
         // Compute character bitmask
@@ -473,7 +473,7 @@ public struct FuzzyMatcher: Sendable {
         }
 
         return candidateStorage.bytes.withUnsafeBufferPointer { bytesPtr in
-            let candidateSpan = UnsafeBufferPointer(rebasing: bytesPtr[0..<actualCandidateLength])
+            let candidateSpan = UnsafeBufferPointer(rebasing: bytesPtr[0 ..< actualCandidateLength])
             return query.lowercased.withUnsafeBufferPointer { querySpan -> ScoredMatch? in
                 // Prefilter 3: Trigrams (only if query has enough trigrams to be selective)
                 // Skip when threshold (queryTrigrams.count - 3*maxED) is non-positive,
@@ -481,7 +481,8 @@ public struct FuzzyMatcher: Sendable {
                 // Space-containing trigrams are excluded at computation time, so this
                 // is safe for multi-word queries (see computeTrigrams for rationale).
                 if query.lowercased.count >= 4
-                    && query.trigrams.count > 3 * effectiveMaxEditDistance {
+                    && query.trigrams.count > 3 * effectiveMaxEditDistance
+                {
                     if !passesTrigramFilter(
                         candidateBytes: candidateSpan,
                         queryTrigrams: query.trigrams,
@@ -497,7 +498,8 @@ public struct FuzzyMatcher: Sendable {
                 // with candidateSpan indices used downstream.
                 let boundaryMask = computeBoundaryMaskCompressed(originalBytes: candidateUTF8, isASCII: candidateIsASCII)
 
-                let needsAlignment = edConfig.wordBoundaryBonus > 0
+                let needsAlignment =
+                    edConfig.wordBoundaryBonus > 0
                     || edConfig.consecutiveBonus > 0
                     || edConfig.gapPenalty != .none
                     || edConfig.firstMatchBonus > 0
@@ -580,7 +582,7 @@ public struct FuzzyMatcher: Sendable {
     ) -> ScoredMatch? {
         let queryLength = query.lowercased.count
         guard candidateLength == queryLength else { return nil }
-        for i in 0..<queryLength {
+        for i in 0 ..< queryLength {
             if candidateBytes[i] != query.lowercased[i] {
                 return nil
             }
@@ -713,12 +715,14 @@ public struct FuzzyMatcher: Sendable {
             // Preserve the strong-prefix fast path: only fuzzy-score substrings
             // when prefix scoring did not already find a good match.
             guard state.bestScore < 0.7 else { return }
-            guard let substringDist = substringEditDistance(
-                query: querySpan,
-                candidate: candidateSpan,
-                state: &editDistanceState,
-                maxEditDistance: state.effectiveMaxEditDistance
-            ) else { return }
+            guard
+                let substringDist = substringEditDistance(
+                    query: querySpan,
+                    candidate: candidateSpan,
+                    state: &editDistanceState,
+                    maxEditDistance: state.effectiveMaxEditDistance
+                )
+            else { return }
             distance = substringDist
         }
 
@@ -740,7 +744,7 @@ public struct FuzzyMatcher: Sendable {
             // Exact substrings should use their contiguous occurrence for bonuses
             // and whole-word recovery.
             if distance == 0, contiguousStart >= 0 {
-                for i in 0..<queryLength {
+                for i in 0 ..< queryLength {
                     matchPositions[i] = contiguousStart + i
                 }
                 state.cachedPositionCount = queryLength
@@ -764,13 +768,15 @@ public struct FuzzyMatcher: Sendable {
                     )
 
                     state.cachedPositionCount = positionCount
-                    state.cachedBonus = positionCount > 0 ? calculateBonuses(
-                        matchPositions: matchPositions,
-                        positionCount: positionCount,
-                        candidateBytes: candidateSpan,
-                        boundaryMask: state.boundaryMask,
-                        config: edConfig
-                    ) : 0.0
+                    state.cachedBonus =
+                        positionCount > 0
+                        ? calculateBonuses(
+                            matchPositions: matchPositions,
+                            positionCount: positionCount,
+                            candidateBytes: candidateSpan,
+                            boundaryMask: state.boundaryMask,
+                            config: edConfig
+                        ) : 0.0
                 } else {
                     let (positionCount, bonus) = optimalAlignment(
                         query: querySpan,
@@ -812,7 +818,8 @@ public struct FuzzyMatcher: Sendable {
                         endBound = true
                     } else {
                         let nextByte = candidateSpan[nextPos]
-                        let isAlphaNum = (nextByte >= 0x30 && nextByte <= 0x39)
+                        let isAlphaNum =
+                            (nextByte >= 0x30 && nextByte <= 0x39)
                             || (nextByte >= 0x41 && nextByte <= 0x5A)
                             || (nextByte >= 0x61 && nextByte <= 0x7A)
                         endBound = !isAlphaNum
@@ -854,7 +861,7 @@ public struct FuzzyMatcher: Sendable {
         // in the candidate. Many candidates that failed ED won't be subsequences.
         if state.cachedPositionCount < 0 {
             var qi = 0
-            for ci in 0..<candidateSpan.count {
+            for ci in 0 ..< candidateSpan.count {
                 if candidateSpan[ci] == querySpan[qi] {
                     qi &+= 1
                     if qi == queryLength { break }
@@ -879,7 +886,7 @@ public struct FuzzyMatcher: Sendable {
 
         // Base score for subsequence: ratio of query length to total gaps
         var totalGaps = 0
-        for i in 1..<positionCount {
+        for i in 1 ..< positionCount {
             totalGaps += matchPositions[i] - matchPositions[i - 1] - 1
         }
         totalGaps += matchPositions[0]
@@ -930,7 +937,7 @@ public struct FuzzyMatcher: Sendable {
         // For long candidates, scan beyond byte 64 for additional word boundaries
         var wordCount = state.boundaryMask.nonzeroBitCount
         if candidateLength > 64 {
-            for i in 64..<candidateLength {
+            for i in 64 ..< candidateLength {
                 if isWordBoundary(at: i, in: candidateSpan) {
                     wordCount += 1
                 }
@@ -941,7 +948,7 @@ public struct FuzzyMatcher: Sendable {
         // Extract word-initial characters from the lowercased candidate
         var initialCount = 0
         let limit = min(candidateLength, 64)
-        for i in 0..<limit {
+        for i in 0 ..< limit {
             if (state.boundaryMask & (1 << i)) != 0 {
                 if initialCount >= wordInitials.count {
                     wordInitials.append(contentsOf: repeatElement(UInt8(0), count: wordInitials.count))
@@ -951,7 +958,7 @@ public struct FuzzyMatcher: Sendable {
             }
         }
         if candidateLength > 64 {
-            for i in 64..<candidateLength {
+            for i in 64 ..< candidateLength {
                 // Use compressed candidateSpan for boundary check (consistent with mask)
                 // Note: camelCase detection is lost on lowercased bytes, but this is an
                 // existing limitation — boundaries from underscores, digits, non-alnum
@@ -968,7 +975,7 @@ public struct FuzzyMatcher: Sendable {
 
         // Subsequence check: is query a subsequence of wordInitials[0..<initialCount]?
         var qi = 0
-        for wi in 0..<initialCount {
+        for wi in 0 ..< initialCount {
             if qi < queryLength && querySpan[qi] == wordInitials[wi] {
                 qi += 1
             }
@@ -1011,13 +1018,15 @@ public struct FuzzyMatcher: Sendable {
                 boundaryMask: state.boundaryMask,
                 positions: &matchPositions
             )
-            bonus = positionCount > 0 ? calculateBonuses(
-                matchPositions: matchPositions,
-                positionCount: positionCount,
-                candidateBytes: candidateSpan,
-                boundaryMask: state.boundaryMask,
-                config: edConfig
-            ) : 0.0
+            bonus =
+                positionCount > 0
+                ? calculateBonuses(
+                    matchPositions: matchPositions,
+                    positionCount: positionCount,
+                    candidateBytes: candidateSpan,
+                    boundaryMask: state.boundaryMask,
+                    config: edConfig
+                ) : 0.0
         } else {
             (positionCount, bonus) = optimalAlignment(
                 query: querySpan,
@@ -1151,7 +1160,8 @@ public struct FuzzyMatcher: Sendable {
                     endBound = true
                 } else {
                     let nextByte = candidateUTF8[nextPos]
-                    let isAlphaNum = (nextByte >= 0x30 && nextByte <= 0x39)
+                    let isAlphaNum =
+                        (nextByte >= 0x30 && nextByte <= 0x39)
                         || (nextByte >= 0x41 && nextByte <= 0x5A)
                         || (nextByte >= 0x61 && nextByte <= 0x7A)
                     endBound = !isAlphaNum
@@ -1182,13 +1192,14 @@ public struct FuzzyMatcher: Sendable {
         let currIsUpper = curr >= 0x41 && curr <= 0x5A
         if prevIsLower && currIsUpper { return true }
         // After non-alphanumeric
-        let prevIsAlnum = (prev >= 0x30 && prev <= 0x39)
+        let prevIsAlnum =
+            (prev >= 0x30 && prev <= 0x39)
             || (prev >= 0x41 && prev <= 0x5A)
             || (prev >= 0x61 && prev <= 0x7A)
-            || prev == 0xC3                        // Latin-1 lead
-            || prev == 0xCE || prev == 0xCF        // Greek lead
-            || prev == 0xD0 || prev == 0xD1        // Cyrillic lead
-            || (prev >= 0x80 && prev <= 0xBF)      // continuation byte
+            || prev == 0xC3 // Latin-1 lead
+            || prev == 0xCE || prev == 0xCF // Greek lead
+            || prev == 0xD0 || prev == 0xD1 // Cyrillic lead
+            || (prev >= 0x80 && prev <= 0xBF) // continuation byte
         if !prevIsAlnum { return true }
         return false
     }

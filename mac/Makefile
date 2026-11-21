@@ -5,6 +5,13 @@ ARCH ?= $(shell uname -m)
 DERIVED_DATA := $(CURDIR)/build/debug
 DEBUG_APP := $(DERIVED_DATA)/Build/Products/$(CONFIGURATION)/zshell Debug.app
 DEBUG_BUNDLE_ID := sh.zshell.dev
+VERBOSE ?= 0
+# Xcode can replay all shell phase output when that phase emits a warning.
+ifneq ($(VERBOSE),1)
+XCODEBUILD_OUTPUT_FLAGS := -quiet CARGO_TERM_QUIET=true
+else
+XCODEBUILD_OUTPUT_FLAGS := CARGO_TERM_QUIET=false
+endif
 
 # Sparkle's release tools used to arrive with the SPM artifact Xcode unpacked
 # into DerivedData. The framework is a repo-local binary target now, so point
@@ -33,15 +40,17 @@ XCODEBUILD := xcodebuild
 endif
 
 # A stable DerivedData path lets `open` address the Debug bundle directly.
+# Zshell-hosted shells export these for the in-app CLI; inheriting them makes
+# the Debug bundle immediately act as that CLI instead of launching its UI.
 run:
-	@$(XCODEBUILD) -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration "$(CONFIGURATION)" -destination 'platform=macOS,arch=$(ARCH)' -derivedDataPath "$(DERIVED_DATA)" build $(XCODEBUILD_NESTED_SANDBOX_FLAGS)
-	# Zshell-hosted shells export these for the in-app CLI; inheriting them makes
-	# the Debug bundle immediately act as that CLI instead of launching its UI.
+	@printf '%s\n' 'Building zshell Debug ($(ARCH))'
+	@$(XCODEBUILD) $(XCODEBUILD_OUTPUT_FLAGS) -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration "$(CONFIGURATION)" -destination 'platform=macOS,arch=$(ARCH)' -derivedDataPath "$(DERIVED_DATA)" build $(XCODEBUILD_NESTED_SANDBOX_FLAGS)
+	@printf '%s\n' 'Launching zshell Debug'
 	@/usr/bin/env -u ZSHELL_CLI_STATE -u ZSHELL_CLI_TOKEN /usr/bin/open -n "$(DEBUG_APP)"
 
 update:
-	@$(MAKE) stop
-	@$(MAKE) run
+	@$(MAKE) --no-print-directory stop
+	@$(MAKE) --no-print-directory run
 
 # Give terminal sessions their normal shutdown path before forcing a stuck Debug app.
 stop:

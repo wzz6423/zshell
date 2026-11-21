@@ -57,7 +57,9 @@ final class SettingsTerminalPane: SettingsPaneViewController {
             .value(
                 seconds == 0
                     ? String(localized: "Off")
-                    : String(localized: "\(seconds)s", comment: "A runtime threshold, in seconds, for command-finish notifications; the placeholder is that number."),
+                    : String(
+                        localized: "\(seconds)s",
+                        comment: "A runtime threshold, in seconds, for command-finish notifications; the placeholder is that number."),
                 seconds
             )
         }
@@ -101,18 +103,25 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         onChange: { AppSettings.shared.quickTerminalOpacity = $0 }
     )
 
-    private lazy var quickTerminalGroup = SettingsGroup(header: String(localized: "Quick Terminal"), rows: [
-        SettingsRow(title: String(localized: "Enable Quick Terminal"), control: quickTerminalSwitch),
-        SettingsRow(title: String(localized: "Session behavior"), description: QuickTerminalMode.explanation,
-                    control: quickTerminalModePopup),
-        SettingsRow(title: String(localized: "Shortcut"), control: shortcutRecorder),
-        quickTerminalSizeRow,
-        quickTerminalOpacityRow,
-    ])
+    private lazy var quickTerminalGroup = SettingsGroup(
+        header: String(localized: "Quick Terminal"),
+        rows: [
+            SettingsRow(title: String(localized: "Enable Quick Terminal"), control: quickTerminalSwitch),
+            SettingsRow(
+                title: String(localized: "Session behavior"), description: QuickTerminalMode.explanation,
+                control: quickTerminalModePopup),
+            SettingsRow(title: String(localized: "Shortcut"), control: shortcutRecorder),
+            quickTerminalSizeRow,
+            quickTerminalOpacityRow,
+        ])
 
     private lazy var remoteUploadExplanation: NSTextField = {
-        let text = NSTextField(wrappingLabelWithString:
-            String(localized: "Turn these off to stop automatic uploads. You can still choose Upload Files… from a remote terminal’s context menu."))
+        let text = NSTextField(
+            wrappingLabelWithString:
+                String(
+                    localized:
+                        "Turn these off to stop automatic uploads. You can still choose Upload Files… from a remote terminal’s context menu."
+                ))
         text.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         text.textColor = .secondaryLabelColor
         text.maximumNumberOfLines = 0
@@ -149,118 +158,150 @@ final class SettingsTerminalPane: SettingsPaneViewController {
             )
         }
 
-        startupRows.append(SettingsRow(
-            title: String(localized: "Keep sessions running after quitting"),
-            description: String(localized: "New terminals keep shells, agents, and servers running when Zshell quits. Closing a pane ends its tasks. Turn this off before quitting to end all sessions."),
-            control: preserveSessionsSwitch
-        ))
-        startupRows.append(SettingsButtonRow(title: String(localized: "Workspace Templates…")) {
-            guard let manager = TerminalManager.activeWindowManager else { return }
-            WorkspaceTemplateController.shared.show(for: manager)
-        })
+        startupRows.append(
+            SettingsRow(
+                title: String(localized: "Keep sessions running after quitting"),
+                description: String(
+                    localized:
+                        "New terminals keep shells, agents, and servers running when Zshell quits. Closing a pane ends its tasks. Turn this off before quitting to end all sessions."
+                ),
+                control: preserveSessionsSwitch
+            ))
+        startupRows.append(
+            SettingsButtonRow(title: String(localized: "Workspace Templates…")) {
+                guard let manager = TerminalManager.activeWindowManager else { return }
+                WorkspaceTemplateController.shared.show(for: manager)
+            })
 
         var groups: [NSView] = [SettingsGroup(rows: startupRows)]
-        groups.append(SettingsGroup(header: String(localized: "Terminal Profiles"), rows: [
-            SettingsRow(title: String(localized: "Apply terminal profiles automatically"), control: automaticProfilesSwitch),
-            SettingsButtonRow(title: String(localized: "Manage Terminal Profiles…")) { [weak self] in
-                TerminalProfileEditor.show(relativeTo: self?.view.window)
-            },
-        ]))
-        groups.append(SettingsGroup(header: String(localized: "Input"), rows: [
-            SettingsRow(
-                title: String(localized: "Shell completions"),
-                control: shellCompletionsSwitch
-            ),
-            SettingsRow(title: String(localized: "Show terminal text hints"), control: textHintsSwitch),
-            SettingsRow(
-                title: String(localized: "Vim command hints"),
-                control: vimCommandHintsSwitch
-            ),
-            SettingsRow(
-                title: String(localized: "Use Option as Alt/Meta"),
-                control: optionAsAltSwitch
-            ),
-            SettingsRow(
-                title: String(localized: "Shift+Enter inserts a newline"),
-                control: shiftEnterNewlineSwitch
-            ),
-            SettingsRow(
-                title: String(localized: "Copy on select"),
-                control: copyOnSelectSwitch
-            ),
-            SettingsRow(
-                title: String(localized: "Right-click action"),
-                description: TerminalRightClickAction.explanation,
-                control: rightClickActionPopup
-            ),
-            SettingsRow(
-                title: String(localized: "Focus follows mouse"),
-                control: focusFollowsMouseSwitch
-            ),
-        ]))
+        groups.append(
+            SettingsGroup(
+                header: String(localized: "Terminal Profiles"),
+                rows: [
+                    SettingsRow(title: String(localized: "Apply terminal profiles automatically"), control: automaticProfilesSwitch),
+                    SettingsButtonRow(title: String(localized: "Manage Terminal Profiles…")) { [weak self] in
+                        TerminalProfileEditor.show(relativeTo: self?.view.window)
+                    },
+                ]))
+        groups.append(
+            SettingsGroup(
+                header: String(localized: "Input"),
+                rows: [
+                    SettingsRow(
+                        title: String(localized: "Shell completions"),
+                        control: shellCompletionsSwitch
+                    ),
+                    SettingsRow(title: String(localized: "Show terminal text hints"), control: textHintsSwitch),
+                    SettingsRow(
+                        title: String(localized: "Vim command hints"),
+                        control: vimCommandHintsSwitch
+                    ),
+                    SettingsRow(
+                        title: String(localized: "Use Option as Alt/Meta"),
+                        control: optionAsAltSwitch
+                    ),
+                    SettingsRow(
+                        title: String(localized: "Shift+Enter inserts a newline"),
+                        control: shiftEnterNewlineSwitch
+                    ),
+                    SettingsRow(
+                        title: String(localized: "Copy on select"),
+                        control: copyOnSelectSwitch
+                    ),
+                    SettingsRow(
+                        title: String(localized: "Right-click action"),
+                        description: TerminalRightClickAction.explanation,
+                        control: rightClickActionPopup
+                    ),
+                    SettingsRow(
+                        title: String(localized: "Focus follows mouse"),
+                        control: focusFollowsMouseSwitch
+                    ),
+                ]))
 
-        groups.append(SettingsGroup(header: String(localized: "Remote files"), rows: [
-            SettingsRow(
-                title: String(localized: "Upload copied files and images"),
-                control: remotePasteUploadSwitch
-            ),
-            SettingsRow(
-                title: String(localized: "Upload dropped files"),
-                control: remoteDropUploadSwitch
-            ),
-            SettingsCustomRow(remoteUploadExplanation),
-        ]))
+        groups.append(
+            SettingsGroup(
+                header: String(localized: "Remote files"),
+                rows: [
+                    SettingsRow(
+                        title: String(localized: "Upload copied files and images"),
+                        control: remotePasteUploadSwitch
+                    ),
+                    SettingsRow(
+                        title: String(localized: "Upload dropped files"),
+                        control: remoteDropUploadSwitch
+                    ),
+                    SettingsCustomRow(remoteUploadExplanation),
+                ]))
 
-        groups.append(SettingsGroup(header: String(localized: "Scrolling"), rows: [
-            mouseScrollRow,
-            trackpadScrollRow,
-        ]))
+        groups.append(
+            SettingsGroup(
+                header: String(localized: "Scrolling"),
+                rows: [
+                    mouseScrollRow,
+                    trackpadScrollRow,
+                ]))
 
-        groups.append(SettingsGroup(header: String(localized: "History"), rows: [
-            SettingsRow(title: String(localized: "Record command history"), control: commandHistorySwitch),
-            SettingsRow(
-                title: String(localized: "Restore session history on relaunch"),
-                description: String(localized: "Reopened terminals show their previous scrollback above a fresh shell"),
-                control: restoreHistorySwitch
-            ),
-            SettingsButtonRow(title: String(localized: "Command History…")) {
-                guard let manager = TerminalManager.activeWindowManager else { return }
-                TerminalCommandHistoryController.shared.show(for: manager)
-            },
-        ]))
+        groups.append(
+            SettingsGroup(
+                header: String(localized: "History"),
+                rows: [
+                    SettingsRow(title: String(localized: "Record command history"), control: commandHistorySwitch),
+                    SettingsRow(
+                        title: String(localized: "Restore session history on relaunch"),
+                        description: String(localized: "Reopened terminals show their previous scrollback above a fresh shell"),
+                        control: restoreHistorySwitch
+                    ),
+                    SettingsButtonRow(title: String(localized: "Command History…")) {
+                        guard let manager = TerminalManager.activeWindowManager else { return }
+                        TerminalCommandHistoryController.shared.show(for: manager)
+                    },
+                ]))
 
-        groups.append(SettingsGroup(header: String(localized: "Prompt Queue"), rows: [
-            SettingsRow(
-                title: String(localized: "Enable Prompt Queue"),
-                description: String(localized: "Turning this off hides all queue bars and stops pending sends. Queued entries and input are kept until the terminal closes."),
-                control: promptQueueSwitch
-            ),
-            SettingsRow(
-                title: String(localized: "Send queued prompts automatically"),
-                description: String(localized: "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Send Now is available with automatic sending on or off."),
-                control: promptQueueAutoDispatchSwitch
-            ),
-        ]))
+        groups.append(
+            SettingsGroup(
+                header: String(localized: "Prompt Queue"),
+                rows: [
+                    SettingsRow(
+                        title: String(localized: "Enable Prompt Queue"),
+                        description: String(
+                            localized:
+                                "Turning this off hides all queue bars and stops pending sends. Queued entries and input are kept until the terminal closes."
+                        ),
+                        control: promptQueueSwitch
+                    ),
+                    SettingsRow(
+                        title: String(localized: "Send queued prompts automatically"),
+                        description: String(
+                            localized:
+                                "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Send Now is available with automatic sending on or off."
+                        ),
+                        control: promptQueueAutoDispatchSwitch
+                    ),
+                ]))
 
         let notificationScope = NSTextField(wrappingLabelWithString: String(localized: "Changes apply to new zsh terminals."))
         notificationScope.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         notificationScope.textColor = .secondaryLabelColor
         notificationScope.maximumNumberOfLines = 0
-        groups.append(SettingsGroup(header: String(localized: "Notifications"), rows: [
-            SettingsRow(
-                title: String(localized: "Long-running commands"),
-                control: notifyFinishPopup
-            ),
-            SettingsRow(
-                title: String(localized: "Failed commands"),
-                control: notifyOnErrorSwitch
-            ),
-            SettingsCustomRow(notificationScope),
-            SettingsRow(title: String(localized: "Terminal bell"), control: terminalBellSwitch),
-            SettingsButtonRow(title: String(localized: "Notification History…")) {
-                TerminalNotificationCenterController.shared.show()
-            },
-        ]))
+        groups.append(
+            SettingsGroup(
+                header: String(localized: "Notifications"),
+                rows: [
+                    SettingsRow(
+                        title: String(localized: "Long-running commands"),
+                        control: notifyFinishPopup
+                    ),
+                    SettingsRow(
+                        title: String(localized: "Failed commands"),
+                        control: notifyOnErrorSwitch
+                    ),
+                    SettingsCustomRow(notificationScope),
+                    SettingsRow(title: String(localized: "Terminal bell"), control: terminalBellSwitch),
+                    SettingsButtonRow(title: String(localized: "Notification History…")) {
+                        TerminalNotificationCenterController.shared.show()
+                    },
+                ]))
         groups.append(quickTerminalGroup)
 
         return groups
@@ -281,7 +322,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         promptQueueAutoDispatchSwitch.isOn = settings.promptQueueAutoDispatch
         promptQueueAutoDispatchSwitch.isEnabled = settings.promptQueueEnabled
         quickTerminalSwitch.isOn = settings.quickTerminalEnabled
-        for index in 1...4 { quickTerminalGroup.setRowHidden(!visibility.quickTerminalEnabled, at: index) }
+        for index in 1 ... 4 { quickTerminalGroup.setRowHidden(!visibility.quickTerminalEnabled, at: index) }
         optionAsAltSwitch.isOn = settings.macosOptionAsAlt
         vimCommandHintsSwitch.isOn = settings.vimCommandHints
         shellCompletionsSwitch.isOn = settings.shellCompletions

@@ -5,30 +5,34 @@ import UIKit
 extension UIColor {
 
     private convenience init?(hex3: Int64, alpha: Float) {
-        self.init(red:   CGFloat( ((hex3 & 0xF00) >> 8).duplicate4bits() ) / 255.0,
-                  green: CGFloat( ((hex3 & 0x0F0) >> 4).duplicate4bits() ) / 255.0,
-                  blue:  CGFloat( ((hex3 & 0x00F) >> 0).duplicate4bits() ) / 255.0,
-                  alpha: CGFloat(alpha))
+        self.init(
+            red: CGFloat(((hex3 & 0xF00) >> 8).duplicate4bits()) / 255.0,
+            green: CGFloat(((hex3 & 0x0F0) >> 4).duplicate4bits()) / 255.0,
+            blue: CGFloat(((hex3 & 0x00F) >> 0).duplicate4bits()) / 255.0,
+            alpha: CGFloat(alpha))
     }
 
     private convenience init?(hex4: Int64, alpha: Float?) {
-        self.init(red:   CGFloat( ((hex4 & 0xF000) >> 12).duplicate4bits() ) / 255.0,
-                  green: CGFloat( ((hex4 & 0x0F00) >> 8).duplicate4bits() ) / 255.0,
-                  blue:  CGFloat( ((hex4 & 0x00F0) >> 4).duplicate4bits() ) / 255.0,
-                  alpha: alpha.map(CGFloat.init(_:)) ?? CGFloat( ((hex4 & 0x000F) >> 0).duplicate4bits() ) / 255.0)
+        self.init(
+            red: CGFloat(((hex4 & 0xF000) >> 12).duplicate4bits()) / 255.0,
+            green: CGFloat(((hex4 & 0x0F00) >> 8).duplicate4bits()) / 255.0,
+            blue: CGFloat(((hex4 & 0x00F0) >> 4).duplicate4bits()) / 255.0,
+            alpha: alpha.map(CGFloat.init(_:)) ?? CGFloat(((hex4 & 0x000F) >> 0).duplicate4bits()) / 255.0)
     }
 
     private convenience init?(hex6: Int64, alpha: Float) {
-        self.init(red:   CGFloat( (hex6 & 0xFF0000) >> 16 ) / 255.0,
-                  green: CGFloat( (hex6 & 0x00FF00) >> 8 ) / 255.0,
-                  blue:  CGFloat( (hex6 & 0x0000FF) >> 0 ) / 255.0, alpha: CGFloat(alpha))
+        self.init(
+            red: CGFloat((hex6 & 0xFF0000) >> 16) / 255.0,
+            green: CGFloat((hex6 & 0x00FF00) >> 8) / 255.0,
+            blue: CGFloat((hex6 & 0x0000FF) >> 0) / 255.0, alpha: CGFloat(alpha))
     }
 
     private convenience init?(hex8: Int64, alpha: Float?) {
-        self.init(red:   CGFloat( (hex8 & 0xFF000000) >> 24 ) / 255.0,
-                  green: CGFloat( (hex8 & 0x00FF0000) >> 16 ) / 255.0,
-                  blue:  CGFloat( (hex8 & 0x0000FF00) >> 8 ) / 255.0,
-                  alpha: alpha.map(CGFloat.init(_:)) ?? CGFloat( (hex8 & 0x000000FF) >> 0 ) / 255.0)
+        self.init(
+            red: CGFloat((hex8 & 0xFF000000) >> 24) / 255.0,
+            green: CGFloat((hex8 & 0x00FF0000) >> 16) / 255.0,
+            blue: CGFloat((hex8 & 0x0000FF00) >> 8) / 255.0,
+            alpha: alpha.map(CGFloat.init(_:)) ?? CGFloat((hex8 & 0x000000FF) >> 0) / 255.0)
     }
 
     convenience init?(hexString: String, alpha: Float? = nil) {

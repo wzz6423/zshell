@@ -58,7 +58,6 @@ extension STTextView {
         layoutGutterMarkers()
     }
 
-
     private func layoutGutterLineNumbers() {
         guard let gutterView else {
             return
@@ -72,7 +71,7 @@ extension STTextView {
 
         let lineTextAttributes: [NSAttributedString.Key: Any] = [
             .font: gutterView.font,
-            .foregroundColor: gutterView.textColor
+            .foregroundColor: gutterView.textColor,
         ]
 
         let selectedLineTextAttributes: [NSAttributedString.Key: Any] = [
@@ -96,22 +95,25 @@ extension STTextView {
 
                 numberCell.insets = gutterView.insets
 
-                if gutterView.highlightSelectedLine, textLayoutManager.textSelectionsRanges(.withoutInsertionPoints).isEmpty, !textLayoutManager.insertionPointSelections.isEmpty {
+                if gutterView.highlightSelectedLine, textLayoutManager.textSelectionsRanges(.withoutInsertionPoints).isEmpty,
+                    !textLayoutManager.insertionPointSelections.isEmpty
+                {
                     numberCell.layer?.backgroundColor = gutterView.selectedLineHighlightColor.cgColor
                 }
 
                 // For empty documents, ignore bounce scrolling by treating scroll offset as 0
                 // Empty document fits in viewport, so any scroll is just bounce effect
-                numberCell.frame = CGRect(
-                    origin: CGPoint(
-                        x: 0,
-                        y: selectionFrame.origin.y
-                    ),
-                    size: CGSize(
-                        width: gutterView.containerView.frame.width,
-                        height: selectionFrame.height
-                    )
-                ).pixelAligned
+                numberCell.frame =
+                    CGRect(
+                        origin: CGPoint(
+                            x: 0,
+                            y: selectionFrame.origin.y
+                        ),
+                        size: CGSize(
+                            width: gutterView.containerView.frame.width,
+                            height: selectionFrame.height
+                        )
+                    ).pixelAligned
                 numberCell.textCenterY = numberCell.bounds.midY
 
                 gutterView.containerView.addSubview(numberCell)
@@ -142,10 +144,12 @@ extension STTextView {
             var linesCount = 0
 
             for layoutFragment in visibleLayoutFragments {
-                let contentRangeInElement = (layoutFragment.textElement as? NSTextParagraph)?.paragraphContentRange ?? layoutFragment.rangeInElement
+                let contentRangeInElement =
+                    (layoutFragment.textElement as? NSTextParagraph)?.paragraphContentRange ?? layoutFragment.rangeInElement
 
                 // Only show line numbers for the first line fragment or extra line fragments
-                for textLineFragment in layoutFragment.textLineFragments where (textLineFragment.isExtraLineFragment || layoutFragment.textLineFragments.first == textLineFragment) {
+                for textLineFragment in layoutFragment.textLineFragments
+                where (textLineFragment.isExtraLineFragment || layoutFragment.textLineFragments.first == textLineFragment) {
                     let lineNumber = startLineIndex + linesCount + 1
 
                     // Determine if this line is selected
@@ -170,7 +174,9 @@ extension STTextView {
                     if gutterView.highlightSelectedLine, isLineSelected, !selectedLineTextAttributes.isEmpty {
                         effectiveLineTextAttributes.merge(selectedLineTextAttributes, uniquingKeysWith: { (_, new) in new })
                     }
-                    if let paragraphStyle = textLineFragment.attributedString.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle {
+                    if let paragraphStyle = textLineFragment.attributedString.attribute(.paragraphStyle, at: 0, effectiveRange: nil)
+                        as? NSParagraphStyle
+                    {
                         effectiveLineTextAttributes[.paragraphStyle] = paragraphStyle
                     }
 
@@ -183,22 +189,24 @@ extension STTextView {
 
                     // Apply selection highlight if needed
                     if gutterView.highlightSelectedLine, isLineSelected,
-                       textLayoutManager.textSelectionsRanges(.withoutInsertionPoints).isEmpty,
-                       !textLayoutManager.insertionPointSelections.isEmpty {
+                        textLayoutManager.textSelectionsRanges(.withoutInsertionPoints).isEmpty,
+                        !textLayoutManager.insertionPointSelections.isEmpty
+                    {
                         numberCell.layer?.backgroundColor = gutterView.selectedLineHighlightColor.cgColor
                     }
 
                     // Position the cell
-                    numberCell.frame = CGRect(
-                        origin: CGPoint(
-                            x: 0,
-                            y: lineNumberFrame.origin.y
-                        ),
-                        size: CGSize(
-                            width: gutterView.containerView.frame.width,
-                            height: lineNumberFrame.size.height
-                        )
-                    ).pixelAligned
+                    numberCell.frame =
+                        CGRect(
+                            origin: CGPoint(
+                                x: 0,
+                                y: lineNumberFrame.origin.y
+                            ),
+                            size: CGSize(
+                                width: gutterView.containerView.frame.width,
+                                height: lineNumberFrame.size.height
+                            )
+                        ).pixelAligned
                     numberCell.textCenterY = textLineFrame.midY - numberCell.frame.minY
 
                     gutterView.containerView.addSubview(numberCell)
@@ -210,7 +218,9 @@ extension STTextView {
             // adjust ruleThickness to fit the text based on last numberView
             if textLayoutManager.textViewportLayoutController.viewportRange != nil {
                 let newGutterWidth = max(requiredWidthFitText, gutterView.minimumThickness)
-                if !newGutterWidth.isAlmostEqual(to: gutterView.frame.size.width, tolerance: .ulpOfOne), newGutterWidth > gutterView.frame.size.width {
+                if !newGutterWidth.isAlmostEqual(to: gutterView.frame.size.width, tolerance: .ulpOfOne),
+                    newGutterWidth > gutterView.frame.size.width
+                {
                     gutterView.frame.size.width = newGutterWidth
                     setNeedsLayoutSafe()
                 }

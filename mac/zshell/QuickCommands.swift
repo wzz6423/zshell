@@ -34,7 +34,8 @@ final class QuickCommandStore {
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.defaultsKey),
-           let decoded = try? JSONDecoder().decode([QuickCommandPreset].self, from: data) {
+            let decoded = try? JSONDecoder().decode([QuickCommandPreset].self, from: data)
+        {
             presets = decoded.filter(\.isValid)
         } else {
             presets = []
@@ -43,7 +44,8 @@ final class QuickCommandStore {
 
     func replace(with presets: [QuickCommandPreset]) {
         guard presets.allSatisfy(\.isValid),
-              let data = try? JSONEncoder().encode(presets) else { return }
+            let data = try? JSONEncoder().encode(presets)
+        else { return }
         self.presets = presets
         UserDefaults.standard.set(data, forKey: Self.defaultsKey)
     }
@@ -108,7 +110,8 @@ final class QuickCommandMenuTarget: NSObject {
 
     private func preset(from sender: NSMenuItem) -> QuickCommandPreset? {
         guard let rawID = sender.representedObject as? String,
-              let id = UUID(uuidString: rawID) else { return nil }
+            let id = UUID(uuidString: rawID)
+        else { return nil }
         return QuickCommandStore.shared.presets.first { $0.id == id }
     }
 
@@ -190,7 +193,8 @@ final class QuickCommandEditorWindowController: NSWindowController,
         row: Int
     ) -> NSView? {
         let identifier = NSUserInterfaceItemIdentifier("QuickCommandName")
-        let field = tableView.makeView(withIdentifier: identifier, owner: self) as? NSTextField
+        let field =
+            tableView.makeView(withIdentifier: identifier, owner: self) as? NSTextField
             ?? NSTextField(labelWithString: "")
         field.identifier = identifier
         field.lineBreakMode = .byTruncatingTail
@@ -316,16 +320,18 @@ final class QuickCommandEditorWindowController: NSWindowController,
             candidate[selectedRow].command = commandField.stringValue
         }
         let hasEditedRow = candidate.indices.contains(selectedRow)
-        saveButton.isEnabled = candidate.allSatisfy(\.isValid)
+        saveButton.isEnabled =
+            candidate.allSatisfy(\.isValid)
             && (candidate.isEmpty || hasEditedRow)
     }
 
     @objc private func addPreset() {
         commitFields()
-        presets.append(QuickCommandPreset(
-            name: String(localized: "New Quick Command"),
-            command: ""
-        ))
+        presets.append(
+            QuickCommandPreset(
+                name: String(localized: "New Quick Command"),
+                command: ""
+            ))
         select(row: presets.count - 1)
         window?.makeFirstResponder(nameField)
         nameField.selectText(nil)

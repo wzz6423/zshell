@@ -11,14 +11,20 @@ private final class PermissionFixture {
     var canOpen = true
 
     func makeCoordinator() -> SettingsPermissionCoordinator {
-        SettingsPermissionCoordinator(dependencies: .init(
-            read: { [self] permission, completion in
-                if deferReads { reads.append((permission, completion)) }
-                else { completion(statuses[permission] ?? (permission.requiresSystemSettings ? .manual : .notDetermined)) }
-            },
-            request: { [self] in requests.append(($0, $1)) },
-            openSettings: { [self] in opened.append($0); return canOpen }
-        ))
+        SettingsPermissionCoordinator(
+            dependencies: .init(
+                read: { [self] permission, completion in
+                    if deferReads {
+                        reads.append((permission, completion))
+                    } else {
+                        completion(statuses[permission] ?? (permission.requiresSystemSettings ? .manual : .notDetermined))
+                    }
+                },
+                request: { [self] in requests.append(($0, $1)) },
+                openSettings: { [self] in
+                    opened.append($0); return canOpen
+                }
+            ))
     }
 }
 
@@ -70,8 +76,9 @@ struct SettingsPermissionTests {
         fixture.canOpen = false
         let count = helpers.count
         coordinator.performAction(for: .fullDiskAccess)
-        precondition(coordinator.failures[.fullDiskAccess] != nil && helpers.count == count,
-                     "A failed Settings launch must show an error and keep the helper hidden")
+        precondition(
+            coordinator.failures[.fullDiskAccess] != nil && helpers.count == count,
+            "A failed Settings launch must show an error and keep the helper hidden")
         fixture.canOpen = true
         coordinator.performAction(for: .fullDiskAccess)
         precondition(coordinator.failures[.fullDiskAccess] == nil && helpers.last == .fullDiskAccess)
@@ -111,29 +118,34 @@ struct SettingsPermissionTests {
 
     @MainActor private static func testDragHelper() async {
         let appURL = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
-        let host = NSWindow(contentRect: NSRect(x: 180, y: 160, width: 700, height: 480),
-                            styleMask: [.titled], backing: .buffered, defer: false)
+        let host = NSWindow(
+            contentRect: NSRect(x: 180, y: 160, width: 700, height: 480),
+            styleMask: [.titled], backing: .buffered, defer: false)
         host.isReleasedWhenClosed = false
         var settingsFrame: NSRect?
         var isSettingsDrop = false
-        let helper = SettingsPermissionDragHelper(appURL: appURL, frameProvider: { settingsFrame },
-                                                   dropTargetProvider: { _ in isSettingsDrop })
+        let helper = SettingsPermissionDragHelper(
+            appURL: appURL, frameProvider: { settingsFrame },
+            dropTargetProvider: { _ in isSettingsDrop })
         helper.show()
         guard let panel = NSApp.windows.first(where: { $0.identifier?.rawValue == "permission-drag-helper" }) as? NSPanel,
-              let icon = descendants(panel.contentView!).compactMap({ $0 as? SettingsPermissionAppIcon }).first else {
+            let icon = descendants(panel.contentView!).compactMap({ $0 as? SettingsPermissionAppIcon }).first
+        else {
             preconditionFailure("The helper must present a real app icon")
         }
-        precondition(!panel.isVisible && !panel.hidesOnDeactivate && panel.styleMask.contains(.nonactivatingPanel),
-                     "The helper must wait for the visible Settings window without activating Zshell")
+        precondition(
+            !panel.isVisible && !panel.hidesOnDeactivate && panel.styleMask.contains(.nonactivatingPanel),
+            "The helper must wait for the visible Settings window without activating Zshell")
         try? await Task.sleep(for: .milliseconds(350))
         precondition(!panel.isVisible, "An absent Settings window must not show a helper at a fallback position")
         precondition(icon.appURL == appURL && icon.image != nil)
         let content = panel.contentView!
         content.layoutSubtreeIfNeeded()
         let stack = content.subviews.compactMap { $0 as? NSStackView }.first!
-        precondition(abs(stack.frame.midX - content.bounds.midX) < 0.5
-                     && abs(stack.frame.midY - content.bounds.midY) < 0.5,
-                     "The complete icon, name, and instruction group must be centered")
+        precondition(
+            abs(stack.frame.midX - content.bounds.midX) < 0.5
+                && abs(stack.frame.midY - content.bounds.midY) < 0.5,
+            "The complete icon, name, and instruction group must be centered")
         let item = icon.draggingItem()
         precondition((item.item as? NSURL) as URL? == appURL, "Dragging must transfer the running .app, not its image or executable")
         let pasteboard = NSPasteboard(name: NSPasteboard.Name("zshell-permission-test-" + UUID().uuidString))
@@ -148,8 +160,9 @@ struct SettingsPermissionTests {
         settingsFrame = visible.insetBy(dx: 200, dy: 150)
         try? await Task.sleep(for: .milliseconds(650))
         let appeared = SettingsPermissionDragHelper.frame(size: panel.frame.size, nextTo: settingsFrame!, visibleFrame: visible)
-        precondition(panel.isVisible && panel.frame == appeared && panel.frame != initial,
-                     "The helper must wait for Settings to appear instead of keeping its launch fallback")
+        precondition(
+            panel.isVisible && panel.frame == appeared && panel.frame != initial,
+            "The helper must wait for Settings to appear instead of keeping its launch fallback")
         helper.show()
         precondition(panel.isVisible && panel.frame == appeared, "Repeated requests must reuse the visible helper without flashing")
         settingsFrame = settingsFrame!.offsetBy(dx: -80, dy: 30)
@@ -159,14 +172,16 @@ struct SettingsPermissionTests {
         precondition(panel.frame == appeared, "An active drag must keep its source panel still when Settings moves")
         icon.draggingSession(dragSession, endedAt: .zero, operation: [])
         try? await Task.sleep(for: .milliseconds(650))
-        precondition(panel.frame == SettingsPermissionDragHelper.frame(size: panel.frame.size, nextTo: settingsFrame!, visibleFrame: visible)
-                     && panel.frame != appeared, "The visible helper must follow a moved Settings window")
+        precondition(
+            panel.frame == SettingsPermissionDragHelper.frame(size: panel.frame.size, nextTo: settingsFrame!, visibleFrame: visible)
+                && panel.frame != appeared, "The visible helper must follow a moved Settings window")
 
         let lastVisibleFrame = panel.frame
         settingsFrame = nil
         try? await Task.sleep(for: .milliseconds(650))
-        precondition(panel.isVisible && panel.frame == lastVisibleFrame,
-                     "Minimizing or hiding Settings must preserve the helper's last position")
+        precondition(
+            panel.isVisible && panel.frame == lastVisibleFrame,
+            "Minimizing or hiding Settings must preserve the helper's last position")
         icon.draggingSession(dragSession, willBeginAt: .zero)
         precondition(panel.isVisible, "Starting a drag must leave the helper visible")
         icon.draggingSession(dragSession, endedAt: .zero, operation: [])
@@ -216,11 +231,14 @@ struct SettingsPermissionTests {
         precondition(!panel.isVisible, "Closing the helper must cancel an outstanding wait for Settings")
         host.close()
 
-        for visible in [NSRect(x: 0, y: 0, width: 1440, height: 900),
-                        NSRect(x: -1440, y: 0, width: 1440, height: 900)] {
+        for visible in [
+            NSRect(x: 0, y: 0, width: 1440, height: 900),
+            NSRect(x: -1440, y: 0, width: 1440, height: 900),
+        ] {
             for reference in [visible.insetBy(dx: 100, dy: 100), visible.offsetBy(dx: 1000, dy: 0)] {
-                let frame = SettingsPermissionDragHelper.frame(size: NSSize(width: 184, height: 192),
-                                                               nextTo: reference, visibleFrame: visible)
+                let frame = SettingsPermissionDragHelper.frame(
+                    size: NSSize(width: 184, height: 192),
+                    nextTo: reference, visibleFrame: visible)
                 precondition(visible.contains(frame), "The helper must stay on its display even when Settings is near an edge")
             }
         }
@@ -242,46 +260,65 @@ struct SettingsPermissionTests {
         let menu = window(rect: NSRect(x: 0, y: 0, width: 1512, height: 33))
         let unrelated = window(pid: 123, rect: NSRect(x: 0, y: 0, width: 1500, height: 900), onscreen: true)
         let expected = NSRect(x: 750, y: 65, width: 754, height: 747)
-        precondition(SettingsPermissionDragHelper.windowFrame(in: [menu, unrelated, hiddenSettings],
-                     ownerPIDs: [31446], primaryScreenTop: 982) == nil,
-                     "Hidden Settings windows and menu bars must not position the helper")
+        precondition(
+            SettingsPermissionDragHelper.windowFrame(
+                in: [menu, unrelated, hiddenSettings],
+                ownerPIDs: [31446], primaryScreenTop: 982) == nil,
+            "Hidden Settings windows and menu bars must not position the helper")
         let visibleSettings = window(rect: settingsRect, onscreen: true)
-        precondition(SettingsPermissionDragHelper.windowFrame(in: [menu, unrelated, hiddenSettings, visibleSettings],
-                     ownerPIDs: [31446], primaryScreenTop: 982) == expected,
-                     "Only a visible Settings window supplies the helper position")
+        precondition(
+            SettingsPermissionDragHelper.windowFrame(
+                in: [menu, unrelated, hiddenSettings, visibleSettings],
+                ownerPIDs: [31446], primaryScreenTop: 982) == expected,
+            "Only a visible Settings window supplies the helper position")
 
         let movedRect = NSRect(x: -1300, y: -400, width: 754, height: 747)
-        precondition(SettingsPermissionDragHelper.windowFrame(in: [hiddenSettings, window(rect: movedRect, onscreen: true)],
-                     ownerPIDs: [31446], primaryScreenTop: 982)?.origin == NSPoint(x: -1300, y: 635),
-                     "A visible Settings window must win over a hidden window and track moves above the primary display")
+        precondition(
+            SettingsPermissionDragHelper.windowFrame(
+                in: [hiddenSettings, window(rect: movedRect, onscreen: true)],
+                ownerPIDs: [31446], primaryScreenTop: 982)?.origin == NSPoint(x: -1300, y: 635),
+            "A visible Settings window must win over a hidden window and track moves above the primary display")
         precondition(SettingsPermissionDragHelper.windowFrame(in: [], ownerPIDs: [31446], primaryScreenTop: 982) == nil)
 
         let dropPoint = NSPoint(x: expected.midX, y: expected.midY)
-        precondition(SettingsPermissionDragHelper.isSystemSettingsDrop(at: dropPoint, in: [visibleSettings],
-                     ownerPIDs: [31446], primaryScreenTop: 982), "A successful drop must target the Settings window")
-        precondition(!SettingsPermissionDragHelper.isSystemSettingsDrop(at: dropPoint, in: [unrelated, visibleSettings],
-                     ownerPIDs: [31446], primaryScreenTop: 982), "An unrelated window covering Settings must not count as its drop target")
-        precondition(!SettingsPermissionDragHelper.isSystemSettingsDrop(at: dropPoint, in: [hiddenSettings],
-                     ownerPIDs: [31446], primaryScreenTop: 982), "Hidden Settings bounds must not count as a drop target")
+        precondition(
+            SettingsPermissionDragHelper.isSystemSettingsDrop(
+                at: dropPoint, in: [visibleSettings],
+                ownerPIDs: [31446], primaryScreenTop: 982), "A successful drop must target the Settings window")
+        precondition(
+            !SettingsPermissionDragHelper.isSystemSettingsDrop(
+                at: dropPoint, in: [unrelated, visibleSettings],
+                ownerPIDs: [31446], primaryScreenTop: 982), "An unrelated window covering Settings must not count as its drop target")
+        precondition(
+            !SettingsPermissionDragHelper.isSystemSettingsDrop(
+                at: dropPoint, in: [hiddenSettings],
+                ownerPIDs: [31446], primaryScreenTop: 982), "Hidden Settings bounds must not count as a drop target")
 
-        let displays = [NSRect(x: 0, y: 0, width: 1512, height: 982),
-                        NSRect(x: -1440, y: 0, width: 1440, height: 900)]
-        precondition(SettingsPermissionDragHelper.screenIndex(for: NSRect(x: -600, y: 100, width: 754, height: 747),
-                     frames: displays) == 1, "A window spanning displays must use the display containing most of it")
+        let displays = [
+            NSRect(x: 0, y: 0, width: 1512, height: 982),
+            NSRect(x: -1440, y: 0, width: 1440, height: 900),
+        ]
+        precondition(
+            SettingsPermissionDragHelper.screenIndex(
+                for: NSRect(x: -600, y: 100, width: 754, height: 747),
+                frames: displays) == 1, "A window spanning displays must use the display containing most of it")
         let helperSize = NSSize(width: 184, height: 194)
         let first = SettingsPermissionDragHelper.frame(size: helperSize, nextTo: expected, visibleFrame: displays[0])
-        let moved = SettingsPermissionDragHelper.frame(size: helperSize,
-                    nextTo: NSRect(x: -1300, y: 100, width: 754, height: 747), visibleFrame: displays[1])
-        precondition(first.origin != moved.origin && displays[1].contains(moved),
-                     "The helper position must follow Settings to its new display")
+        let moved = SettingsPermissionDragHelper.frame(
+            size: helperSize,
+            nextTo: NSRect(x: -1300, y: 100, width: 754, height: 747), visibleFrame: displays[1])
+        precondition(
+            first.origin != moved.origin && displays[1].contains(moved),
+            "The helper position must follow Settings to its new display")
     }
 
     @MainActor private static func testPane() {
         let fixture = PermissionFixture()
         let pane = SettingsPermissionsPane(coordinator: fixture.makeCoordinator())
         pane.setCategory(.permissions)
-        let host = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 640),
-                            styleMask: [.titled], backing: .buffered, defer: false)
+        let host = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 640),
+            styleMask: [.titled], backing: .buffered, defer: false)
         host.isReleasedWhenClosed = false
         host.contentViewController = pane
         host.contentView?.layoutSubtreeIfNeeded()

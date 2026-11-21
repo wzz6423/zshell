@@ -53,7 +53,9 @@ struct WorkspaceTemplateSurfaceTests {
         AppSettings.shared.terminalBackend = backend == "ghostty" ? .libghostty : .alacritty
         let manager = TerminalManager()
         let source = manager.selectedProject!
-        for content in source.tabs.flatMap(\.allContents) { source.closeContent(content, confirmWorktree: false, recordClosedSession: false) }
+        for content in source.tabs.flatMap(\.allContents) {
+            source.closeContent(content, confirmWorktree: false, recordClosedSession: false)
+        }
         let sourceRoot = home.appendingPathComponent("source", isDirectory: true)
         let targetRoot = home.appendingPathComponent("target", isDirectory: true)
         for root in [sourceRoot, targetRoot] {
@@ -64,8 +66,9 @@ struct WorkspaceTemplateSurfaceTests {
         source.customDirectory = sourceRoot.path
         source.customName = "Source project"
         var windows: [NSWindow] = []
-        let host = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1260, height: 760),
-                                      styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        let host = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1260, height: 760),
+            styleMask: [.titled, .closable], backing: .buffered, defer: false)
         host.identifier = NSUserInterfaceItemIdentifier("main-template-fixture")
         host.orderFront(nil)
         manager.attach(to: host)
@@ -82,13 +85,16 @@ struct WorkspaceTemplateSurfaceTests {
             WorkspaceTemplateController.shared.close(ifOwnedBy: manager)
             manager.projects.forEach { $0.terminateAll() }
             pump(0.2)
-            windows.forEach { $0.contentView = nil; $0.orderOut(nil) }
+            windows.forEach {
+                $0.contentView = nil; $0.orderOut(nil)
+            }
             manager.windowClosed()
         }
 
         func mount(_ session: TerminalSession) {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 420),
-                                            styleMask: [.titled], backing: .buffered, defer: false)
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 800, height: 420),
+                styleMask: [.titled], backing: .buffered, defer: false)
             let surface = session.surface
             surface.frame = window.contentView!.bounds
             window.contentView = surface
@@ -102,11 +108,13 @@ struct WorkspaceTemplateSurfaceTests {
             session.surface.readVisibleText(maxLines: 80, maxColumns: 200) ?? ""
         }
 
-        let first = source.newSession(directory: sourceRoot.appendingPathComponent("api").path,
+        let first = source.newSession(
+            directory: sourceRoot.appendingPathComponent("api").path,
             commandArguments: ["sh", "-c", "printf 'SOURCE_START\\n'; exec /bin/sh -i"],
             usesConfiguredStartupCommand: false)!
         let workTab = source.selectedTab!
-        let second = source.newSession(directory: sourceRoot.appendingPathComponent("web").path,
+        let second = source.newSession(
+            directory: sourceRoot.appendingPathComponent("web").path,
             launchSettings: TerminalLaunchSettings(initializationCommand: "printf 'SOURCE_INIT\\n'"),
             usesConfiguredStartupCommand: false)!
         let secondTab = source.detachTabForTransfer(id: source.selectedTabID!)!
@@ -115,9 +123,14 @@ struct WorkspaceTemplateSurfaceTests {
         let browserTab = source.detachTabForTransfer(id: source.selectedTabID!)!
         let browserPane = browserTab.allPanes[0]
         source.selectedTabID = workTab.id
-        workTab.layout = .split(PaneSplit(axis: .horizontal, fraction: 0.65,
-            first: workTab.layout, second: .split(PaneSplit(axis: .vertical, fraction: 0.3,
-                first: .pane(secondPane), second: .pane(browserPane)))))
+        workTab.layout = .split(
+            PaneSplit(
+                axis: .horizontal, fraction: 0.65,
+                first: workTab.layout,
+                second: .split(
+                    PaneSplit(
+                        axis: .vertical, fraction: 0.3,
+                        first: .pane(secondPane), second: .pane(browserPane)))))
         workTab.customName = "Development"
         workTab.focusedPaneID = secondPane.id
         mount(first)
@@ -142,21 +155,26 @@ struct WorkspaceTemplateSurfaceTests {
         source.openFile(filePath.path, behavior: .pinned)
         let fileTab = source.selectedTab!
         guard case .file(let file) = fileTab.focusedContent! else { throw failure("file fixture missing") }
-        try wait("source editor loaded") { if case .text = file.content { return file.text == "ORIGINAL_DISK" }; return false }
+        try wait("source editor loaded") {
+            if case .text = file.content { return file.text == "ORIGINAL_DISK" }; return false
+        }
         file.text = "UNSAVED_PRIVATE_EDIT"
         file.refreshDirtyState()
         let diff = DiffTab(repoRoot: sourceRoot.path, path: "unsaved.txt", staged: false, untracked: true, origPath: nil)
         source.append(PaneTab(content: .diff(diff)))
         source.selectedTabID = workTab.id
-        let agentIdentity = AgentConversationIdentity(provider: .codex, sessionID: UUID().uuidString,
-                                                       workingDirectory: sourceRoot.path)!
+        let agentIdentity = AgentConversationIdentity(
+            provider: .codex, sessionID: UUID().uuidString,
+            workingDirectory: sourceRoot.path)!
         first.recordAgentConversation(agentIdentity, processID: nil)
         second.recordAgentConversation(agentIdentity, processID: nil)
         let agentTemplate = try WorkspaceTemplate.capture(project: source, name: "Agent project")
-        try check(agentTemplate.tabs[0].terminals[0].program == nil,
-                  "capture omits direct startup arguments after an agent identity is detected")
-        try check(agentTemplate.tabs[0].terminals[1].initializationCommand == nil,
-                  "capture omits initialization commands after an agent identity is detected")
+        try check(
+            agentTemplate.tabs[0].terminals[0].program == nil,
+            "capture omits direct startup arguments after an agent identity is detected")
+        try check(
+            agentTemplate.tabs[0].terminals[1].initializationCommand == nil,
+            "capture omits initialization commands after an agent identity is detected")
         let agentJSON = String(data: try agentTemplate.encoded(), encoding: .utf8)!
         try check(!agentJSON.contains(agentIdentity.sessionID), "capture omits the detected agent identity")
         first.recordAgentConversation(nil, processID: nil)
@@ -164,12 +182,17 @@ struct WorkspaceTemplateSurfaceTests {
         let captured = try WorkspaceTemplate.capture(project: source, name: "Shared Development")
         let data = try captured.encoded()
         let encoded = String(data: data, encoding: .utf8)!
-        try check(captured.tabs.count == 3 && captured.simplifiedPaneCount == 2, "capture keeps tabs and clearly simplifies editor/diff leaves")
+        try check(
+            captured.tabs.count == 3 && captured.simplifiedPaneCount == 2, "capture keeps tabs and clearly simplifies editor/diff leaves")
         try check(captured.tabs[0].terminals[0].program == "sh", "capture preserves a PATH-based startup program")
         try check(captured.tabs[0].focusedPaneIndex == 1, "capture retains focused pane position")
-        for secret in ["PRIVATE_SCROLLBACK", "PRIVATE_SOURCE", "PRIVATE_STORAGE", "UNSAVED_PRIVATE_EDIT", first.id.uuidString,
-                       "terminalID", "historyKey", "agentResume", "remoteSessionID", "credentialID"] {
-            try check(!encoded.contains(secret), "export excludes private runtime value \(secret.hasPrefix("PRIVATE") ? "fixture state" : secret)")
+        for secret in [
+            "PRIVATE_SCROLLBACK", "PRIVATE_SOURCE", "PRIVATE_STORAGE", "UNSAVED_PRIVATE_EDIT", first.id.uuidString,
+            "terminalID", "historyKey", "agentResume", "remoteSessionID", "credentialID",
+        ] {
+            try check(
+                !encoded.contains(secret), "export excludes private runtime value \(secret.hasPrefix("PRIVATE") ? "fixture state" : secret)"
+            )
         }
         try check(file.text == "UNSAVED_PRIVATE_EDIT" && file.isDirty, "capture preserves unsaved source editor contents")
         let sourceDisk = try String(contentsOf: filePath, encoding: .utf8)
@@ -180,41 +203,60 @@ struct WorkspaceTemplateSurfaceTests {
         try store.exportTemplate(entryID, to: shareURL)
         let importedID = try store.importTemplate(from: shareURL)
         var ready = store.entries.first { $0.id == importedID }!.template
-        ready.tabs[0].terminals[0].arguments = ["-c", "printf 'APPLIED_START\\n'; printf '%s\\n' \"$PWD\"; : > applied-sentinel; exec /bin/sh -i"]
+        ready.tabs[0].terminals[0].arguments = [
+            "-c", "printf 'APPLIED_START\\n'; printf '%s\\n' \"$PWD\"; : > applied-sentinel; exec /bin/sh -i",
+        ]
         ready.tabs[0].terminals[1].initializationCommand = "printf 'APPLIED_INIT\\n'; : > initialization-sentinel"
         try store.update(importedID, template: ready)
         let sentinel = targetRoot.appendingPathComponent("api/applied-sentinel")
-        try check(!FileManager.default.fileExists(atPath: sentinel.path), "saving, exporting, importing and editing do not execute commands")
+        try check(
+            !FileManager.default.fileExists(atPath: sentinel.path), "saving, exporting, importing and editing do not execute commands")
         let projectCount = manager.projects.count
         var unavailable = ready
         unavailable.tabs[0].terminals[0].program = "/missing/template-program"
-        do { _ = try manager.applyWorkspaceTemplate(unavailable, projectRoot: targetRoot.path); throw failure("invalid apply succeeded") }
-        catch WorkspaceTemplateError.programNotExecutable { }
-        try check(manager.projects.count == projectCount && !FileManager.default.fileExists(atPath: sentinel.path), "failed preflight creates no project and runs no command")
+        do {
+            _ = try manager.applyWorkspaceTemplate(unavailable, projectRoot: targetRoot.path); throw failure("invalid apply succeeded")
+        } catch WorkspaceTemplateError.programNotExecutable {}
+        try check(
+            manager.projects.count == projectCount && !FileManager.default.fileExists(atPath: sentinel.path),
+            "failed preflight creates no project and runs no command")
         AppSettings.shared.terminalStartupProgram = "/bin/sh"
         AppSettings.shared.terminalStartupArguments = "-c ': > GLOBAL_STARTUP_SENTINEL; exec /bin/sh -i'"
         var profile = TerminalProfile(name: "Template initialization fixture")
         profile.directory = "*/target*"
         profile.appearance.fontSize = 17
-        profile.launchSettings = .init(environmentVariables: [.init(name: "TEMPLATE_PROFILE", value: "matched")],
-                                       initializationCommand: ": > PROFILE_INITIALIZATION_SENTINEL")
+        profile.launchSettings = .init(
+            environmentVariables: [.init(name: "TEMPLATE_PROFILE", value: "matched")],
+            initializationCommand: ": > PROFILE_INITIALIZATION_SENTINEL")
         AppSettings.shared.automaticallyApplyTerminalProfiles = true
         AppSettings.shared.terminalProfiles = [profile]
         let applied = try manager.applyWorkspaceTemplate(ready, projectRoot: targetRoot.path)
         applied.sessions.forEach(mount)
-        try wait("applied startup program did not execute") { FileManager.default.fileExists(atPath: sentinel.path) && text(applied.sessions[0]).contains("APPLIED_START") }
+        try wait("applied startup program did not execute") {
+            FileManager.default.fileExists(atPath: sentinel.path) && text(applied.sessions[0]).contains("APPLIED_START")
+        }
         try wait("applied initialization command did not execute") {
             FileManager.default.fileExists(atPath: targetRoot.appendingPathComponent("web/initialization-sentinel").path)
                 && text(applied.sessions[1]).contains("APPLIED_INIT")
         }
-        try check(applied.tabs.count == 3 && applied.sessions.count == 4, "application creates all terminal leaves and converted editor/diff leaves")
+        try check(
+            applied.tabs.count == 3 && applied.sessions.count == 4,
+            "application creates all terminal leaves and converted editor/diff leaves")
         try check(Set(applied.sessions.map(\.id)).isDisjoint(with: originalIDs), "template creates fresh terminal identities")
-        try check(applied.sessions.allSatisfy { !$0.reconnectedToPersistentPTY && $0.agentResume == nil && $0.worktree == nil }, "template never reconnects a running PTY or copies agent/worktree ownership")
+        try check(
+            applied.sessions.allSatisfy { !$0.reconnectedToPersistentPTY && $0.agentResume == nil && $0.worktree == nil },
+            "template never reconnects a running PTY or copies agent/worktree ownership")
         let resolved = { (path: String) in URL(fileURLWithPath: path).resolvingSymlinksInPath().path }
-        try check(resolved(applied.sessions[0].currentDirectoryPath) == resolved(targetRoot.appendingPathComponent("api").path)
-                  && resolved(applied.sessions[1].currentDirectoryPath) == resolved(targetRoot.appendingPathComponent("web").path), "real PTYs start in remapped project-relative directories")
-        try check(applied.sessions.dropFirst(2).allSatisfy { resolved($0.currentDirectoryPath) == resolved(targetRoot.path) }, "converted editor and diff panes start at the target root")
-        try check(!FileManager.default.fileExists(atPath: targetRoot.appendingPathComponent("GLOBAL_STARTUP_SENTINEL").path), "unlisted global startup commands are not applied to template terminals")
+        try check(
+            resolved(applied.sessions[0].currentDirectoryPath) == resolved(targetRoot.appendingPathComponent("api").path)
+                && resolved(applied.sessions[1].currentDirectoryPath) == resolved(targetRoot.appendingPathComponent("web").path),
+            "real PTYs start in remapped project-relative directories")
+        try check(
+            applied.sessions.dropFirst(2).allSatisfy { resolved($0.currentDirectoryPath) == resolved(targetRoot.path) },
+            "converted editor and diff panes start at the target root")
+        try check(
+            !FileManager.default.fileExists(atPath: targetRoot.appendingPathComponent("GLOBAL_STARTUP_SENTINEL").path),
+            "unlisted global startup commands are not applied to template terminals")
         for (index, session) in applied.sessions.enumerated() {
             let marker = home.appendingPathComponent("template-profile-env-\(index)")
             session.sendCommand("printf '%s' \"$TEMPLATE_PROFILE\" > " + TerminalSession.shellQuote(marker.path))
@@ -224,34 +266,48 @@ struct WorkspaceTemplateSurfaceTests {
             }
             try check(session.surface.profileAppearance == profile.appearance, "template pane \(index) retains the profile appearance")
         }
-        try check([targetRoot, targetRoot.appendingPathComponent("api"), targetRoot.appendingPathComponent("web")].allSatisfy {
-            !FileManager.default.fileExists(atPath: $0.appendingPathComponent("PROFILE_INITIALIZATION_SENTINEL").path)
-        }, "a matching profile never replaces template initialization or adds a command to plain template panes")
-        try check(applied.sessions[1].initializationCommandForTemplate == ready.tabs[0].terminals[1].initializationCommand
-                  && applied.sessions.dropFirst(2).allSatisfy { $0.initializationCommandForTemplate == nil },
-                  "template initialization metadata keeps the explicit command and absent commands")
+        try check(
+            [targetRoot, targetRoot.appendingPathComponent("api"), targetRoot.appendingPathComponent("web")].allSatisfy {
+                !FileManager.default.fileExists(atPath: $0.appendingPathComponent("PROFILE_INITIALIZATION_SENTINEL").path)
+            }, "a matching profile never replaces template initialization or adds a command to plain template panes")
+        try check(
+            applied.sessions[1].initializationCommandForTemplate == ready.tabs[0].terminals[1].initializationCommand
+                && applied.sessions.dropFirst(2).allSatisfy { $0.initializationCommandForTemplate == nil },
+            "template initialization metadata keeps the explicit command and absent commands")
         AppSettings.shared.terminalProfiles = []
-        try check(first.shellPid == originalPID && !first.hasExited && text(first).contains("PRIVATE_SCROLLBACK"), "applying leaves the source PTY and scrollback alive")
+        try check(
+            first.shellPid == originalPID && !first.hasExited && text(first).contains("PRIVATE_SCROLLBACK"),
+            "applying leaves the source PTY and scrollback alive")
         try check(source.tabs.contains { $0 === fileTab } && file.isDirty, "applying keeps source tabs and unsaved edits")
         if case .split(let outer) = applied.tabs[0].layout, case .split(let inner) = outer.second {
-            try check(outer.axis == .horizontal && outer.fraction == 0.65 && inner.axis == .vertical && inner.fraction == 0.3, "actual pane tree retains nested split axes and weights")
+            try check(
+                outer.axis == .horizontal && outer.fraction == 0.65 && inner.axis == .vertical && inner.fraction == 0.3,
+                "actual pane tree retains nested split axes and weights")
             let geometry = applied.tabs[0].layout.geometry(in: CGRect(x: 0, y: 0, width: 1000, height: 600), gap: 4)
-            try check(geometry.panes.count == 3 && geometry.panes[0].frame.width > geometry.panes[1].frame.width
-                      && geometry.panes[1].frame.height < geometry.panes[2].frame.height, "existing pane geometry honors template weights")
-        } else { throw failure("nested split tree missing") }
-        try check(applied.selectedTabID == applied.tabs[0].id && applied.tabs[0].focusedPaneID == applied.tabs[0].allPanes[1].id, "application restores selected tab and focused pane")
+            try check(
+                geometry.panes.count == 3 && geometry.panes[0].frame.width > geometry.panes[1].frame.width
+                    && geometry.panes[1].frame.height < geometry.panes[2].frame.height, "existing pane geometry honors template weights")
+        } else {
+            throw failure("nested split tree missing")
+        }
+        try check(
+            applied.selectedTabID == applied.tabs[0].id && applied.tabs[0].focusedPaneID == applied.tabs[0].allPanes[1].id,
+            "application restores selected tab and focused pane")
         let restoredBrowser = applied.tabs[0].browsers[0]
         try wait("applied browser page did not load") { restoredBrowser.title == "Template fixture" && !restoredBrowser.isLoading }
         try check(restoredBrowser.webView.url?.absoluteString == address + "/docs", "real browser opens the captured public page")
 
         let controller = WorkspaceTemplateController(store: store)
         let menu = NSMenu()
-        for title in ["Zshell", "File"] { let item = NSMenuItem(title: title, action: nil, keyEquivalent: ""); item.submenu = NSMenu(title: title); menu.addItem(item) }
+        for title in ["Zshell", "File"] {
+            let item = NSMenuItem(title: title, action: nil, keyEquivalent: ""); item.submenu = NSMenu(title: title); menu.addItem(item)
+        }
         menu.items[1].identifier = .init(AppMenuController.Menu.file.rawValue)
         controller.installMenu(in: menu)
         controller.installMenu(in: menu)
-        try check(menu.items[1].submenu!.items.filter { $0.identifier?.rawValue == "zshell-workspace-templates-menu" }.count == 1,
-                  "AppKit menu installation is idempotent inside File")
+        try check(
+            menu.items[1].submenu!.items.filter { $0.identifier?.rawValue == "zshell-workspace-templates-menu" }.count == 1,
+            "AppKit menu installation is idempotent inside File")
         controller.show(for: manager)
         pump(0.2)
         let panel = host.childWindows!.first { $0.identifier?.rawValue == "workspace-templates" }!
@@ -263,28 +319,33 @@ struct WorkspaceTemplateSurfaceTests {
         rootField.stringValue = targetRoot.path + "/missing"
         applyButton.performClick(nil)
         pump(0.1)
-        try check(manager.projects.count == projectCount + 1 && views.compactMap { $0 as? NSTextField }.contains { $0.stringValue.contains("unavailable") },
-                  "invalid directory displays an AppKit error and keeps the manager open")
+        try check(
+            manager.projects.count == projectCount + 1
+                && views.compactMap { $0 as? NSTextField }.contains { $0.stringValue.contains("unavailable") },
+            "invalid directory displays an AppKit error and keeps the manager open")
         rootField.stringValue = targetRoot.path
         for language in AppLanguage.allCases where language != .system {
             AppLocalization.apply(language)
             controller.installMenu(in: menu)
             pump(0.03)
             panel.contentView!.layoutSubtreeIfNeeded()
-            try check(panel.title == String(localized: "Workspace Templates") && !panel.title.isEmpty,
-                      "native template window refreshes \(language.rawValue) labels")
+            try check(
+                panel.title == String(localized: "Workspace Templates") && !panel.title.isEmpty,
+                "native template window refreshes \(language.rawValue) labels")
         }
         AppLocalization.apply(.english)
         pump(0.1)
         panel.setContentSize(NSSize(width: 760, height: 500))
         panel.contentView!.layoutSubtreeIfNeeded()
         let snapshotViews = descendants(panel.contentView!)
-        try check(snapshotViews.compactMap { $0 as? NSButton }.allSatisfy { !$0.hasAmbiguousLayout && $0.frame.width > 0 && $0.frame.height > 0 },
-                  "management buttons have concrete frames at minimum window width")
+        try check(
+            snapshotViews.compactMap { $0 as? NSButton }.allSatisfy { !$0.hasAmbiguousLayout && $0.frame.width > 0 && $0.frame.height > 0 },
+            "management buttons have concrete frames at minimum window width")
         try check(rootField.frame.width > 300, "the project root field uses the full detail column")
         if let bitmap = panel.contentView!.bitmapImageRepForCachingDisplay(in: panel.contentView!.bounds) {
             panel.contentView!.cacheDisplay(in: panel.contentView!.bounds, to: bitmap)
-            try bitmap.representation(using: .png, properties: [:])?.write(to: resultDirectory.appendingPathComponent("templates-\(backend).png"))
+            try bitmap.representation(using: .png, properties: [:])?.write(
+                to: resultDirectory.appendingPathComponent("templates-\(backend).png"))
         }
         controller.close(ifOwnedBy: manager)
         try check(!panel.isVisible && panel.parent == nil, "closing management releases its host window relationship")

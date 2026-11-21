@@ -283,12 +283,12 @@ final class SourceEditorController: NSObject, STTextViewDelegate {
     ) {
         defer { pendingTextChange = nil }
         guard let editor = textView as? FocusReportingTextView,
-              editor.isTextSnapshotValid,
-              let pendingTextChange,
-              pendingTextChange.replacement == replacementString,
-              pendingTextChange.range.location >= 0,
-              pendingTextChange.range.location + pendingTextChange.range.length
-                  <= editor.textSnapshotUTF16Length
+            editor.isTextSnapshotValid,
+            let pendingTextChange,
+            pendingTextChange.replacement == replacementString,
+            pendingTextChange.range.location >= 0,
+            pendingTextChange.range.location + pendingTextChange.range.length
+                <= editor.textSnapshotUTF16Length
         else {
             (textView as? FocusReportingTextView)?.invalidateTextSnapshot()
             return
@@ -427,18 +427,19 @@ final class FocusReportingTextView: STTextView {
         for (selectionIndex, state) in states.enumerated() {
             for (rangeIndex, range) in state.ranges.enumerated() {
                 guard range.location <= source.length,
-                      range.length <= source.length - range.location,
-                      let textRange = NSTextRange(range, in: textContentManager)
+                    range.length <= source.length - range.location,
+                    let textRange = NSTextRange(range, in: textContentManager)
                 else {
                     return nil
                 }
-                edits.append(NewlineEdit(
-                    range: range,
-                    textRange: textRange,
-                    replacement: "\n" + indentation(at: range.location, in: source),
-                    selectionIndex: selectionIndex,
-                    rangeIndex: rangeIndex
-                ))
+                edits.append(
+                    NewlineEdit(
+                        range: range,
+                        textRange: textRange,
+                        replacement: "\n" + indentation(at: range.location, in: source),
+                        selectionIndex: selectionIndex,
+                        rangeIndex: rangeIndex
+                    ))
             }
         }
         return edits
@@ -579,14 +580,15 @@ private final class RestorableScrollView: NSScrollView {
         guard let scroller = verticalScroller else { print("[scroller] \(tag) none"); return }
         let scrollerInWindow = scroller.convert(scroller.bounds, to: nil)
         let selfInWindow = convert(bounds, to: nil)
-        print("""
-        [scroller] \(tag) \
-        sv.w=\(Int(bounds.width)) sv.inWindow.x=\(Int(selfInWindow.minX))..\(Int(selfInWindow.maxX)) \
-        clip.w=\(Int(contentView.bounds.width)) doc.w=\(Int(documentView?.frame.width ?? -1)) \
-        scroller.frame=\(Int(scroller.frame.minX)),w=\(Int(scroller.frame.width)) \
-        scroller.inWindow.x=\(Int(scrollerInWindow.minX)) hidden=\(scroller.isHidden) \
-        super=\(scroller.superview.map { String(describing: type(of: $0)) } ?? "nil")
-        """)
+        print(
+            """
+            [scroller] \(tag) \
+            sv.w=\(Int(bounds.width)) sv.inWindow.x=\(Int(selfInWindow.minX))..\(Int(selfInWindow.maxX)) \
+            clip.w=\(Int(contentView.bounds.width)) doc.w=\(Int(documentView?.frame.width ?? -1)) \
+            scroller.frame=\(Int(scroller.frame.minX)),w=\(Int(scroller.frame.width)) \
+            scroller.inWindow.x=\(Int(scrollerInWindow.minX)) hidden=\(scroller.isHidden) \
+            super=\(scroller.superview.map { String(describing: type(of: $0)) } ?? "nil")
+            """)
     }
 
     override func layout() {
@@ -650,7 +652,8 @@ extension FileTab {
     /// applies it the next time it mounts.
     func revealSelection(at location: Int) {
         if let scrollView = editorView as? NSScrollView,
-           let textView = scrollView.documentView as? STTextView {
+            let textView = scrollView.documentView as? STTextView
+        {
             Self.reveal(location: location, in: textView)
             return
         }

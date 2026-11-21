@@ -51,26 +51,33 @@ nonisolated struct AgentRecognitionManifest: Equatable, Sendable {
         var names: [String: String] = [:]
         for table in tables {
             let id = table["id"]?.string ?? ""
-            guard validID(id), Set(table.keys).isSubset(of: [
-                "id", "name", "executables", "aliases", "screen_enabled", "rules", "min_engine_version", "version", "updated_at",
-            ]) else { throw failure(id, String(localized: "Use a unique agent ID and supported keys.")) }
+            guard validID(id),
+                Set(table.keys).isSubset(of: [
+                    "id", "name", "executables", "aliases", "screen_enabled", "rules", "min_engine_version", "version", "updated_at",
+                ])
+            else { throw failure(id, String(localized: "Use a unique agent ID and supported keys.")) }
             let canonical = builtinKind(id)?.rawValue ?? id
             guard ids.insert(canonical).inserted else { throw failure(id, String(localized: "An agent ID appears more than once.")) }
             let version = try integer(table, "min_engine_version", default: 3, id: id)
-            guard (0...3).contains(version) else { throw failure(id, String(localized: "This rule format requires a newer engine.")) }
+            guard (0 ... 3).contains(version) else { throw failure(id, String(localized: "This rule format requires a newer engine.")) }
             let name = try string(table, "name", default: builtinKind(id)?.displayName ?? id, id: id)
-            guard validText(name, maximum: 128), !name.isEmpty else { throw failure(id, String(localized: "Enter a name of at most 128 bytes.")) }
+            guard validText(name, maximum: 128), !name.isEmpty else {
+                throw failure(id, String(localized: "Enter a name of at most 128 bytes."))
+            }
             let executables = try strings(table, "executables", id: id)
             let aliases = try strings(table, "aliases", id: id)
             let effectiveExecutables = executables.isEmpty && builtinKind(id) == nil ? [id] : executables
-            guard effectiveExecutables.count + aliases.count <= 32 else { throw failure(id, String(localized: "Use at most 32 executable names and aliases.")) }
+            guard effectiveExecutables.count + aliases.count <= 32 else {
+                throw failure(id, String(localized: "Use at most 32 executable names and aliases."))
+            }
             for executable in effectiveExecutables + aliases {
                 guard validID(executable), !ZshellAgentKind.isScriptInterpreter(commandName(executable)) else {
                     throw failure(id, String(localized: "Use executable names without paths; shell and interpreter names are reserved."))
                 }
                 let normalized = commandName(executable)
                 if let builtin = ZshellAgentKind.recognize(executablePath: nil, arguments: [normalized]),
-                   builtin.rawValue != canonical {
+                    builtin.rawValue != canonical
+                {
                     throw failure(id, String(localized: "An executable name is assigned to more than one agent."))
                 }
                 guard names[normalized] == nil || names[normalized] == canonical else {
@@ -87,11 +94,15 @@ nonisolated struct AgentRecognitionManifest: Equatable, Sendable {
             let rules = try rawRules.map { value -> AgentRecognitionScreenRule in
                 guard let fields = value.table else { throw failure(id, String(localized: "Screen rules must be tables.")) }
                 let rule = try AgentRecognitionScreenRule.parse(fields, agentID: id)
-                guard ruleIDs.insert(rule.id).inserted else { throw failure(id, String(localized: "A screen rule ID appears more than once.")) }
+                guard ruleIDs.insert(rule.id).inserted else {
+                    throw failure(id, String(localized: "A screen rule ID appears more than once."))
+                }
                 return rule
             }
-            result.append(.init(id: canonical, name: name, executables: effectiveExecutables,
-                                aliases: aliases, screenEnabled: screenEnabled, rules: rules))
+            result.append(
+                .init(
+                    id: canonical, name: name, executables: effectiveExecutables,
+                    aliases: aliases, screenEnabled: screenEnabled, rules: rules))
         }
         return result
     }
@@ -104,9 +115,11 @@ nonisolated struct AgentRecognitionManifest: Equatable, Sendable {
             if !manifest.aliases.isEmpty { lines.append("aliases = \(array(manifest.aliases))") }
             if !manifest.screenEnabled { lines.append("screen_enabled = false") }
             for rule in manifest.rules {
-                lines += ["", "[[agents.rules]]", "id = \(TOML.quote(rule.id))",
-                          "state = \(TOML.quote(rule.phase.rawValue))", "priority = \(rule.priority)",
-                          "region = \(TOML.quote(rule.region))"]
+                lines += [
+                    "", "[[agents.rules]]", "id = \(TOML.quote(rule.id))",
+                    "state = \(TOML.quote(rule.phase.rawValue))", "priority = \(rule.priority)",
+                    "region = \(TOML.quote(rule.region))",
+                ]
                 if let attention = rule.attention { lines.append("attention = \(TOML.quote(attention.rawValue))") }
                 if !rule.enabled { lines.append("enabled = false") }
                 if rule.skip { lines.append("skip_state_update = true") }
@@ -125,49 +138,67 @@ nonisolated struct AgentRecognitionManifest: Equatable, Sendable {
             }.joined()
         }
         func approval(_ id: String, heading: [String]) -> AgentRecognitionScreenRule {
-            .init(id: id, phase: .blocked, priority: 200, attention: .approval,
-                  gate: .init(lineRegex: ["^[ \\t]*(" + heading.map(ignoringCase).joined(separator: "|") + ")[ \\t]*$"],
-                              any: [.init(contains: ["esc to cancel"]), .init(contains: ["press enter to confirm"])]))
+            .init(
+                id: id, phase: .blocked, priority: 200, attention: .approval,
+                gate: .init(
+                    lineRegex: ["^[ \\t]*(" + heading.map(ignoringCase).joined(separator: "|") + ")[ \\t]*$"],
+                    any: [.init(contains: ["esc to cancel"]), .init(contains: ["press enter to confirm"])]))
         }
         var rules: [AgentRecognitionScreenRule] = []
         switch kind {
         case .codex:
             rules.append(approval("approval", heading: ["Would you like to run the following command?"]))
-            rules.append(.init(id: "login", phase: .blocked, priority: 200, attention: .login,
-                               gate: .init(contains: ["sign in with chatgpt", "sign in with an api key"])))
+            rules.append(
+                .init(
+                    id: "login", phase: .blocked, priority: 200, attention: .login,
+                    gate: .init(contains: ["sign in with chatgpt", "sign in with an api key"])))
         case .claude:
             rules.append(approval("approval", heading: ["Do you want to proceed?", "Do you want to make this edit?"]))
-            rules.append(.init(id: "login", phase: .blocked, priority: 200, attention: .login,
-                               gate: .init(contains: ["/login", "not logged in"])))
+            rules.append(
+                .init(
+                    id: "login", phase: .blocked, priority: 200, attention: .login,
+                    gate: .init(contains: ["/login", "not logged in"])))
         case .gemini:
-            rules.append(.init(id: "approval", phase: .blocked, priority: 200, attention: .approval,
-                               gate: .init(contains: ["allow execution of:", "allow once", "deny"])))
+            rules.append(
+                .init(
+                    id: "approval", phase: .blocked, priority: 200, attention: .approval,
+                    gate: .init(contains: ["allow execution of:", "allow once", "deny"])))
         case .aider:
-            rules.append(.init(id: "question", phase: .blocked, priority: 200, region: "bottom_non_empty_lines(1)", attention: .input,
-                               gate: .init(lineRegex: ["^.*" + ignoringCase("(y)es/(n)o [yes]:") + "[ \\t]*$"])))
+            rules.append(
+                .init(
+                    id: "question", phase: .blocked, priority: 200, region: "bottom_non_empty_lines(1)", attention: .input,
+                    gate: .init(lineRegex: ["^.*" + ignoringCase("(y)es/(n)o [yes]:") + "[ \\t]*$"])))
         default: break
         }
         let interrupt = ignoringCase("esc to interrupt")
-        rules.append(.init(id: "activity", phase: .working, priority: 100,
-                           gate: .init(lineRegex: ["^[ \\t]*(" + interrupt + "|.{0,139} · " + interrupt
-                                                  + "|.{0,141}\\(" + interrupt + "\\)|" + ignoringCase("esc to cancel ·") + ".{0,144})[ \\t]*$"])))
+        rules.append(
+            .init(
+                id: "activity", phase: .working, priority: 100,
+                gate: .init(lineRegex: [
+                    "^[ \\t]*(" + interrupt + "|.{0,139} · " + interrupt
+                        + "|.{0,141}\\(" + interrupt + "\\)|" + ignoringCase("esc to cancel ·") + ".{0,144})[ \\t]*$"
+                ])))
         return .init(id: kind.rawValue, name: kind.displayName, executables: [], rules: rules)
     }
 
     static var newAgentExample: Self {
-        .init(id: "my-agent", name: "My Agent", executables: ["my-agent"], rules: [
-            .init(id: "approval", phase: .blocked, priority: 200, region: "bottom_non_empty_lines(6)", attention: .approval,
-                  gate: .init(lineRegex: ["^Allow .+\\? \\[y/n\\]$"])),
-            .init(id: "activity", phase: .working, priority: 100, gate: .init(contains: ["working…"])),
-        ])
+        .init(
+            id: "my-agent", name: "My Agent", executables: ["my-agent"],
+            rules: [
+                .init(
+                    id: "approval", phase: .blocked, priority: 200, region: "bottom_non_empty_lines(6)", attention: .approval,
+                    gate: .init(lineRegex: ["^Allow .+\\? \\[y/n\\]$"])),
+                .init(id: "activity", phase: .working, priority: 100, gate: .init(contains: ["working…"])),
+            ])
     }
     static func validID(_ value: String) -> Bool {
-        !value.isEmpty && value.utf8.count <= 128 && value.unicodeScalars.allSatisfy {
-            $0.isASCII && (CharacterSet.alphanumerics.contains($0) || "._-".unicodeScalars.contains($0))
-        }
+        !value.isEmpty && value.utf8.count <= 128
+            && value.unicodeScalars.allSatisfy {
+                $0.isASCII && (CharacterSet.alphanumerics.contains($0) || "._-".unicodeScalars.contains($0))
+            }
     }
     static func validText(_ value: String, maximum: Int) -> Bool {
-        value.utf8.count <= maximum && value.unicodeScalars.allSatisfy { $0.value >= 0x20 && !(0x7f...0x9f).contains($0.value) }
+        value.utf8.count <= maximum && value.unicodeScalars.allSatisfy { $0.value >= 0x20 && !(0x7f ... 0x9f).contains($0.value) }
     }
 
     struct Failure: LocalizedError {
@@ -193,7 +224,9 @@ nonisolated struct AgentRecognitionManifest: Equatable, Sendable {
     }
     static func strings(_ fields: [String: AgentRulesTOML.Value], _ key: String, id: String) throws -> [String] {
         guard let value = fields[key] else { return [] }
-        guard let array = value.array, array.count <= 32 else { throw failure(id, String(localized: "Use an array of at most 32 text values.")) }
+        guard let array = value.array, array.count <= 32 else {
+            throw failure(id, String(localized: "Use an array of at most 32 text values."))
+        }
         return try array.map {
             guard let string = $0.string, !string.isEmpty, validText(string, maximum: 512) else {
                 throw failure(id, String(localized: "A condition is empty, too long, or contains control characters."))
@@ -215,34 +248,47 @@ nonisolated struct AgentRecognitionScreenRule: Equatable, Sendable {
 
     static func parse(_ fields: [String: AgentRulesTOML.Value], agentID: String) throws -> Self {
         let id = fields["id"]?.string ?? ""
-        guard AgentRecognitionManifest.validID(id), Set(fields.keys).isSubset(of: [
-            "id", "state", "priority", "region", "attention", "enabled", "skip_state_update",
-            "visible_idle", "visible_working", "visible_blocker", "contains", "regex", "line_regex", "all", "any", "not",
-        ]), let phase = fields["state"]?.string.flatMap(ZshellAgentPhase.init(rawValue:)),
-              [.idle, .working, .blocked, .unknown].contains(phase) else {
-            throw AgentRecognitionManifest.failure(agentID, String(localized: "Screen rules need a unique ID and an idle, working, blocked, or unknown state."))
+        guard AgentRecognitionManifest.validID(id),
+            Set(fields.keys).isSubset(of: [
+                "id", "state", "priority", "region", "attention", "enabled", "skip_state_update",
+                "visible_idle", "visible_working", "visible_blocker", "contains", "regex", "line_regex", "all", "any", "not",
+            ]), let phase = fields["state"]?.string.flatMap(ZshellAgentPhase.init(rawValue:)),
+            [.idle, .working, .blocked, .unknown].contains(phase)
+        else {
+            throw AgentRecognitionManifest.failure(
+                agentID, String(localized: "Screen rules need a unique ID and an idle, working, blocked, or unknown state."))
         }
         let label = "\(agentID)/\(id)"
         let region = try AgentRecognitionManifest.string(fields, "region", default: "whole_recent", id: label)
-        guard AgentRecognitionRegion.isValid(region) else { throw AgentRecognitionManifest.failure(label, String(localized: "Use a live footer region or a bottom row count from 1 to 16.")) }
+        guard AgentRecognitionRegion.isValid(region) else {
+            throw AgentRecognitionManifest.failure(label, String(localized: "Use a live footer region or a bottom row count from 1 to 16."))
+        }
         let priority = try AgentRecognitionManifest.integer(fields, "priority", default: 0, id: label)
-        guard (-10_000...10_000).contains(priority) else { throw AgentRecognitionManifest.failure(label, String(localized: "Rule priority must be between -10000 and 10000.")) }
+        guard (-10_000 ... 10_000).contains(priority) else {
+            throw AgentRecognitionManifest.failure(label, String(localized: "Rule priority must be between -10000 and 10000."))
+        }
         var attention: ZshellAgentAttention?
         if let value = fields["attention"] {
             guard phase == .blocked, let parsed = value.string.flatMap(ZshellAgentAttention.init(rawValue:)) else {
-                throw AgentRecognitionManifest.failure(label, String(localized: "Attention applies only to blocked rules: approval, input, login, or error."))
+                throw AgentRecognitionManifest.failure(
+                    label, String(localized: "Attention applies only to blocked rules: approval, input, login, or error."))
             }
             attention = parsed
-        } else if phase == .blocked { attention = .input }
+        } else if phase == .blocked {
+            attention = .input
+        }
         for key in ["visible_idle", "visible_working", "visible_blocker"] {
             _ = try AgentRecognitionManifest.boolean(fields, key, default: false, id: label)
         }
         var budget = 0
         let gate = try AgentRecognitionGate.parse(fields.filter { AgentRecognitionGate.keys.contains($0.key) }, id: label, budget: &budget)
-        guard gate.hasPositiveCondition else { throw AgentRecognitionManifest.failure(label, String(localized: "Add a text or regular expression condition.")) }
-        return .init(id: id, phase: phase, priority: priority, region: region, attention: attention,
-                     enabled: try AgentRecognitionManifest.boolean(fields, "enabled", default: true, id: label),
-                     skip: try AgentRecognitionManifest.boolean(fields, "skip_state_update", default: false, id: label), gate: gate)
+        guard gate.hasPositiveCondition else {
+            throw AgentRecognitionManifest.failure(label, String(localized: "Add a text or regular expression condition."))
+        }
+        return .init(
+            id: id, phase: phase, priority: priority, region: region, attention: attention,
+            enabled: try AgentRecognitionManifest.boolean(fields, "enabled", default: true, id: label),
+            skip: try AgentRecognitionManifest.boolean(fields, "skip_state_update", default: false, id: label), gate: gate)
     }
 }
 
@@ -272,12 +318,20 @@ nonisolated struct AgentRecognitionGate: Equatable, Sendable {
         for pattern in gate.regex + gate.lineRegex { try AgentRecognitionRegex.validate(pattern, id: id) }
         for key in ["all", "any", "not"] {
             guard let value = fields[key] else { continue }
-            guard let array = value.array, array.count <= 16 else { throw AgentRecognitionManifest.failure(id, String(localized: "Condition groups must be arrays.")) }
+            guard let array = value.array, array.count <= 16 else {
+                throw AgentRecognitionManifest.failure(id, String(localized: "Condition groups must be arrays."))
+            }
             let groups = try array.map { value -> Self in
-                guard let table = value.table else { throw AgentRecognitionManifest.failure(id, String(localized: "Condition groups must be tables.")) }
+                guard let table = value.table else {
+                    throw AgentRecognitionManifest.failure(id, String(localized: "Condition groups must be tables."))
+                }
                 return try parse(table, id: id, depth: depth + 1, budget: &budget)
             }
-            switch key { case "all": gate.all = groups; case "any": gate.any = groups; default: gate.not = groups }
+            switch key {
+            case "all": gate.all = groups;
+            case "any": gate.any = groups;
+            default: gate.not = groups
+            }
         }
         return gate
     }
@@ -321,25 +375,30 @@ nonisolated enum AgentRecognitionRegex {
             if "*+{?".contains(character) {
                 guard !riskyClosedGroup else { throw invalid(id) }
                 if !groups.isEmpty { groups[groups.count - 1] = true }
-            } else if character == "|", !groups.isEmpty { groups[groups.count - 1] = true }
+            } else if character == "|", !groups.isEmpty {
+                groups[groups.count - 1] = true
+            }
             riskyClosedGroup = false
         }
         guard !pattern.contains("(?"), (try? NSRegularExpression(pattern: pattern)) != nil else { throw invalid(id) }
     }
 
     private static func invalid(_ id: String) -> AgentRecognitionManifest.Failure {
-        AgentRecognitionManifest.failure(id, String(localized: "Invalid or unsafe regular expression. Use simple patterns without backreferences or repeated groups."))
+        AgentRecognitionManifest.failure(
+            id, String(localized: "Invalid or unsafe regular expression. Use simple patterns without backreferences or repeated groups."))
     }
 }
 
 nonisolated enum AgentRecognitionRegion {
     static func count(_ name: String, prefix: String) -> Int? {
         guard name.hasPrefix(prefix + "("), name.hasSuffix(")"),
-              let count = Int(name.dropFirst(prefix.count + 1).dropLast()), (1...16).contains(count) else { return nil }
+            let count = Int(name.dropFirst(prefix.count + 1).dropLast()), (1 ... 16).contains(count)
+        else { return nil }
         return count
     }
     static func isValid(_ name: String) -> Bool {
-        ["whole_recent", "prompt_box_body", "above_prompt_box", "last_non_empty_above_prompt_box", "after_last_horizontal_rule"].contains(name)
+        ["whole_recent", "prompt_box_body", "above_prompt_box", "last_non_empty_above_prompt_box", "after_last_horizontal_rule"].contains(
+            name)
             || count(name, prefix: "bottom_lines") != nil || count(name, prefix: "bottom_non_empty_lines") != nil
     }
     static func text(_ footer: String, region: String) -> String {
@@ -354,9 +413,10 @@ nonisolated enum AgentRecognitionRegion {
         if ["prompt_box_body", "above_prompt_box", "last_non_empty_above_prompt_box"].contains(region) {
             guard borders.count >= 2 else { return "" }
             let top = borders[borders.count - 2], bottom = borders[borders.count - 1]
-            if region == "prompt_box_body" { return lines[(top + 1)..<bottom].joined(separator: "\n") }
+            if region == "prompt_box_body" { return lines[(top + 1) ..< bottom].joined(separator: "\n") }
             let above = lines.prefix(top)
-            return region == "above_prompt_box" ? above.joined(separator: "\n")
+            return region == "above_prompt_box"
+                ? above.joined(separator: "\n")
                 : above.last(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) ?? ""
         }
         return footer
@@ -384,19 +444,25 @@ nonisolated final class AgentRecognitionCompiledGate: @unchecked Sendable {
         guard DispatchTime.now().uptimeNanoseconds < deadline else { return false }
         let lower = text.lowercased()
         guard contains.allSatisfy({ lower.contains($0) }),
-              regex.allSatisfy({ matches($0, text: text, deadline: deadline) }),
-              lineRegex.allSatisfy({ pattern in text.components(separatedBy: .newlines).contains { matches(pattern, text: $0, deadline: deadline) } }),
-              all.allSatisfy({ $0.matches(text, deadline: deadline) }),
-              any.isEmpty || any.contains(where: { $0.matches(text, deadline: deadline) }),
-              !not.contains(where: { $0.matches(text, deadline: deadline) }) else { return false }
+            regex.allSatisfy({ matches($0, text: text, deadline: deadline) }),
+            lineRegex.allSatisfy({ pattern in
+                text.components(separatedBy: .newlines).contains { matches(pattern, text: $0, deadline: deadline) }
+            }),
+            all.allSatisfy({ $0.matches(text, deadline: deadline) }),
+            any.isEmpty || any.contains(where: { $0.matches(text, deadline: deadline) }),
+            !not.contains(where: { $0.matches(text, deadline: deadline) })
+        else { return false }
         return DispatchTime.now().uptimeNanoseconds < deadline
     }
 
     private func matches(_ pattern: NSRegularExpression, text: String, deadline: UInt64) -> Bool {
         var found = false
         pattern.enumerateMatches(in: text, options: [.reportProgress], range: NSRange(text.startIndex..., in: text)) { result, _, stop in
-            if DispatchTime.now().uptimeNanoseconds >= deadline { stop.pointee = true }
-            else if result != nil { found = true; stop.pointee = true }
+            if DispatchTime.now().uptimeNanoseconds >= deadline {
+                stop.pointee = true
+            } else if result != nil {
+                found = true; stop.pointee = true
+            }
         }
         return found
     }
@@ -435,7 +501,8 @@ nonisolated struct AgentRecognitionCompiledManifest: @unchecked Sendable {
 
 @MainActor
 final class AgentRecognitionRulesStore: ObservableObject {
-    static let shared = AgentRecognitionRulesStore(url: AppSettings.configURL.deletingLastPathComponent().appendingPathComponent("agents.toml"))
+    static let shared = AgentRecognitionRulesStore(
+        url: AppSettings.configURL.deletingLastPathComponent().appendingPathComponent("agents.toml"))
     let url: URL
     @Published private(set) var manifests: [AgentRecognitionManifest] = []
     @Published private(set) var error: String?
@@ -456,7 +523,9 @@ final class AgentRecognitionRulesStore: ObservableObject {
                 self.apply(result)
             }
         }
-        terminationObserver = NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { [monitor] _ in monitor.flush() }
+        terminationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: .main
+        ) { [monitor] _ in monitor.flush() }
     }
 
     deinit { if let terminationObserver { NotificationCenter.default.removeObserver(terminationObserver) } }
@@ -512,12 +581,17 @@ final class AgentRecognitionRulesStore: ObservableObject {
         if AppSettings.shared.customAgentRecognitionRules {
             var operands = [arguments.first, executablePath].compactMap { $0 }
             if let executablePath, ZshellAgentKind.isScriptInterpreter((executablePath as NSString).lastPathComponent),
-               let script = ZshellAgentKind.scriptIdentityOperand(arguments) { operands.append(script) }
+                let script = ZshellAgentKind.scriptIdentityOperand(arguments)
+            {
+                operands.append(script)
+            }
             for operand in operands {
                 let command = AgentRecognitionManifest.commandName(operand)
                 if let manifest = manifests.first(where: {
                     ($0.executables + $0.aliases).contains { AgentRecognitionManifest.commandName($0) == command }
-                }) { return manifest.identity }
+                }) {
+                    return manifest.identity
+                }
             }
         }
         guard let kind = ZshellAgentKind.recognize(executablePath: executablePath, arguments: arguments) else { return nil }

@@ -50,7 +50,8 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
         self.diff = diff
         target = ProjectPullRequestReviewTarget(file)
         self.threadID = threadID
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 600, height: 500),
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 500),
             styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.minSize = NSSize(width: 430, height: 330)
         panel.isReleasedWhenClosed = false
@@ -71,8 +72,11 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
 
     func present(from source: NSWindow?) {
         guard let window else { return }
-        if let source { window.setFrameOrigin(NSPoint(x: source.frame.midX - window.frame.width / 2, y: source.frame.midY - window.frame.height / 2)) }
-        else { window.center() }
+        if let source {
+            window.setFrameOrigin(NSPoint(x: source.frame.midX - window.frame.width / 2, y: source.frame.midY - window.frame.height / 2))
+        } else {
+            window.center()
+        }
         showWindow(nil)
         window.makeKeyAndOrderFront(nil)
         window.makeFirstResponder(editor)
@@ -82,7 +86,8 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
         guard !writing else { window?.makeKeyAndOrderFront(nil); return }
         if self.threadID == threadID, target == ProjectPullRequestReviewTarget(file), window?.isVisible == true { return }
         if !editor.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-           (self.threadID != threadID || target != ProjectPullRequestReviewTarget(file)) {
+            (self.threadID != threadID || target != ProjectPullRequestReviewTarget(file))
+        {
             let alert = NSAlert()
             alert.messageText = String(localized: "Discard this unsent comment?")
             alert.addButton(withTitle: String(localized: "Keep Editing"))
@@ -113,7 +118,9 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
         if reloadWhenReady && isCurrent && !writing {
             reloadWhenReady = false
             load()
-        } else { refreshControls() }
+        } else {
+            refreshControls()
+        }
     }
 
     private func makeContent() {
@@ -200,12 +207,17 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
     private func renderDiscussion() {
         if let thread = access?.thread {
             let title = thread.isResolved ? String(localized: "Resolved") : String(localized: "Unresolved")
-            discussion.string = ([title] + thread.comments.nodes.map {
-                "\($0.author?.login ?? String(localized: "Deleted user"))\n\($0.body)"
-            }).joined(separator: "\n\n")
+            discussion.string =
+                ([title]
+                + thread.comments.nodes.map {
+                    "\($0.author?.login ?? String(localized: "Deleted user"))\n\($0.body)"
+                }).joined(separator: "\n\n")
         } else if threadID == nil {
-            discussion.string = String(localized: "Submit your review of this pull request. The review is attached to the displayed commit.")
-        } else { discussion.string = "" }
+            discussion.string = String(
+                localized: "Submit your review of this pull request. The review is attached to the displayed commit.")
+        } else {
+            discussion.string = ""
+        }
     }
 
     private func refreshControls() {
@@ -216,12 +228,16 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
         for (index, event) in reviewEvents.enumerated() where index < reviewPicker.numberOfItems {
             reviewPicker.item(at: index)?.isEnabled = event == .comment ? access?.canReview == true : access?.canApprove == true
         }
-        submitButton.title = writing ? String(localized: "Submitting…")
+        submitButton.title =
+            writing
+            ? String(localized: "Submitting…")
             : threadID == nil ? String(localized: "Submit Review") : String(localized: "Reply")
-        submitButton.isEnabled = active && (threadID == nil
-            ? (selectedReview == .comment ? access?.canReview == true : access?.canApprove == true)
-                && GitHubPullRequestReviewActions.validBody(editor.string, required: selectedReview != .approve)
-            : access?.canReply == true && GitHubPullRequestReviewActions.validBody(editor.string, required: true))
+        submitButton.isEnabled =
+            active
+            && (threadID == nil
+                ? (selectedReview == .comment ? access?.canReview == true : access?.canApprove == true)
+                    && GitHubPullRequestReviewActions.validBody(editor.string, required: selectedReview != .approve)
+                : access?.canReply == true && GitHubPullRequestReviewActions.validBody(editor.string, required: true))
         resolveButton.isHidden = threadID == nil
         let resolved = access?.thread?.isResolved == true
         resolveButton.title = resolved ? String(localized: "Reopen Discussion") : String(localized: "Resolve Discussion")
@@ -316,8 +332,11 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
 
     @objc private func submitClicked() {
         guard submitButton.isEnabled else { return }
-        if let threadID { perform(.reply(threadID: threadID, body: editor.string)) }
-        else { perform(.review(selectedReview, body: editor.string)) }
+        if let threadID {
+            perform(.reply(threadID: threadID, body: editor.string))
+        } else {
+            perform(.review(selectedReview, body: editor.string))
+        }
     }
 
     @objc private func resolveClicked() {

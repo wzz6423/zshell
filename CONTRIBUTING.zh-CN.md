@@ -73,6 +73,15 @@ xcodebuild -project mac/zshell.xcodeproj -scheme zshell -configuration Debug -de
 `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer`。
 
 `make run` 一步完成构建和启动 Debug 应用，`make update` 会重启已在运行的实例。
+默认只显示简短构建状态和 Xcode 警告、错误。使用 `make run VERBOSE=1` 或
+`make update VERBOSE=1` 查看完整构建输出。
+
+运行 `make format` 格式化全部受 Git 跟踪的 Swift 和 Rust 源码，包括 vendored 包。
+`make format-check` 只检查，不写文件。命令使用 Xcode 的 `swift-format`、根目录的
+`.swift-format`、稳定版 `rustfmt` 和 `rustfmt.toml`，按各 Cargo 包的 Rust edition
+格式化。该命令需要 Python 3.11 或更新版本。Swift 格式化保留声明顺序和现有语法写法。
+语法测试输入保留原文，因为语法错误和高亮列位置标记属于测试数据。
+
 Rust 构建阶段按内容同步临时构建目录中的输入，让 Cargo 能复用未改动的依赖。
 用下面的命令验证产出的 bundle：
 

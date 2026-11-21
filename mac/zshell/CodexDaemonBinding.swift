@@ -24,13 +24,15 @@ enum CodexDaemonBinding {
 
     static func accept(_ event: AgentConversationSessionEvent, peerPID: pid_t?) -> Bool {
         guard AppSettings.shared.aiEnabled, event.identity.provider == .codex,
-              let service = service(peerPID: peerPID, reporterPID: event.reporterPID) else { return false }
+            let service = service(peerPID: peerPID, reporterPID: event.reporterPID)
+        else { return false }
         prune()
         let matches = entries.indices.filter {
             entries[$0].event.identity.matchesConversation(event.identity) && entries[$0].service == service
         }
-        if let index = matches.first { entries[index] = Entry(event: event, service: service, updatedAt: Date()) }
-        else {
+        if let index = matches.first {
+            entries[index] = Entry(event: event, service: service, updatedAt: Date())
+        } else {
             if entries.count == maximumEntries { entries.removeFirst() }
             entries.append(Entry(event: event, service: service, updatedAt: Date()))
         }
@@ -42,7 +44,8 @@ enum CodexDaemonBinding {
 
     static func titleChanged(in session: TerminalSession, title: String) -> String {
         guard let evidence = CodexTitleSessionEvidence(title: title),
-              let owner = session.foregroundCodexConversationOwner else {
+            let owner = session.foregroundCodexConversationOwner
+        else {
             clearBinding(in: session)
             session.agentObservation.codexConversationEvidence = nil
             return title
@@ -50,16 +53,19 @@ enum CodexDaemonBinding {
         // A native fork may briefly display its source ID. It cannot compete
         // with the source pane while waiting for its independent identity.
         if let source = session.agentConversationForkSource,
-           evidence.matches(sessionID: source.sessionID) {
+            evidence.matches(sessionID: source.sessionID)
+        {
             session.agentObservation.codexConversationEvidence = nil
             return title
         }
         if let previous = session.agentObservation.codexConversationEvidence,
-           previous.owner != owner || previous.title.sessionPrefix != evidence.sessionPrefix {
+            previous.owner != owner || previous.title.sessionPrefix != evidence.sessionPrefix
+        {
             clearBinding(in: session)
         }
         if let identity = session.agentResume, identity.provider == .codex,
-           !evidence.matches(sessionID: identity.sessionID) {
+            !evidence.matches(sessionID: identity.sessionID)
+        {
             session.recordAgentConversation(nil, processID: nil)
         }
         session.agentObservation.codexConversationEvidence = (evidence, owner)
@@ -72,7 +78,8 @@ enum CodexDaemonBinding {
         sessionID: String, peerPID: pid_t?, reporterPID: pid_t
     ) -> ZshellAutomationRouter.PaneContext? {
         guard AgentConversationIdentity.Provider.codex.accepts(sessionID: sessionID),
-              let service = service(peerPID: peerPID, reporterPID: reporterPID) else { return nil }
+            let service = service(peerPID: peerPID, reporterPID: reporterPID)
+        else { return nil }
         prune()
         var identities = entries.filter {
             $0.service == service && $0.event.identity.sessionID == sessionID
@@ -83,22 +90,27 @@ enum CodexDaemonBinding {
             // kernel-owned daemon event only restores the process incarnation.
             let saved = knownIdentities().filter { $0.sessionID == sessionID }
             if saved.count == 1, let identity = saved.first,
-               let target = uniqueTarget(for: identity),
-               target.session?.agentResume?.matchesConversation(identity) == true {
-                let entry = Entry(event: .init(identity: identity, reporterPID: reporterPID, source: nil),
-                                  service: service, updatedAt: Date())
+                let target = uniqueTarget(for: identity),
+                target.session?.agentResume?.matchesConversation(identity) == true
+            {
+                let entry = Entry(
+                    event: .init(identity: identity, reporterPID: reporterPID, source: nil),
+                    service: service, updatedAt: Date())
                 if entries.count == maximumEntries { entries.removeFirst() }
                 entries.append(entry)
                 identities = [entry]
             }
         }
         guard identities.count == 1, let entry = identities.first,
-              let target = uniqueTarget(for: entry.event.identity),
-              let session = target.session,
-              session.agentResume?.matchesConversation(entry.event.identity) == true else { return nil }
+            let target = uniqueTarget(for: entry.event.identity),
+            let session = target.session,
+            session.agentResume?.matchesConversation(entry.event.identity) == true
+        else { return nil }
         if let index = entries.firstIndex(where: {
             $0.service == service && $0.event.identity.matchesConversation(entry.event.identity)
-        }) { entries[index].updatedAt = Date() }
+        }) {
+            entries[index].updatedAt = Date()
+        }
         return target
     }
 
@@ -113,14 +125,16 @@ enum CodexDaemonBinding {
     ) -> ZshellAutomationRouter.PaneContext? {
         let matches = contexts().filter { context in
             guard let session = context.session,
-                  let evidence = session.agentObservation.codexConversationEvidence,
-                  session.foregroundCodexConversationOwner == evidence.owner else { return false }
+                let evidence = session.agentObservation.codexConversationEvidence,
+                session.foregroundCodexConversationOwner == evidence.owner
+            else { return false }
             return evidence.title.matches(sessionID: identity.sessionID)
         }
         if matches.count > 1 {
             for context in matches {
                 guard let session = context.session,
-                      session.agentResume?.provider == .codex else { continue }
+                    session.agentResume?.provider == .codex
+                else { continue }
                 clearBinding(in: session, includingSaved: true)
             }
         }
@@ -131,17 +145,21 @@ enum CodexDaemonBinding {
         let identities = knownIdentities()
         for target in contexts() {
             guard let session = target.session,
-                  let evidence = session.agentObservation.codexConversationEvidence else { continue }
+                let evidence = session.agentObservation.codexConversationEvidence
+            else { continue }
             // A truncated title must select one complete provider identity too.
             let candidates = identities.filter { evidence.title.matches(sessionID: $0.sessionID) }
             guard session.foregroundCodexConversationOwner == evidence.owner,
-                  candidates.count == 1, let identity = candidates.first,
-                  uniqueTarget(for: identity)?.session === session else {
+                candidates.count == 1, let identity = candidates.first,
+                uniqueTarget(for: identity)?.session === session
+            else {
                 clearBinding(in: session, includingSaved: candidates.count > 1)
                 continue
             }
-            guard session.agentResume?.matchesConversation(identity) == true
-                    || entries.contains(where: { $0.event.identity.matchesConversation(identity) }) else { continue }
+            guard
+                session.agentResume?.matchesConversation(identity) == true
+                    || entries.contains(where: { $0.event.identity.matchesConversation(identity) })
+            else { continue }
             let aliased = AgentConversationIdentity(
                 provider: .codex, sessionID: identity.sessionID,
                 workingDirectory: identity.workingDirectory, configDirectory: identity.configDirectory,
@@ -160,7 +178,8 @@ enum CodexDaemonBinding {
         var result: [AgentConversationIdentity] = []
         let saved = contexts().compactMap { context -> AgentConversationIdentity? in
             guard let session = context.session, session.remoteConnection == nil,
-                  let identity = session.agentResume, identity.provider == .codex else { return nil }
+                let identity = session.agentResume, identity.provider == .codex
+            else { return nil }
             return identity
         }
         for identity in entries.map(\.event.identity) + saved {
@@ -171,8 +190,9 @@ enum CodexDaemonBinding {
 
     private static func clearBinding(in session: TerminalSession, includingSaved: Bool = false) {
         guard let previous = session.agentObservation.codexConversationEvidence,
-              session.agentResume?.provider == .codex,
-              includingSaved || session.agentConversationOwner == previous.owner else { return }
+            session.agentResume?.provider == .codex,
+            includingSaved || session.agentConversationOwner == previous.owner
+        else { return }
         session.recordAgentConversation(nil, processID: nil)
         if session.agentObservation.integrationOwner == previous.owner {
             session.clearAutomationAgentStatus()
@@ -181,8 +201,8 @@ enum CodexDaemonBinding {
 
     private static func displayTitle(in session: TerminalSession, evidence: CodexTitleSessionEvidence) -> String {
         guard let identity = session.agentResume,
-              evidence.matches(sessionID: identity.sessionID),
-              CodexTitleConfiguration.hidesManagedSessionID(configDirectory: identity.configDirectory)
+            evidence.matches(sessionID: identity.sessionID),
+            CodexTitleConfiguration.hidesManagedSessionID(configDirectory: identity.configDirectory)
         else { return evidence.originalTitle }
         return evidence.titleWithoutSessionID.isEmpty ? "Codex" : evidence.titleWithoutSessionID
     }
@@ -203,11 +223,12 @@ enum CodexDaemonBinding {
 extension TerminalSession {
     var foregroundCodexConversationOwner: ZshellAgentProcessIdentity? {
         guard !hasExited, remoteConnection == nil, let shell = shellPid,
-              let foreground = surface.foregroundPid,
-              let root = AgentConversationBinding.rootAgentPID(
+            let foreground = surface.foregroundPid,
+            let root = AgentConversationBinding.rootAgentPID(
                 reporterPID: foreground, shellPID: shell, foregroundPID: foreground,
                 provider: .codex, process: Self.conversationProcessEvidence
-              ) else { return nil }
+            )
+        else { return nil }
         return ZshellAgentProcessIdentity(pid: root)
     }
 }

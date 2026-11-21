@@ -57,11 +57,11 @@ internal func smithWatermanPositions(
 
     // Forward pass — uses full matrices so we read diagonals directly
     // rather than the scalar-carry pattern used by the hot-path scorer.
-    for i in 0..<candidateLen {
+    for i in 0 ..< candidateLen {
         let candidateChar = candidate[i]
         let posBonus = bonus[i]
 
-        for j in 0..<queryLen {
+        for j in 0 ..< queryLen {
             let idx = i * queryLen + j
 
             // Gap transition: M[i-1,j] and G[i-1,j]

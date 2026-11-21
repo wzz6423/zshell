@@ -34,38 +34,45 @@ final class TerminalCommandTaskStore {
             return tasks[task.id]!
         }
         guard !hasActiveTask(terminalID: session.id) else {
-            stop(task.id, state: .unavailable, code: "shell_busy",
-                 message: String(localized: "This terminal already has a pending or running command task."))
+            stop(
+                task.id, state: .unavailable, code: "shell_busy",
+                message: String(localized: "This terminal already has a pending or running command task."))
             return tasks[task.id]!
         }
         guard canSubmit else {
-            stop(task.id, state: .unavailable, code: "task_limit",
-                 message: String(localized: "Zshell already has 64 pending or running command tasks. Wait for one to finish before starting another."))
+            stop(
+                task.id, state: .unavailable, code: "task_limit",
+                message: String(
+                    localized: "Zshell already has 64 pending or running command tasks. Wait for one to finish before starting another."))
             return tasks[task.id]!
         }
         activeByTerminal[session.id] = task.id
         guard session.supportsCommandTaskShellIntegration else {
-            stop(task.id, state: .unsupported, code: "command_wait_unsupported",
-                 message: Self.unsupportedMessage)
+            stop(
+                task.id, state: .unsupported, code: "command_wait_unsupported",
+                message: Self.unsupportedMessage)
             return tasks[task.id]!
         }
         Task { [weak session] in
             if afterShellStartup {
                 let deadline = DispatchTime.now().uptimeNanoseconds + 30_000_000_000
                 while let session, !session.hasExited,
-                      !session.isCommandTaskShellReady,
-                      DispatchTime.now().uptimeNanoseconds < deadline {
+                    !session.isCommandTaskShellReady,
+                    DispatchTime.now().uptimeNanoseconds < deadline
+                {
                     try? await Task.sleep(for: .milliseconds(50))
                     guard self.tasks[task.id]?.state == .pending else { return }
                 }
                 guard let session, !session.hasExited else {
-                    self.stop(task.id, state: .closed, code: "pane_closed",
-                              message: String(localized: "The task's terminal was closed before the command finished."))
+                    self.stop(
+                        task.id, state: .closed, code: "pane_closed",
+                        message: String(localized: "The task's terminal was closed before the command finished."))
                     return
                 }
                 guard session.isCommandTaskShellReady else {
-                    self.stop(task.id, state: .unavailable, code: "shell_not_ready",
-                              message: String(localized: "The new terminal did not reach an empty shell prompt within 30 seconds."))
+                    self.stop(
+                        task.id, state: .unavailable, code: "shell_not_ready",
+                        message: String(localized: "The new terminal did not reach an empty shell prompt within 30 seconds."))
                     return
                 }
                 self.start(task.id, session: session)
@@ -88,15 +95,17 @@ final class TerminalCommandTaskStore {
 
     func observeCompletion(in session: TerminalSession, captureImmediately: Bool = false) {
         guard let id = activeByTerminal[session.id], var task = tasks[id],
-              let directory = session.commandTaskDirectoryURL,
-              let shellPID = session.shellPid else { return }
+            let directory = session.commandTaskDirectoryURL,
+            let shellPID = session.shellPid
+        else { return }
         let result = TerminalCommandTaskShellResult.read(
             taskID: id, shellPID: shellPID, directory: directory
         )
         guard result != nil else { return }
         guard ZshellAutomationRouter.commandTaskIsInOriginalProject(task) else {
-            stop(id, state: .unavailable, code: "task_scope_changed",
-                 message: String(localized: "The command's terminal moved to another project before its result was captured."))
+            stop(
+                id, state: .unavailable, code: "task_scope_changed",
+                message: String(localized: "The command's terminal moved to another project before its result was captured."))
             return
         }
         let now = DispatchTime.now().uptimeNanoseconds
@@ -105,16 +114,18 @@ final class TerminalCommandTaskStore {
             return
         }
         guard captureImmediately || now >= (completionReadyAt[id] ?? now) else { return }
-        guard task.observeCompletion(
-            sequence: session.commandLifecycle.completionSequence,
-            shellResult: result,
-            output: {
-                session.automationRecentText(
-                    maxLines: TerminalCommandTask.outputLimitLines,
-                    maxColumns: TerminalCommandTask.outputLimitColumns
-                )
-            }
-        ) else { return }
+        guard
+            task.observeCompletion(
+                sequence: session.commandLifecycle.completionSequence,
+                shellResult: result,
+                output: {
+                    session.automationRecentText(
+                        maxLines: TerminalCommandTask.outputLimitLines,
+                        maxColumns: TerminalCommandTask.outputLimitColumns
+                    )
+                }
+            )
+        else { return }
         tasks[id] = task
         try? FileManager.default.removeItem(
             at: directory.appendingPathComponent(id.uuidString + ".result")
@@ -125,8 +136,9 @@ final class TerminalCommandTaskStore {
 
     func terminalClosed(id: UUID) {
         guard let taskID = activeByTerminal[id] else { return }
-        stop(taskID, state: .closed, code: "pane_closed",
-             message: String(localized: "The task's terminal was closed before the command finished."))
+        stop(
+            taskID, state: .closed, code: "pane_closed",
+            message: String(localized: "The task's terminal was closed before the command finished."))
     }
 
     func terminalBecameReadOnly(id: UUID) {
@@ -152,7 +164,10 @@ final class TerminalCommandTaskStore {
     }
 
     static var unsupportedMessage: String {
-        String(localized: "Command results require an empty prompt in Zshell's original zsh shell. Nested shells and other startup programs are unsupported.")
+        String(
+            localized:
+                "Command results require an empty prompt in Zshell's original zsh shell. Nested shells and other startup programs are unsupported."
+        )
     }
 
     private func start(_ id: UUID, session: TerminalSession) {
@@ -162,13 +177,15 @@ final class TerminalCommandTaskStore {
             return
         }
         guard ZshellAutomationRouter.commandTaskIsInOriginalProject(task) else {
-            stop(id, state: .unavailable, code: "task_scope_changed",
-                 message: String(localized: "The command's terminal moved to another project before its result was captured."))
+            stop(
+                id, state: .unavailable, code: "task_scope_changed",
+                message: String(localized: "The command's terminal moved to another project before its result was captured."))
             return
         }
         guard session.isCommandTaskShellReady, let directory = session.commandTaskDirectoryURL else {
-            stop(id, state: .unsupported, code: "command_wait_unsupported",
-                 message: Self.unsupportedMessage)
+            stop(
+                id, state: .unsupported, code: "command_wait_unsupported",
+                message: Self.unsupportedMessage)
             return
         }
         do {
@@ -177,8 +194,9 @@ final class TerminalCommandTaskStore {
                 attributes: [.posixPermissions: 0o700]
             )
         } catch {
-            stop(id, state: .unavailable, code: "task_storage_failed",
-                 message: String(localized: "Zshell could not prepare the command's result file."))
+            stop(
+                id, state: .unavailable, code: "task_storage_failed",
+                message: String(localized: "Zshell could not prepare the command's result file."))
             return
         }
         task.start()
@@ -187,7 +205,9 @@ final class TerminalCommandTaskStore {
         let command = (["_zshell_command_task", id.uuidString] + task.argv)
             .map(TerminalSession.shellQuote).joined(separator: " ")
         guard session.sendCommand(command), session.sendEnter() else {
-            stop(id, state: .unavailable, code: "terminal_unavailable", message: String(localized: "The task's terminal was closed before the command finished."))
+            stop(
+                id, state: .unavailable, code: "terminal_unavailable",
+                message: String(localized: "The task's terminal was closed before the command finished."))
             return
         }
     }
@@ -214,13 +234,14 @@ final class TerminalCommandTaskStore {
 extension TerminalSession {
     var isCommandTaskShellReady: Bool {
         guard isShellAvailableForAutomation, terminalPromptQueueIsReady,
-              processExecutablePath(pid: shellPid ?? 0).map({ ($0 as NSString).lastPathComponent == "zsh" }) == true,
-              let directory = commandTaskDirectoryURL?.deletingLastPathComponent(),
-              let shellPID = shellPid,
-              let ready = try? String(
+            processExecutablePath(pid: shellPid ?? 0).map({ ($0 as NSString).lastPathComponent == "zsh" }) == true,
+            let directory = commandTaskDirectoryURL?.deletingLastPathComponent(),
+            let shellPID = shellPid,
+            let ready = try? String(
                 contentsOf: directory.appendingPathComponent("command-task-ready.pid"),
                 encoding: .utf8
-              ) else { return false }
+            )
+        else { return false }
         return ready.trimmingCharacters(in: .whitespacesAndNewlines) == String(shellPID)
     }
 }

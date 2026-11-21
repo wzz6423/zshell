@@ -62,11 +62,15 @@ open class STCompletionWindowController: NSWindowController {
         if !isVisible {
             parentWindow.addChildWindow(window, ordered: .above)
 
-            _willCloseNotificationObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { [weak self] _ in
+            _willCloseNotificationObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification, object: window, queue: .main
+            ) { [weak self] _ in
                 self?.cleanupOnClose()
             }
 
-            _didResignKeyNotificationObserver = NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: parentWindow, queue: .main) { [weak self] _ in
+            _didResignKeyNotificationObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.didResignKeyNotification, object: parentWindow, queue: .main
+            ) { [weak self] _ in
                 self?.close()
             }
         }
@@ -88,12 +92,15 @@ open class STCompletionWindowController: NSWindowController {
 }
 
 public protocol STCompletionWindowDelegate: AnyObject {
-    func completionWindowController(_ windowController: STCompletionWindowController, complete item: any STCompletionItem, movement: NSTextMovement)
+    func completionWindowController(
+        _ windowController: STCompletionWindowController, complete item: any STCompletionItem, movement: NSTextMovement)
     func completionWindowControllerCancel(_ windowController: STCompletionWindowController)
 }
 
 extension STCompletionWindowController: STCompletionViewControllerDelegate {
-    public func completionViewController(_ viewController: some STCompletionViewControllerProtocol, complete item: any STCompletionItem, movement: NSTextMovement) {
+    public func completionViewController(
+        _ viewController: some STCompletionViewControllerProtocol, complete item: any STCompletionItem, movement: NSTextMovement
+    ) {
         delegate?.completionWindowController(self, complete: item, movement: movement)
     }
 

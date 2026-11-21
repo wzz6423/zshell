@@ -21,23 +21,23 @@ class MarkupFormatterSingleElementTests: XCTestCase {
 
     func testPrintCodeBlock() {
         let expected = """
-        ```
-        struct MyStruct {
-            func foo() {}
-        }
-        ```
-        """
+            ```
+            struct MyStruct {
+                func foo() {}
+            }
+            ```
+            """
         let code = """
-        struct MyStruct {
-            func foo() {}
-        }
-        """
+            struct MyStruct {
+                func foo() {}
+            }
+            """
         let printed = CodeBlock(code).format()
         XCTAssertEqual(expected, printed)
     }
 
     func testPrintHeadingATX() {
-        for level in 1..<6 {
+        for level in 1 ..< 6 {
             let expected = String(repeating: "#", count: level) + " H\(level)"
             let printed = Heading(level: level, Text("H\(level)")).format()
             XCTAssertEqual(expected, printed)
@@ -48,11 +48,11 @@ class MarkupFormatterSingleElementTests: XCTestCase {
         let options = MarkupFormatter.Options(preferredHeadingStyle: .setext)
         do { // H1
             let printed = Heading(level: 1, Text("Level-1 Heading"))
-                .format(options: options) 
+                .format(options: options)
             let expected = """
-            Level-1 Heading
-            ===============
-            """
+                Level-1 Heading
+                ===============
+                """
             XCTAssertEqual(expected, printed)
         }
 
@@ -60,14 +60,14 @@ class MarkupFormatterSingleElementTests: XCTestCase {
             let printed = Heading(level: 2, Text("Level-2 Heading"))
                 .format(options: options)
             let expected = """
-            Level-2 Heading
-            ---------------
-            """
+                Level-2 Heading
+                ---------------
+                """
             XCTAssertEqual(expected, printed)
         }
 
         do { // H3 - there is no Setext H3 and above; fall back to ATX
-            for level in 3...6 {
+            for level in 3 ... 6 {
                 let expected = String(repeating: "#", count: level) + " H\(level)"
                 let printed = Heading(level: level, Text("H\(level)")).format()
                 XCTAssertEqual(expected, printed)
@@ -75,16 +75,18 @@ class MarkupFormatterSingleElementTests: XCTestCase {
         }
 
         do { // Check last line length works with soft breaks
-            let printed = Heading(level: 1,
-                                  Text("First line"),
-                                  SoftBreak(),
-                                  Text("Second line"))
-                .format(options: options)
+            let printed = Heading(
+                level: 1,
+                Text("First line"),
+                SoftBreak(),
+                Text("Second line")
+            )
+            .format(options: options)
             let expected = """
-            First line
-            Second line
-            ===========
-            """
+                First line
+                Second line
+                ===========
+                """
             XCTAssertEqual(expected, printed)
         }
     }
@@ -111,14 +113,20 @@ class MarkupFormatterSingleElementTests: XCTestCase {
         }
         do { // unchecked
             let expected = "- [ ] A list item."
-            let printed = UnorderedList(ListItem(checkbox: .unchecked,
-                                                 Paragraph(Text("A list item.")))).format()
+            let printed = UnorderedList(
+                ListItem(
+                    checkbox: .unchecked,
+                    Paragraph(Text("A list item.")))
+            ).format()
             XCTAssertEqual(expected, printed)
         }
         do { // unchecked
             let expected = "- [x] A list item."
-            let printed = UnorderedList(ListItem(checkbox: .checked,
-                                                 Paragraph(Text("A list item.")))).format()
+            let printed = UnorderedList(
+                ListItem(
+                    checkbox: .checked,
+                    Paragraph(Text("A list item.")))
+            ).format()
             XCTAssertEqual(expected, printed)
         }
 
@@ -132,14 +140,20 @@ class MarkupFormatterSingleElementTests: XCTestCase {
         }
         do { // unchecked
             let expected = "1. [ ] A list item."
-            let printed = OrderedList(ListItem(checkbox: .unchecked,
-                                               Paragraph(Text("A list item.")))).format()
+            let printed = OrderedList(
+                ListItem(
+                    checkbox: .unchecked,
+                    Paragraph(Text("A list item.")))
+            ).format()
             XCTAssertEqual(expected, printed)
         }
         do { // checked
             let expected = "1. [x] A list item."
-            let printed = OrderedList(ListItem(checkbox: .checked,
-                                               Paragraph(Text("A list item.")))).format()
+            let printed = OrderedList(
+                ListItem(
+                    checkbox: .checked,
+                    Paragraph(Text("A list item.")))
+            ).format()
             XCTAssertEqual(expected, printed)
         }
     }
@@ -155,16 +169,20 @@ class MarkupFormatterSingleElementTests: XCTestCase {
         }
         do { // unchecked
             let expected = "2. [ ] A list item."
-            var renderedList = OrderedList(ListItem(checkbox: .unchecked,
-                                                    Paragraph(Text("A list item."))))
+            var renderedList = OrderedList(
+                ListItem(
+                    checkbox: .unchecked,
+                    Paragraph(Text("A list item."))))
             renderedList.startIndex = 2
             let printed = renderedList.format(options: options)
             XCTAssertEqual(expected, printed)
         }
         do { // checked
             let expected = "2. [x] A list item."
-            var renderedList = OrderedList(ListItem(checkbox: .checked,
-                                                    Paragraph(Text("A list item."))))
+            var renderedList = OrderedList(
+                ListItem(
+                    checkbox: .checked,
+                    Paragraph(Text("A list item."))))
             renderedList.startIndex = 2
             let printed = renderedList.format(options: options)
             XCTAssertEqual(expected, printed)
@@ -179,10 +197,10 @@ class MarkupFormatterSingleElementTests: XCTestCase {
 
     func testPrintTwoParagraphs() {
         let expected = """
-        First paragraph.
+            First paragraph.
 
-        Second paragraph.
-        """
+            Second paragraph.
+            """
         let printed = Document(
             Paragraph(Text("First paragraph.")),
             Paragraph(Text("Second paragraph."))
@@ -302,22 +320,24 @@ class MarkupFormatterSingleElementTests: XCTestCase {
     }
 
     func testPrintDoxygenAbstract() {
-            let expected = #"\abstract Another thing."#
-            let printed = DoxygenAbstract(children: Paragraph(Text("Another thing."))).format()
-            print (printed)
-            XCTAssertEqual(expected, printed)
+        let expected = #"\abstract Another thing."#
+        let printed = DoxygenAbstract(children: Paragraph(Text("Another thing."))).format()
+        print(printed)
+        XCTAssertEqual(expected, printed)
     }
 
     func testPrintDoxygenAbstractMultiline() {
         let expected = #"""
-        \abstract Another thing.
-        This is an extended abstract.
-        """#
-        let printed = DoxygenAbstract(children: Paragraph(
-            Text("Another thing."),
-            SoftBreak(),
-            Text("This is an extended abstract.")
-        )).format()
+            \abstract Another thing.
+            This is an extended abstract.
+            """#
+        let printed = DoxygenAbstract(
+            children: Paragraph(
+                Text("Another thing."),
+                SoftBreak(),
+                Text("This is an extended abstract.")
+            )
+        ).format()
         XCTAssertEqual(expected, printed)
     }
 
@@ -329,14 +349,16 @@ class MarkupFormatterSingleElementTests: XCTestCase {
 
     func testPrintDoxygenDiscussionMultiline() {
         let expected = #"""
-        \discussion Another thing.
-        This is an extended discussion.
-        """#
-        let printed = DoxygenDiscussion(children: Paragraph(
-            Text("Another thing."),
-            SoftBreak(),
-            Text("This is an extended discussion.")
-        )).format()
+            \discussion Another thing.
+            This is an extended discussion.
+            """#
+        let printed = DoxygenDiscussion(
+            children: Paragraph(
+                Text("Another thing."),
+                SoftBreak(),
+                Text("This is an extended discussion.")
+            )
+        ).format()
         XCTAssertEqual(expected, printed)
     }
 
@@ -348,14 +370,16 @@ class MarkupFormatterSingleElementTests: XCTestCase {
 
     func testPrintDoxygenNoteMultiline() {
         let expected = #"""
-        \note Another thing.
-        This is an extended discussion.
-        """#
-        let printed = DoxygenNote(children: Paragraph(
-            Text("Another thing."),
-            SoftBreak(),
-            Text("This is an extended discussion.")
-        )).format()
+            \note Another thing.
+            This is an extended discussion.
+            """#
+        let printed = DoxygenNote(
+            children: Paragraph(
+                Text("Another thing."),
+                SoftBreak(),
+                Text("This is an extended discussion.")
+            )
+        ).format()
         XCTAssertEqual(expected, printed)
     }
 
@@ -367,14 +391,17 @@ class MarkupFormatterSingleElementTests: XCTestCase {
 
     func testPrintDoxygenParameterMultiline() {
         let expected = #"""
-        \param thing The thing.
-        This is an extended discussion.
-        """#
-        let printed = DoxygenParameter(name: "thing", children: Paragraph(
-            Text("The thing."),
-            SoftBreak(),
-            Text("This is an extended discussion.")
-        )).format()
+            \param thing The thing.
+            This is an extended discussion.
+            """#
+        let printed = DoxygenParameter(
+            name: "thing",
+            children: Paragraph(
+                Text("The thing."),
+                SoftBreak(),
+                Text("This is an extended discussion.")
+            )
+        ).format()
         XCTAssertEqual(expected, printed)
     }
 
@@ -386,26 +413,31 @@ class MarkupFormatterSingleElementTests: XCTestCase {
 
     func testPrintDoxygenReturnsMultiline() {
         let expected = #"""
-        \returns Another thing.
-        This is an extended discussion.
-        """#
-        let printed = DoxygenReturns(children: Paragraph(
-            Text("Another thing."),
-            SoftBreak(),
-            Text("This is an extended discussion.")
-        )).format()
+            \returns Another thing.
+            This is an extended discussion.
+            """#
+        let printed = DoxygenReturns(
+            children: Paragraph(
+                Text("Another thing."),
+                SoftBreak(),
+                Text("This is an extended discussion.")
+            )
+        ).format()
         XCTAssertEqual(expected, printed)
     }
 
     func testPrintBlockDirective() {
         let expected = #"""
-        @Metadata {
-            @TitleHeading(Example)
-        }
-        """#
-        let printed = BlockDirective(name: "Metadata", children: [
-            BlockDirective(name: "TitleHeading", argumentText: "Example"),
-        ]).format()
+            @Metadata {
+                @TitleHeading(Example)
+            }
+            """#
+        let printed = BlockDirective(
+            name: "Metadata",
+            children: [
+                BlockDirective(name: "TitleHeading", argumentText: "Example")
+            ]
+        ).format()
         XCTAssertEqual(expected, printed)
     }
 }
@@ -427,36 +459,36 @@ class MarkupFormatterOptionsTests: XCTestCase {
 
     func testUseCodeFence() {
         let fenced = """
-        ```swift
-        func foo() {}
-        ```
+            ```swift
+            func foo() {}
+            ```
 
-        -----
+            -----
 
-        ```
-        func foo() {}
-        ```
-        """
+            ```
+            func foo() {}
+            ```
+            """
 
         let refenced = """
-        ```
-        func foo() {}
-        ```
+            ```
+            func foo() {}
+            ```
 
-        -----
+            -----
 
-        ```
-        func foo() {}
-        ```
-        """
+            ```
+            func foo() {}
+            ```
+            """
 
         let unfenced = """
-            func foo() {}
+                func foo() {}
 
-        -----
+            -----
 
-            func foo() {}
-        """
+                func foo() {}
+            """
 
         do { // always
             let document = Document(parsing: unfenced)
@@ -473,14 +505,14 @@ class MarkupFormatterOptionsTests: XCTestCase {
         do { // when language present
             let document = Document(parsing: fenced)
             let expected = """
-            ```swift
-            func foo() {}
-            ```
-
-            -----
-
+                ```swift
                 func foo() {}
-            """
+                ```
+
+                -----
+
+                    func foo() {}
+                """
             let printed = document.format(options: .init(useCodeFence: .onlyWhenLanguageIsPresent))
             XCTAssertEqual(expected, printed)
         }
@@ -488,18 +520,18 @@ class MarkupFormatterOptionsTests: XCTestCase {
 
     func testDefaultCodeBlockLanguage() {
         let unfenced = """
-            func foo() {}
-        """
+                func foo() {}
+            """
         let fencedWithLanguage = """
-        ```swift
-        func foo() {}
-        ```
-        """
+            ```swift
+            func foo() {}
+            ```
+            """
         let fencedWithoutLanguage = """
-        ```
-        func foo() {}
-        ```
-        """
+            ```
+            func foo() {}
+            ```
+            """
         do { // nil
             let document = Document(parsing: unfenced)
             let printed = document.format()
@@ -568,15 +600,15 @@ class MarkupFormatterOptionsTests: XCTestCase {
 
     func testOrderedListNumeralsAllSame() {
         let incrementing = """
-        1. A
-        2. B
-        3. C
-        """
+            1. A
+            2. B
+            3. C
+            """
         let allSame = """
-        1. A
-        1. B
-        1. C
-        """
+            1. A
+            1. B
+            1. C
+            """
         do {
             let document = Document(parsing: incrementing)
             let printed = document.format(options: .init(orderedListNumerals: .allSame(1)))
@@ -611,23 +643,29 @@ class MarkupFormatterOptionsTests: XCTestCase {
 /// Tests that an printed and reparsed element has the same structure as
 /// the original.
 class MarkupFormatterSimpleRoundTripTests: XCTestCase {
-    func checkRoundTrip(for element: Markup,
-                        file: StaticString = #file,
-                        line: UInt = #line) {
+    func checkRoundTrip(
+        for element: Markup,
+        file: StaticString = #file,
+        line: UInt = #line
+    ) {
         let printed = element.format()
         let parsed = Document(parsing: printed)
         XCTAssertTrue(element.hasSameStructure(as: parsed), file: file, line: line)
     }
 
-    func checkRoundTrip(for source: String,
-                        file: StaticString = #file,
-                        line: UInt = #line) {
+    func checkRoundTrip(
+        for source: String,
+        file: StaticString = #file,
+        line: UInt = #line
+    ) {
         checkRoundTrip(for: Document(parsing: source), file: file, line: line)
     }
 
-    func checkCharacterEquivalence(for source: String,
-                                   file: StaticString = #file,
-                                   line: UInt = #line) {
+    func checkCharacterEquivalence(
+        for source: String,
+        file: StaticString = #file,
+        line: UInt = #line
+    ) {
         let original = Document(parsing: source)
         let printed = original.format()
         XCTAssertEqual(source, printed, file: file, line: line)
@@ -638,15 +676,19 @@ class MarkupFormatterSimpleRoundTripTests: XCTestCase {
         checkRoundTrip(for: Document(Paragraph(Emphasis(Text("emphasized")))))
         checkRoundTrip(for: Document(Paragraph(Image(source: "test.png", title: "test", [Text("alt")]))))
         checkRoundTrip(for: Document(Paragraph(Text("OK."), InlineHTML("<b>"))))
-        checkRoundTrip(for: Document(Paragraph(
-            Text("First line"),
-            LineBreak(),
-            Text("Second line"))))
+        checkRoundTrip(
+            for: Document(
+                Paragraph(
+                    Text("First line"),
+                    LineBreak(),
+                    Text("Second line"))))
         checkRoundTrip(for: Document(Paragraph(Link(destination: "https://swift.org", Text("Swift")))))
-        checkRoundTrip(for: Document(Paragraph(
-            Text("First line"),
-            SoftBreak(),
-            Text("Second line"))))
+        checkRoundTrip(
+            for: Document(
+                Paragraph(
+                    Text("First line"),
+                    SoftBreak(),
+                    Text("Second line"))))
         checkRoundTrip(for: Document(Paragraph(Strong(Text("strong")))))
         checkRoundTrip(for: Document(Paragraph(Text("OK"))))
         checkRoundTrip(for: Document(Paragraph(Emphasis(Strong(Text("emphasized and strong"))))))
@@ -774,72 +816,72 @@ class MarkupFormatterSimpleRoundTripTests: XCTestCase {
 
     func testRoundTripHardBreakWithInlineCode() {
         let source = """
-        This is some text.\("  ")
-        `This is some code.`
-        """
+            This is some text.\("  ")
+            `This is some code.`
+            """
         checkRoundTrip(for: source)
         checkCharacterEquivalence(for: source)
     }
 
     func testRoundTripSoftBreakWithInlineCode() {
         let source = """
-        This is some text.
-        `This is some code.`
-        """
+            This is some text.
+            `This is some code.`
+            """
         checkRoundTrip(for: source)
         checkCharacterEquivalence(for: source)
     }
 
     func testRoundTripHardBreakWithImage() {
         let source = """
-        This is some text.\("  ")
-        ![This is an image.](image.png)
-        """
+            This is some text.\("  ")
+            ![This is an image.](image.png)
+            """
         checkRoundTrip(for: source)
         checkCharacterEquivalence(for: source)
     }
 
     func testRoundTripSoftBreakWithImage() {
         let source = """
-        This is some text.
-        ![This is an image.](image.png)
-        """
+            This is some text.
+            ![This is an image.](image.png)
+            """
         checkRoundTrip(for: source)
         checkCharacterEquivalence(for: source)
     }
 
     func testRoundTripHardBreakWithLink() {
         let source = """
-        This is some text.\("  ")
-        [This is a link.](https://swift.org)
-        """
+            This is some text.\("  ")
+            [This is a link.](https://swift.org)
+            """
         checkRoundTrip(for: source)
         checkCharacterEquivalence(for: source)
     }
 
     func testRoundTripSoftBreakWithLink() {
         let source = """
-        This is some text.
-        [This is a link.](https://swift.org)
-        """
+            This is some text.
+            [This is a link.](https://swift.org)
+            """
         checkRoundTrip(for: source)
         checkCharacterEquivalence(for: source)
     }
 
     func testRoundTripHardBreakWithInlineAttribute() {
         let source = """
-        This is some text.\("  ")
-        ^[This is some attributed text.](rainbow: 'extreme')
-        """
+            This is some text.\("  ")
+            ^[This is some attributed text.](rainbow: 'extreme')
+            """
         checkRoundTrip(for: source)
         checkCharacterEquivalence(for: source)
     }
 
     func testRoundTripSoftBreakWithInlineAttribute() {
         let source = """
-        This is some text.
-        ^[This is some attributed text.](rainbow: 'extreme')
-        """
+            This is some text.
+            ^[This is some attributed text.](rainbow: 'extreme')
+            """
         checkRoundTrip(for: source)
         checkCharacterEquivalence(for: source)
     }
@@ -853,7 +895,7 @@ class MarkupFormatterSimpleRoundTripTests: XCTestCase {
             .deletingLastPathComponent() // ../ (Tests)
             .appendingPathComponent("README.md") // README.md
         let document = try Document(parsing: readMeURL)
-//        try document.format().write(toFile: "/tmp/test.md", atomically: true, encoding: .utf8)
+        //        try document.format().write(toFile: "/tmp/test.md", atomically: true, encoding: .utf8)
         checkRoundTrip(for: document)
     }
 }
@@ -887,32 +929,32 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
         let document = Document(parsing: source)
         let printed = document.format(options: options)
         let expected = """
-        A really really
-        really really
-        really really
-        really really
-        really really
-        really really long
-        line
-        """
+            A really really
+            really really
+            really really
+            really really
+            really really
+            really really long
+            line
+            """
         XCTAssertEqual(expected, printed)
         let expectedTreeDump = """
-        Document
-        └─ Paragraph
-           ├─ Text "A really really"
-           ├─ SoftBreak
-           ├─ Text "really really"
-           ├─ SoftBreak
-           ├─ Text "really really"
-           ├─ SoftBreak
-           ├─ Text "really really"
-           ├─ SoftBreak
-           ├─ Text "really really"
-           ├─ SoftBreak
-           ├─ Text "really really long"
-           ├─ SoftBreak
-           └─ Text "line"
-        """
+            Document
+            └─ Paragraph
+               ├─ Text "A really really"
+               ├─ SoftBreak
+               ├─ Text "really really"
+               ├─ SoftBreak
+               ├─ Text "really really"
+               ├─ SoftBreak
+               ├─ Text "really really"
+               ├─ SoftBreak
+               ├─ Text "really really"
+               ├─ SoftBreak
+               ├─ Text "really really long"
+               ├─ SoftBreak
+               └─ Text "line"
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
 
         // In this particular case, since this is just a paragraph,
@@ -932,32 +974,32 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
         let document = Document(parsing: source)
         let printed = document.format(options: options)
         let expected = """
-        A really really\u{0020}\u{0020}
-        really really\u{0020}\u{0020}
-        really really\u{0020}\u{0020}
-        really really\u{0020}\u{0020}
-        really really\u{0020}\u{0020}
-        really really\u{0020}\u{0020}
-        long line
-        """
+            A really really\u{0020}\u{0020}
+            really really\u{0020}\u{0020}
+            really really\u{0020}\u{0020}
+            really really\u{0020}\u{0020}
+            really really\u{0020}\u{0020}
+            really really\u{0020}\u{0020}
+            long line
+            """
         XCTAssertEqual(expected, printed)
         let expectedTreeDump = """
-        Document
-        └─ Paragraph
-           ├─ Text "A really really"
-           ├─ LineBreak
-           ├─ Text "really really"
-           ├─ LineBreak
-           ├─ Text "really really"
-           ├─ LineBreak
-           ├─ Text "really really"
-           ├─ LineBreak
-           ├─ Text "really really"
-           ├─ LineBreak
-           ├─ Text "really really"
-           ├─ LineBreak
-           └─ Text "long line"
-        """
+            Document
+            └─ Paragraph
+               ├─ Text "A really really"
+               ├─ LineBreak
+               ├─ Text "really really"
+               ├─ LineBreak
+               ├─ Text "really really"
+               ├─ LineBreak
+               ├─ Text "really really"
+               ├─ LineBreak
+               ├─ Text "really really"
+               ├─ LineBreak
+               ├─ Text "really really"
+               ├─ LineBreak
+               └─ Text "long line"
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
 
         // In this particular case, since this is just a paragraph,
@@ -972,34 +1014,34 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
      */
     func testInUnorderedListItemSingle() {
         let source = """
-        - Really really really really really really really really long list item
-        """
+            - Really really really really really really really really long list item
+            """
         let document = Document(parsing: source)
         let printed = document.format(options: .init(preferredLineLimit: .init(maxLength: 20, breakWith: .softBreak)))
         let expected = """
-        - Really really
-          really really
-          really really
-          really really
-          long list item
-        """
+            - Really really
+              really really
+              really really
+              really really
+              long list item
+            """
         XCTAssertEqual(expected, printed)
 
         let expectedTreeDump = """
-        Document
-        └─ UnorderedList
-           └─ ListItem
-              └─ Paragraph
-                 ├─ Text "Really really"
-                 ├─ SoftBreak
-                 ├─ Text "really really"
-                 ├─ SoftBreak
-                 ├─ Text "really really"
-                 ├─ SoftBreak
-                 ├─ Text "really really"
-                 ├─ SoftBreak
-                 └─ Text "long list item"
-        """
+            Document
+            └─ UnorderedList
+               └─ ListItem
+                  └─ Paragraph
+                     ├─ Text "Really really"
+                     ├─ SoftBreak
+                     ├─ Text "really really"
+                     ├─ SoftBreak
+                     ├─ Text "really really"
+                     ├─ SoftBreak
+                     ├─ Text "really really"
+                     ├─ SoftBreak
+                     └─ Text "long list item"
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
     }
 
@@ -1008,45 +1050,45 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
      */
     func testInUnorderedListItemNested() {
         let source = """
-        - First level
-          - Second level is really really really really really long.
-        - First level again.
-        """
+            - First level
+              - Second level is really really really really really long.
+            - First level again.
+            """
         let document = Document(parsing: source)
         let printed = document.format(options: .init(preferredLineLimit: .init(maxLength: 20, breakWith: .softBreak)))
         let expected = """
-        - First level
-          - Second level is
-            really really
-            really really
-            really long.
-        - First level
-          again.
-        """
+            - First level
+              - Second level is
+                really really
+                really really
+                really long.
+            - First level
+              again.
+            """
         XCTAssertEqual(expected, printed)
 
         let expectedTreeDump = """
-        Document
-        └─ UnorderedList
-           ├─ ListItem
-           │  ├─ Paragraph
-           │  │  └─ Text "First level"
-           │  └─ UnorderedList
-           │     └─ ListItem
-           │        └─ Paragraph
-           │           ├─ Text "Second level is"
-           │           ├─ SoftBreak
-           │           ├─ Text "really really"
-           │           ├─ SoftBreak
-           │           ├─ Text "really really"
-           │           ├─ SoftBreak
-           │           └─ Text "really long."
-           └─ ListItem
-              └─ Paragraph
-                 ├─ Text "First level"
-                 ├─ SoftBreak
-                 └─ Text "again."
-        """
+            Document
+            └─ UnorderedList
+               ├─ ListItem
+               │  ├─ Paragraph
+               │  │  └─ Text "First level"
+               │  └─ UnorderedList
+               │     └─ ListItem
+               │        └─ Paragraph
+               │           ├─ Text "Second level is"
+               │           ├─ SoftBreak
+               │           ├─ Text "really really"
+               │           ├─ SoftBreak
+               │           ├─ Text "really really"
+               │           ├─ SoftBreak
+               │           └─ Text "really long."
+               └─ ListItem
+                  └─ Paragraph
+                     ├─ Text "First level"
+                     ├─ SoftBreak
+                     └─ Text "again."
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
     }
 
@@ -1055,34 +1097,34 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
      */
     func testInOrderedListItemSingle() {
         let source = """
-        1. Really really really really really really really really long list item
-        """
+            1. Really really really really really really really really long list item
+            """
         let document = Document(parsing: source)
         let printed = document.format(options: .init(preferredLineLimit: .init(maxLength: 20, breakWith: .softBreak)))
         let expected = """
-        1. Really really
-           really really
-           really really
-           really really
-           long list item
-        """
+            1. Really really
+               really really
+               really really
+               really really
+               long list item
+            """
         XCTAssertEqual(expected, printed)
 
         let expectedTreeDump = """
-        Document
-        └─ OrderedList
-           └─ ListItem
-              └─ Paragraph
-                 ├─ Text "Really really"
-                 ├─ SoftBreak
-                 ├─ Text "really really"
-                 ├─ SoftBreak
-                 ├─ Text "really really"
-                 ├─ SoftBreak
-                 ├─ Text "really really"
-                 ├─ SoftBreak
-                 └─ Text "long list item"
-        """
+            Document
+            └─ OrderedList
+               └─ ListItem
+                  └─ Paragraph
+                     ├─ Text "Really really"
+                     ├─ SoftBreak
+                     ├─ Text "really really"
+                     ├─ SoftBreak
+                     ├─ Text "really really"
+                     ├─ SoftBreak
+                     ├─ Text "really really"
+                     ├─ SoftBreak
+                     └─ Text "long list item"
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
     }
 
@@ -1091,82 +1133,84 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
      */
     func testInOrderedListItemNested() {
         let source = """
-        1. First level
-           1. Second level is really really really really really long.
-        1. First level again.
-        """
+            1. First level
+               1. Second level is really really really really really long.
+            1. First level again.
+            """
         let document = Document(parsing: source)
         let printed = document.format(options: .init(preferredLineLimit: .init(maxLength: 20, breakWith: .softBreak)))
         let expected = """
-        1. First level
-           1. Second level
-              is really
-              really really
-              really really
-              long.
-        1. First level
-           again.
-        """
+            1. First level
+               1. Second level
+                  is really
+                  really really
+                  really really
+                  long.
+            1. First level
+               again.
+            """
         XCTAssertEqual(expected, printed)
 
         let expectedTreeDump = """
-        Document
-        └─ OrderedList
-           ├─ ListItem
-           │  ├─ Paragraph
-           │  │  └─ Text "First level"
-           │  └─ OrderedList
-           │     └─ ListItem
-           │        └─ Paragraph
-           │           ├─ Text "Second level"
-           │           ├─ SoftBreak
-           │           ├─ Text "is really"
-           │           ├─ SoftBreak
-           │           ├─ Text "really really"
-           │           ├─ SoftBreak
-           │           ├─ Text "really really"
-           │           ├─ SoftBreak
-           │           └─ Text "long."
-           └─ ListItem
-              └─ Paragraph
-                 ├─ Text "First level"
-                 ├─ SoftBreak
-                 └─ Text "again."
-        """
+            Document
+            └─ OrderedList
+               ├─ ListItem
+               │  ├─ Paragraph
+               │  │  └─ Text "First level"
+               │  └─ OrderedList
+               │     └─ ListItem
+               │        └─ Paragraph
+               │           ├─ Text "Second level"
+               │           ├─ SoftBreak
+               │           ├─ Text "is really"
+               │           ├─ SoftBreak
+               │           ├─ Text "really really"
+               │           ├─ SoftBreak
+               │           ├─ Text "really really"
+               │           ├─ SoftBreak
+               │           └─ Text "long."
+               └─ ListItem
+                  └─ Paragraph
+                     ├─ Text "First level"
+                     ├─ SoftBreak
+                     └─ Text "again."
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
     }
 
     func testInOrderedListHugeNumerals() {
         let source = """
-        1. Really really really really long line with huge numeral
-        """
+            1. Really really really really long line with huge numeral
+            """
         let document = Document(parsing: source)
-        let printed = document.format(options: .init(orderedListNumerals: .allSame(1000),
-                                                     preferredLineLimit: .init(maxLength: 20, breakWith: .softBreak)))
+        let printed = document.format(
+            options: .init(
+                orderedListNumerals: .allSame(1000),
+                preferredLineLimit: .init(maxLength: 20, breakWith: .softBreak)))
         let expected = """
-        1000. Really really
-              really really
-              long line
-              with huge
-              numeral
-        """
+            1000. Really really
+                  really really
+                  long line
+                  with huge
+                  numeral
+            """
         XCTAssertEqual(expected, printed)
 
         let expectedTreeDump = """
-        Document
-        └─ OrderedList startIndex: 1000
-           └─ ListItem
-              └─ Paragraph
-                 ├─ Text "Really really"
-                 ├─ SoftBreak
-                 ├─ Text "really really"
-                 ├─ SoftBreak
-                 ├─ Text "long line"
-                 ├─ SoftBreak
-                 ├─ Text "with huge"
-                 ├─ SoftBreak
-                 └─ Text "numeral"
-        """
+            Document
+            └─ OrderedList startIndex: 1000
+               └─ ListItem
+                  └─ Paragraph
+                     ├─ Text "Really really"
+                     ├─ SoftBreak
+                     ├─ Text "really really"
+                     ├─ SoftBreak
+                     ├─ Text "long line"
+                     ├─ SoftBreak
+                     ├─ Text "with huge"
+                     ├─ SoftBreak
+                     └─ Text "numeral"
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
     }
 
@@ -1175,30 +1219,30 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
      */
     func testInBlockQuoteSingle() {
         let source = """
-        > Really really really really really long line in a block quote.
-        """
+            > Really really really really really long line in a block quote.
+            """
         let document = Document(parsing: source)
         let printed = document.format(options: .init(preferredLineLimit: .init(maxLength: 20, breakWith: .softBreak)))
         let expected = """
-        > Really really
-        > really really
-        > really long line
-        > in a block quote.
-        """
+            > Really really
+            > really really
+            > really long line
+            > in a block quote.
+            """
         XCTAssertEqual(expected, printed)
 
         let expectedTreeDump = """
-        Document
-        └─ BlockQuote
-           └─ Paragraph
-              ├─ Text "Really really"
-              ├─ SoftBreak
-              ├─ Text "really really"
-              ├─ SoftBreak
-              ├─ Text "really long line"
-              ├─ SoftBreak
-              └─ Text "in a block quote."
-        """
+            Document
+            └─ BlockQuote
+               └─ Paragraph
+                  ├─ Text "Really really"
+                  ├─ SoftBreak
+                  ├─ Text "really really"
+                  ├─ SoftBreak
+                  ├─ Text "really long line"
+                  ├─ SoftBreak
+                  └─ Text "in a block quote."
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
     }
 
@@ -1207,51 +1251,51 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
      */
     func testInBlockQuoteNested() {
         let source = """
-        > Really really really long line
-        > > Whoa, really really really really long nested block quote
-        >
-        > Continuing outer quote.
-        """
+            > Really really really long line
+            > > Whoa, really really really really long nested block quote
+            >
+            > Continuing outer quote.
+            """
         let document = Document(parsing: source)
         let printed = document.format(options: .init(preferredLineLimit: .init(maxLength: 20, breakWith: .softBreak)))
         let expected = """
-        > Really really
-        > really long line
-        > >\u{0020}
-        > > Whoa, really
-        > > really really
-        > > really long
-        > > nested block
-        > > quote
-        >\u{0020}
-        > Continuing outer
-        > quote.
-        """
+            > Really really
+            > really long line
+            > >\u{0020}
+            > > Whoa, really
+            > > really really
+            > > really long
+            > > nested block
+            > > quote
+            >\u{0020}
+            > Continuing outer
+            > quote.
+            """
         XCTAssertEqual(expected, printed)
 
         let expectedTreeDump = """
-        Document
-        └─ BlockQuote
-           ├─ Paragraph
-           │  ├─ Text "Really really"
-           │  ├─ SoftBreak
-           │  └─ Text "really long line"
-           ├─ BlockQuote
-           │  └─ Paragraph
-           │     ├─ Text "Whoa, really"
-           │     ├─ SoftBreak
-           │     ├─ Text "really really"
-           │     ├─ SoftBreak
-           │     ├─ Text "really long"
-           │     ├─ SoftBreak
-           │     ├─ Text "nested block"
-           │     ├─ SoftBreak
-           │     └─ Text "quote"
-           └─ Paragraph
-              ├─ Text "Continuing outer"
-              ├─ SoftBreak
-              └─ Text "quote."
-        """
+            Document
+            └─ BlockQuote
+               ├─ Paragraph
+               │  ├─ Text "Really really"
+               │  ├─ SoftBreak
+               │  └─ Text "really long line"
+               ├─ BlockQuote
+               │  └─ Paragraph
+               │     ├─ Text "Whoa, really"
+               │     ├─ SoftBreak
+               │     ├─ Text "really really"
+               │     ├─ SoftBreak
+               │     ├─ Text "really long"
+               │     ├─ SoftBreak
+               │     ├─ Text "nested block"
+               │     ├─ SoftBreak
+               │     └─ Text "quote"
+               └─ Paragraph
+                  ├─ Text "Continuing outer"
+                  ├─ SoftBreak
+                  └─ Text "quote."
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
     }
 
@@ -1260,28 +1304,28 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
      */
     func testLongLinkText() {
         let source = """
-        [Link with really really really long link text](https://swift.org)
-        """
+            [Link with really really really long link text](https://swift.org)
+            """
         let document = Document(parsing: source)
         let printed = document.format(options: .init(preferredLineLimit: .init(maxLength: 20, breakWith: .softBreak)))
         let expected = """
-        [Link with really
-        really really long
-        link text](https://swift.org)
-        """
+            [Link with really
+            really really long
+            link text](https://swift.org)
+            """
         // Note: Link destinations cannot be split.
         XCTAssertEqual(expected, printed)
 
         let expectedTreeDump = """
-        Document
-        └─ Paragraph
-           └─ Link destination: "https://swift.org"
-              ├─ Text "Link with really"
-              ├─ SoftBreak
-              ├─ Text "really really long"
-              ├─ SoftBreak
-              └─ Text "link text"
-        """
+            Document
+            └─ Paragraph
+               └─ Link destination: "https://swift.org"
+                  ├─ Text "Link with really"
+                  ├─ SoftBreak
+                  ├─ Text "really really long"
+                  ├─ SoftBreak
+                  └─ Text "link text"
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
     }
 
@@ -1290,27 +1334,27 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
      */
     func testLongEmphasizedText() {
         let source = """
-        *Really really really really long emphasized text*
-        """
+            *Really really really really long emphasized text*
+            """
         let document = Document(parsing: source)
         let printed = document.format(options: .init(preferredLineLimit: .init(maxLength: 20, breakWith: .softBreak)))
         let expected = """
-        *Really really
-        really really long
-        emphasized text*
-        """
+            *Really really
+            really really long
+            emphasized text*
+            """
         XCTAssertEqual(expected, printed)
 
         let expectedTreeDump = """
-        Document
-        └─ Paragraph
-           └─ Emphasis
-              ├─ Text "Really really"
-              ├─ SoftBreak
-              ├─ Text "really really long"
-              ├─ SoftBreak
-              └─ Text "emphasized text"
-        """
+            Document
+            └─ Paragraph
+               └─ Emphasis
+                  ├─ Text "Really really"
+                  ├─ SoftBreak
+                  ├─ Text "really really long"
+                  ├─ SoftBreak
+                  └─ Text "emphasized text"
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
     }
 
@@ -1319,30 +1363,30 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
      */
     func testLongEmphasizedStrongText() {
         let source = """
-        **Really really really really long strongly emphasized text**
-        """
+            **Really really really really long strongly emphasized text**
+            """
         let document = Document(parsing: source)
         let printed = document.format(options: .init(preferredLineLimit: .init(maxLength: 20, breakWith: .softBreak)))
         let expected = """
-        **Really really
-        really really long
-        strongly emphasized
-        text**
-        """
+            **Really really
+            really really long
+            strongly emphasized
+            text**
+            """
         XCTAssertEqual(expected, printed)
 
         let expectedTreeDump = """
-        Document
-        └─ Paragraph
-           └─ Strong
-              ├─ Text "Really really"
-              ├─ SoftBreak
-              ├─ Text "really really long"
-              ├─ SoftBreak
-              ├─ Text "strongly emphasized"
-              ├─ SoftBreak
-              └─ Text "text"
-        """
+            Document
+            └─ Paragraph
+               └─ Strong
+                  ├─ Text "Really really"
+                  ├─ SoftBreak
+                  ├─ Text "really really long"
+                  ├─ SoftBreak
+                  ├─ Text "strongly emphasized"
+                  ├─ SoftBreak
+                  └─ Text "text"
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
     }
 
@@ -1354,10 +1398,10 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
         XCTAssertEqual(expected, printed)
 
         let expectedTreeDump = """
-        Document
-        └─ Heading level: 3
-           └─ Text "Really really really really really long heading"
-        """
+            Document
+            └─ Heading level: 3
+               └─ Text "Really really really really really long heading"
+            """
         XCTAssertEqual(expectedTreeDump, Document(parsing: printed).debugDescription())
     }
 
@@ -1366,9 +1410,9 @@ class MarkupFormatterLineSplittingTests: XCTestCase {
         let document = Document(parsing: source)
         let printed = document.format(options: .init(preferredLineLimit: .init(maxLength: 20, breakWith: .softBreak)))
         let expected = """
-        `sdf sdf sdf sdf
-        sdf sdf sdf sdf`
-        """
+            `sdf sdf sdf sdf
+            sdf sdf sdf sdf`
+            """
         XCTAssertEqual(expected, printed)
         XCTAssertTrue(document.hasSameStructure(as: Document(parsing: printed)))
     }
@@ -1378,16 +1422,16 @@ class MarkupFormatterTableTests: XCTestCase {
     /// Test growing cell widths.
     func testGrowCellWidths() {
         let source = """
-        |1|1|
-        |--|--|
-        |333|333|
-        """
+            |1|1|
+            |--|--|
+            |333|333|
+            """
 
         let expected = """
-        |1  |1  |
-        |---|---|
-        |333|333|
-        """
+            |1  |1  |
+            |---|---|
+            |333|333|
+            """
 
         let document = Document(parsing: source)
         let formatted = document.format()
@@ -1399,16 +1443,16 @@ class MarkupFormatterTableTests: XCTestCase {
     func testNested() {
         do { // Inside blockquotes; unlikely but possible
             let source = """
-            > |1|1|
-            > |--|--|
-            > |*333*|*333*|
-            """
+                > |1|1|
+                > |--|--|
+                > |*333*|*333*|
+                """
 
             let expected = """
-            > |1    |1    |
-            > |-----|-----|
-            > |*333*|*333*|
-            """
+                > |1    |1    |
+                > |-----|-----|
+                > |*333*|*333*|
+                """
 
             let document = Document(parsing: source)
             let formatted = document.format()
@@ -1417,16 +1461,16 @@ class MarkupFormatterTableTests: XCTestCase {
 
         do { // Inside a list item; unlikely but possible
             let source = """
-            - |1|1|
-              |--|--|
-              |333|333|
-            """
+                - |1|1|
+                  |--|--|
+                  |333|333|
+                """
 
             let expected = """
-            - |1  |1  |
-              |---|---|
-              |333|333|
-            """
+                - |1  |1  |
+                  |---|---|
+                  |333|333|
+                """
 
             let document = Document(parsing: source)
             let formatted = document.format()
@@ -1437,16 +1481,16 @@ class MarkupFormatterTableTests: XCTestCase {
     /// Test that an already uniformly sized table prints pretty much the same.
     func testNoGrowth() {
         let source = """
-        > |1  |1  |
-        > |---|---|
-        > |333|333|
-        """
+            > |1  |1  |
+            > |---|---|
+            > |333|333|
+            """
 
         let expected = """
-        > |1  |1  |
-        > |---|---|
-        > |333|333|
-        """
+            > |1  |1  |
+            > |---|---|
+            > |333|333|
+            """
 
         let document = Document(parsing: source)
         let formatted = document.format()
@@ -1454,67 +1498,69 @@ class MarkupFormatterTableTests: XCTestCase {
     }
 
     func testNoSoftbreaksPrinted() {
-        let head = Table.Head(Table.Cell(Text("Not"),
-                                           SoftBreak(),
-                                           Text("Broken")))
+        let head = Table.Head(
+            Table.Cell(
+                Text("Not"),
+                SoftBreak(),
+                Text("Broken")))
         let document = Document(Table(header: head, body: Table.Body()))
 
         let expected = """
-        |Not Broken|
-        |----------|
-        """
+            |Not Broken|
+            |----------|
+            """
         let formatted = document.format()
         XCTAssertEqual(expected, formatted)
     }
 
     func testRoundTripStructure() {
         let source = """
-        |*A*|**B**|~C~|
-        |:-|:--:|--:|
-        |[Apple](https://apple.com)|![image](image.png)|<https://swift.org>|
-        |<br/>|| |
-        """
+            |*A*|**B**|~C~|
+            |:-|:--:|--:|
+            |[Apple](https://apple.com)|![image](image.png)|<https://swift.org>|
+            |<br/>|| |
+            """
 
         let document = Document(parsing: source)
         let expectedDump = """
-        Document
-        └─ Table alignments: |l|c|r|
-           ├─ Head
-           │  ├─ Cell
-           │  │  └─ Emphasis
-           │  │     └─ Text "A"
-           │  ├─ Cell
-           │  │  └─ Strong
-           │  │     └─ Text "B"
-           │  └─ Cell
-           │     └─ Strikethrough
-           │        └─ Text "C"
-           └─ Body
-              ├─ Row
-              │  ├─ Cell
-              │  │  └─ Link destination: "https://apple.com"
-              │  │     └─ Text "Apple"
-              │  ├─ Cell
-              │  │  └─ Image source: "image.png"
-              │  │     └─ Text "image"
-              │  └─ Cell
-              │     └─ Link destination: "https://swift.org"
-              │        └─ Text "https://swift.org"
-              └─ Row
-                 ├─ Cell colspan: 2
-                 │  └─ InlineHTML <br/>
-                 ├─ Cell colspan: 0
-                 └─ Cell
-        """
+            Document
+            └─ Table alignments: |l|c|r|
+               ├─ Head
+               │  ├─ Cell
+               │  │  └─ Emphasis
+               │  │     └─ Text "A"
+               │  ├─ Cell
+               │  │  └─ Strong
+               │  │     └─ Text "B"
+               │  └─ Cell
+               │     └─ Strikethrough
+               │        └─ Text "C"
+               └─ Body
+                  ├─ Row
+                  │  ├─ Cell
+                  │  │  └─ Link destination: "https://apple.com"
+                  │  │     └─ Text "Apple"
+                  │  ├─ Cell
+                  │  │  └─ Image source: "image.png"
+                  │  │     └─ Text "image"
+                  │  └─ Cell
+                  │     └─ Link destination: "https://swift.org"
+                  │        └─ Text "https://swift.org"
+                  └─ Row
+                     ├─ Cell colspan: 2
+                     │  └─ InlineHTML <br/>
+                     ├─ Cell colspan: 0
+                     └─ Cell
+            """
         XCTAssertEqual(expectedDump, document.debugDescription())
 
         let formatted = document.format()
         let expected = """
-        |*A*                       |**B**              |~C~                |
-        |:-------------------------|:-----------------:|------------------:|
-        |[Apple](https://apple.com)|![image](image.png)|<https://swift.org>|
-        |<br/>                                        ||                   |
-        """
+            |*A*                       |**B**              |~C~                |
+            |:-------------------------|:-----------------:|------------------:|
+            |[Apple](https://apple.com)|![image](image.png)|<https://swift.org>|
+            |<br/>                                        ||                   |
+            """
         XCTAssertEqual(expected, formatted)
 
         let reparsed = Document(parsing: formatted)
@@ -1523,103 +1569,103 @@ class MarkupFormatterTableTests: XCTestCase {
 
     func testRoundTripRowspan() {
         let source = """
-        | one | two | three |
-        | --- | --- | ----- |
-        | big      || small |
-        | ^        || small |
-        """
+            | one | two | three |
+            | --- | --- | ----- |
+            | big      || small |
+            | ^        || small |
+            """
 
         let document = Document(parsing: source)
 
         let expectedDump = """
-        Document
-        └─ Table alignments: |-|-|-|
-           ├─ Head
-           │  ├─ Cell
-           │  │  └─ Text "one"
-           │  ├─ Cell
-           │  │  └─ Text "two"
-           │  └─ Cell
-           │     └─ Text "three"
-           └─ Body
-              ├─ Row
-              │  ├─ Cell colspan: 2 rowspan: 2
-              │  │  └─ Text "big"
-              │  ├─ Cell colspan: 0
-              │  └─ Cell
-              │     └─ Text "small"
-              └─ Row
-                 ├─ Cell colspan: 2 rowspan: 0
-                 ├─ Cell colspan: 0
-                 └─ Cell
-                    └─ Text "small"
-        """
+            Document
+            └─ Table alignments: |-|-|-|
+               ├─ Head
+               │  ├─ Cell
+               │  │  └─ Text "one"
+               │  ├─ Cell
+               │  │  └─ Text "two"
+               │  └─ Cell
+               │     └─ Text "three"
+               └─ Body
+                  ├─ Row
+                  │  ├─ Cell colspan: 2 rowspan: 2
+                  │  │  └─ Text "big"
+                  │  ├─ Cell colspan: 0
+                  │  └─ Cell
+                  │     └─ Text "small"
+                  └─ Row
+                     ├─ Cell colspan: 2 rowspan: 0
+                     ├─ Cell colspan: 0
+                     └─ Cell
+                        └─ Text "small"
+            """
         XCTAssertEqual(expectedDump, document.debugDescription())
 
         let formatted = document.format()
         let expected = """
-        |one|two|three|
-        |---|---|-----|
-        |big   ||small|
-        |^     ||small|
-        """
+            |one|two|three|
+            |---|---|-----|
+            |big   ||small|
+            |^     ||small|
+            """
 
         XCTAssertEqual(expected, formatted)
 
         let reparsed = Document(parsing: formatted)
         XCTAssertTrue(document.hasSameStructure(as: reparsed))
     }
-    
+
     func testColSpanOverflowTooManyIndicators() {
         let source = """
-        | Jenis Kelamin | Jenis Tas     | Tally       | Jumlah |
-        |---------------|---------------|-------------|--------|
-        | Perempuan     | Tas Ransel    | ||||
-        """
+            | Jenis Kelamin | Jenis Tas     | Tally       | Jumlah |
+            |---------------|---------------|-------------|--------|
+            | Perempuan     | Tas Ransel    | ||||
+            """
         let document = Document(parsing: source)
         let formatted = document.format()
         let expected = """
-        |Jenis Kelamin|Jenis Tas |Tally|Jumlah|
-        |-------------|----------|-----|------|
-        |Perempuan    |Tas Ransel|           ||
-        """
+            |Jenis Kelamin|Jenis Tas |Tally|Jumlah|
+            |-------------|----------|-----|------|
+            |Perempuan    |Tas Ransel|           ||
+            """
         XCTAssertEqual(expected, formatted)
     }
-    
+
     func testColSpanOverflowMisformatted() {
         let source = """
-        |A|B|C|
-        |-|-|-|
-        |1|2|3||4|5|6|
-        """
+            |A|B|C|
+            |-|-|-|
+            |1|2|3||4|5|6|
+            """
         let document = Document(parsing: source)
         let formatted = document.format()
         let expected = """
-        |A|B|C|
-        |-|-|-|
-        |1|2|3|
-        """
+            |A|B|C|
+            |-|-|-|
+            |1|2|3|
+            """
         XCTAssertEqual(expected, formatted)
     }
-    
+
     func testColSpanOverflowInHeader() {
         // Doesn't get parsed as a table, so doesn't exhibit the crash
         let source = """
-        |A|B|C||-|-|-|
-        |1|2|3|
-        """
+            |A|B|C||-|-|-|
+            |1|2|3|
+            """
         let document = Document(parsing: source)
         let formatted = document.format()
         XCTAssertEqual(source, formatted)
     }
-    
+
     func testColSpanOverflowInSubHeader() {
         // Doesn't get parsed as a table, so doesn't exhibit the crash
         let source = """
-        |A|B|C|
-        |-|-|-||
-        |1|2|3|
-        """
+            |A|B|C|
+            |-|-|-||
+            |1|2|3|
+            """
         let document = Document(parsing: source)
         let formatted = document.format()
         XCTAssertEqual(source, formatted)
@@ -1657,26 +1703,34 @@ class MarkupFormatterMixedContentTests: XCTestCase {
         let printed = [
             Document(
                 Heading(level: 1, Text("Example title")),
-                BlockDirective(name: "Metadata", children: [
-                    BlockDirective(name: "TitleHeading", argumentText: "example"),
-                ])
+                BlockDirective(
+                    name: "Metadata",
+                    children: [
+                        BlockDirective(name: "TitleHeading", argumentText: "example")
+                    ])
             ).format(),
             Document(
-                BlockDirective(name: "Tutorials", argumentText: "name: Foo", children: [
-                    BlockDirective(name: "Intro", argumentText: "title: Bar", children: [
-                        Paragraph(Text("Foobar")) as BlockMarkup,
-                        BlockDirective(name: "Image", argumentText: "source: foo, alt: bar") as BlockMarkup,
-                    ]),
-                ])
+                BlockDirective(
+                    name: "Tutorials", argumentText: "name: Foo",
+                    children: [
+                        BlockDirective(
+                            name: "Intro", argumentText: "title: Bar",
+                            children: [
+                                Paragraph(Text("Foobar")) as BlockMarkup,
+                                BlockDirective(name: "Image", argumentText: "source: foo, alt: bar") as BlockMarkup,
+                            ])
+                    ])
             ).format(),
             Document(
                 Heading(level: 1, Text("Example title")),
-                BlockDirective(name: "Links", argumentText: "visualStyle: list", children: [
-                    UnorderedList([
-                        ListItem(Paragraph(SymbolLink(destination: "Foo"))),
-                        ListItem(Paragraph(SymbolLink(destination: "Bar"))),
-                    ]),
-                ])
+                BlockDirective(
+                    name: "Links", argumentText: "visualStyle: list",
+                    children: [
+                        UnorderedList([
+                            ListItem(Paragraph(SymbolLink(destination: "Foo"))),
+                            ListItem(Paragraph(SymbolLink(destination: "Bar"))),
+                        ])
+                    ])
             ).format(),
         ]
         zip(expected, printed).forEach { XCTAssertEqual($0, $1) }

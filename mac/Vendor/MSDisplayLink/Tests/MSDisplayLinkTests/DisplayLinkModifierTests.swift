@@ -117,13 +117,15 @@ private struct ProbeView: View {
     var body: some View {
         probe.renders += 1
         return Text("\(probe.frame)")
-            .modifier(DisplayLinkModifier { [probe] in
-                probe.maxLiveDrivers = max(
-                    probe.maxLiveDrivers,
-                    DisplayLinkDriverHelper.shared.referenceHolder.compactMap(\.object).count
-                )
-                probe.frame += 1
-            })
+            .modifier(
+                DisplayLinkModifier { [probe] in
+                    probe.maxLiveDrivers = max(
+                        probe.maxLiveDrivers,
+                        DisplayLinkDriverHelper.shared.referenceHolder.compactMap(\.object).count
+                    )
+                    probe.frame += 1
+                }
+            )
             .onAppear { probe.appeared = true }
     }
 }
@@ -137,8 +139,9 @@ private struct ProbeView: View {
             // A bare `xctest` process (SwiftPM, Mac Catalyst) has no app;
             // UIKit throws on the first window. Run app-hosted to cover this.
             // KVC returns nil here, where `UIApplication.shared` would trap.
-            guard let application = (UIApplication.self as AnyObject)
-                .value(forKey: "sharedApplication") as? UIApplication
+            guard
+                let application = (UIApplication.self as AnyObject)
+                    .value(forKey: "sharedApplication") as? UIApplication
             else {
                 throw XCTSkip("needs an app-hosted test run")
             }

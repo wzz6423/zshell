@@ -100,7 +100,7 @@
                 backend: configuration.backend
             )
             if case let .data(sequence) = delivery,
-               case let .inMemory(session) = configuration.backend
+                case let .inMemory(session) = configuration.backend
             {
                 session.sendInput(sequence)
                 return
@@ -305,7 +305,7 @@
             in _: UITextLayoutDirection
         ) -> UITextRange? {
             guard inputHandler.documentLength > 0,
-                  let position = position as? TerminalTextPosition
+                let position = position as? TerminalTextPosition
             else {
                 return TerminalTextRange(location: 0, length: 0)
             }

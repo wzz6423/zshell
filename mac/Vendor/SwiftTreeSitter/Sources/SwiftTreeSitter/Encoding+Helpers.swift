@@ -21,7 +21,7 @@ public extension NSRange {
         let lower = UInt32(location * 2)
         let upper = UInt32(NSMaxRange(self) * 2)
 
-        return lower..<upper
+        return lower ..< upper
     }
 }
 
@@ -30,6 +30,6 @@ public extension Range where Element == UInt32 {
         let start = lowerBound / 2
         let end = upperBound / 2
 
-        return NSRange(start..<end)
+        return NSRange(start ..< end)
     }
 }

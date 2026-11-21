@@ -22,10 +22,11 @@ struct AgentConversationHistoryConnection: Codable {
         let connection = try JSONDecoder().decode(Self.self, from: PersistentCLIConnection.readPrivate(url))
         var metadata = stat()
         guard connection.version == 1, connection.userID == geteuid(), connection.processIsCurrent,
-              connection.token.utf8.count == 72, connection.socketPath.hasPrefix("/tmp/zshell-history-"),
-              lstat(connection.socketPath, &metadata) == 0,
-              metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFSOCK),
-              metadata.st_uid == geteuid(), metadata.st_mode & 0o777 == 0o600 else {
+            connection.token.utf8.count == 72, connection.socketPath.hasPrefix("/tmp/zshell-history-"),
+            lstat(connection.socketPath, &metadata) == 0,
+            metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFSOCK),
+            metadata.st_uid == geteuid(), metadata.st_mode & 0o777 == 0o600
+        else {
             throw CLIError.message("The history control connection is invalid or expired.")
         }
         return connection
@@ -40,9 +41,10 @@ struct AgentConversationHistoryConnection: Codable {
             bundleIdentifier == nil || $0.bundleIdentifier == bundleIdentifier
         }
         guard connections.count == 1, let connection = connections.first else {
-            throw CLIError.message(connections.isEmpty
-                ? "Open Zshell before using conversation history from an external terminal."
-                : "Several Zshell instances are running. Select an owner-only descriptor with --connection PATH in \(directory.path).")
+            throw CLIError.message(
+                connections.isEmpty
+                    ? "Open Zshell before using conversation history from an external terminal."
+                    : "Several Zshell instances are running. Select an owner-only descriptor with --connection PATH in \(directory.path).")
         }
         return connection
     }
@@ -59,7 +61,8 @@ struct AgentConversationHistoryConnection: Codable {
             throw CLIError.message("Zshell returned a mismatched history response.")
         }
         guard response.ok, let value = response.result else {
-            throw CLIError.message("\(response.error?.code ?? "history_error"): \(response.error?.message ?? "Zshell rejected the history request.")")
+            throw CLIError.message(
+                "\(response.error?.code ?? "history_error"): \(response.error?.message ?? "Zshell rejected the history request.")")
         }
         return value
     }
@@ -110,15 +113,17 @@ final class AgentConversationHistoryControlService {
 
     private func handle(_ request: ZshellAutomationRequest) async -> ZshellAutomationResponse {
         guard request.version == 1, request.terminalID.isEmpty, request.token == token,
-              let peer = request.peerProcessID else {
+            let peer = request.peerProcessID
+        else {
             return .failure(id: request.id, code: "unauthorized", message: "The history control capability is invalid or expired.")
         }
         if let response = await ZshellAutomationRouter.routeCodexNativeHook(request) { return response }
         // Scrubbing inherited variables must not give an in-pane agent the
         // user's cross-project history capability.
         guard !Self.isManagedTerminalProcess(peer) else {
-            return .failure(id: request.id, code: "project_scope_required",
-                            message: "Processes inside Zshell terminals must use their project-scoped automation capability.")
+            return .failure(
+                id: request.id, code: "project_scope_required",
+                message: "Processes inside Zshell terminals must use their project-scoped automation capability.")
         }
         return await AgentConversationHistoryRouter.external(request)
     }
@@ -148,8 +153,9 @@ enum AgentConversationHistoryRouter {
             guard request.params["project_id"] == nil, request.params["window_id"] == nil else {
                 throw CLIError.message("In-pane history operations cannot select another project or window.")
             }
-            return try await operate(request, method: method, manager: caller.manager, project: caller.project,
-                               projectID: caller.project.conversationHistoryProjectID)
+            return try await operate(
+                request, method: method, manager: caller.manager, project: caller.project,
+                projectID: caller.project.conversationHistoryProjectID)
         } catch { return failure(request, error) }
     }
 
@@ -174,13 +180,19 @@ enum AgentConversationHistoryRouter {
                     throw CLIError.message("--window must be a window UUID from history projects.")
                 }
                 requestedWindow = id
-            } else { requestedWindow = nil }
+            } else {
+                requestedWindow = nil
+            }
             let selected = candidates.filter { requestedWindow == nil || $0.manager.conversationHistoryWindowID == requestedWindow }
-            guard selected.count <= 1 else { throw CLIError.message("This history project is open in several windows. Select --window UUID.") }
+            guard selected.count <= 1 else {
+                throw CLIError.message("This history project is open in several windows. Select --window UUID.")
+            }
             if !candidates.isEmpty, selected.isEmpty { throw AgentConversationHistoryError.differentProject }
-            let manager = selected.first?.manager ?? TerminalManager.automationManagers.first(where: {
-                $0.presentationWindow != nil && (requestedWindow == nil || $0.conversationHistoryWindowID == requestedWindow)
-            })
+            let manager =
+                selected.first?.manager
+                ?? TerminalManager.automationManagers.first(where: {
+                    $0.presentationWindow != nil && (requestedWindow == nil || $0.conversationHistoryWindowID == requestedWindow)
+                })
             guard candidates.count > 0 || AgentConversationHistoryStore.shared.records.contains(where: { $0.projectID == projectID }) else {
                 throw AgentConversationHistoryError.notFound
             }
@@ -200,12 +212,14 @@ enum AgentConversationHistoryRouter {
                 throw CLIError.message("Unknown history list parameter.")
             }
             guard request.params["query"].map({ $0.stringValue != nil }) ?? true,
-                  request.params["filter"].map({ $0.stringValue != nil }) ?? true else {
+                request.params["filter"].map({ $0.stringValue != nil }) ?? true
+            else {
                 throw CLIError.message("History query and filter must be strings.")
             }
             let query = request.params["query"]?.stringValue ?? ""
             guard query.utf8.count <= 1_024,
-                  !query.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
+                !query.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
+            else {
                 throw CLIError.message("History search must be control-free and at most 1024 UTF-8 bytes.")
             }
             let filterName = request.params["filter"]?.stringValue ?? "recent"
@@ -216,11 +230,13 @@ enum AgentConversationHistoryRouter {
             case "archived": filter = .archived
             default: throw CLIError.message("History filter must be recent, all, or archived.")
             }
-            return .success(id: request.id, result: .object([
-                "project_id": .string(projectID.uuidString), "filter": .string(filterName),
-                "records": .array(store.search(query, filter: filter, projectID: projectID).map(recordJSON)),
-                "maximum_records": .number(Double(AgentConversationHistoryStore.maximumRecords)),
-            ]))
+            return .success(
+                id: request.id,
+                result: .object([
+                    "project_id": .string(projectID.uuidString), "filter": .string(filterName),
+                    "records": .array(store.search(query, filter: filter, projectID: projectID).map(recordJSON)),
+                    "maximum_records": .number(Double(AgentConversationHistoryStore.maximumRecords)),
+                ]))
         }
         let options: Set<String> = launching ? ["id", "focus"] : ["id"]
         guard Set(request.params.keys).isSubset(of: targeting.union(options)) else {
@@ -230,24 +246,29 @@ enum AgentConversationHistoryRouter {
             throw CLIError.message("History focus must be a boolean.")
         }
         guard
-              let value = request.params["id"]?.stringValue, let id = UUID(uuidString: value),
-              let record = store.record(id: id, projectID: projectID) else {
+            let value = request.params["id"]?.stringValue, let id = UUID(uuidString: value),
+            let record = store.record(id: id, projectID: projectID)
+        else {
             throw AgentConversationHistoryError.notFound
         }
         switch method {
         case "fork":
             guard let manager else { throw AgentConversationHistoryError.noWindow }
-            let context = try await manager.forkConversation(id: id, in: project,
+            let context = try await manager.forkConversation(
+                id: id, in: project,
                 focus: request.params["focus"]?.boolValue ?? false)
             guard let historyID = context.session.agentConversationHistoryID,
-                  let forked = store.record(id: historyID) else { throw AgentConversationHistoryError.forkUnconfirmed }
-            return .success(id: request.id, result: .object([
-                "id": .string(forked.id.uuidString), "source_id": .string(record.id.uuidString),
-                "action": .string("forked"), "terminal_id": .string(context.session.id.uuidString),
-                "project_id": .string(context.project.conversationHistoryProjectID.uuidString),
-                "window_id": .string(context.manager.conversationHistoryWindowID.uuidString),
-                "record": recordJSON(forked),
-            ]))
+                let forked = store.record(id: historyID)
+            else { throw AgentConversationHistoryError.forkUnconfirmed }
+            return .success(
+                id: request.id,
+                result: .object([
+                    "id": .string(forked.id.uuidString), "source_id": .string(record.id.uuidString),
+                    "action": .string("forked"), "terminal_id": .string(context.session.id.uuidString),
+                    "project_id": .string(context.project.conversationHistoryProjectID.uuidString),
+                    "window_id": .string(context.manager.conversationHistoryWindowID.uuidString),
+                    "record": recordJSON(forked),
+                ]))
         case "archive", "unarchive":
             try store.setArchived(method == "archive", id: id, projectID: projectID)
             guard let updated = store.record(id: id) else { throw AgentConversationHistoryError.notFound }
@@ -260,26 +281,30 @@ enum AgentConversationHistoryRouter {
             let focus = request.params["focus"]?.boolValue ?? false
             if record.identity.remoteHostID != nil {
                 let context = try await manager.resumeRemoteConversation(id: id, in: project, focus: focus)
-                return .success(id: request.id, result: .object([
-                    "id": .string(record.id.uuidString), "action": .string("remote_resume"),
+                return .success(
+                    id: request.id,
+                    result: .object([
+                        "id": .string(record.id.uuidString), "action": .string("remote_resume"),
+                        "terminal_id": .string(context.session.id.uuidString),
+                        "project_id": .string(context.project.conversationHistoryProjectID.uuidString),
+                        "live_project_id": .string(context.project.id.uuidString),
+                        "window_id": .string(context.manager.conversationHistoryWindowID.uuidString),
+                        "host_id": .string(record.identity.remoteHostID!.uuidString),
+                        "remote_session_id": context.session.remoteConnection.map { .string($0.sessionID.uuidString) } ?? .null,
+                    ]))
+            }
+            let result = try manager.resumeConversation(id: id, in: project, focus: focus)
+            let context = result.context
+            return .success(
+                id: request.id,
+                result: .object([
+                    "id": .string(record.id.uuidString), "action": .string(result.action),
                     "terminal_id": .string(context.session.id.uuidString),
                     "project_id": .string(context.project.conversationHistoryProjectID.uuidString),
                     "live_project_id": .string(context.project.id.uuidString),
                     "window_id": .string(context.manager.conversationHistoryWindowID.uuidString),
-                    "host_id": .string(record.identity.remoteHostID!.uuidString),
-                    "remote_session_id": context.session.remoteConnection.map { .string($0.sessionID.uuidString) } ?? .null,
+                    "reconnected": .bool(context.session.reconnectedToPersistentPTY),
                 ]))
-            }
-            let result = try manager.resumeConversation(id: id, in: project, focus: focus)
-            let context = result.context
-            return .success(id: request.id, result: .object([
-                "id": .string(record.id.uuidString), "action": .string(result.action),
-                "terminal_id": .string(context.session.id.uuidString),
-                "project_id": .string(context.project.conversationHistoryProjectID.uuidString),
-                "live_project_id": .string(context.project.id.uuidString),
-                "window_id": .string(context.manager.conversationHistoryWindowID.uuidString),
-                "reconnected": .bool(context.session.reconnectedToPersistentPTY),
-            ]))
         default: throw CLIError.message("Unknown history operation.")
         }
     }
@@ -313,25 +338,30 @@ enum AgentConversationHistoryRouter {
         }
         let ids = Set(live.map { $0.1.conversationHistoryProjectID })
             .union(store.records.filter { project == nil || $0.projectID == project?.conversationHistoryProjectID }.map(\.projectID))
-        return .array(ids.sorted { $0.uuidString < $1.uuidString }.map { id in
-            let entries = live.filter { $0.1.conversationHistoryProjectID == id }
-            let record = store.records.first { $0.projectID == id }
-            return .object([
-                "project_id": .string(id.uuidString),
-                "name": .string(entries.first?.1.name ?? record?.projectName ?? ""),
-                "cwd": entries.first?.1.customDirectory.map(ZshellJSONValue.string)
-                    ?? record.map { .string($0.identity.workingDirectory) } ?? .null,
-                "records": .number(Double(store.records.filter { $0.projectID == id }.count)),
-                "windows": .array(entries.map { .object([
-                    "window_id": .string($0.0.conversationHistoryWindowID.uuidString),
-                    "live_project_id": .string($0.1.id.uuidString),
-                ]) }),
-            ])
-        })
+        return .array(
+            ids.sorted { $0.uuidString < $1.uuidString }.map { id in
+                let entries = live.filter { $0.1.conversationHistoryProjectID == id }
+                let record = store.records.first { $0.projectID == id }
+                return .object([
+                    "project_id": .string(id.uuidString),
+                    "name": .string(entries.first?.1.name ?? record?.projectName ?? ""),
+                    "cwd": entries.first?.1.customDirectory.map(ZshellJSONValue.string)
+                        ?? record.map { .string($0.identity.workingDirectory) } ?? .null,
+                    "records": .number(Double(store.records.filter { $0.projectID == id }.count)),
+                    "windows": .array(
+                        entries.map {
+                            .object([
+                                "window_id": .string($0.0.conversationHistoryWindowID.uuidString),
+                                "live_project_id": .string($0.1.id.uuidString),
+                            ])
+                        }),
+                ])
+            })
     }
 
     private static func failure(_ request: ZshellAutomationRequest, _ error: any Error) -> ZshellAutomationResponse {
-        .failure(id: request.id, code: error is AgentConversationHistoryError ? "history_unavailable" : "invalid_params",
-                 message: (error as? AgentConversationHistoryError)?.errorDescription ?? String(describing: error))
+        .failure(
+            id: request.id, code: error is AgentConversationHistoryError ? "history_unavailable" : "invalid_params",
+            message: (error as? AgentConversationHistoryError)?.errorDescription ?? String(describing: error))
     }
 }

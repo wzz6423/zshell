@@ -12,8 +12,7 @@ struct AgentRecognitionSurfaceTests {
         if PTYMuxCommandLine.shouldRunRelay { PTYMuxRelay.run() }
         if PTYMuxCommandLine.shouldRunDaemon { PTYMuxCommandLine.runDaemon() }
         setbuf(stdout, nil)
-        do { try run() }
-        catch { fputs("Agent recognition surface failed after \(checks): \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("Agent recognition surface failed after \(checks): \(error)\n", stderr); exit(1) }
     }
 
     static func pump(_ duration: TimeInterval) {
@@ -37,12 +36,16 @@ struct AgentRecognitionSurfaceTests {
         settings.notifyOnAgentAttention = false
         settings.notifyOnAgentCompletion = false
         let rules = AgentRecognitionRulesStore.shared
-        let frog = AgentRecognitionManifest(id: "frog", name: "原始工具名", executables: ["frog-cli"], rules: [
-            .init(id: "approval", phase: .blocked, priority: 200, region: "bottom_non_empty_lines(6)", attention: .approval,
-                  gate: .init(lineRegex: ["^Allow .+\\? \\[y/n\\]$"])),
-            .init(id: "activity", phase: .working, priority: 100, gate: .init(contains: ["hopping…"])),
-        ])
-        let wrapper = AgentRecognitionManifest(id: "claude", name: "Native Wrapper", executables: [], aliases: ["claude-wrapper"], rules: frog.rules)
+        let frog = AgentRecognitionManifest(
+            id: "frog", name: "原始工具名", executables: ["frog-cli"],
+            rules: [
+                .init(
+                    id: "approval", phase: .blocked, priority: 200, region: "bottom_non_empty_lines(6)", attention: .approval,
+                    gate: .init(lineRegex: ["^Allow .+\\? \\[y/n\\]$"])),
+                .init(id: "activity", phase: .working, priority: 100, gate: .init(contains: ["hopping…"])),
+            ])
+        let wrapper = AgentRecognitionManifest(
+            id: "claude", name: "Native Wrapper", executables: [], aliases: ["claude-wrapper"], rules: frog.rules)
         let session = TerminalSession(initialDirectory: root.path, commandArguments: ["/bin/zsh", "-f"], allowsPersistence: false)
         let view = session.surface
         view.frame = NSRect(x: 0, y: 0, width: 1000, height: 600)
@@ -61,7 +64,9 @@ struct AgentRecognitionSurfaceTests {
         func text() -> String { session.automationVisibleText(maxLines: 16, maxColumns: 240) }
         func check(_ condition: @autoclosure () -> Bool, _ label: String) throws {
             guard condition() else {
-                fputs("FAIL \(backend): \(label)\nstatus=\(String(describing: session.agentStatus)) foreground=\(String(describing: view.foregroundPid)) shell=\(String(describing: session.shellPid))\n\(text())\n", stderr)
+                fputs(
+                    "FAIL \(backend): \(label)\nstatus=\(String(describing: session.agentStatus)) foreground=\(String(describing: view.foregroundPid)) shell=\(String(describing: session.shellPid))\n\(text())\n",
+                    stderr)
                 throw NSError(domain: label, code: 1)
             }
             checks += 1
@@ -75,7 +80,9 @@ struct AgentRecognitionSurfaceTests {
         func save(_ values: [AgentRecognitionManifest]) throws {
             var finished = false
             var error: String?
-            rules.save(values) { error = $0; finished = true }
+            rules.save(values) {
+                error = $0; finished = true
+            }
             try wait("valid rules save") { finished }
             try check(error == nil, "rules are written successfully")
         }
@@ -85,12 +92,15 @@ struct AgentRecognitionSurfaceTests {
         func launch(_ name: String, folder: String) throws -> (URL, pid_t) {
             let directory = root.appendingPathComponent(folder)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            view.sendText("/usr/bin/python3 \(TerminalSession.shellQuote(root.appendingPathComponent(name + ".py").path)) \(TerminalSession.shellQuote(directory.path))")
+            view.sendText(
+                "/usr/bin/python3 \(TerminalSession.shellQuote(root.appendingPathComponent(name + ".py").path)) \(TerminalSession.shellQuote(directory.path))"
+            )
             view.sendEnter()
             try wait("real \(name) owns foreground PTY") {
                 guard let data = try? Data(contentsOf: directory.appendingPathComponent("pid.json")),
-                      let record = try? JSONSerialization.jsonObject(with: data) as? [String: Int],
-                      let pid = record["pid"] else { return false }
+                    let record = try? JSONSerialization.jsonObject(with: data) as? [String: Int],
+                    let pid = record["pid"]
+                else { return false }
                 return view.foregroundPid == pid_t(pid) && text().contains("hopping…")
             }
             let data = try Data(contentsOf: directory.appendingPathComponent("pid.json"))
@@ -101,10 +111,14 @@ struct AgentRecognitionSurfaceTests {
         try wait("disposable interactive shell owns its PTY") { session.shellPid != nil && view.foregroundPid == session.shellPid }
         view.sendText("printf 'RECOGNITION_SHELL_READY\\n'")
         view.sendEnter()
-        try wait("disposable interactive shell is ready") { session.automationVisibleText(maxLines: 500, maxColumns: 240).contains("RECOGNITION_SHELL_READY") }
+        try wait("disposable interactive shell is ready") {
+            session.automationVisibleText(maxLines: 500, maxColumns: 240).contains("RECOGNITION_SHELL_READY")
+        }
         let (frogRoot, frogPID) = try launch("frog-cli", folder: "frog")
         try wait("custom ID and raw name reach process status") { session.agentStatus?.recognitionID == "frog" }
-        try check(session.agentStatus?.kind == .program && session.agentStatus?.displayName == "原始工具名", "custom agents retain program kind and raw name")
+        try check(
+            session.agentStatus?.kind == .program && session.agentStatus?.displayName == "原始工具名",
+            "custom agents retain program kind and raw name")
         try wait("two live samples infer working") { session.agentStatus?.authority == .screen && session.agentStatus?.phase == .working }
         try check(session.agentObservation.screenEvidenceSamples == 2, "screen evidence requires two samples")
         let second = TerminalSession(initialDirectory: root.path, commandArguments: ["/bin/zsh", "-f"], allowsPersistence: false)
@@ -124,20 +138,27 @@ struct AgentRecognitionSurfaceTests {
         try wait("second interactive shell owns a separate PTY") { second.shellPid != nil && secondView.foregroundPid == second.shellPid }
         secondView.sendText("printf 'SECOND_RECOGNITION_SHELL_READY\\n'")
         secondView.sendEnter()
-        try wait("second interactive shell is ready") { second.automationVisibleText(maxLines: 500, maxColumns: 240).contains("SECOND_RECOGNITION_SHELL_READY") }
+        try wait("second interactive shell is ready") {
+            second.automationVisibleText(maxLines: 500, maxColumns: 240).contains("SECOND_RECOGNITION_SHELL_READY")
+        }
         let secondRoot = root.appendingPathComponent("frog-second")
         try FileManager.default.createDirectory(at: secondRoot, withIntermediateDirectories: true)
-        secondView.sendText("/usr/bin/python3 \(TerminalSession.shellQuote(root.appendingPathComponent("frog-cli.py").path)) \(TerminalSession.shellQuote(secondRoot.path))")
+        secondView.sendText(
+            "/usr/bin/python3 \(TerminalSession.shellQuote(root.appendingPathComponent("frog-cli.py").path)) \(TerminalSession.shellQuote(secondRoot.path))"
+        )
         secondView.sendEnter()
         try wait("second real custom process owns its PTY") {
             guard let data = try? Data(contentsOf: secondRoot.appendingPathComponent("pid.json")),
-                  let record = try? JSONSerialization.jsonObject(with: data) as? [String: Int],
-                  let pid = record["pid"] else { return false }
+                let record = try? JSONSerialization.jsonObject(with: data) as? [String: Int],
+                let pid = record["pid"]
+            else { return false }
             return secondView.foregroundPid == pid_t(pid)
                 && second.automationVisibleText(maxLines: 16, maxColumns: 240).contains("hopping…")
         }
         secondView.setSurfaceVisible(false)
-        try wait("unfocused second pane infers working") { second.agentStatus?.authority == .screen && second.agentStatus?.phase == .working }
+        try wait("unfocused second pane infers working") {
+            second.agentStatus?.authority == .screen && second.agentStatus?.phase == .working
+        }
         var changed = frog
         changed.name = "Updated live raw name"
         changed.rules = [.init(id: "changed-live", phase: .blocked, attention: .approval, gate: .init(contains: ["hopping…"]))]
@@ -145,19 +166,26 @@ struct AgentRecognitionSurfaceTests {
         try AgentRecognitionManifest.serialize([changed, wrapper]).write(to: rules.url, atomically: true, encoding: .utf8)
         try wait("external rule replacement reloads") { rules.revision > broadcastRevision && rules.manifests == [changed, wrapper] }
         try wait("external rule change reaches both running panes") {
-            [session, second].allSatisfy { $0.agentStatus?.phase == .blocked && $0.agentStatus?.authority == .screen
-                && $0.agentStatus?.displayName == changed.name && $0.agentObservation.recognitionRevision == rules.revision }
+            [session, second].allSatisfy {
+                $0.agentStatus?.phase == .blocked && $0.agentStatus?.authority == .screen
+                    && $0.agentStatus?.displayName == changed.name && $0.agentObservation.recognitionRevision == rules.revision
+            }
         }
         try save([frog, wrapper])
         try wait("restored rules reach both running panes") {
-            [session, second].allSatisfy { $0.agentStatus?.phase == .working && $0.agentStatus?.authority == .screen
-                && $0.agentStatus?.displayName == frog.name }
+            [session, second].allSatisfy {
+                $0.agentStatus?.phase == .working && $0.agentStatus?.authority == .screen
+                    && $0.agentStatus?.displayName == frog.name
+            }
         }
         settings.agentScreenInference = false
-        try check(session.agentStatus?.authority == .process && session.agentStatus?.phase == .idle && session.agentObservation.screenEvidence == nil,
-                  "screen switch immediately withdraws old screen authority")
-        try check(second.agentStatus?.authority == .process && second.agentObservation.screenEvidence == nil,
-                  "screen switch also withdraws unfocused pane evidence")
+        try check(
+            session.agentStatus?.authority == .process && session.agentStatus?.phase == .idle
+                && session.agentObservation.screenEvidence == nil,
+            "screen switch immediately withdraws old screen authority")
+        try check(
+            second.agentStatus?.authority == .process && second.agentObservation.screenEvidence == nil,
+            "screen switch also withdraws unfocused pane evidence")
         pump(0.3)
         try check(session.agentStatus?.recognitionID == "frog", "screen switch preserves custom process identity")
         settings.agentScreenInference = true
@@ -168,25 +196,34 @@ struct AgentRecognitionSurfaceTests {
         try wait("new footer starts a first matching sample") {
             session.agentObservation.screenEvidence?.phase == .blocked && session.agentObservation.screenEvidenceSamples == 1
         }
-        try check(session.agentStatus?.authority != .screen && session.agentStatus?.phase != .blocked,
-                  "one matching sample cannot publish a new inferred state")
+        try check(
+            session.agentStatus?.authority != .screen && session.agentStatus?.phase != .blocked,
+            "one matching sample cannot publish a new inferred state")
         try wait("second matching sample publishes the changed state") {
             session.agentStatus?.phase == .blocked && session.agentObservation.screenEvidenceSamples == 2
         }
         session.agentObservation.isCollectingAlternateScreenHistory = true
-        try wait("transcript collection cannot infer a screen state") { session.agentStatus?.authority == .process && session.agentObservation.screenEvidence == nil }
+        try wait("transcript collection cannot infer a screen state") {
+            session.agentStatus?.authority == .process && session.agentObservation.screenEvidence == nil
+        }
         session.agentObservation.isCollectingAlternateScreenHistory = false
         try command(frogRoot, ["alternate": false, "history": true, "lines": ["clean live footer"]])
         try wait("clean footer replaces working marker") { text().contains("clean live footer") }
-        try wait("old working scrollback does not become live evidence") { session.agentStatus?.authority == .process && session.agentStatus?.phase == .idle }
+        try wait("old working scrollback does not become live evidence") {
+            session.agentStatus?.authority == .process && session.agentStatus?.phase == .idle
+        }
         view.scroll(toFraction: 0)
         try wait("both backends expose history inspection") { !session.terminalIsAtLiveBottom }
         pump(1.6)
-        try check(session.agentStatus?.authority != .screen && session.agentObservation.screenEvidence == nil, "history viewport cannot infer stale working text")
+        try check(
+            session.agentStatus?.authority != .screen && session.agentObservation.screenEvidence == nil,
+            "history viewport cannot infer stale working text")
         view.scroll(toFraction: 1)
         try wait("viewport returns to live bottom") { session.terminalIsAtLiveBottom }
         try command(frogRoot, ["lines": ["Allow update? [y/n]"]])
-        try wait("custom approval rule infers blocked") { session.agentStatus?.phase == .blocked && session.agentStatus?.attention == .approval }
+        try wait("custom approval rule infers blocked") {
+            session.agentStatus?.phase == .blocked && session.agentStatus?.attention == .approval
+        }
         let revision = rules.revision
         try "[[agents]]\nid = 42".write(to: rules.url, atomically: true, encoding: .utf8)
         try wait("invalid live TOML reports an error") { rules.error != nil }
@@ -203,35 +240,46 @@ struct AgentRecognitionSurfaceTests {
         try wait("custom rules can be restored live") { session.agentStatus?.recognitionID == "frog" }
         try wait("custom rules restore the unfocused pane live") { second.agentStatus?.recognitionID == "frog" }
         settings.customAgentRecognitionRules = false
-        try check(session.agentStatus == nil && session.agentObservation.screenEvidence == nil, "custom switch immediately withdraws custom process and screen identity")
-        try check(second.agentStatus == nil && second.agentObservation.screenEvidence == nil, "custom switch also withdraws unfocused pane identity")
+        try check(
+            session.agentStatus == nil && session.agentObservation.screenEvidence == nil,
+            "custom switch immediately withdraws custom process and screen identity")
+        try check(
+            second.agentStatus == nil && second.agentObservation.screenEvidence == nil,
+            "custom switch also withdraws unfocused pane identity")
         settings.customAgentRecognitionRules = true
         try wait("custom switch re-enables recognition") { session.agentStatus?.recognitionID == "frog" }
         let program = try ZshellAgentReport(params: ["name": .string("Verified Frog"), "state": .string("working")])
-        try check(session.reportAutomationProgram(program, ownerPID: frogPID, peerProcessID: frogPID),
-                  "verified custom process accepts its own program report")
-        try check(session.agentStatus?.authority == .report && session.agentStatus?.displayName == "Verified Frog",
-                  "program report takes priority and displays its raw name")
+        try check(
+            session.reportAutomationProgram(program, ownerPID: frogPID, peerProcessID: frogPID),
+            "verified custom process accepts its own program report")
+        try check(
+            session.agentStatus?.authority == .report && session.agentStatus?.displayName == "Verified Frog",
+            "program report takes priority and displays its raw name")
         settings.agentScreenInference = false
         try check(session.agentStatus?.authority == .report, "screen switch preserves explicit program report")
         settings.agentScreenInference = true
         pump(1.7)
-        try check(session.agentStatus?.authority == .report && session.agentObservation.screenEvidence == nil,
-                  "screen approval cannot replace a program report")
-        try check(!session.reportAutomationProgram(program, ownerPID: frogPID, peerProcessID: getpid()),
-                  "unrelated peer cannot borrow custom process ownership")
+        try check(
+            session.agentStatus?.authority == .report && session.agentObservation.screenEvidence == nil,
+            "screen approval cannot replace a program report")
+        try check(
+            !session.reportAutomationProgram(program, ownerPID: frogPID, peerProcessID: getpid()),
+            "unrelated peer cannot borrow custom process ownership")
         try check(session.clearAutomationProgram(peerProcessID: frogPID), "verified custom process clears its own report")
-        try check(!session.reportAutomationAgent(phase: .working, reason: "invalid provider", provider: .claude, peerProcessID: frogPID),
-                  "custom programs cannot report native provider authority")
+        try check(
+            !session.reportAutomationAgent(phase: .working, reason: "invalid provider", provider: .claude, peerProcessID: frogPID),
+            "custom programs cannot report native provider authority")
         try command(frogRoot, ["exit": true])
         try wait("custom process returns control to its shell") { view.foregroundPid == session.shellPid }
         let (wrapperRoot, wrapperPID) = try launch("claude-wrapper", folder: "wrapper")
         try wait("wrapper alias uses the built-in Claude identity") { session.agentStatus?.recognitionID == "claude" }
-        try check(ZshellAgentKind.recognize(processID: wrapperPID) == nil && ZshellAgentKind.recognizeBuiltin(processID: wrapperPID) == .claude,
-                  "native alias evidence is distinct from fixed process recognition")
+        try check(
+            ZshellAgentKind.recognize(processID: wrapperPID) == nil && ZshellAgentKind.recognizeBuiltin(processID: wrapperPID) == .claude,
+            "native alias evidence is distinct from fixed process recognition")
         let identity = AgentConversationIdentity(provider: .claude, sessionID: UUID().uuidString, workingDirectory: root.path)!
         let event = AgentConversationSessionEvent(identity: identity, reporterPID: wrapperPID, source: nil)
-        try check(session.acceptAgentConversation(event, peerProcessID: wrapperPID), "alias-only session hook binds its own live conversation")
+        try check(
+            session.acceptAgentConversation(event, peerProcessID: wrapperPID), "alias-only session hook binds its own live conversation")
         try check(session.agentObservation.integrationOwner == nil, "session hook alone does not create lifecycle authority")
         settings.agentScreenInference = false
         try check(session.agentResume?.matchesConversation(identity) == true, "screen switch preserves valid alias-only conversation")
@@ -239,33 +287,49 @@ struct AgentRecognitionSurfaceTests {
         try check(session.agentResume == nil, "custom switch immediately withdraws alias-only conversation")
         settings.customAgentRecognitionRules = true
         try check(session.acceptAgentConversation(event, peerProcessID: wrapperPID), "fresh session hook restores alias conversation")
-        try check(session.reportAutomationAgent(phase: .working, reason: "native working", provider: .claude, peerProcessID: wrapperPID), "verified alias accepts native lifecycle report")
+        try check(
+            session.reportAutomationAgent(phase: .working, reason: "native working", provider: .claude, peerProcessID: wrapperPID),
+            "verified alias accepts native lifecycle report")
         try check(session.agentStatus?.authority == .integration, "native lifecycle takes priority")
         settings.agentScreenInference = true
-        try check(session.agentStatus?.authority == .integration && session.agentResume?.matchesConversation(identity) == true,
-                  "enabling screen inference preserves native alias state and conversation")
+        try check(
+            session.agentStatus?.authority == .integration && session.agentResume?.matchesConversation(identity) == true,
+            "enabling screen inference preserves native alias state and conversation")
         try command(wrapperRoot, ["lines": ["Allow update? [y/n]"]])
         pump(3.3)
-        try check(session.agentStatus?.phase == .working && session.agentStatus?.authority == .integration && session.agentObservation.screenEvidence == nil,
-                  "screen approval cannot replace native lifecycle")
-        try check(!session.reportAutomationAgent(phase: .done, reason: "wrong peer", provider: .claude, peerProcessID: getpid()),
-                  "unrelated peer cannot update native alias authority")
+        try check(
+            session.agentStatus?.phase == .working && session.agentStatus?.authority == .integration
+                && session.agentObservation.screenEvidence == nil,
+            "screen approval cannot replace native lifecycle")
+        try check(
+            !session.reportAutomationAgent(phase: .done, reason: "wrong peer", provider: .claude, peerProcessID: getpid()),
+            "unrelated peer cannot update native alias authority")
         settings.agentScreenInference = false
-        try check(session.agentStatus?.authority == .integration && session.agentResume?.matchesConversation(identity) == true,
-                  "disabling screen inference preserves native alias state and conversation")
+        try check(
+            session.agentStatus?.authority == .integration && session.agentResume?.matchesConversation(identity) == true,
+            "disabling screen inference preserves native alias state and conversation")
         settings.customAgentRecognitionRules = false
-        try check(session.agentObservation.integrationOwner == nil && session.agentStatus?.authority != .integration && session.agentResume == nil,
-                  "custom switch withdraws native alias state and conversation")
+        try check(
+            session.agentObservation.integrationOwner == nil && session.agentStatus?.authority != .integration
+                && session.agentResume == nil,
+            "custom switch withdraws native alias state and conversation")
         settings.customAgentRecognitionRules = true
         pump(0.4)
-        try check(session.agentObservation.integrationOwner == nil && session.agentResume == nil, "restored alias requires fresh native and conversation reports")
+        try check(
+            session.agentObservation.integrationOwner == nil && session.agentResume == nil,
+            "restored alias requires fresh native and conversation reports")
         try check(session.acceptAgentConversation(event, peerProcessID: wrapperPID), "fresh session event rebinds conversation")
-        try check(session.reportAutomationAgent(phase: .working, reason: "fresh native", provider: .claude, peerProcessID: wrapperPID), "fresh report restores native authority")
+        try check(
+            session.reportAutomationAgent(phase: .working, reason: "fresh native", provider: .claude, peerProcessID: wrapperPID),
+            "fresh report restores native authority")
         try save([frog])
-        try check(session.agentObservation.integrationOwner == nil && session.agentStatus?.authority != .integration && session.agentResume == nil,
-                  "deleting alias rule withdraws native state and conversation")
-        try check(!session.reportAutomationAgent(phase: .working, reason: "removed alias", provider: .claude, peerProcessID: wrapperPID),
-                  "removed alias cannot immediately report native authority")
+        try check(
+            session.agentObservation.integrationOwner == nil && session.agentStatus?.authority != .integration
+                && session.agentResume == nil,
+            "deleting alias rule withdraws native state and conversation")
+        try check(
+            !session.reportAutomationAgent(phase: .working, reason: "removed alias", provider: .claude, peerProcessID: wrapperPID),
+            "removed alias cannot immediately report native authority")
         try check(QuickTerminalOffscreen.isSafe(), "real PTY validation never presents a window or takes focus")
         print("\(checks) \(backend) agent recognition production checks passed")
     }

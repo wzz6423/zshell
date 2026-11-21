@@ -1,30 +1,30 @@
 import XCTest
 #if os(macOS) && !targetEnvironment(macCatalyst)
-import AppKit
+    import AppKit
 #elseif os(iOS) || os(tvOS) || os(visionOS)
-import UIKit
+    import UIKit
 #endif
 
 #if os(macOS) || os(iOS) || os(tvOS) || os(visionOS)
 
-class NSTextRangeTests: XCTestCase {
-    func testFullDocumentRange() throws {
-        if #available(iOS 15.0, macOS 12.0, tvOS 15.0, *) {
-            let content = NSTextContentStorage()
+    class NSTextRangeTests: XCTestCase {
+        func testFullDocumentRange() throws {
+            if #available(iOS 15.0, macOS 12.0, tvOS 15.0, *) {
+                let content = NSTextContentStorage()
 
-            content.attributedString = NSAttributedString(string: "abcdef")
+                content.attributedString = NSAttributedString(string: "abcdef")
 
-            let range = NSRange(content.documentRange, provider: content)
+                let range = NSRange(content.documentRange, provider: content)
 
-            XCTAssertEqual(range, NSRange(0..<6))
+                XCTAssertEqual(range, NSRange(0 ..< 6))
 
-            let textRange = NSTextRange(NSRange(0..<6), provider: content)
+                let textRange = NSTextRange(NSRange(0 ..< 6), provider: content)
 
-            XCTAssertEqual(textRange, content.documentRange)
-        } else {
-            throw XCTSkip()
+                XCTAssertEqual(textRange, content.documentRange)
+            } else {
+                throw XCTSkip()
+            }
         }
     }
-}
 
 #endif

@@ -7,7 +7,7 @@ let parser = Parser()
 try parser.setLanguage(language)
 
 let source = """
-func hello() {
-    print("hello from tree-sitter")
-}
-"""
+    func hello() {
+        print("hello from tree-sitter")
+    }
+    """

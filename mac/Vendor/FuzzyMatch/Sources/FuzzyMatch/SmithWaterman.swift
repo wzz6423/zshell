@@ -76,24 +76,24 @@ func smithWatermanScore(
 
     return state.buffer.withUnsafeMutableBufferPointer { buf in
         // Zero all three rows
-        for j in 0..<queryLen {
+        for j in 0 ..< queryLen {
             buf[matchOff + j] = 0
             buf[gapOff + j] = 0
             buf[bonusOff + j] = 0
         }
 
         // Forward pass: scan candidate positions, update DP rows in-place
-        for i in 0..<candidateLen {
+        for i in 0 ..< candidateLen {
             let candidateChar = candidate[i]
             let posBonus = bonus[i]
 
             // Scalar diagonal carries from previous j iteration
-            var diagMatch: Int32 = 0   // M[i-1, j-1]
-            var diagGap: Int32 = 0     // G[i-1, j-1]
-            var diagBonus: Int32 = 0   // B[i-1, j-1] (carried consecutive bonus)
+            var diagMatch: Int32 = 0 // M[i-1, j-1]
+            var diagGap: Int32 = 0 // G[i-1, j-1]
+            var diagBonus: Int32 = 0 // B[i-1, j-1] (carried consecutive bonus)
 
             // DP inner loop — left-to-right with scalar diagonal carry
-            for j in 0..<queryLen {
+            for j in 0 ..< queryLen {
                 // Save old values before overwriting (these are M[i-1,j], G[i-1,j], B[i-1,j])
                 let oldMatch = buf[matchOff + j]
                 let oldGap = buf[gapOff + j]
@@ -119,7 +119,7 @@ func smithWatermanScore(
 
                     if j == 0 {
                         newMatch = scoreMatch + posBonus * firstCharMultiplier
-                        newBonus = posBonus  // start consecutive run with this bonus
+                        newBonus = posBonus // start consecutive run with this bonus
                     } else {
                         newMatch = 0
 
@@ -147,7 +147,7 @@ func smithWatermanScore(
                             let fromGap = diagGap + scoreMatch + posBonus
                             if fromGap > newMatch {
                                 newMatch = fromGap
-                                newBonus = posBonus  // new run starts with this bonus
+                                newBonus = posBonus // new run starts with this bonus
                             }
                         }
                     }
@@ -216,7 +216,8 @@ func multiByteBonusTier(
     if prevByte == 0x2F || prevByte == 0x3A || prevByte == 0x3B || prevByte == 0x7C {
         return bonusBoundaryDelimiter
     }
-    let prevIsAlnum = (prevByte >= 0x41 && prevByte <= 0x5A)
+    let prevIsAlnum =
+        (prevByte >= 0x41 && prevByte <= 0x5A)
         || (prevByte >= 0x61 && prevByte <= 0x7A)
         || (prevByte >= 0x30 && prevByte <= 0x39)
         || prevByte == 0xC3

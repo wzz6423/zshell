@@ -280,14 +280,16 @@ import Testing
 
 @Test func prefixVsSubstringWeightRatio() {
     // Test that prefix matches are preferred when prefixWeight > substringWeight
-    let matcher = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .editDistance(EditDistanceConfig(
-            maxEditDistance: 2,
-            prefixWeight: 2.0,
-            substringWeight: 1.0
+    let matcher = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .editDistance(
+                EditDistanceConfig(
+                    maxEditDistance: 2,
+                    prefixWeight: 2.0,
+                    substringWeight: 1.0
+                ))
         ))
-    ))
     var buffer = matcher.makeBuffer()
 
     let query = matcher.prepare("test")
@@ -306,13 +308,15 @@ import Testing
 }
 
 @Test func equalWeightsNoPreference() {
-    let matcher = FuzzyMatcher(config: MatchConfig(
-        minScore: 0.0,
-        algorithm: .editDistance(EditDistanceConfig(
-            prefixWeight: 1.0,
-            substringWeight: 1.0
+    let matcher = FuzzyMatcher(
+        config: MatchConfig(
+            minScore: 0.0,
+            algorithm: .editDistance(
+                EditDistanceConfig(
+                    prefixWeight: 1.0,
+                    substringWeight: 1.0
+                ))
         ))
-    ))
     var buffer = matcher.makeBuffer()
 
     let query = matcher.prepare("test")
@@ -498,7 +502,7 @@ import Testing
         ("hello", "helo"),
         ("test", "testing"),
         ("world", "worl"),
-        ("fuzzy", "fzzy")
+        ("fuzzy", "fzzy"),
     ]
 
     for (q, c) in pairs {
@@ -561,7 +565,7 @@ import Testing
     let cases: [GapPenalty] = [
         .none,
         .linear(perCharacter: 0.01),
-        .affine(open: 0.03, extend: 0.005)
+        .affine(open: 0.03, extend: 0.005),
     ]
 
     for original in cases {
@@ -600,21 +604,21 @@ import Testing
     // A payload serialized before `isSubsequenceMatchingEnabled` existed must still decode,
     // falling back to the historical default (`true`).
     let legacyJSON = """
-    {
-        "maxEditDistance": 2,
-        "longQueryMaxEditDistance": 3,
-        "longQueryThreshold": 13,
-        "prefixWeight": 1.5,
-        "substringWeight": 1.0,
-        "wordBoundaryBonus": 0.1,
-        "consecutiveBonus": 0.05,
-        "gapPenalty": { "type": "affine", "open": 0.03, "extend": 0.005 },
-        "firstMatchBonus": 0.15,
-        "firstMatchBonusRange": 10,
-        "lengthPenalty": 0.003,
-        "acronymWeight": 1.0
-    }
-    """
+        {
+            "maxEditDistance": 2,
+            "longQueryMaxEditDistance": 3,
+            "longQueryThreshold": 13,
+            "prefixWeight": 1.5,
+            "substringWeight": 1.0,
+            "wordBoundaryBonus": 0.1,
+            "consecutiveBonus": 0.05,
+            "gapPenalty": { "type": "affine", "open": 0.03, "extend": 0.005 },
+            "firstMatchBonus": 0.15,
+            "firstMatchBonusRange": 10,
+            "lengthPenalty": 0.003,
+            "acronymWeight": 1.0
+        }
+        """
     let decoded = try JSONDecoder().decode(EditDistanceConfig.self, from: Data(legacyJSON.utf8))
     #expect(decoded.isSubsequenceMatchingEnabled == true)
     #expect(decoded == EditDistanceConfig())
@@ -650,7 +654,7 @@ import Testing
         .editDistance(),
         .editDistance(EditDistanceConfig(maxEditDistance: 1)),
         .smithWaterman(),
-        .smithWaterman(SmithWatermanConfig(scoreMatch: 20))
+        .smithWaterman(SmithWatermanConfig(scoreMatch: 20)),
     ]
 
     for original in cases {
@@ -668,7 +672,7 @@ import Testing
         .editDistance,
         .smithWaterman,
         MatchConfig(minScore: 0.7, algorithm: .editDistance(EditDistanceConfig(maxEditDistance: 1))),
-        MatchConfig(minScore: 0.5, algorithm: .smithWaterman(SmithWatermanConfig(penaltyGapStart: 5)))
+        MatchConfig(minScore: 0.5, algorithm: .smithWaterman(SmithWatermanConfig(penaltyGapStart: 5))),
     ]
 
     for original in configs {

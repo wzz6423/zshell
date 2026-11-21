@@ -14,21 +14,27 @@ enum ZshellSessionAutomationRouter {
                 if let session = project.sessions.first(where: {
                     !$0.hasExited && $0.shellPid.map { ZshellAgentProcessIdentity.isDescendant(peer, of: $0) } == true
                 }) {
-                    return await route(request, manager: manager, project: project,
-                                       caller: ZshellAutomationRouter.context(forSession: session.id))
+                    return await route(
+                        request, manager: manager, project: project,
+                        caller: ZshellAutomationRouter.context(forSession: session.id))
                 }
             }
         }
         if request.method == "session.projects" {
             guard request.params.isEmpty else { return failure(request, "invalid_params", "projects accepts no parameters.") }
-            return .success(id: request.id, result: .array(TerminalManager.automationManagers.flatMap { manager in
-                manager.projects.map(projectSnapshot)
-            }))
+            return .success(
+                id: request.id,
+                result: .array(
+                    TerminalManager.automationManagers.flatMap { manager in
+                        manager.projects.map(projectSnapshot)
+                    }))
         }
         guard let id = request.params["project_id"]?.stringValue.flatMap(UUID.init(uuidString:)),
-              let owner = TerminalManager.automationManagers.first(where: { $0.projects.contains(where: { $0.id == id }) }),
-              let project = owner.projects.first(where: { $0.id == id }) else {
-            return failure(request, "project_required", "Choose an open project with --project. Run `zshell +session projects` to list IDs.")
+            let owner = TerminalManager.automationManagers.first(where: { $0.projects.contains(where: { $0.id == id }) }),
+            let project = owner.projects.first(where: { $0.id == id })
+        else {
+            return failure(
+                request, "project_required", "Choose an open project with --project. Run `zshell +session projects` to list IDs.")
         }
         return await route(request, manager: owner, project: project)
     }
@@ -47,16 +53,20 @@ enum ZshellSessionAutomationRouter {
         switch request.method {
         case "session.list":
             guard Set(request.params.keys).isSubset(of: ["project_id"]) else { return invalidParams(request) }
-            return .success(id: request.id, result: .array(project.sessions.compactMap {
-                sessionSnapshot($0, caller: caller)
-            }))
+            return .success(
+                id: request.id,
+                result: .array(
+                    project.sessions.compactMap {
+                        sessionSnapshot($0, caller: caller)
+                    }))
         case "session.new":
             return await newSession(request, manager: manager, project: project, caller: caller)
         case "session.check", "session.close":
             guard Set(request.params.keys).isSubset(of: ["project_id", "session_id", "remove_worktree"]),
-                  request.params["remove_worktree"] == nil || request.params["remove_worktree"]?.boolValue != nil,
-                  let id = request.params["session_id"]?.stringValue.flatMap(UUID.init(uuidString:)),
-                  let session = project.sessions.first(where: { $0.id == id }) else {
+                request.params["remove_worktree"] == nil || request.params["remove_worktree"]?.boolValue != nil,
+                let id = request.params["session_id"]?.stringValue.flatMap(UUID.init(uuidString:)),
+                let session = project.sessions.first(where: { $0.id == id })
+            else {
                 return failure(request, "session_not_found", "No matching session exists in this project.")
             }
             do {
@@ -66,22 +76,27 @@ enum ZshellSessionAutomationRouter {
                     }
                     let inspection = try await SessionWorktreeService().inspect(worktree)
                     let shared = TerminalManager.worktreeIsInUse(worktree.path, excluding: session.id)
-                    let reason = shared
+                    let reason =
+                        shared
                         ? String(localized: "Other open sessions still use this worktree. Close them before removing it.")
                         : inspection.refusal
-                    return .success(id: request.id, result: .object([
-                        "session_id": .string(id.uuidString), "worktree": worktree.snapshot,
-                        "changed_paths": .number(Double(inspection.changedPaths)),
-                        "unmerged_commits": inspection.unmergedCommits.map { .number(Double($0)) } ?? .null,
-                        "shared": .bool(shared), "can_remove": .bool(inspection.canRemove && !shared),
-                        "reason": reason.map(ZshellJSONValue.string) ?? .null,
-                    ]))
+                    return .success(
+                        id: request.id,
+                        result: .object([
+                            "session_id": .string(id.uuidString), "worktree": worktree.snapshot,
+                            "changed_paths": .number(Double(inspection.changedPaths)),
+                            "unmerged_commits": inspection.unmergedCommits.map { .number(Double($0)) } ?? .null,
+                            "shared": .bool(shared), "can_remove": .bool(inspection.canRemove && !shared),
+                            "reason": reason.map(ZshellJSONValue.string) ?? .null,
+                        ]))
                 }
                 let remove = request.params["remove_worktree"]?.boolValue ?? false
                 let removed = try await manager.closeWorktreeSession(session, in: project, removeWorktree: remove)
-                return .success(id: request.id, result: .object([
-                    "session_id": .string(id.uuidString), "closed": .bool(true), "worktree_removed": .bool(removed),
-                ]))
+                return .success(
+                    id: request.id,
+                    result: .object([
+                        "session_id": .string(id.uuidString), "closed": .bool(true), "worktree_removed": .bool(removed),
+                    ]))
             } catch {
                 return failure(request, "worktree_cleanup_refused", error.localizedDescription)
             }
@@ -99,7 +114,8 @@ enum ZshellSessionAutomationRouter {
         }
         let allowed: Set<String> = ["project_id", "branch", "cwd", "worktree_path", "base", "focus", "argv", "path"]
         guard Set(request.params.keys).isSubset(of: allowed),
-              request.params["focus"] == nil || request.params["focus"]?.boolValue != nil else { return invalidParams(request) }
+            request.params["focus"] == nil || request.params["focus"]?.boolValue != nil
+        else { return invalidParams(request) }
         for key in ["branch", "cwd", "worktree_path", "base", "path"] {
             if let value = request.params[key], value.stringValue == nil { return invalidParams(request) }
         }
@@ -127,19 +143,24 @@ enum ZshellSessionAutomationRouter {
         do {
             let session: TerminalSession
             if let branch = request.params["branch"]?.stringValue {
-                let base: SessionWorktreeService.Base = switch request.params["base"]?.stringValue ?? "default" {
-                case "default": .repositoryDefault
-                case "HEAD": .currentHead
-                case let value: .reference(value)
-                }
-                session = try await manager.newWorktreeSession(in: project, branch: branch,
+                let base: SessionWorktreeService.Base =
+                    switch request.params["base"]?.stringValue ?? "default" {
+                    case "default": .repositoryDefault
+                    case "HEAD": .currentHead
+                    case let value: .reference(value)
+                    }
+                session = try await manager.newWorktreeSession(
+                    in: project, branch: branch,
                     directory: request.params["worktree_path"]?.stringValue, sourceDirectory: directory,
                     base: base, commandArguments: argv, environmentPath: request.params["path"]?.stringValue, focus: focus)
             } else {
                 guard request.params["worktree_path"] == nil, request.params["base"] == nil else { return invalidParams(request) }
                 let previous = project.selectedTabID
-                guard let created = project.newSession(directory: directory, commandArguments: argv,
-                                                       environmentPath: request.params["path"]?.stringValue) else {
+                guard
+                    let created = project.newSession(
+                        directory: directory, commandArguments: argv,
+                        environmentPath: request.params["path"]?.stringValue)
+                else {
                     return failure(request, "worktree_busy", "The target worktree is being removed.")
                 }
                 session = created
@@ -160,8 +181,10 @@ enum ZshellSessionAutomationRouter {
     }
 
     private static func projectSnapshot(_ project: Project) -> ZshellJSONValue {
-        .object(["project_id": .string(project.id.uuidString), "name": .string(project.name),
-                 "remote": .bool(project.isRemote), "sessions": .number(Double(project.sessions.count))])
+        .object([
+            "project_id": .string(project.id.uuidString), "name": .string(project.name),
+            "remote": .bool(project.isRemote), "sessions": .number(Double(project.sessions.count)),
+        ])
     }
 
     private static func sessionSnapshot(_ session: TerminalSession, caller: ZshellAutomationRouter.PaneContext?) -> ZshellJSONValue? {
@@ -180,8 +203,10 @@ enum ZshellSessionAutomationRouter {
 
 extension SessionWorktree {
     var snapshot: ZshellJSONValue {
-        .object(["path": .string(path), "repository_root": .string(repositoryRoot),
-                 "branch": branch.map(ZshellJSONValue.string) ?? .null,
-                 "base": baseReference.map(ZshellJSONValue.string) ?? .null])
+        .object([
+            "path": .string(path), "repository_root": .string(repositoryRoot),
+            "branch": branch.map(ZshellJSONValue.string) ?? .null,
+            "base": baseReference.map(ZshellJSONValue.string) ?? .null,
+        ])
     }
 }

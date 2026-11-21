@@ -14,8 +14,7 @@ import Darwin
 @main struct SessionProcessSurfaceTests {
     @MainActor static func main() {
         if RemoteSessionRelay.shouldRun { RemoteSessionRelay.run() }
-        do { try run() }
-        catch { fputs("Session process surface failed: \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("Session process surface failed: \(error)\n", stderr); exit(1) }
     }
 
     @MainActor private static func run() throws {
@@ -64,8 +63,9 @@ import Darwin
             window.isReleasedWhenClosed = false
             window.contentView = view
             windows.append(window)
-            view.configure(model: model, session: session, remoteProject: remoteProject,
-                           editor: .systemDefault, showsVimHints: false, fontScale: 1)
+            view.configure(
+                model: model, session: session, remoteProject: remoteProject,
+                editor: .systemDefault, showsVimHints: false, fontScale: 1)
             view.layoutSubtreeIfNeeded()
             return view
         }
@@ -93,23 +93,26 @@ import Darwin
         local.sendCommand("sleep 45\r")
         let localModel = SessionInfoModel()
         try wait("local sleep did not appear under the shell") {
-            localModel.sync(root: home, projectRoot: home, projectRootSource: .shell,
-                            shellName: "sh", shellPid: local.shellPid)
+            localModel.sync(
+                root: home, projectRoot: home, projectRootSource: .shell,
+                shellName: "sh", shellPid: local.shellPid)
             return sleeper(localModel) != nil
         }
         try check(localModel.remoteSource == nil && localModel.remoteError == nil, "a local pane samples its own shell")
         let localPanel = panel(localModel, session: local, remoteProject: nil)
         let localRow = row(in: localPanel, for: sleeper(localModel)!)
         try check(localRow != nil, "the local sleep row is rendered")
-        try check(localRow?.menu?.items.map(\.title).contains(String(localized: "Terminate")) == true,
-                  "local rows keep their Terminate action")
+        try check(
+            localRow?.menu?.items.map(\.title).contains(String(localized: "Terminate")) == true,
+            "local rows keep their Terminate action")
 
         let manager = TerminalManager()
         let unreachable = try RemoteHost(name: "Unreachable", address: "tailscale://127.0.0.1:1")
         let unreachableProject = manager.sharedProject(host: unreachable, directory: "/srv/project")
         let unreachableModel = SessionInfoModel()
-        unreachableModel.sync(root: "", projectRoot: "", projectRootSource: .shell, shellName: "", shellPid: nil,
-                              remote: .init(host: unreachable, directory: "/srv/project", sessionID: UUID()))
+        unreachableModel.sync(
+            root: "", projectRoot: "", projectRootSource: .shell, shellName: "", shellPid: nil,
+            remote: .init(host: unreachable, directory: "/srv/project", sessionID: UUID()))
         try wait("an unreachable host did not report an error") { unreachableModel.remoteError != nil }
         try check(unreachableModel.processes.isEmpty, "an unreachable host lists no processes")
         let errorPanel = panel(unreachableModel, session: local, remoteProject: unreachableProject)
@@ -124,9 +127,11 @@ import Darwin
         let project = manager.sharedProject(host: host, directory: directory)
         let id = UUID()
         remoteCleanup = { try? RemoteHostClient.terminate(host: host, directory: directory, sessionID: id) }
-        let connection = try RemoteSessionConnection(host: host, directory: directory, sessionID: id,
+        let connection = try RemoteSessionConnection(
+            host: host, directory: directory, sessionID: id,
             createIfMissing: true, command: ["/bin/sh", "-i"], launchSettings: TerminalLaunchSettings())
-        let remote = TerminalSession(initialDirectory: home,
+        let remote = TerminalSession(
+            initialDirectory: home,
             commandArguments: [executable, RemoteSessionRelay.argument, connection.configurationURL.path],
             remoteConnection: connection)
         mount(remote)
@@ -145,8 +150,9 @@ import Darwin
         let remoteRow = row(in: remotePanel, for: remoteSleep)
         let titles = remoteRow?.menu?.items.map(\.title) ?? []
         try check(remoteRow != nil, "the remote sleep row is rendered under the remote project")
-        try check(titles == [String(localized: "Copy PID"), String(localized: "Copy Executable Path")],
-                  "remote rows are read-only")
+        try check(
+            titles == [String(localized: "Copy PID"), String(localized: "Copy Executable Path")],
+            "remote rows are read-only")
         let sampled = Date()
         remoteModel.sync(root: "", projectRoot: "", projectRootSource: .shell, shellName: "", shellPid: nil, remote: source)
         try check(Date().timeIntervalSince(sampled) < 0.5, "the sidebar tick does not block on the host")

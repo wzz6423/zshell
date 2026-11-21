@@ -84,12 +84,14 @@ struct RemoteSSHTests {
         let temporaryDirectory = material.temporaryDirectoryURL
         let passwordFile = temporaryDirectory.appendingPathComponent("password")
         let askpassFile = temporaryDirectory.appendingPathComponent("askpass")
-        let passwordPermissions = try FileManager.default.attributesOfItem(
-            atPath: passwordFile.path
-        )[.posixPermissions] as? NSNumber
-        let askpassPermissions = try FileManager.default.attributesOfItem(
-            atPath: askpassFile.path
-        )[.posixPermissions] as? NSNumber
+        let passwordPermissions =
+            try FileManager.default.attributesOfItem(
+                atPath: passwordFile.path
+            )[.posixPermissions] as? NSNumber
+        let askpassPermissions =
+            try FileManager.default.attributesOfItem(
+                atPath: askpassFile.path
+            )[.posixPermissions] as? NSNumber
         expect(passwordPermissions?.intValue == 0o600, "password material is private")
         expect(askpassPermissions?.intValue == 0o700, "askpass script is executable and private")
         expect(material.environment["SSH_ASKPASS"] == askpassFile.path, "askpass path is exported")
@@ -120,7 +122,9 @@ struct RemoteSSHTests {
         expect(configurationArguments == ["-F", configuration.path], "an independent SSH configuration is passed as argv")
         let defaultConfiguration = try SSHEndpoint.configurationArguments(environment: [:])
         expect(defaultConfiguration.isEmpty, "ordinary SSH uses its existing configuration")
-        for path in ["relative/config", configuration.path + "\n", configuration.path + ".missing", configuration.deletingLastPathComponent().path] {
+        for path in [
+            "relative/config", configuration.path + "\n", configuration.path + ".missing", configuration.deletingLastPathComponent().path,
+        ] {
             do {
                 _ = try SSHEndpoint.configurationArguments(environment: ["ZSHELL_SSH_CONFIG_FILE": path])
                 preconditionFailure("invalid SSH configuration accepted")
@@ -190,14 +194,15 @@ struct RemoteSSHTests {
         )
         expect(timedOut.timedOut, "process timeout")
 
-        let input = Data((0..<190_000).map { UInt8($0 % 251) })
+        let input = Data((0 ..< 190_000).map { UInt8($0 % 251) })
         let inputRoundTrip = try BoundedProcessRunner.run(
             executableURL: URL(fileURLWithPath: "/usr/bin/base64"),
             arguments: [], timeout: 3, outputLimit: 512_000, standardInput: input
         )
         expect(inputRoundTrip.terminationStatus == 0 && !inputRoundTrip.timedOut, "bounded stdin completes")
-        expect(Data(base64Encoded: inputRoundTrip.output.stdout, options: .ignoreUnknownCharacters) == input,
-               "bounded stdin preserves binary data")
+        expect(
+            Data(base64Encoded: inputRoundTrip.output.stdout, options: .ignoreUnknownCharacters) == input,
+            "bounded stdin preserves binary data")
         let inputTimedOut = try BoundedProcessRunner.run(
             executableURL: URL(fileURLWithPath: "/bin/sh"), arguments: ["-c", "sleep 2"],
             timeout: 0.1, outputLimit: 32, standardInput: Data(repeating: 65, count: 1024 * 1024)
@@ -217,8 +222,7 @@ struct RemoteSSHTests {
                         timeout: 3, outputLimit: 32, standardInput: standardInput
                     )
                     preconditionFailure("cancelled process returned a normal result")
-                } catch is CancellationError { finished.signal() }
-                catch { preconditionFailure("cancelled process returned \(error)") }
+                } catch is CancellationError { finished.signal() } catch { preconditionFailure("cancelled process returned \(error)") }
             }
             let readyDeadline = DispatchTime.now() + 2
             while !FileManager.default.fileExists(atPath: ready.path), DispatchTime.now() < readyDeadline {
@@ -227,13 +231,16 @@ struct RemoteSSHTests {
             guard FileManager.default.fileExists(atPath: ready.path) else {
                 task.cancel()
                 _ = finished.wait(timeout: .now() + 1)
-                throw NSError(domain: "RemoteSSHTests", code: 1, userInfo: [
-                    NSLocalizedDescriptionKey: "Cancellation test process did not become ready."
-                ])
+                throw NSError(
+                    domain: "RemoteSSHTests", code: 1,
+                    userInfo: [
+                        NSLocalizedDescriptionKey: "Cancellation test process did not become ready."
+                    ])
             }
             task.cancel()
-            expect(finished.wait(timeout: .now() + 1) == .success,
-                   "cancellation stops a process promptly with and without stdin")
+            expect(
+                finished.wait(timeout: .now() + 1) == .success,
+                "cancellation stops a process promptly with and without stdin")
         }
         let exitDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent("zshell-cancelled-exit-\(UUID().uuidString)", isDirectory: true)
@@ -246,13 +253,14 @@ struct RemoteSSHTests {
             do {
                 _ = try BoundedProcessRunner.run(
                     executableURL: URL(fileURLWithPath: "/bin/sh"),
-                    arguments: ["-c", #": > "$1"; while [ ! -f "$2" ]; do :; done"#,
-                                "zshell-cancelled-exit", exitReady.path, exitRelease.path],
+                    arguments: [
+                        "-c", #": > "$1"; while [ ! -f "$2" ]; do :; done"#,
+                        "zshell-cancelled-exit", exitReady.path, exitRelease.path,
+                    ],
                     timeout: 3, outputLimit: 32
                 )
                 preconditionFailure("process completion swallowed cancellation")
-            } catch is CancellationError { exitFinished.signal() }
-            catch { preconditionFailure("cancelled process exit returned \(error)") }
+            } catch is CancellationError { exitFinished.signal() } catch { preconditionFailure("cancelled process exit returned \(error)") }
         }
         let exitDeadline = DispatchTime.now() + 2
         while !FileManager.default.fileExists(atPath: exitReady.path), DispatchTime.now() < exitDeadline {
@@ -261,14 +269,17 @@ struct RemoteSSHTests {
         guard FileManager.default.fileExists(atPath: exitReady.path) else {
             exitTask.cancel()
             _ = exitFinished.wait(timeout: .now() + 1)
-            throw NSError(domain: "RemoteSSHTests", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "Cancellation exit test process did not become ready."
-            ])
+            throw NSError(
+                domain: "RemoteSSHTests", code: 2,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Cancellation exit test process did not become ready."
+                ])
         }
         exitTask.cancel()
         try Data().write(to: exitRelease)
-        expect(exitFinished.wait(timeout: .now() + 1) == .success,
-               "process exit during a wait does not swallow cancellation")
+        expect(
+            exitFinished.wait(timeout: .now() + 1) == .success,
+            "process exit during a wait does not swallow cancellation")
         let cancelledBeforeLaunch = DispatchSemaphore(value: 0)
         let cancelledTask = Task.detached {
             while !Task.isCancelled { await Task.yield() }
@@ -278,8 +289,9 @@ struct RemoteSSHTests {
                     timeout: 3, outputLimit: 32
                 )
                 preconditionFailure("pre-cancelled task launched a process")
-            } catch is CancellationError { cancelledBeforeLaunch.signal() }
-            catch { preconditionFailure("pre-cancelled task attempted launch: \(error)") }
+            } catch is CancellationError { cancelledBeforeLaunch.signal() } catch {
+                preconditionFailure("pre-cancelled task attempted launch: \(error)")
+            }
         }
         cancelledTask.cancel()
         expect(cancelledBeforeLaunch.wait(timeout: .now() + 1) == .success, "pre-cancelled work never launches a process")
@@ -293,8 +305,9 @@ struct RemoteSSHTests {
                     executableURL: URL(fileURLWithPath: "/bin/sh"), arguments: ["-c", "printf cleanup"],
                     timeout: 1, outputLimit: 32, cancellable: false
                 )
-                precondition(result.terminationStatus == 0 && result.output.stdout == "cleanup" && !result.timedOut,
-                             "pre-cancelled cleanup did not run")
+                precondition(
+                    result.terminationStatus == 0 && result.output.stdout == "cleanup" && !result.timedOut,
+                    "pre-cancelled cleanup did not run")
                 cleanupFinished.signal()
                 let timedOut = try BoundedProcessRunner.run(
                     executableURL: URL(fileURLWithPath: "/bin/sleep"), arguments: ["5"],

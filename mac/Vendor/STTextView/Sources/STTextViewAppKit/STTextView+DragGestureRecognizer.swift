@@ -15,7 +15,8 @@ extension STTextView {
 
         // TODO: loop over all selected ranges
         guard let selectionsAttributedString = textLayoutManager.textSelectionsAttributedString(),
-              let textRange = currentSelectionRanges.first else {
+            let textRange = currentSelectionRanges.first
+        else {
             return
         }
 

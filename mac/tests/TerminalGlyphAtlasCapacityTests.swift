@@ -13,21 +13,23 @@ private struct Grid {
     func withSnapshot<T>(_ body: (ZshellSnapshot) -> T) -> T {
         let columns = keys[0].count
         var text: [UInt8] = []
-        let cells = keys.flatMap { row in row.map { key -> ZshellCell in
-            var cell = ZshellCell()
-            cell.fg = 0xffffff
-            switch key.content {
-            case .scalar(let value): cell.ch = value
-            case .cluster(let data):
-                cell.ch = key.content.string!.unicodeScalars.first!.value
-                cell.text_offset = UInt32(text.count)
-                cell.text_len = UInt16(data.count)
-                text.append(contentsOf: data)
+        let cells = keys.flatMap { row in
+            row.map { key -> ZshellCell in
+                var cell = ZshellCell()
+                cell.fg = 0xffffff
+                switch key.content {
+                case .scalar(let value): cell.ch = value
+                case .cluster(let data):
+                    cell.ch = key.content.string!.unicodeScalars.first!.value
+                    cell.text_offset = UInt32(text.count)
+                    cell.text_len = UInt16(data.count)
+                    text.append(contentsOf: data)
+                }
+                if key.bold { cell.flags |= UInt16(ZSHELL_CELL_BOLD) }
+                if key.italic { cell.flags |= UInt16(ZSHELL_CELL_ITALIC) }
+                return cell
             }
-            if key.bold { cell.flags |= UInt16(ZSHELL_CELL_BOLD) }
-            if key.italic { cell.flags |= UInt16(ZSHELL_CELL_ITALIC) }
-            return cell
-        }}
+        }
         return cells.withUnsafeBufferPointer { cells in
             text.withUnsafeBufferPointer { text in
                 var snapshot = ZshellSnapshot()
@@ -51,25 +53,32 @@ private final class GlyphFixture {
     let metrics: AlacrittyMetrics
     let scale: CGFloat
 
-    init(size: CGFloat = 13, scale: CGFloat = 2, family: String = "Menlo",
-         cellWidth: CGFloat = 1, ligatures: Bool = true) {
+    init(
+        size: CGFloat = 13, scale: CGFloat = 2, family: String = "Menlo",
+        cellWidth: CGFloat = 1, ligatures: Bool = true
+    ) {
         renderer = TerminalMetalRenderer(device: device)!
-        metrics = AlacrittyMetrics(family: family, fallbackFamily: "", size: size, fontThicken: false,
-                                   fontThickenStrength: 0, lineHeight: 1, cellWidth: cellWidth,
-                                   fontFeatures: TerminalFontFeatures(ligatures: ligatures))
+        metrics = AlacrittyMetrics(
+            family: family, fallbackFamily: "", size: size, fontThicken: false,
+            fontThickenStrength: 0, lineHeight: 1, cellWidth: cellWidth,
+            fontFeatures: TerminalFontFeatures(ligatures: ligatures))
         self.scale = scale
     }
 
     static func metrics(size: CGFloat) -> AlacrittyMetrics {
-        AlacrittyMetrics(family: "Menlo", fallbackFamily: "", size: size, fontThicken: false,
-                         fontThickenStrength: 0, lineHeight: 1)
+        AlacrittyMetrics(
+            family: "Menlo", fallbackFamily: "", size: size, fontThicken: false,
+            fontThickenStrength: 0, lineHeight: 1)
     }
 
-    func prepare(_ grid: Grid, dirtyRows: [Int]? = nil,
-                 markedText: TerminalMarkedText? = nil) -> Bool {
+    func prepare(
+        _ grid: Grid, dirtyRows: [Int]? = nil,
+        markedText: TerminalMarkedText? = nil
+    ) -> Bool {
         grid.withSnapshot { snapshot in
-            renderer.testPrepare(snapshot: snapshot, markedText: markedText,
-                                 metrics: metrics, scale: scale, dirtyRows: dirtyRows)
+            renderer.testPrepare(
+                snapshot: snapshot, markedText: markedText,
+                metrics: metrics, scale: scale, dirtyRows: dirtyRows)
         }
     }
 
@@ -82,12 +91,15 @@ private final class GlyphFixture {
         return layer
     }
 
-    func render(_ grid: Grid, dirtyRows: [Int]? = nil,
-                markedText: TerminalMarkedText? = nil,
-                kittyPlacements: [AlacrittyKittyPlacement] = [],
-                cursorColumn: Int? = nil) -> [UInt8] {
-        let size = CGSize(width: CGFloat(grid.keys[0].count) * metrics.cellWidth + 8,
-                          height: CGFloat(grid.keys.count) * metrics.cellHeight + 8)
+    func render(
+        _ grid: Grid, dirtyRows: [Int]? = nil,
+        markedText: TerminalMarkedText? = nil,
+        kittyPlacements: [AlacrittyKittyPlacement] = [],
+        cursorColumn: Int? = nil
+    ) -> [UInt8] {
+        let size = CGSize(
+            width: CGFloat(grid.keys[0].count) * metrics.cellWidth + 8,
+            height: CGFloat(grid.keys.count) * metrics.cellHeight + 8)
         let layer = layer(size: size)
         let drawable = layer.nextDrawable()!
         let texture = drawable.texture
@@ -96,11 +108,12 @@ private final class GlyphFixture {
             snapshot.cursor_line = cursorColumn == nil ? -1 : 0
             snapshot.cursor_column = cursorColumn ?? -1
             snapshot.cursor_color = 0x00ff00
-            return renderer.render(snapshot: snapshot, markedText: markedText,
-                            kittyPlacements: kittyPlacements,
-                            metrics: metrics, padding: CGPoint(x: 4, y: 4), scale: scale,
-                            backgroundOpacity: 1, dirtyRows: dirtyRows, in: drawable,
-                            viewportSize: size, waitUntilCompleted: true)
+            return renderer.render(
+                snapshot: snapshot, markedText: markedText,
+                kittyPlacements: kittyPlacements,
+                metrics: metrics, padding: CGPoint(x: 4, y: 4), scale: scale,
+                backgroundOpacity: 1, dirtyRows: dirtyRows, in: drawable,
+                viewportSize: size, waitUntilCompleted: true)
         }
         precondition(submitted)
         return Self.pixels(texture)
@@ -108,22 +121,25 @@ private final class GlyphFixture {
 
     static func pixels(_ texture: MTLTexture) -> [UInt8] {
         var pixels = [UInt8](repeating: 0, count: texture.width * texture.height * 4)
-        texture.getBytes(&pixels, bytesPerRow: texture.width * 4,
-                         from: MTLRegionMake2D(0, 0, texture.width, texture.height), mipmapLevel: 0)
+        texture.getBytes(
+            &pixels, bytesPerRow: texture.width * 4,
+            from: MTLRegionMake2D(0, 0, texture.width, texture.height), mipmapLevel: 0)
         return pixels
     }
 
     func wait(_ commands: MTLCommandBuffer) {
         commands.waitUntilCompleted()
-        precondition(commands.status == .completed,
-                     "Metal command failed: \(String(describing: commands.error))")
+        precondition(
+            commands.status == .completed,
+            "Metal command failed: \(String(describing: commands.error))")
     }
 
     func statistics(_ label: String) {
         let atlas = renderer.testAtlas
-        print("\(label): pages=\(atlas.pageCount), entries=\(atlas.testEntryCount), "
-              + "generation=\(atlas.generation), resident_bytes=\(atlas.testTextureBytes), "
-              + "page_budget=\(atlas.testMaximumPages), draws=\(renderer.testDrawCount)")
+        print(
+            "\(label): pages=\(atlas.pageCount), entries=\(atlas.testEntryCount), "
+                + "generation=\(atlas.generation), resident_bytes=\(atlas.testTextureBytes), "
+                + "page_budget=\(atlas.testMaximumPages), draws=\(renderer.testDrawCount)")
     }
 }
 
@@ -146,8 +162,10 @@ struct TerminalGlyphAtlasCapacityTests {
         print("Glyph atlas capacity tests passed (CoreText, Metal, paging, caches, IME, reset, failures)")
     }
 
-    private static func key(_ value: UInt32, bold: Bool = false,
-                            italic: Bool = false) -> TerminalGlyphAtlas.Key {
+    private static func key(
+        _ value: UInt32, bold: Bool = false,
+        italic: Bool = false
+    ) -> TerminalGlyphAtlas.Key {
         TerminalGlyphAtlas.Key(content: .scalar(value), bold: bold, italic: italic)
     }
 
@@ -157,19 +175,22 @@ struct TerminalGlyphAtlasCapacityTests {
 
     private static func cjkGrid(styled: Bool = false) -> Grid {
         var rows: [[TerminalGlyphAtlas.Key]] = []
-        for row in 0..<40 {
+        for row in 0 ..< 40 {
             let first = UInt32(0x4e00 + row * 40)
-            rows.append((0..<40).map { column in
-                key(first + UInt32(column), bold: styled && column % 3 == 0)
-            })
+            rows.append(
+                (0 ..< 40).map { column in
+                    key(first + UInt32(column), bold: styled && column % 3 == 0)
+                })
         }
         return Grid(keys: rows)
     }
 
-    @MainActor private static func fill(_ atlas: TerminalGlyphAtlas,
-                                        start: UInt32 = 0x4e00) -> Int {
+    @MainActor private static func fill(
+        _ atlas: TerminalGlyphAtlas,
+        start: UInt32 = 0x4e00
+    ) -> Int {
         var count = 0
-        for value in start..<0xa000 where value != 0x7ec8 {
+        for value in start ..< 0xa000 where value != 0x7ec8 {
             _ = atlas.entry(for: key(value))
             count += 1
             if atlas.needsRebuild { return count }
@@ -203,12 +224,13 @@ struct TerminalGlyphAtlasCapacityTests {
         precondition(atlas.textures[0] !== firstTexture)
         precondition(fixture.renderer.testRowUVs(0) != oldRow)
         precondition(fixture.renderer.testCachedGlyphsAreCurrent(final.keys), "Clean row kept stale UVs")
-        precondition(fixture.renderer.testGlyphIsColor(row: 1, column: 1),
-                     "Rebuilt grid emoji lost its intrinsic color")
+        precondition(
+            fixture.renderer.testGlyphIsColor(row: 1, column: 1),
+            "Rebuilt grid emoji lost its intrinsic color")
         let fresh = GlyphFixture()
         precondition(pixels == fresh.render(final, markedText: ime), "Recovered frame differs from a fresh atlas")
         let steadyGeneration = atlas.generation
-        for _ in 0..<8 {
+        for _ in 0 ..< 8 {
             precondition(fixture.prepare(final, dirtyRows: [], markedText: ime))
             precondition(atlas.generation == steadyGeneration)
         }
@@ -222,24 +244,28 @@ struct TerminalGlyphAtlasCapacityTests {
     @MainActor private static func rtlCellsMatchLegacyRendering() {
         let samples = ["بب", "بلا", "سلام"]
         let columns = samples.map(\.count).max()!
-        let grid = Grid(keys: samples.map { text in
-            text.map { cluster(String($0)) } + Array(repeating: key(32), count: columns - text.count)
-        })
+        let grid = Grid(
+            keys: samples.map { text in
+                text.map { cluster(String($0)) } + Array(repeating: key(32), count: columns - text.count)
+            })
         for family in ["Menlo", "Geeza Pro"] {
             for width: CGFloat in [0.75, 1, 1.25, 2] {
                 for ligatures in [true, false] {
                     let fixture = GlyphFixture(size: 32, family: family, cellWidth: width, ligatures: ligatures)
                     let pixels = fixture.render(grid)
-                    let size = CGSize(width: CGFloat(columns) * fixture.metrics.cellWidth + 8,
-                                      height: CGFloat(samples.count) * fixture.metrics.cellHeight + 8)
+                    let size = CGSize(
+                        width: CGFloat(columns) * fixture.metrics.cellWidth + 8,
+                        height: CGFloat(samples.count) * fixture.metrics.cellHeight + 8)
                     let layer = fixture.layer(size: size)
                     let drawable = layer.nextDrawable()!
                     grid.withSnapshot { snapshot in
-                        fixture.renderer.testRenderPerCell(snapshot: snapshot, metrics: fixture.metrics,
-                                                           scale: fixture.scale, in: drawable, viewportSize: size)
+                        fixture.renderer.testRenderPerCell(
+                            snapshot: snapshot, metrics: fixture.metrics,
+                            scale: fixture.scale, in: drawable, viewportSize: size)
                     }
-                    precondition(pixels == GlyphFixture.pixels(drawable.texture),
-                                 "\(family) \(width) RTL differs from legacy per-cell rendering, ligatures=\(ligatures)")
+                    precondition(
+                        pixels == GlyphFixture.pixels(drawable.texture),
+                        "\(family) \(width) RTL differs from legacy per-cell rendering, ligatures=\(ligatures)")
                     print("PASS RTL per-cell raster: \(family), width=\(width), ligatures=\(ligatures)")
                 }
             }
@@ -260,7 +286,7 @@ struct TerminalGlyphAtlasCapacityTests {
         let generation = atlas.generation
         let pageCount = atlas.pageCount
         fixture.statistics("PASS large visible working set")
-        for _ in 0..<8 {
+        for _ in 0 ..< 8 {
             precondition(fixture.prepare(large, dirtyRows: []))
             precondition(atlas.generation == generation && atlas.pageCount == pageCount)
         }
@@ -269,7 +295,7 @@ struct TerminalGlyphAtlasCapacityTests {
         precondition(atlas.generation == generation + 1)
         precondition(atlas.pageCount == 1 && atlas.testMaximumPages == 2)
         precondition(atlas.testEntryCount == 2 && atlas.testTextureBytes == 16 * 1024 * 1024)
-        for _ in 0..<8 { precondition(fixture.prepare(small, dirtyRows: [])) }
+        for _ in 0 ..< 8 { precondition(fixture.prepare(small, dirtyRows: [])) }
         precondition(atlas.generation == generation + 1)
         fixture.statistics("PASS small working set releases surplus pages without repeated rebuilds")
     }
@@ -288,8 +314,9 @@ struct TerminalGlyphAtlasCapacityTests {
         fixture.wait(fixture.renderer.testDrawPageSequence([4, 0, 4, 0], into: texture))
         let pixels = GlyphFixture.pixels(texture)
         let index = (24 * texture.width + 24) * 4
-        precondition(Array(pixels[index..<index + 4]) == [26, 0, 0, 255],
-                     "Cross-page grouping changed the final solid decoration")
+        precondition(
+            Array(pixels[index ..< index + 4]) == [26, 0, 0, 255],
+            "Cross-page grouping changed the final solid decoration")
         let pages = [4, 1, 7, 0, 5]
         let width = pages.count * 60
         let glyphDescriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -302,13 +329,15 @@ struct TerminalGlyphAtlasCapacityTests {
         fixture.wait(fixture.renderer.testDrawGlyphPages(pages, into: actualTexture, reference: false))
         fixture.wait(fixture.renderer.testDrawGlyphPages(pages, into: referenceTexture, reference: true))
         let actual = GlyphFixture.pixels(actualTexture)
-        precondition(actual == GlyphFixture.pixels(referenceTexture),
-                     "Page groups or modulo texture slots sampled a different glyph")
+        precondition(
+            actual == GlyphFixture.pixels(referenceTexture),
+            "Page groups or modulo texture slots sampled a different glyph")
         for (index, _) in pages.enumerated() {
-            let inkPixels = (0..<64).reduce(0) { count, y in
-                count + (index * 60..<(index + 1) * 60).filter { x in
-                    actual[(y * width + x) * 4 + 3] > 0
-                }.count
+            let inkPixels = (0 ..< 64).reduce(0) { count, y in
+                count
+                    + (index * 60 ..< (index + 1) * 60).filter { x in
+                        actual[(y * width + x) * 4 + 3] > 0
+                    }.count
             }
             precondition(inkPixels > 50, "Glyph-only page test rendered no ink")
         }
@@ -316,17 +345,22 @@ struct TerminalGlyphAtlasCapacityTests {
     }
 
     @MainActor private static func kittyGraphicsKeepTheirLayers() {
-        func placement(_ color: [UInt8], id: UInt32, column: Int,
-                       columns: Int, zIndex: Int) -> AlacrittyKittyPlacement {
-            let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 2, pixelsHigh: 2,
-                                         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
-                                         isPlanar: false, colorSpaceName: .calibratedRGB,
-                                         bytesPerRow: 0, bitsPerPixel: 0)!
-            for y in 0..<2 { for x in 0..<2 {
-                for channel in 0..<4 {
-                    bitmap.bitmapData![y * bitmap.bytesPerRow + x * 4 + channel] = color[channel]
+        func placement(
+            _ color: [UInt8], id: UInt32, column: Int,
+            columns: Int, zIndex: Int
+        ) -> AlacrittyKittyPlacement {
+            let bitmap = NSBitmapImageRep(
+                bitmapDataPlanes: nil, pixelsWide: 2, pixelsHigh: 2,
+                bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+                isPlanar: false, colorSpaceName: .calibratedRGB,
+                bytesPerRow: 0, bitsPerPixel: 0)!
+            for y in 0 ..< 2 {
+                for x in 0 ..< 2 {
+                    for channel in 0 ..< 4 {
+                        bitmap.bitmapData![y * bitmap.bytesPerRow + x * 4 + channel] = color[channel]
+                    }
                 }
-            }}
+            }
             var placement = ZshellKittyPlacement()
             placement.image_id = id
             placement.image_generation = 1
@@ -353,30 +387,35 @@ struct TerminalGlyphAtlasCapacityTests {
             let x = Int((4 + CGFloat(column) * fixture.metrics.cellWidth + 0.5) * fixture.scale)
             let y = Int(5 * fixture.scale)
             let offset = (y * width + x) * 4
-            precondition(Array(pixels[offset..<offset + 4]) == expected,
-                         "Kitty layer column \(column): \(Array(pixels[offset..<offset + 4])) != \(expected)")
+            precondition(
+                Array(pixels[offset ..< offset + 4]) == expected,
+                "Kitty layer column \(column): \(Array(pixels[offset..<offset + 4])) != \(expected)")
         }
-        precondition(stride(from: 0, to: pixels.count, by: 4).contains {
-            pixels[$0] == 255 && pixels[$0 + 1] == 255 && pixels[$0 + 2] == 255
-        }, "Negative Kitty image hid the terminal glyph")
+        precondition(
+            stride(from: 0, to: pixels.count, by: 4).contains {
+                pixels[$0] == 255 && pixels[$0 + 1] == 255 && pixels[$0 + 2] == 255
+            }, "Negative Kitty image hid the terminal glyph")
         print("PASS Kitty negative/positive layers keep glyph/cursor order with all shader textures bound")
     }
 
     @MainActor private static func preparationPerformance() {
-        func measure(_ fixture: GlyphFixture, _ grid: Grid, dirtyRows: [Int],
-                     iterations: Int, original: Bool) -> Double {
+        func measure(
+            _ fixture: GlyphFixture, _ grid: Grid, dirtyRows: [Int],
+            iterations: Int, original: Bool
+        ) -> Double {
             grid.withSnapshot { snapshot in
                 let start = DispatchTime.now().uptimeNanoseconds
-                for _ in 0..<iterations {
+                for _ in 0 ..< iterations {
                     if original {
                         fixture.renderer.testPrepareOriginalBuild(
                             snapshot: snapshot, metrics: fixture.metrics, dirtyRows: dirtyRows
                         )
                     } else {
-                        precondition(fixture.renderer.testPrepare(
-                            snapshot: snapshot, markedText: nil, metrics: fixture.metrics,
-                            scale: fixture.scale, dirtyRows: dirtyRows
-                        ))
+                        precondition(
+                            fixture.renderer.testPrepare(
+                                snapshot: snapshot, markedText: nil, metrics: fixture.metrics,
+                                scale: fixture.scale, dirtyRows: dirtyRows
+                            ))
                     }
                 }
                 return Double(DispatchTime.now().uptimeNanoseconds - start)
@@ -387,25 +426,31 @@ struct TerminalGlyphAtlasCapacityTests {
         let large = cjkGrid()
         precondition(largeFixture.prepare(large))
         let singleFixture = GlyphFixture()
-        let single = Grid(keys: (0..<80).map { row in (0..<120).map { column in
-            key(UInt32(0x21 + (row + column) % 90))
-        }})
+        let single = Grid(
+            keys: (0 ..< 80).map { row in
+                (0 ..< 120).map { column in
+                    key(UInt32(0x21 + (row + column) % 90))
+                }
+            })
         precondition(singleFixture.prepare(single))
-        for (label, fixture, grid) in [("single-page 9600 cells", singleFixture, single),
-                                        ("eight-page 1600 unique glyphs", largeFixture, large)] {
+        for (label, fixture, grid) in [
+            ("single-page 9600 cells", singleFixture, single),
+            ("eight-page 1600 unique glyphs", largeFixture, large),
+        ] {
             for (damage, rows) in [("steady", []), ("one dirty row", [20])] {
                 _ = measure(fixture, grid, dirtyRows: rows, iterations: 100, original: true)
                 _ = measure(fixture, grid, dirtyRows: rows, iterations: 100, original: false)
                 var baselines: [Double] = []
                 var currents: [Double] = []
-                for _ in 0..<7 {
+                for _ in 0 ..< 7 {
                     baselines.append(measure(fixture, grid, dirtyRows: rows, iterations: 300, original: true))
                     currents.append(measure(fixture, grid, dirtyRows: rows, iterations: 300, original: false))
                 }
                 let baseline = baselines.sorted()[3]
                 let current = currents.sorted()[3]
-                print("PERF \(label), \(damage): original_build_us=\(baseline), "
-                      + "capacity_prepare_us=\(current), added_us=\(current - baseline)")
+                print(
+                    "PERF \(label), \(damage): original_build_us=\(baseline), "
+                        + "capacity_prepare_us=\(current), added_us=\(current - baseline)")
             }
         }
         print("Preparation benchmark passed (-O; production build baseline with capacity bookkeeping bypassed)")
@@ -424,11 +469,12 @@ struct TerminalGlyphAtlasCapacityTests {
         let readback = fixture.device.makeBuffer(length: expected.count, options: .storageModeShared)!
         commands.encodeWaitForEvent(event, value: 1)
         let blit = commands.makeBlitCommandEncoder()!
-        blit.copy(from: oldTexture, sourceSlice: 0, sourceLevel: 0,
-                  sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
-                  sourceSize: MTLSize(width: oldTexture.width, height: oldTexture.height, depth: 1),
-                  to: readback, destinationOffset: 0, destinationBytesPerRow: bytesPerRow,
-                  destinationBytesPerImage: expected.count)
+        blit.copy(
+            from: oldTexture, sourceSlice: 0, sourceLevel: 0,
+            sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+            sourceSize: MTLSize(width: oldTexture.width, height: oldTexture.height, depth: 1),
+            to: readback, destinationOffset: 0, destinationBytesPerRow: bytesPerRow,
+            destinationBytesPerImage: expected.count)
         blit.endEncoding()
         commands.commit()
         precondition(atlas.beginRebuild())
@@ -443,9 +489,10 @@ struct TerminalGlyphAtlasCapacityTests {
         precondition(atlas.generation == generation)
         event.signaledValue = 1
         fixture.wait(commands)
-        let actual = Array(UnsafeBufferPointer(
-            start: readback.contents().assumingMemoryBound(to: UInt8.self), count: expected.count
-        ))
+        let actual = Array(
+            UnsafeBufferPointer(
+                start: readback.contents().assumingMemoryBound(to: UInt8.self), count: expected.count
+            ))
         precondition(actual == expected, "Rebuild/reset overwrote the delayed GPU texture")
         print("PASS delayed GPU read preserves old emoji texture through capacity/font/scale resets")
     }

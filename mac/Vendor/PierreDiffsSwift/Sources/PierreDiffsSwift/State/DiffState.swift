@@ -12,17 +12,17 @@ import Foundation
 /// Immutable state struct that's safe for SwiftUI.
 /// Contains the diff result for WebView-based rendering via @pierre/diffs.
 public struct DiffState: Equatable, Sendable {
-  public static let empty = DiffState(diffResult: .initial)
+    public static let empty = DiffState(diffResult: .initial)
 
-  /// The result of the diff operation
-  public let diffResult: DiffResult
+    /// The result of the diff operation
+    public let diffResult: DiffResult
 
-  /// Whether this state has actual content to display
-  public var hasContent: Bool {
-    !diffResult.isInitial && (!diffResult.original.isEmpty || !diffResult.updated.isEmpty)
-  }
+    /// Whether this state has actual content to display
+    public var hasContent: Bool {
+        !diffResult.isInitial && (!diffResult.original.isEmpty || !diffResult.updated.isEmpty)
+    }
 
-  public init(diffResult: DiffResult) {
-    self.diffResult = diffResult
-  }
+    public init(diffResult: DiffResult) {
+        self.diffResult = diffResult
+    }
 }

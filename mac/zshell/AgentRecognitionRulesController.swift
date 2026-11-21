@@ -46,8 +46,9 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
     }
 
     private func configure() {
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 680, height: 520),
-                            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 680, height: 520),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.title = String(localized: "Agent Recognition Rules")
         panel.minSize = NSSize(width: 480, height: 470)
         panel.isReleasedWhenClosed = false
@@ -56,7 +57,9 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
         window = panel
         guard let content = panel.contentView else { return }
 
-        let introduction = NSTextField(wrappingLabelWithString: String(localized: "Add command names or replace an agent’s screen rules. Changes apply to running local panes."))
+        let introduction = NSTextField(
+            wrappingLabelWithString: String(
+                localized: "Add command names or replace an agent’s screen rules. Changes apply to running local panes."))
         introduction.textColor = .secondaryLabelColor
         let path = NSTextField(wrappingLabelWithString: store.url.path)
         path.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
@@ -79,7 +82,8 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
         scroll.autohidesScrollers = true
         scroll.borderType = .bezelBorder
 
-        let add = SettingsActionButton(title: String(localized: "Add Agent…")) { [weak self] in self?.edit(.newAgentExample, replacing: nil) }
+        let add = SettingsActionButton(title: String(localized: "Add Agent…")) { [weak self] in self?.edit(.newAgentExample, replacing: nil)
+        }
         configure(editButton, title: String(localized: "Edit…"), action: #selector(editSelection))
         configure(deleteButton, title: String(localized: "Delete"), action: #selector(deleteSelection))
         configure(resetButton, title: String(localized: "Restore Default"), action: #selector(resetSelection))
@@ -115,9 +119,11 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
             scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 180),
         ])
         for view in [introduction, path, scroll, status] { view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true }
-        localizeControls = { [weak self, weak panel, weak introduction, weak add, weak importButton, weak exportButton, weak resetAll, weak file] in
+        localizeControls = {
+            [weak self, weak panel, weak introduction, weak add, weak importButton, weak exportButton, weak resetAll, weak file] in
             panel?.title = String(localized: "Agent Recognition Rules")
-            introduction?.stringValue = String(localized: "Add command names or replace an agent’s screen rules. Changes apply to running local panes.")
+            introduction?.stringValue = String(
+                localized: "Add command names or replace an agent’s screen rules. Changes apply to running local panes.")
             add?.title = String(localized: "Add Agent…")
             self?.editButton.title = String(localized: "Edit…")
             self?.deleteButton.title = String(localized: "Delete")
@@ -151,11 +157,14 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
     private func reload() {
         let selectedID = selected?.id
         let overrides = Dictionary(uniqueKeysWithValues: store.manifests.map { ($0.id, $0) })
-        entries = ZshellAgentKind.allCases.filter { $0 != .program }.map {
-            overrides[$0.rawValue] ?? AgentRecognitionManifest.editableDefault($0)
-        } + store.manifests.filter { AgentRecognitionManifest.builtinKind($0.id) == nil }
+        entries =
+            ZshellAgentKind.allCases.filter { $0 != .program }.map {
+                overrides[$0.rawValue] ?? AgentRecognitionManifest.editableDefault($0)
+            } + store.manifests.filter { AgentRecognitionManifest.builtinKind($0.id) == nil }
         table.reloadData()
-        if let selectedID, let row = entries.firstIndex(where: { $0.id == selectedID }) { table.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false) }
+        if let selectedID, let row = entries.firstIndex(where: { $0.id == selectedID }) {
+            table.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+        }
         if !busy { status.stringValue = store.error ?? "" }
         updateSelection()
     }
@@ -163,9 +172,11 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
     private func updateSelection() {
         editButton.isEnabled = !busy && selected != nil
         deleteButton.isEnabled = !busy && selected.map { AgentRecognitionManifest.builtinKind($0.id) == nil } == true
-        resetButton.isEnabled = !busy && selected.map { value in
-            AgentRecognitionManifest.builtinKind(value.id) != nil && store.manifests.contains { $0.id == value.id }
-        } == true
+        resetButton.isEnabled =
+            !busy
+            && selected.map { value in
+                AgentRecognitionManifest.builtinKind(value.id) != nil && store.manifests.contains { $0.id == value.id }
+            } == true
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int { entries.count }
@@ -176,7 +187,8 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
         let names = (entry.executables + entry.aliases)
         let custom = store.manifests.contains { $0.id == entry.id }
         let identifier = NSUserInterfaceItemIdentifier("agent-recognition-rule-row")
-        let rowView = tableView.makeView(withIdentifier: identifier, owner: self) as? AgentRecognitionRuleRowView ?? AgentRecognitionRuleRowView()
+        let rowView =
+            tableView.makeView(withIdentifier: identifier, owner: self) as? AgentRecognitionRuleRowView ?? AgentRecognitionRuleRowView()
         rowView.identifier = identifier
         rowView.apply(name: entry.name, detail: names.isEmpty ? entry.id : names.joined(separator: ", "), custom: custom)
         return rowView
@@ -234,8 +246,7 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
         if FileManager.default.fileExists(atPath: store.url.path) { NSWorkspace.shared.activateFileViewerSelecting([store.url]); return }
         store.save(store.manifests) { [weak self] error in
             guard let self else { return }
-            if let error { self.status.stringValue = error }
-            else { NSWorkspace.shared.activateFileViewerSelecting([self.store.url]) }
+            if let error { self.status.stringValue = error } else { NSWorkspace.shared.activateFileViewerSelecting([self.store.url]) }
         }
     }
 
@@ -251,7 +262,9 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
             self.status.stringValue = String(localized: "Loading…")
             self.updateSelection()
             Task { @MainActor [self] in
-                let result = await Task.detached(priority: .utility) { Result { try AgentRecognitionManifest.parse(SettingsConfigFile.read(at: url)) } }.value
+                let result = await Task.detached(priority: .utility) {
+                    Result { try AgentRecognitionManifest.parse(SettingsConfigFile.read(at: url)) }
+                }.value
                 self.busy = false
                 self.updateSelection()
                 switch result {
@@ -262,7 +275,9 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
                     alert.informativeText = String(localized: "The imported file will replace custom agents and screen overrides.")
                     alert.addButton(withTitle: String(localized: "Import"))
                     alert.addButton(withTitle: String(localized: "Cancel"))
-                    alert.beginSheetModal(for: window) { [weak self] response in if response == .alertFirstButtonReturn { self?.save(manifests) } }
+                    alert.beginSheetModal(for: window) { [weak self] response in
+                        if response == .alertFirstButtonReturn { self?.save(manifests) }
+                    }
                 }
             }
         }
@@ -354,14 +369,16 @@ private final class AgentRecognitionRulesEditor: NSWindowController {
         self.store = store
         self.replacing = replacing
         self.onClose = onClose
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 660, height: 500),
-                            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 660, height: 500),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
         super.init(window: panel)
         panel.title = String(localized: "Edit Agent Rules")
         panel.minSize = NSSize(width: 480, height: 360)
         panel.isReleasedWhenClosed = false
         guard let content = panel.contentView else { return }
-        help.stringValue = String(localized: "Edit the agent’s TOML. Remove its screen rules or set screen_enabled = false to keep only process recognition.")
+        help.stringValue = String(
+            localized: "Edit the agent’s TOML. Remove its screen rules or set screen_enabled = false to keep only process recognition.")
         help.textColor = .secondaryLabelColor
         textView.isRichText = false
         textView.isAutomaticQuoteSubstitutionEnabled = false
@@ -414,7 +431,8 @@ private final class AgentRecognitionRulesEditor: NSWindowController {
 
     func refreshLanguage() {
         window?.title = String(localized: "Edit Agent Rules")
-        help.stringValue = String(localized: "Edit the agent’s TOML. Remove its screen rules or set screen_enabled = false to keep only process recognition.")
+        help.stringValue = String(
+            localized: "Edit the agent’s TOML. Remove its screen rules or set screen_enabled = false to keep only process recognition.")
         saveButton.title = String(localized: "Save")
         cancelButton?.title = String(localized: "Cancel")
         textView.setAccessibilityLabel(String(localized: "Agent TOML"))
@@ -433,7 +451,9 @@ private final class AgentRecognitionRulesEditor: NSWindowController {
             switch parsed {
             case let .failure(error): finish(error.localizedDescription)
             case let .success(manifests):
-                guard manifests.count == 1, let edited = manifests.first else { finish(String(localized: "Edit exactly one agent in this window.")); return }
+                guard manifests.count == 1, let edited = manifests.first else {
+                    finish(String(localized: "Edit exactly one agent in this window.")); return
+                }
                 guard !store.manifests.contains(where: { $0.id == edited.id && $0.id != replacing }) else {
                     finish(String(localized: "An agent with this ID already exists.")); return
                 }

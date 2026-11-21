@@ -29,9 +29,11 @@ class STTextViewDelegateProxy: NSObject, STTextViewDelegate {
 
     func textView(_ textView: STTextView, shouldChangeTextIn affectedCharRange: NSTextRange, replacementString: String?) -> Bool {
         var result = source?.textView(textView, shouldChangeTextIn: affectedCharRange, replacementString: replacementString) ?? true
-        result = result && textView.plugins.events.reduce(result) { partialResult, events in
-            partialResult && events.shouldChangeTextHandler?(affectedCharRange, replacementString) ?? true
-        }
+        result =
+            result
+            && textView.plugins.events.reduce(result) { partialResult, events in
+                partialResult && events.shouldChangeTextHandler?(affectedCharRange, replacementString) ?? true
+            }
         return result
     }
 

@@ -19,7 +19,8 @@ extension TerminalManager {
     private static func worktreeIsInUse(
         _ path: String, excludingSessionIDs: Set<UUID>, excludingPendingSessionID: UUID? = nil
     ) -> Bool {
-        let sessions = automationManagers.flatMap(\.projects).flatMap(\.sessions)
+        let sessions =
+            automationManagers.flatMap(\.projects).flatMap(\.sessions)
             + GlobalTerminalOverlay.shared.allSessions
         return sessions.contains { session in
             guard !excludingSessionIDs.contains(session.id) else { return false }
@@ -77,15 +78,17 @@ extension TerminalManager {
                 throw SessionWorktreeError(message: String(localized: "The project closed before the worktree session could start."))
             }
             let previousTab = project.selectedTabID
-            session = project.newSession(directory: worktree.path, commandArguments: commandArguments,
-                                         environmentPath: environmentPath, tabTitle: branch, worktree: worktree)
+            session = project.newSession(
+                directory: worktree.path, commandArguments: commandArguments,
+                environmentPath: environmentPath, tabTitle: branch, worktree: worktree)
             guard let session else {
                 throw SessionWorktreeError(message: String(localized: "The worktree is being removed. Try again after cleanup finishes."))
             }
             if focus { selectedProjectID = project.id }
             if !focus { project.selectedTabID = previousTab }
             guard await session.waitUntilStarted(), projects.contains(where: { $0 === project }),
-                  project.sessions.contains(where: { $0.id == session.id }) else {
+                project.sessions.contains(where: { $0.id == session.id })
+            else {
                 throw SessionWorktreeError(message: String(localized: "The terminal could not start in the worktree."))
             }
             return session
@@ -104,7 +107,8 @@ extension TerminalManager {
                 }
             }
             if !removed {
-                throw SessionWorktreeError(message: String(localized: "\(error.localizedDescription) The worktree was kept at \(worktree.path)."))
+                throw SessionWorktreeError(
+                    message: String(localized: "\(error.localizedDescription) The worktree was kept at \(worktree.path)."))
             }
             throw error
         }
@@ -146,15 +150,15 @@ extension TerminalManager {
     ) async -> Bool? {
         guard let worktree = session.worktree else { return false }
         var refusal: String?
-        do { refusal = try await SessionWorktreeService().inspect(worktree).refusal }
-        catch { refusal = error.localizedDescription }
+        do { refusal = try await SessionWorktreeService().inspect(worktree).refusal } catch { refusal = error.localizedDescription }
         let excluded = excludingSessionIDs.intersection(Set(project.sessions.map(\.id))).union([session.id])
         if Self.worktreeIsInUse(worktree.path, excludingSessionIDs: excluded) {
             refusal = String(localized: "Other open sessions still use this worktree. Close them before removing it.")
         }
         guard projects.contains(where: { $0 === project }), project.sessions.contains(where: { $0.id == session.id }),
-              let host = AppWindowPresentation.hostWindow(relativeTo: presentationWindow),
-              host.attachedSheet == nil else { return nil }
+            let host = AppWindowPresentation.hostWindow(relativeTo: presentationWindow),
+            host.attachedSheet == nil
+        else { return nil }
         let alert = NSAlert()
         alert.messageText = String(localized: "Close Session in Worktree?")
         let detail = String(localized: "\(worktree.path)\nThe Git branch will be kept.")
@@ -166,7 +170,8 @@ extension TerminalManager {
         cancel.keyEquivalent = "\u{1b}"
         let response = await alert.beginSheetModal(for: host)
         guard response == .alertFirstButtonReturn || response == .alertSecondButtonReturn,
-              project.sessions.contains(where: { $0.id == session.id }) else { return nil }
+            project.sessions.contains(where: { $0.id == session.id })
+        else { return nil }
         return response == .alertSecondButtonReturn
     }
 
@@ -180,8 +185,10 @@ extension TerminalManager {
             if remove {
                 // Earlier sessions must finish releasing the checkout before its last user removes it.
                 for previous in related where previous.session !== choice.session {
-                    guard !Self.automationManagers.flatMap(\.projects).flatMap(\.sessions).contains(where: { $0 === previous.session }) else {
-                        throw SessionWorktreeError(message: String(localized: "Other open sessions still use this worktree. Close them before removing it."))
+                    guard !Self.automationManagers.flatMap(\.projects).flatMap(\.sessions).contains(where: { $0 === previous.session })
+                    else {
+                        throw SessionWorktreeError(
+                            message: String(localized: "Other open sessions still use this worktree. Close them before removing it."))
                     }
                     guard await previous.session.waitUntilTerminated() else {
                         throw SessionWorktreeError(message: String(localized: "The session is still stopping. Its worktree was kept."))
@@ -195,7 +202,8 @@ extension TerminalManager {
     @discardableResult
     func requestCloseWorktreeSession(_ session: TerminalSession, in project: Project) async -> Bool {
         guard !UnsavedChangesConfirmation.isPending,
-              WorktreeLifecycle.closingSessions.insert(session.id).inserted else { return false }
+            WorktreeLifecycle.closingSessions.insert(session.id).inserted
+        else { return false }
         defer { WorktreeLifecycle.closingSessions.remove(session.id) }
         guard let removeWorktree = await worktreeCloseChoice(session, in: project) else { return false }
         do {
@@ -227,7 +235,8 @@ extension TerminalManager {
         let inspection = try await service.inspect(worktree)
         if let refusal = inspection.refusal { throw SessionWorktreeError(message: refusal) }
         guard !Self.worktreeIsInUse(worktree.path, excluding: session.id) else {
-            throw SessionWorktreeError(message: String(localized: "Other open sessions still use this worktree. Close them before removing it."))
+            throw SessionWorktreeError(
+                message: String(localized: "Other open sessions still use this worktree. Close them before removing it."))
         }
         project.closeContent(.session(session), confirmWorktree: false)
         guard await session.waitUntilTerminated() else {
@@ -239,7 +248,8 @@ extension TerminalManager {
             }
             return true
         } catch {
-            throw SessionWorktreeError(message: String(localized: "The session closed, but its worktree was kept. \(error.localizedDescription)"))
+            throw SessionWorktreeError(
+                message: String(localized: "The session closed, but its worktree was kept. \(error.localizedDescription)"))
         }
     }
 

@@ -3,14 +3,14 @@
 import Markdown
 
 let source = """
-First paragraph.
+    First paragraph.
 
------
+    -----
 
-Second paragraph.
+    Second paragraph.
 
-*****
-"""
+    *****
+    """
 
 let document = Document(parsing: source)
 let thematicBreakCharacter = MarkupFormatter.Options.ThematicBreakCharacter.dash
@@ -18,13 +18,14 @@ let thematicBreakCharacter = MarkupFormatter.Options.ThematicBreakCharacter.dash
 let formattingOptions = MarkupFormatter.Options(thematicBreakCharacter: thematicBreakCharacter, thematicBreakLength: 10)
 let formattedSource = document.format(options: formattingOptions)
 
-print("""
-## Original source:
-\(source)
+print(
+    """
+    ## Original source:
+    \(source)
 
-## Formatted source:
-\(formattedSource)
-""")
+    ## Formatted source:
+    \(formattedSource)
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

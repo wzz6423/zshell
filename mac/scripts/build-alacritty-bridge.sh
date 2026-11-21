@@ -50,6 +50,9 @@ if command -v rustup > /dev/null 2>&1; then
   fi
 fi
 
+# rust-objcopy's rpath can miss the matching LLVM dylib in the sysroot.
+rust_dylib_path="$(rustc --print sysroot)/lib:${DYLD_FALLBACK_LIBRARY_PATH-${HOME}/lib:/usr/local/lib:/usr/lib}"
+
 rust_target_is_installed() {
   local target="$1"
 
@@ -93,7 +96,7 @@ for arch in ${=ARCHS}; do
 
   # Always release: this is a terminal renderer's hot path, and a debug build
   # of the VT parser is slow enough to feel while typing.
-  cargo build --release --locked --manifest-path "${BUILD_DIR}/Cargo.toml" --target "${target}"
+  DYLD_FALLBACK_LIBRARY_PATH="${rust_dylib_path}" cargo build --release --locked --manifest-path "${BUILD_DIR}/Cargo.toml" --target "${target}"
   slices+=("${CARGO_TARGET_DIR}/${target}/release/libzshell_alacritty.a")
 done
 

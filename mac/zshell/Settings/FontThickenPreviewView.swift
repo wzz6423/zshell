@@ -58,11 +58,12 @@ final class FontThickenPreviewView: NSView {
         lineHeight: CGFloat,
         cellWidth: CGFloat = 1
     ) {
-        guard previewFont != font
-            || self.thicken != thicken
-            || self.thickenStrength != thickenStrength
-            || self.lineHeight != lineHeight
-            || self.cellWidth != cellWidth
+        guard
+            previewFont != font
+                || self.thicken != thicken
+                || self.thickenStrength != thickenStrength
+                || self.lineHeight != lineHeight
+                || self.cellWidth != cellWidth
         else { return }
         previewFont = font
         self.thicken = thicken
@@ -75,7 +76,8 @@ final class FontThickenPreviewView: NSView {
 
     override var intrinsicContentSize: NSSize {
         let rowHeight = ceil(previewFont.boundingRectForFont.height * lineHeight)
-        let height = verticalPadding * 2
+        let height =
+            verticalPadding * 2
             + CGFloat(lines.count) * rowHeight
             + CGFloat(max(0, lines.count - 1)) * lineSpacing
         return NSSize(width: NSView.noIntrinsicMetric, height: height)
@@ -98,7 +100,8 @@ final class FontThickenPreviewView: NSView {
         var y = verticalPadding
         let rowHeight = ceil(previewFont.boundingRectForFont.height * lineHeight)
         for (text, bold) in lines {
-            let font = bold
+            let font =
+                bold
                 ? NSFontManager.shared.convert(previewFont, toHaveTrait: .boldFontMask)
                 : previewFont
             var attrs: [NSAttributedString.Key: Any] = [
@@ -126,8 +129,10 @@ final class FontThickenPreviewView: NSView {
                     ctx.setLineWidth(font.pointSize * (0.5 + CGFloat(strength) / 255 * 1.5) / 100)
                     ctx.setTextDrawingMode(.fillStroke)
                 }
-                for glyph in textShaper.glyphs(text: text, font: font, cellWidth: width,
-                                              naturalCellWidth: naturalWidth) {
+                for glyph in textShaper.glyphs(
+                    text: text, font: font, cellWidth: width,
+                    naturalCellWidth: naturalWidth)
+                {
                     var value = glyph.glyph
                     var position = glyph.position
                     CTFontDrawGlyphs(glyph.font, &value, &position, 1, ctx)

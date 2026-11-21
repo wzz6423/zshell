@@ -67,8 +67,7 @@ struct SessionWorktreeRegression {
     }
 
     static func rejects(_ name: String, _ operation: () async throws -> Void) async {
-        do { try await operation(); check(false, name) }
-        catch { check(true, name) }
+        do { try await operation(); check(false, name) } catch { check(true, name) }
     }
 
     static func exists(_ url: URL) -> Bool { FileManager.default.fileExists(atPath: url.path) }
@@ -97,7 +96,9 @@ struct SessionWorktreeRegression {
 
         let first = try await service.create(in: repo.path, branch: "feature/new")
         check(first.initialHead == baseHead && first.branch == "feature/new", "new branches start at the default baseline")
-        check(first.path == SessionWorktreeService.defaultPath(repositoryRoot: repo.path, branch: "feature/new"), "automatic directory is outside the source checkout")
+        check(
+            first.path == SessionWorktreeService.defaultPath(repositoryRoot: repo.path, branch: "feature/new"),
+            "automatic directory is outside the source checkout")
         check(try git(URL(fileURLWithPath: first.path), "rev-parse", "HEAD") == baseHead, "new worktree checks out the default commit")
         let inspection = try await service.inspect(first)
         check(inspection.canRemove, "clean merged worktree can be removed")
@@ -106,11 +107,15 @@ struct SessionWorktreeRegression {
         check(try git(repo, "rev-parse", "refs/heads/feature/new") == baseHead, "normal cleanup always preserves its branch")
 
         let fromCurrent = try await service.create(in: repo.path, branch: "from-current", base: .currentHead)
-        check(fromCurrent.initialHead == currentHead && fromCurrent.baseReference == "refs/heads/active-feature", "Current HEAD is an explicit baseline")
+        check(
+            fromCurrent.initialHead == currentHead && fromCurrent.baseReference == "refs/heads/active-feature",
+            "Current HEAD is an explicit baseline")
         check(!(await service.rollback(fromCurrent, isInUse: { true })), "startup rollback refuses a newly shared worktree")
         check(try git(repo, "rev-parse", "refs/heads/from-current") == currentHead, "shared rollback preserves the created branch")
         check(await service.rollback(fromCurrent), "pristine failed startup can roll back its new worktree")
-        await rejects("startup rollback deletes only its own new branch") { _ = try await service.create(in: repo.path, branch: "from-current", requiresExistingBranch: true) }
+        await rejects("startup rollback deletes only its own new branch") {
+            _ = try await service.create(in: repo.path, branch: "from-current", requiresExistingBranch: true)
+        }
 
         _ = try git(repo, "branch", "existing-branch", currentHead)
         let existing = try await service.create(in: repo.path, branch: "existing-branch")
@@ -125,25 +130,39 @@ struct SessionWorktreeRegression {
             }
         }
         await rejects("checked-out branch is refused") { _ = try await service.create(in: repo.path, branch: "active-feature") }
-        await rejects("explicit invalid baseline is refused") { _ = try await service.create(in: repo.path, branch: "bad-base", base: .reference("--help")) }
-        await rejects("stale dialog HEAD is refused") { _ = try await service.create(in: repo.path, branch: "stale-head", expectedHead: baseHead) }
+        await rejects("explicit invalid baseline is refused") {
+            _ = try await service.create(in: repo.path, branch: "bad-base", base: .reference("--help"))
+        }
+        await rejects("stale dialog HEAD is refused") {
+            _ = try await service.create(in: repo.path, branch: "stale-head", expectedHead: baseHead)
+        }
 
         let occupied = root.appendingPathComponent("occupied", isDirectory: true)
         try FileManager.default.createDirectory(at: occupied, withIntermediateDirectories: false)
         try Data("original".utf8).write(to: occupied.appendingPathComponent("original.txt"))
-        await rejects("pre-existing directory is refused") { _ = try await service.create(in: repo.path, branch: "occupied", at: occupied.path) }
-        check(try String(contentsOf: occupied.appendingPathComponent("original.txt"), encoding: .utf8) == "original", "existing directory contents stay intact")
+        await rejects("pre-existing directory is refused") {
+            _ = try await service.create(in: repo.path, branch: "occupied", at: occupied.path)
+        }
+        check(
+            try String(contentsOf: occupied.appendingPathComponent("original.txt"), encoding: .utf8) == "original",
+            "existing directory contents stay intact")
         let empty = root.appendingPathComponent("empty", isDirectory: true)
         try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: false)
-        await rejects("even a pre-existing empty directory is refused") { _ = try await service.create(in: repo.path, branch: "empty", at: empty.path) }
+        await rejects("even a pre-existing empty directory is refused") {
+            _ = try await service.create(in: repo.path, branch: "empty", at: empty.path)
+        }
         check(exists(empty), "pre-existing empty directory is not rolled back")
         let link = root.appendingPathComponent("dangling-link")
         try FileManager.default.createSymbolicLink(at: link, withDestinationURL: root.appendingPathComponent("missing-target"))
-        await rejects("dangling destination symlink is refused") { _ = try await service.create(in: repo.path, branch: "link", at: link.path) }
+        await rejects("dangling destination symlink is refused") {
+            _ = try await service.create(in: repo.path, branch: "link", at: link.path)
+        }
         check((try? FileManager.default.destinationOfSymbolicLink(atPath: link.path)) != nil, "destination symlink remains untouched")
         await rejects("relative destination is refused") { _ = try await service.create(in: repo.path, branch: "relative", at: "relative") }
         await rejects("directory without a repository is refused") { _ = try await service.create(in: empty.path, branch: "none") }
-        await rejects("missing source directory is refused") { _ = try await service.create(in: root.appendingPathComponent("absent").path, branch: "none") }
+        await rejects("missing source directory is refused") {
+            _ = try await service.create(in: root.appendingPathComponent("absent").path, branch: "none")
+        }
         let bare = root.appendingPathComponent("bare.git", isDirectory: true)
         try FileManager.default.createDirectory(at: bare, withIntermediateDirectories: false)
         _ = try git(bare, "init", "--bare", "-q")
@@ -153,21 +172,34 @@ struct SessionWorktreeRegression {
             let name = fault == .add ? "failed-add" : "failed-after-add"
             let path = root.appendingPathComponent(name + "/parent/checkout")
             let faulty = SessionWorktreeService(runner: WorktreeFaultRunner(fault))
-            await rejects("creation failure rolls back: \(name)") { _ = try await faulty.create(in: repo.path, branch: name, at: path.path) }
-            check(!exists(path) && !exists(root.appendingPathComponent(name)), "failed creation removes only its newly-created empty parents")
-            check((try? git(repo, "rev-parse", "--verify", "refs/heads/\(name)")) == nil, "failed creation removes its unchanged owned branch")
+            await rejects("creation failure rolls back: \(name)") {
+                _ = try await faulty.create(in: repo.path, branch: name, at: path.path)
+            }
+            check(
+                !exists(path) && !exists(root.appendingPathComponent(name)), "failed creation removes only its newly-created empty parents")
+            check(
+                (try? git(repo, "rev-parse", "--verify", "refs/heads/\(name)")) == nil, "failed creation removes its unchanged owned branch"
+            )
         }
         let race = SessionWorktreeService(runner: WorktreeFaultRunner(.branchRace))
-        await rejects("branch race fails safely") { _ = try await race.create(in: repo.path, branch: "raced-branch", at: root.appendingPathComponent("raced").path) }
-        check(try git(repo, "rev-parse", "refs/heads/raced-branch") == baseHead, "a branch created by another operation is never rolled back")
+        await rejects("branch race fails safely") {
+            _ = try await race.create(in: repo.path, branch: "raced-branch", at: root.appendingPathComponent("raced").path)
+        }
+        check(
+            try git(repo, "rev-parse", "refs/heads/raced-branch") == baseHead, "a branch created by another operation is never rolled back")
         let partialPath = root.appendingPathComponent("partial")
         let partial = SessionWorktreeService(runner: WorktreeFaultRunner(.writeDuringAdd))
-        await rejects("failed checkout preserves newly-written data") { _ = try await partial.create(in: repo.path, branch: "partial", at: partialPath.path) }
-        check(try String(contentsOf: partialPath.appendingPathComponent("keep.txt"), encoding: .utf8) == "keep this data", "partial-checkout user data is preserved")
+        await rejects("failed checkout preserves newly-written data") {
+            _ = try await partial.create(in: repo.path, branch: "partial", at: partialPath.path)
+        }
+        check(
+            try String(contentsOf: partialPath.appendingPathComponent("keep.txt"), encoding: .utf8) == "keep this data",
+            "partial-checkout user data is preserved")
         let replacedParent = root.appendingPathComponent("replaced-parent")
         let replacement = SessionWorktreeService(runner: WorktreeFaultRunner(.replacedParent))
         await rejects("creation failure observes parent replacement") {
-            _ = try await replacement.create(in: repo.path, branch: "replaced-parent", at: replacedParent.appendingPathComponent("checkout").path)
+            _ = try await replacement.create(
+                in: repo.path, branch: "replaced-parent", at: replacedParent.appendingPathComponent("checkout").path)
         }
         check(exists(replacedParent), "rollback preserves an empty parent created by another operation")
 
@@ -178,8 +210,9 @@ struct SessionWorktreeRegression {
         }
         check(exists(switchedDuringCreation), "failed creation preserves a checkout switched by another operation")
         if exists(switchedDuringCreation) {
-            check(try git(switchedDuringCreation, "branch", "--show-current") == "switched-during-creation",
-                  "failed creation preserves the replacement branch association")
+            check(
+                try git(switchedDuringCreation, "branch", "--show-current") == "switched-during-creation",
+                "failed creation preserves the replacement branch association")
         }
 
         let stale = try await service.create(in: repo.path, branch: "stale")
@@ -236,15 +269,21 @@ struct SessionWorktreeRegression {
         await rejects("changed branch association is refused") { try await service.remove(switched) }
         _ = try git(URL(fileURLWithPath: switched.path), "switch", "-q", "switched")
         try await service.remove(switched)
-        await rejects("primary checkout cannot get a removable association") { _ = try await service.association(at: repo.path, sourceDirectory: repo.path) }
+        await rejects("primary checkout cannot get a removable association") {
+            _ = try await service.association(at: repo.path, sourceDirectory: repo.path)
+        }
 
         _ = try git(repo, "remote", "add", "origin", "https://example.invalid/fixture.git")
         _ = try git(repo, "branch", "trunk")
         _ = try git(repo, "update-ref", "refs/remotes/origin/trunk", "HEAD")
         _ = try git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/trunk")
-        check(try await service.repository(at: repo.path).defaultReference == "refs/heads/trunk", "repository's declared default branch takes priority over main")
+        check(
+            try await service.repository(at: repo.path).defaultReference == "refs/heads/trunk",
+            "repository's declared default branch takes priority over main")
         _ = try git(repo, "branch", "-D", "trunk")
-        check(try await service.repository(at: repo.path).defaultReference == "refs/remotes/origin/trunk", "remote default works when its local branch is absent")
+        check(
+            try await service.repository(at: repo.path).defaultReference == "refs/remotes/origin/trunk",
+            "remote default works when its local branch is absent")
 
         let customRepo = root.appendingPathComponent("custom")
         try FileManager.default.createDirectory(at: customRepo, withIntermediateDirectories: false)
@@ -253,19 +292,26 @@ struct SessionWorktreeRegression {
         _ = try git(customRepo, "config", "user.email", "fixture@example.invalid")
         _ = try git(customRepo, "config", "commit.gpgsign", "false")
         _ = try git(customRepo, "commit", "--allow-empty", "-qm", "base")
-        await rejects("missing default never silently uses the active branch") { _ = try await service.create(in: customRepo.path, branch: "implicit") }
+        await rejects("missing default never silently uses the active branch") {
+            _ = try await service.create(in: customRepo.path, branch: "implicit")
+        }
         let explicit = try await service.create(in: customRepo.path, branch: "explicit", base: .currentHead)
         check(explicit.baseReference == "refs/heads/custom", "repository without a default accepts explicit Current HEAD")
         _ = await service.rollback(explicit)
 
         let encoded = try JSONEncoder().encode(first)
-        check(try JSONDecoder().decode(SessionWorktree.self, from: encoded) == first, "worktree identity and baseline survive Codable round trip")
+        check(
+            try JSONDecoder().decode(SessionWorktree.self, from: encoded) == first,
+            "worktree identity and baseline survive Codable round trip")
         let paths = "worktree /fixture/new\nline\0HEAD abc\0branch refs/heads/feature/name\0\0worktree /fixture/bare\0bare\0\0"
         let parsed = SessionWorktreeService.parseWorktrees(paths)
-        check(parsed.count == 2 && parsed[0].path == "/fixture/new\nline" && parsed[0].branch == "feature/name" && parsed[1].isBare,
-              "NUL-delimited worktree records preserve newlines and bare entries")
-        check(SessionWorktreeService.contains(cleanupURL.appendingPathComponent("nested").path, in: cleanup.path)
-              && !SessionWorktreeService.contains(cleanup.path + "-other", in: cleanup.path), "shared-path checks distinguish siblings from descendants")
+        check(
+            parsed.count == 2 && parsed[0].path == "/fixture/new\nline" && parsed[0].branch == "feature/name" && parsed[1].isBare,
+            "NUL-delimited worktree records preserve newlines and bare entries")
+        check(
+            SessionWorktreeService.contains(cleanupURL.appendingPathComponent("nested").path, in: cleanup.path)
+                && !SessionWorktreeService.contains(cleanup.path + "-other", in: cleanup.path),
+            "shared-path checks distinguish siblings from descendants")
         print("\(checks) passed checks, \(failures) failures")
         exit(failures == 0 ? 0 : 1)
     }

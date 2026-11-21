@@ -27,12 +27,15 @@ extension WorkspaceTemplate {
                     let content: Content
                     switch pane.content {
                     case .session(let session):
-                        content = .session(workingDirectory: remote == nil ? relativeDirectory(session.currentDirectoryPath, to: root) : ".")
+                        content = .session(
+                            workingDirectory: remote == nil ? relativeDirectory(session.currentDirectoryPath, to: root) : ".")
                         let hasAgentIdentity = session.agentResume != nil
                         let argv = hasAgentIdentity ? nil : session.startupCommandForTemplate
-                        terminals.append(Terminal(paneIndex: index, program: argv?.first,
-                                                  arguments: argv.map { Array($0.dropFirst()) } ?? [],
-                                                  initializationCommand: hasAgentIdentity ? nil : session.initializationCommandForTemplate))
+                        terminals.append(
+                            Terminal(
+                                paneIndex: index, program: argv?.first,
+                                arguments: argv.map { Array($0.dropFirst()) } ?? [],
+                                initializationCommand: hasAgentIdentity ? nil : session.initializationCommandForTemplate))
                     case .browser(let browser):
                         content = .browser(url: capturedBrowserURL(browser.snapshotURL))
                     case .file, .diff:
@@ -42,17 +45,20 @@ extension WorkspaceTemplate {
                     }
                     return .pane(SessionSnapshot.ProjectSnapshot.PaneSnapshot(content: content, weight: 1))
                 case .split(let split):
-                    return .split(axis: split.axis, fraction: Double(split.fraction),
-                                  first: snapshot(split.first), second: snapshot(split.second))
+                    return .split(
+                        axis: split.axis, fraction: Double(split.fraction),
+                        first: snapshot(split.first), second: snapshot(split.second))
                 }
             }
-            return Tab(name: tab.customName, layout: snapshot(tab.layout),
-                       focusedPaneIndex: tab.allPanes.firstIndex { $0.id == tab.focusedPaneID } ?? 0,
-                       terminals: terminals)
+            return Tab(
+                name: tab.customName, layout: snapshot(tab.layout),
+                focusedPaneIndex: tab.allPanes.firstIndex { $0.id == tab.focusedPaneID } ?? 0,
+                terminals: terminals)
         }
-        let template = WorkspaceTemplate(name: name, tabs: tabs,
-                                         selectedTabIndex: project.tabs.firstIndex { $0.id == project.selectedTabID } ?? 0,
-                                         simplifiedPaneCount: simplified, remote: remote)
+        let template = WorkspaceTemplate(
+            name: name, tabs: tabs,
+            selectedTabIndex: project.tabs.firstIndex { $0.id == project.selectedTabID } ?? 0,
+            simplifiedPaneCount: simplified, remote: remote)
         try template.validate()
         return template
     }

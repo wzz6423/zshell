@@ -94,9 +94,10 @@ struct GitBranchDeletionTests {
         delete(branch, using: model)
         let saved = backups(repo)
         check(saved.count == 2 && Set(saved).count == 2, "repeated deletion creates independent recovery refs")
-        check(git(repo, "rev-parse", firstBackup) == firstTip
-              && git(repo, "rev-parse", saved.first { $0 != firstBackup }!) == secondTip,
-              "reusing a branch name never overwrites an earlier backup")
+        check(
+            git(repo, "rev-parse", firstBackup) == firstTip
+                && git(repo, "rev-parse", saved.first { $0 != firstBackup }!) == secondTip,
+            "reusing a branch name never overwrites an earlier backup")
         check(!model.branches.contains { $0.hasPrefix("refs/zshell/") }, "recovery refs do not become visible branches")
         _ = git(repo, "gc", "--prune=now")
         check(git(repo, "rev-parse", firstBackup + "^{commit}") == firstTip, "recovery survives Git garbage collection")
@@ -122,19 +123,23 @@ struct GitBranchDeletionTests {
             let model = model(repo)
             delete("feature", using: model)
             check(model.stashCount == 1 && model.totalChangeCount == 0, "local staged, unstaged, and untracked work is saved")
-            check(git(repo, "show", "stash@{0}:tracked.txt") == "unstaged"
-                  && git(repo, "show", "stash@{0}^2:tracked.txt") == "staged"
-                  && git(repo, "show", "stash@{0}^3:untracked.txt") == "untracked",
-                  "the stash preserves all three kinds of local content")
+            check(
+                git(repo, "show", "stash@{0}:tracked.txt") == "unstaged"
+                    && git(repo, "show", "stash@{0}^2:tracked.txt") == "staged"
+                    && git(repo, "show", "stash@{0}^3:untracked.txt") == "untracked",
+                "the stash preserves all three kinds of local content")
             check(git(repo, "rev-parse", backups(repo).first!) == tip, "the branch tip is preserved independently of the stash")
             check(git(repo, "rev-parse", "refs/tags/feature") == tip, "deletion preserves a same-named tag")
-            check(model.branch == (current ? "detached HEAD" : "main"), "current-branch deletion detaches; other-branch deletion stays on main")
+            check(
+                model.branch == (current ? "detached HEAD" : "main"),
+                "current-branch deletion detaches; other-branch deletion stays on main")
             if current { check(git(repo, "rev-parse", "HEAD") == tip, "detaching keeps the deleted current branch's commit") }
             _ = git(repo, "stash", "apply", "--index", "stash@{0}")
-            check(git(repo, "show", ":tracked.txt") == "staged"
-                  && (try! String(contentsOf: repo.appendingPathComponent("tracked.txt"), encoding: .utf8)) == "unstaged\n"
-                  && (try! String(contentsOf: repo.appendingPathComponent("untracked.txt"), encoding: .utf8)) == "untracked\n",
-                  "the documented stash restore preserves content and staging")
+            check(
+                git(repo, "show", ":tracked.txt") == "staged"
+                    && (try! String(contentsOf: repo.appendingPathComponent("tracked.txt"), encoding: .utf8)) == "unstaged\n"
+                    && (try! String(contentsOf: repo.appendingPathComponent("untracked.txt"), encoding: .utf8)) == "untracked\n",
+                "the documented stash restore preserves content and staging")
         }
     }
 
@@ -145,22 +150,26 @@ struct GitBranchDeletionTests {
         write(repo, "tracked.txt", "keep local work\n")
         let model = model(repo)
         delete("protected", using: model, succeeds: false)
-        check(backups(repo).isEmpty && model.stashCount == 0 && model.totalChangeCount == 1,
-              "a branch in another worktree is rejected before any snapshot or stash")
-        check(git(repo, "branch", "--show-current") == "main"
-              && git(worktree, "branch", "--show-current") == "protected", "both checked-out branches remain intact")
+        check(
+            backups(repo).isEmpty && model.stashCount == 0 && model.totalChangeCount == 1,
+            "a branch in another worktree is rejected before any snapshot or stash")
+        check(
+            git(repo, "branch", "--show-current") == "main"
+                && git(worktree, "branch", "--show-current") == "protected", "both checked-out branches remain intact")
         _ = git(repo, "branch", "stale")
         refresh(model)
         _ = git(repo, "branch", "-D", "stale")
         delete("stale", using: model, succeeds: false)
-        check(backups(repo).isEmpty && model.stashCount == 0 && model.totalChangeCount == 1,
-              "a vanished target fails before changing the working tree")
+        check(
+            backups(repo).isEmpty && model.stashCount == 0 && model.totalChangeCount == 1,
+            "a vanished target fails before changing the working tree")
         _ = git(repo, "branch", "backup-failure")
         refresh(model)
         write(repo, ".git/refs/zshell", "block recovery ref creation\n")
         delete("backup-failure", using: model, succeeds: false)
-        check(model.branches.contains("backup-failure") && model.stashCount == 0 && model.totalChangeCount == 1,
-              "backup failure preserves the branch and local work")
+        check(
+            model.branches.contains("backup-failure") && model.stashCount == 0 && model.totalChangeCount == 1,
+            "backup failure preserves the branch and local work")
 
         let conflict = repository(root, "stash-failure")
         _ = git(conflict, "switch", "-qc", "feature")
@@ -173,9 +182,10 @@ struct GitBranchDeletionTests {
         let status = git(conflict, "status", "--porcelain")
         let conflictingModel = Self.model(conflict)
         delete("feature", using: conflictingModel, succeeds: false)
-        check(conflictingModel.branches.contains("feature") && conflictingModel.branch == "main"
-              && git(conflict, "status", "--porcelain") == status,
-              "stash failure stops deletion and preserves the conflicted checkout")
+        check(
+            conflictingModel.branches.contains("feature") && conflictingModel.branch == "main"
+                && git(conflict, "status", "--porcelain") == status,
+            "stash failure stops deletion and preserves the conflicted checkout")
     }
 
     private static func descendants(_ view: NSView) -> [NSView] {
@@ -189,14 +199,16 @@ struct GitBranchDeletionTests {
         _ = git(repo, "switch", "-q", "main")
         let model = model(repo)
         let panel = GitPanelNSView(frame: NSRect(x: 0, y: 0, width: 360, height: 800))
-        let window = NSWindow(contentRect: NSRect(x: -4000, y: -4000, width: 360, height: 800),
-                              styleMask: [.titled], backing: .buffered, defer: false)
+        let window = NSWindow(
+            contentRect: NSRect(x: -4000, y: -4000, width: 360, height: 800),
+            styleMask: [.titled], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.identifier = NSUserInterfaceItemIdentifier("main-branch-deletion-test")
         window.contentView = panel
-        panel.configure(model: model, session: nil, isRemote: false, fontScale: 1,
-                        openFile: { _ in }, openToSide: { _ in }, openDiff: { _, _ in },
-                        openCommitDiff: { _, _ in }, openWorktree: { _ in })
+        panel.configure(
+            model: model, session: nil, isRemote: false, fontScale: 1,
+            openFile: { _ in }, openToSide: { _ in }, openDiff: { _, _ in },
+            openCommitDiff: { _, _ in }, openWorktree: { _ in })
         panel.layoutSubtreeIfNeeded()
         window.orderFront(nil)
         let table = descendants(panel).compactMap { $0 as? NSTableView }.first { table in
@@ -219,8 +231,9 @@ struct GitBranchDeletionTests {
         let confirm = controls.first { $0.title == String(localized: "Delete Branch") }!
         confirm.performClick(nil)
         wait("confirmed deletion finishes") { model.operation?.isSuccess == true && !model.isRefreshing }
-        check(!model.branches.contains("confirm-me") && backups(repo).count == 1,
-              "the native branch menu and confirmation execute the real deletion")
+        check(
+            !model.branches.contains("confirm-me") && backups(repo).count == 1,
+            "the native branch menu and confirmation execute the real deletion")
         panel.detach()
         window.close()
     }

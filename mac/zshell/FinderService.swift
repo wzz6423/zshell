@@ -56,18 +56,21 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
 
     private func installTerminalEnvironmentMenu() {
         guard let mainMenu = NSApp.mainMenu,
-              let submenu = AppMenuController.submenu(.terminal, in: mainMenu),
-              !submenu.items.contains(where: { $0.action == #selector(toggleQuickTerminal) }) else { return }
-        let worktree = NSMenuItem(title: AppCommand.newSessionInWorktree.title,
-                                 action: #selector(newSessionInWorktree), keyEquivalent: "t")
+            let submenu = AppMenuController.submenu(.terminal, in: mainMenu),
+            !submenu.items.contains(where: { $0.action == #selector(toggleQuickTerminal) })
+        else { return }
+        let worktree = NSMenuItem(
+            title: AppCommand.newSessionInWorktree.title,
+            action: #selector(newSessionInWorktree), keyEquivalent: "t")
         worktree.keyEquivalentModifierMask = [.command, .option]
         let quickTerminal = NSMenuItem(
             title: String(localized: "Quick Terminal"),
             action: #selector(toggleQuickTerminal),
             keyEquivalent: ""
         )
-        let search = NSMenuItem(title: String(localized: "Search Terminal Logs"),
-                                action: #selector(searchTerminalLogs), keyEquivalent: "f")
+        let search = NSMenuItem(
+            title: String(localized: "Search Terminal Logs"),
+            action: #selector(searchTerminalLogs), keyEquivalent: "f")
         search.keyEquivalentModifierMask = [.command, .shift]
         let projectEnvironment = NSMenuItem(
             title: String(localized: "Project Terminal Environment…"),
@@ -88,7 +91,8 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
 
     private func installEndAllSessionsMenu() {
         guard let menu = NSApp.mainMenu?.items.first?.submenu,
-              !menu.items.contains(where: { $0.action == #selector(quitAndEndAllSessions) }) else { return }
+            !menu.items.contains(where: { $0.action == #selector(quitAndEndAllSessions) })
+        else { return }
         let item = NSMenuItem(
             title: String(localized: "Quit and End All Sessions"),
             action: #selector(quitAndEndAllSessions), keyEquivalent: ""
@@ -154,7 +158,8 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
 
     @objc private func editTabTerminalEnvironment() {
         guard let project = TerminalManager.activeWindowManager?.selectedProject,
-              let tab = project.selectedTab else {
+            let tab = project.selectedTab
+        else {
             NSSound.beep()
             return
         }
@@ -205,10 +210,11 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         var candidates = pasteboard.propertyList(forType: filenamesType) as? [String] ?? []
 
         if candidates.isEmpty,
-           let urls = pasteboard.readObjects(
-               forClasses: [NSURL.self],
-               options: [.urlReadingFileURLsOnly: true]
-           ) as? [URL] {
+            let urls = pasteboard.readObjects(
+                forClasses: [NSURL.self],
+                options: [.urlReadingFileURLsOnly: true]
+            ) as? [URL]
+        {
             candidates = urls.map(\.path)
         }
 
@@ -219,7 +225,8 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         var seen = Set<String>()
         return candidates.compactMap { candidate in
             guard let directory = normalizedDirectory(candidate),
-                  seen.insert(directory).inserted else { return nil }
+                seen.insert(directory).inserted
+            else { return nil }
             return directory
         }
     }
@@ -237,10 +244,12 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
             isDirectory: true
         ).standardizedFileURL.path
         var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(
-            atPath: standardized,
-            isDirectory: &isDirectory
-        ), isDirectory.boolValue else { return nil }
+        guard
+            FileManager.default.fileExists(
+                atPath: standardized,
+                isDirectory: &isDirectory
+            ), isDirectory.boolValue
+        else { return nil }
         return standardized
     }
 }

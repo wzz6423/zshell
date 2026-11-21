@@ -3,20 +3,21 @@
 import Markdown
 
 let source = """
-This [https://swift.org](https://swift.org) link will become <https://swift.org>
-"""
+    This [https://swift.org](https://swift.org) link will become <https://swift.org>
+    """
 
 let document = Document(parsing: source)
 let formattingOptions = MarkupFormatter.Options(condenseAutolinks: true)
 let formattedSource = document.format(options: formattingOptions)
 
-print("""
-## Original source:
-\(source)
+print(
+    """
+    ## Original source:
+    \(source)
 
-## Formatted source:
-\(formattedSource)
-""")
+    ## Formatted source:
+    \(formattedSource)
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

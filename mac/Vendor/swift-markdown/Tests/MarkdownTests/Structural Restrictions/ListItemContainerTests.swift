@@ -12,11 +12,11 @@ import XCTest
 @testable import Markdown
 
 final class ListItemContainerTests: XCTestCase {
-    
+
     // MARK: OrderedList
-    
+
     func testOrderedListFromSequence() {
-        let expectedItems = (0..<2).map {
+        let expectedItems = (0 ..< 2).map {
             ListItem(Paragraph(Text("\($0)")))
         }
         let ol = OrderedList(expectedItems)
@@ -37,22 +37,22 @@ final class ListItemContainerTests: XCTestCase {
         XCTAssertTrue(itemIterator.next()?.child(at: 0) is ThematicBreak)
         XCTAssertTrue(itemIterator.next()?.child(at: 0) is HTMLBlock)
     }
-    
+
     func testOrderedListReplacingItemsInRange() {
         let list = OrderedList(Array(repeating: ListItem(Paragraph(Text("OK"))), count: 3))
-        
+
         do { // Insert one
             let insertedItem = ListItem(Paragraph(Text("Inserted")))
             var newList = list
-            newList.replaceItemsInRange(0..<0, with: CollectionOfOne(insertedItem))
+            newList.replaceItemsInRange(0 ..< 0, with: CollectionOfOne(insertedItem))
             XCTAssertEqual(insertedItem.debugDescription(), (newList.child(at: 0) as! ListItem).detachedFromParent.debugDescription())
             XCTAssertEqual(4, newList.childCount)
         }
-        
+
         do { // Insert multiple
             let insertedItems = Array(repeating: ListItem(Paragraph(Text("Inserted"))), count: 3)
             var newList = list
-            newList.replaceItemsInRange(0..<0, with: insertedItems)
+            newList.replaceItemsInRange(0 ..< 0, with: insertedItems)
             let expectedDump = """
                 OrderedList
                 ├─ ListItem
@@ -77,19 +77,19 @@ final class ListItemContainerTests: XCTestCase {
             XCTAssertEqual(expectedDump, newList.debugDescription())
             XCTAssertEqual(6, newList.childCount)
         }
-        
+
         do { // Replace one
             let replacementItem = ListItem(Paragraph(Text("Replacement")))
             var newList = list
-            newList.replaceItemsInRange(0..<1, with: CollectionOfOne(replacementItem))
+            newList.replaceItemsInRange(0 ..< 1, with: CollectionOfOne(replacementItem))
             XCTAssertEqual(replacementItem.debugDescription(), (newList.child(at: 0) as! ListItem).detachedFromParent.debugDescription())
             XCTAssertEqual(3, newList.childCount)
         }
-        
+
         do { // Replace many
             let replacementItem = ListItem(Paragraph(Text("Replacement")))
             var newList = list
-            newList.replaceItemsInRange(0..<2, with: CollectionOfOne(replacementItem))
+            newList.replaceItemsInRange(0 ..< 2, with: CollectionOfOne(replacementItem))
             let expectedDump = """
                 OrderedList
                 ├─ ListItem
@@ -102,11 +102,11 @@ final class ListItemContainerTests: XCTestCase {
             XCTAssertEqual(expectedDump, newList.debugDescription())
             XCTAssertEqual(2, newList.childCount)
         }
-        
+
         do { // Replace all
             let replacementItem = ListItem(Paragraph(Text("Replacement")))
             var newList = list
-            newList.replaceItemsInRange(0..<3, with: CollectionOfOne(replacementItem))
+            newList.replaceItemsInRange(0 ..< 3, with: CollectionOfOne(replacementItem))
             let expectedDump = """
                 OrderedList
                 └─ ListItem
@@ -117,11 +117,11 @@ final class ListItemContainerTests: XCTestCase {
             XCTAssertEqual(1, newList.childCount)
         }
     }
-        
+
     // MARK: UnorderedList
 
     func testUnorderedListFromSequence() {
-        let expectedItems = (0..<2).map {
+        let expectedItems = (0 ..< 2).map {
             ListItem(Paragraph(Text("\($0)")))
         }
         let ul = UnorderedList(expectedItems)

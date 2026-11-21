@@ -34,9 +34,11 @@ private final class FileTreeDragFixture: NSObject, NSDraggingInfo {
     func slideDraggedImage(to screenPoint: NSPoint) {}
     nonisolated override func namesOfPromisedFilesDropped(atDestination dropDestination: URL) -> [String]? { nil }
     func resetSpringLoading() {}
-    func enumerateDraggingItems(options: NSDraggingItemEnumerationOptions, for view: NSView?, classes: [AnyClass],
-                                searchOptions: [NSPasteboard.ReadingOptionKey: Any],
-                                using block: (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {}
+    func enumerateDraggingItems(
+        options: NSDraggingItemEnumerationOptions, for view: NSView?, classes: [AnyClass],
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any],
+        using block: (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void
+    ) {}
 }
 
 @MainActor
@@ -79,29 +81,34 @@ private final class FileTreePanelProbe {
         check(QuickTerminalOffscreen.isSafe(), "Offscreen and focus isolation")
         func rowGeometry(_ name: String) -> (cell: NSRect, disclosure: NSRect, icon: NSRect, label: NSRect) {
             guard let cell = table.view(atColumn: 0, row: row(name), makeIfNecessary: true),
-                  let label = cell.subviews.compactMap({ $0 as? NSTextField }).first(where: { $0.stringValue == name })
+                let label = cell.subviews.compactMap({ $0 as? NSTextField }).first(where: { $0.stringValue == name })
             else { fail("File row geometry: \(name)") }
             cell.layoutSubtreeIfNeeded()
             let images = cell.subviews.compactMap { $0 as? NSImageView }
             check(images.count == 2, "Disclosure and file icon slots exist: \(name)")
-            return (cell.convert(cell.bounds, to: panel), images[0].convert(images[0].bounds, to: panel),
-                    images[1].convert(images[1].bounds, to: panel), label.convert(label.bounds, to: panel))
+            return (
+                cell.convert(cell.bounds, to: panel), images[0].convert(images[0].bounds, to: panel),
+                images[1].convert(images[1].bounds, to: panel), label.convert(label.bounds, to: panel)
+            )
         }
         let rootDirectory = rowGeometry("folder")
         let rootFile = rowGeometry("ordinary.txt")
         check(manager.fileTree.items[row("folder")].depth == 0, "Root directory uses zero indentation depth")
-        check((8...12).contains(rootDirectory.disclosure.minX), "Root disclosure stays within 8–12pt of panel edge")
+        check((8 ... 12).contains(rootDirectory.disclosure.minX), "Root disclosure stays within 8–12pt of panel edge")
         check(abs(rootDirectory.cell.minX - 6) < 0.5, "Selection row has only the explicit scroll inset")
-        check(abs(rootDirectory.icon.minX - rootFile.icon.minX) < 0.5
-            && abs(rootDirectory.label.minX - rootFile.label.minX) < 0.5, "Root file and directory columns align")
-        print("File tree geometry: row=\(rootDirectory.cell.minX)pt disclosure=\(rootDirectory.disclosure.minX)pt icon=\(rootDirectory.icon.minX)pt name=\(rootDirectory.label.minX)pt")
+        check(
+            abs(rootDirectory.icon.minX - rootFile.icon.minX) < 0.5
+                && abs(rootDirectory.label.minX - rootFile.label.minX) < 0.5, "Root file and directory columns align")
+        print(
+            "File tree geometry: row=\(rootDirectory.cell.minX)pt disclosure=\(rootDirectory.disclosure.minX)pt icon=\(rootDirectory.icon.minX)pt name=\(rootDirectory.label.minX)pt"
+        )
         let importButton = descendants(panel).compactMap { $0 as? NSButton }.first {
             $0.accessibilityLabel() == "Import Files…"
         }
         check(importButton?.isEnabled == true && importButton?.isHidden == false, "Import toolbar enabled")
         guard let header = importButton?.superview,
-              let title = header.subviews.compactMap({ $0 as? NSTextField }).first(where: { $0.stringValue == manager.fileTree.rootName }),
-              let path = header.subviews.compactMap({ $0 as? NSTextField }).first(where: { $0.stringValue == manager.fileTree.rootSubtitle })
+            let title = header.subviews.compactMap({ $0 as? NSTextField }).first(where: { $0.stringValue == manager.fileTree.rootName }),
+            let path = header.subviews.compactMap({ $0 as? NSTextField }).first(where: { $0.stringValue == manager.fileTree.rootSubtitle })
         else { fail("File header labels") }
         let toolbar = header.subviews.compactMap { $0 as? NSButton }.filter { !$0.isHidden }
         func checkHeader(wrapped: Bool, _ context: String) {
@@ -109,28 +116,35 @@ private final class FileTreePanelProbe {
             let pathFrame = path.convert(path.bounds, to: panel)
             let frames = toolbar.map { $0.convert($0.bounds, to: panel) }
             check(pathFrame.maxY <= titleFrame.minY, "Path appears above directory name: \(context)")
-            check(frames.allSatisfy { $0.minX >= 0 && $0.maxX <= panel.bounds.width
-                && $0.maxY <= header.frame.maxY }, "Toolbar stays within header: \(context)")
+            check(
+                frames.allSatisfy {
+                    $0.minX >= 0 && $0.maxX <= panel.bounds.width
+                        && $0.maxY <= header.frame.maxY
+                }, "Toolbar stays within header: \(context)")
             check(frames.allSatisfy { abs($0.midY - frames[0].midY) < 0.5 }, "Toolbar icons align: \(context)")
             let icons = toolbar.map { button in
                 button.convert(button.cell!.imageRect(forBounds: button.bounds), to: panel)
             }
             let iconSizes = icons.map { max($0.width, $0.height) }
-            check(zip(icons, frames).allSatisfy { $1.contains($0) }
-                && iconSizes.allSatisfy { abs($0 - iconSizes[0]) < 0.01 },
-                  "Toolbar images share a visible size and fit their controls: \(context)")
+            check(
+                zip(icons, frames).allSatisfy { $1.contains($0) }
+                    && iconSizes.allSatisfy { abs($0 - iconSizes[0]) < 0.01 },
+                "Toolbar images share a visible size and fit their controls: \(context)")
             if wrapped {
                 check(frames.allSatisfy { $0.minY > titleFrame.maxY }, "Toolbar wraps below both labels: \(context)")
             } else {
                 check(frames.allSatisfy { abs($0.midY - titleFrame.midY) < 0.5 }, "Toolbar aligns with directory name: \(context)")
-                check(frames.allSatisfy { $0.minX >= max(titleFrame.maxX, pathFrame.maxX) }, "Inline toolbar does not overlap labels: \(context)")
+                check(
+                    frames.allSatisfy { $0.minX >= max(titleFrame.maxX, pathFrame.maxX) },
+                    "Inline toolbar does not overlap labels: \(context)")
             }
         }
         checkHeader(wrapped: true, "200px long path")
         for scale: CGFloat in [1, 1.5] {
             window.setContentSize(NSSize(width: 420, height: 500))
-            panel.update(rootBadge: ("worktree", "Following a worktree"), currentFilePath: nil,
-                         fontScale: scale, openSearchResult: { _ in })
+            panel.update(
+                rootBadge: ("worktree", "Following a worktree"), currentFilePath: nil,
+                fontScale: scale, openSearchResult: { _ in })
             path.stringValue = "/fixture/target"
             panel.layoutSubtreeIfNeeded()
             checkHeader(wrapped: false, "420px scale \(scale)")
@@ -149,14 +163,18 @@ private final class FileTreePanelProbe {
             panel.update(rootBadge: nil, currentFilePath: nil, fontScale: 1.5, openSearchResult: { _ in })
             settle()
             let buttons = descendants(panel).compactMap { $0 as? NSButton }.filter { !$0.isHiddenOrHasHiddenAncestor }
-            check(buttons.allSatisfy { $0.frame.width > 0 && $0.frame.minX >= 0
-                && $0.frame.maxX <= ($0.superview?.bounds.width ?? 0) }, "200px localized toolbar fits: \(language)")
+            check(
+                buttons.allSatisfy {
+                    $0.frame.width > 0 && $0.frame.minX >= 0
+                        && $0.frame.maxX <= ($0.superview?.bounds.width ?? 0)
+                }, "200px localized toolbar fits: \(language)")
             let row = self.row(longName)
             guard let cell = table.view(atColumn: 0, row: row, makeIfNecessary: true) else { fail("Long-name row") }
             cell.layoutSubtreeIfNeeded()
             let labels = descendants(cell).compactMap { $0 as? NSTextField }.filter { !$0.isHidden }
-            check(labels.contains { $0.stringValue == longName && $0.frame.width > 0 && $0.lineBreakMode == .byTruncatingTail },
-                  "Long filename remains accessible and truncates: \(language)")
+            check(
+                labels.contains { $0.stringValue == longName && $0.frame.width > 0 && $0.lineBreakMode == .byTruncatingTail },
+                "Long filename remains accessible and truncates: \(language)")
             check(cell.accessibilityLabel()?.contains(longName) == true, "Full filename in accessibility label")
         }
         AppLocalization.apply(.english)
@@ -169,8 +187,9 @@ private final class FileTreePanelProbe {
         wait("Right arrow expands folder") { self.manager.fileTree.items.contains { $0.name == "child.txt" } }
         let child = rowGeometry("child.txt")
         let expandedDirectory = rowGeometry("folder")
-        check(abs(child.icon.minX - expandedDirectory.icon.minX - 12) < 0.5
-            && abs(child.label.minX - expandedDirectory.label.minX - 12) < 0.5, "Child icon and name keep 12pt indentation")
+        check(
+            abs(child.icon.minX - expandedDirectory.icon.minX - 12) < 0.5
+                && abs(child.label.minX - expandedDirectory.label.minX - 12) < 0.5, "Child icon and name keep 12pt indentation")
         check(manager.fileTreeImportDirectory == target.appendingPathComponent("folder").path, "Directory selection sets import target")
         key(124)
         check(manager.fileTree.items[table.selectedRow].name == "child.txt", "Right arrow selects first child")
@@ -185,13 +204,15 @@ private final class FileTreePanelProbe {
         table.selectRowIndexes(IndexSet(integer: row("ordinary.txt")), byExtendingSelection: false)
         key(120)
         let rename = editField()
-        check(abs(rename.convert(rename.bounds, to: panel).minX - rootFile.label.minX) < 0.5,
-              "Rename field aligns with the file name column")
+        check(
+            abs(rename.convert(rename.bounds, to: panel).minX - rootFile.label.minX) < 0.5,
+            "Rename field aligns with the file name column")
         type("cancelled.txt", into: rename)
         _ = panel.control(rename, textView: NSTextView(), doCommandBy: #selector(NSResponder.cancelOperation(_:)))
         settle()
-        check(fm.fileExists(atPath: ordinary.path) && !fm.fileExists(atPath: target.appendingPathComponent("cancelled.txt").path),
-              "Escape cancels rename")
+        check(
+            fm.fileExists(atPath: ordinary.path) && !fm.fileExists(atPath: target.appendingPathComponent("cancelled.txt").path),
+            "Escape cancels rename")
         check(descendants(table).compactMap { $0 as? NSTextField }.allSatisfy { !$0.isEditable }, "Cancelled editor is removed")
 
         key(120)
@@ -199,16 +220,18 @@ private final class FileTreePanelProbe {
         type("renamed.txt", into: committedRename)
         _ = panel.control(committedRename, textView: NSTextView(), doCommandBy: #selector(NSResponder.insertNewline(_:)))
         wait("Enter commits rename") { self.manager.fileTree.items.contains { $0.name == "renamed.txt" } }
-        check(fm.fileExists(atPath: target.appendingPathComponent("renamed.txt").path) && !fm.fileExists(atPath: ordinary.path),
-              "Rename moved production file")
+        check(
+            fm.fileExists(atPath: target.appendingPathComponent("renamed.txt").path) && !fm.fileExists(atPath: ordinary.path),
+            "Rename moved production file")
 
         manager.fileTree.beginNewFile(in: target.path)
         let cancelledDraft = editField()
         type("cancelled-draft.txt", into: cancelledDraft)
         _ = panel.control(cancelledDraft, textView: NSTextView(), doCommandBy: #selector(NSResponder.cancelOperation(_:)))
         settle()
-        check(manager.fileTree.draft == nil && !fm.fileExists(atPath: target.appendingPathComponent("cancelled-draft.txt").path),
-              "Escape cancels draft")
+        check(
+            manager.fileTree.draft == nil && !fm.fileExists(atPath: target.appendingPathComponent("cancelled-draft.txt").path),
+            "Escape cancels draft")
 
         manager.fileTree.beginNewFile(in: target.path)
         let draft = editField()
@@ -240,9 +263,11 @@ private final class FileTreePanelProbe {
         let drag = FileTreeDragFixture(url: source, window: window)
         let settingsPane = SettingsEditorPane()
         _ = settingsPane.view
-        guard let dragSwitch = descendants(settingsPane.view).compactMap({ $0 as? NSSwitch }).first(where: {
-            $0.accessibilityLabel() == "Import by dragging into the file tree"
-        }) else { fail("Production drag import settings switch missing") }
+        guard
+            let dragSwitch = descendants(settingsPane.view).compactMap({ $0 as? NSSwitch }).first(where: {
+                $0.accessibilityLabel() == "Import by dragging into the file tree"
+            })
+        else { fail("Production drag import settings switch missing") }
         func setDragImport(_ enabled: Bool) {
             dragSwitch.state = enabled ? .on : .off
             check(dragSwitch.sendAction(dragSwitch.action!, to: dragSwitch.target), "Production settings switch action routes")
@@ -258,17 +283,20 @@ private final class FileTreePanelProbe {
         setDragImport(true)
         check(validate(row("folder")) == .copy, "Enabled setting accepts folder drop")
         setDragImport(false)
-        check(!panel.tableView(table, acceptDrop: drag, row: row("folder"), dropOperation: .on),
-              "Disabling setting after drag validation rejects the drop")
+        check(
+            !panel.tableView(table, acceptDrop: drag, row: row("folder"), dropOperation: .on),
+            "Disabling setting after drag validation rejects the drop")
         check(!fm.fileExists(atPath: target.appendingPathComponent("folder/drop-source.txt").path), "Disabled drop leaves no copy")
         let otherPanel = AppKitFileTreePanel(frame: panel.frame)
         otherPanel.configure(manager: other, git: GitStatusModel())
         let otherTable = descendants(otherPanel).compactMap { $0 as? NSTableView }.first!
-        check(otherPanel.tableView(otherTable, validateDrop: drag, proposedRow: -1, proposedDropOperation: .on) == [],
-              "Disabled preference gates a second workspace panel")
+        check(
+            otherPanel.tableView(otherTable, validateDrop: drag, proposedRow: -1, proposedDropOperation: .on) == [],
+            "Disabled preference gates a second workspace panel")
         setDragImport(true)
-        check(otherPanel.tableView(otherTable, validateDrop: drag, proposedRow: -1, proposedDropOperation: .on) == .copy,
-              "Enabled preference reaches a second workspace panel")
+        check(
+            otherPanel.tableView(otherTable, validateDrop: drag, proposedRow: -1, proposedDropOperation: .on) == .copy,
+            "Enabled preference reaches a second workspace panel")
         drag.draggingSource = table
         check(validate(row("folder")) == [], "Self-origin drop is rejected")
         drag.draggingSource = nil
@@ -280,10 +308,12 @@ private final class FileTreePanelProbe {
         check(validate(row("folder")) == .copy, "Folder drop becomes available after draft cancellation")
         check(panel.tableView(table, acceptDrop: drag, row: row("folder"), dropOperation: .on), "Folder drop enters controller")
         wait("Folder import finishes") { !FileTreeImportController.shared.isImporting }
-        check(try String(contentsOf: target.appendingPathComponent("folder/drop-source.txt"), encoding: .utf8) == "dropped",
-              "Folder drop copied into selected folder")
-        check(fm.fileExists(atPath: source.path) && !fm.fileExists(atPath: otherRoot.appendingPathComponent("drop-source.txt").path),
-              "Source and other workspace are preserved")
+        check(
+            try String(contentsOf: target.appendingPathComponent("folder/drop-source.txt"), encoding: .utf8) == "dropped",
+            "Folder drop copied into selected folder")
+        check(
+            fm.fileExists(atPath: source.path) && !fm.fileExists(atPath: otherRoot.appendingPathComponent("drop-source.txt").path),
+            "Source and other workspace are preserved")
         check(validate(-1) == .copy, "Empty area drop is accepted")
         check(panel.tableView(table, acceptDrop: drag, row: -1, dropOperation: .on), "Empty area drop enters controller")
         wait("Root import finishes") { !FileTreeImportController.shared.isImporting }
@@ -308,13 +338,14 @@ private final class FileTreePanelProbe {
     }
 
     private func checkHover(in root: URL) throws {
-        for index in 0..<60 {
+        for index in 0 ..< 60 {
             try Data().write(to: root.appendingPathComponent(String(format: "hover-%02d.txt", index)))
         }
         manager.fileTree.sync(root: root.path)
         wait("Hover fixture files become table rows") { self.manager.fileTree.items.contains { $0.name == "hover-59.txt" } }
         guard let window = window as? FileTreeHoverFixtureWindow,
-              let scroll = table.enclosingScrollView else { fail("Hover fixture window and scroll view") }
+            let scroll = table.enclosingScrollView
+        else { fail("Hover fixture window and scroll view") }
         window.setContentSize(NSSize(width: 320, height: 230))
         settle()
         let initial = row("hover-02.txt")
@@ -337,7 +368,8 @@ private final class FileTreePanelProbe {
             scrollTo(initial - 2)
             let old = cell(initial)
             window.pointer = old.convert(NSPoint(x: 80, y: old.bounds.midY), to: nil)
-            let enter = NSEvent.enterExitEvent(with: .mouseEntered, location: window.pointer,
+            let enter = NSEvent.enterExitEvent(
+                with: .mouseEntered, location: window.pointer,
                 modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber,
                 context: nil, eventNumber: 0, trackingNumber: 0, userData: nil)!
             old.mouseEntered(with: enter)
@@ -348,7 +380,7 @@ private final class FileTreePanelProbe {
             check(backgroundAlpha(old) == 0, "Bounds notification clears the old hover without mouse exit")
             check(backgroundAlpha(next) > 0, "Bounds notification paints only the stationary pointer row")
             let visible = table.rows(in: table.visibleRect)
-            for index in visible.location..<NSMaxRange(visible) {
+            for index in visible.location ..< NSMaxRange(visible) {
                 check((backgroundAlpha(cell(index)) > 0) == (index == pointerRow), "No stale hover in visible production row \(index)")
             }
             check(table.selectedRow == -1, "Scrolling hover leaves production table unselected")
@@ -360,8 +392,9 @@ private final class FileTreePanelProbe {
             check(backgroundAlpha(next) > 0, "Window activation restores stationary pointer hover")
             table.selectRowIndexes(IndexSet(integer: initial + 1), byExtendingSelection: false)
             let selected = cell(initial + 1)
-            panel.update(rootBadge: nil, currentFilePath: manager.fileTree.items[initial + 3].path,
-                         fontScale: 1, openSearchResult: { _ in })
+            panel.update(
+                rootBadge: nil, currentFilePath: manager.fileTree.items[initial + 3].path,
+                fontScale: 1, openSearchResult: { _ in })
             let current = cell(initial + 3)
             window.fixtureKey = false
             NotificationCenter.default.post(name: NSWindow.didResignKeyNotification, object: window)
@@ -386,7 +419,8 @@ private final class FileTreePanelProbe {
     }
 
     private func backgroundAlpha(_ view: NSView) -> CGFloat {
-        let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil,
+        let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
             pixelsWide: Int(view.bounds.width), pixelsHigh: Int(view.bounds.height),
             bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
             colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
@@ -408,7 +442,9 @@ private final class FileTreePanelProbe {
     private func editField() -> NSTextField {
         settle()
         guard let field = descendants(table).compactMap({ $0 as? NSTextField }).first(where: \.isEditable) else {
-            fail("Inline editor missing after \(checks) checks: rename=\(manager.fileTree.renamingPath ?? "nil") draft=\(String(describing: manager.fileTree.draft)) selected=\(table.selectedRow)")
+            fail(
+                "Inline editor missing after \(checks) checks: rename=\(manager.fileTree.renamingPath ?? "nil") draft=\(String(describing: manager.fileTree.draft)) selected=\(table.selectedRow)"
+            )
         }
         return field
     }
@@ -418,9 +454,11 @@ private final class FileTreePanelProbe {
         editor.didChangeText()
     }
     private func key(_ code: UInt16) {
-        table.keyDown(with: NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
-                                            windowNumber: window.windowNumber, context: nil, characters: "",
-                                            charactersIgnoringModifiers: "", isARepeat: false, keyCode: code)!)
+        table.keyDown(
+            with: NSEvent.keyEvent(
+                with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+                windowNumber: window.windowNumber, context: nil, characters: "",
+                charactersIgnoringModifiers: "", isARepeat: false, keyCode: code)!)
         settle()
     }
     private func settle() {
@@ -458,8 +496,9 @@ struct FileTreePanelTests {
         if PTYMuxCommandLine.shouldRunChild { PTYMuxCommandLine.runChild() }
         if PTYMuxCommandLine.shouldRunRelay { PTYMuxRelay.run() }
         if PTYMuxCommandLine.shouldRunDaemon { PTYMuxCommandLine.runDaemon() }
-        precondition(FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path
-            == URL(fileURLWithPath: CommandLine.arguments[2]).standardizedFileURL.path)
+        precondition(
+            FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path
+                == URL(fileURLWithPath: CommandLine.arguments[2]).standardizedFileURL.path)
         QuickTerminalOffscreen.install()
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.prohibited)

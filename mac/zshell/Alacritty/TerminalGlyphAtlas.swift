@@ -119,15 +119,16 @@ final class TerminalGlyphAtlas {
     @discardableResult
     func reset(metrics: AlacrittyMetrics, scale: CGFloat) -> Bool {
         let scale = max(scale, 1)
-        guard metrics.cellWidth != self.metrics.cellWidth
-            || metrics.cellHeight != self.metrics.cellHeight
-            || metrics.regular != self.metrics.regular
-            || metrics.bold != self.metrics.bold
-            || metrics.italic != self.metrics.italic
-            || metrics.boldItalic != self.metrics.boldItalic
-            || metrics.fontThicken != self.metrics.fontThicken
-            || metrics.fontThickenStrength != self.metrics.fontThickenStrength
-            || scale != self.scale
+        guard
+            metrics.cellWidth != self.metrics.cellWidth
+                || metrics.cellHeight != self.metrics.cellHeight
+                || metrics.regular != self.metrics.regular
+                || metrics.bold != self.metrics.bold
+                || metrics.italic != self.metrics.italic
+                || metrics.boldItalic != self.metrics.boldItalic
+                || metrics.fontThicken != self.metrics.fontThicken
+                || metrics.fontThickenStrength != self.metrics.fontThickenStrength
+                || scale != self.scale
         else { return true }
         guard let texture = Self.makeTexture(device: device, dimension: Self.initialDimension)
         else { return false }
@@ -189,19 +190,24 @@ final class TerminalGlyphAtlas {
         var glyph = glyph
         let isColor = CTFontGetSymbolicTraits(font).rawValue & (1 << 13) != 0
         var bounds = CTFontGetBoundingRectsForGlyphs(font, .horizontal, &glyph, nil, 1)
-        let strokeWidth = metrics.fontThicken && !isColor
+        let strokeWidth =
+            metrics.fontThicken && !isColor
             ? CTFontGetSize(font) * (0.5 + CGFloat(min(max(metrics.fontThickenStrength, 0), 255)) / 255 * 1.5) / 100 : 0
         if strokeWidth > 0 { bounds = bounds.insetBy(dx: -strokeWidth, dy: -strokeWidth) }
-        guard let entry = rasterize(bounds: bounds, isColor: isColor, draw: { context in
-            context.setFillColor(NSColor.white.cgColor)
-            if strokeWidth > 0 {
-                context.setStrokeColor(NSColor.white.cgColor)
-                context.setLineWidth(strokeWidth)
-                context.setTextDrawingMode(.fillStroke)
-            }
-            var position = CGPoint.zero
-            CTFontDrawGlyphs(font, &glyph, &position, 1, context)
-        }) else { return nil }
+        guard
+            let entry = rasterize(
+                bounds: bounds, isColor: isColor,
+                draw: { context in
+                    context.setFillColor(NSColor.white.cgColor)
+                    if strokeWidth > 0 {
+                        context.setStrokeColor(NSColor.white.cgColor)
+                        context.setLineWidth(strokeWidth)
+                        context.setTextDrawingMode(.fillStroke)
+                    }
+                    var position = CGPoint.zero
+                    CTFontDrawGlyphs(font, &glyph, &position, 1, context)
+                })
+        else { return nil }
         glyphEntries[key] = entry
         return entry
     }
@@ -246,26 +252,29 @@ final class TerminalGlyphAtlas {
         let pixelWidth = Int(((bounds.width + padding * 2) * scale).rounded(.up))
         let pixelHeight = Int(((bounds.height + padding * 2) * scale).rounded(.up))
         guard pixelWidth > 0, pixelHeight > 0,
-              pixelWidth <= dimension, pixelHeight <= dimension
+            pixelWidth <= dimension, pixelHeight <= dimension
         else { return nil }
 
         guard let origin = allocate(width: pixelWidth, height: pixelHeight) else { return nil }
 
         var pixels = [UInt8](repeating: 0, count: pixelWidth * pixelHeight * 4)
         let space = CGColorSpaceCreateDeviceRGB()
-        let bitmapInfo = CGBitmapInfo.byteOrder32Little.rawValue
+        let bitmapInfo =
+            CGBitmapInfo.byteOrder32Little.rawValue
             | CGImageAlphaInfo.premultipliedFirst.rawValue
-        guard let context = pixels.withUnsafeMutableBytes({ raw in
-            CGContext(
-                data: raw.baseAddress,
-                width: pixelWidth,
-                height: pixelHeight,
-                bitsPerComponent: 8,
-                bytesPerRow: pixelWidth * 4,
-                space: space,
-                bitmapInfo: bitmapInfo
-            )
-        }) else { return nil }
+        guard
+            let context = pixels.withUnsafeMutableBytes({ raw in
+                CGContext(
+                    data: raw.baseAddress,
+                    width: pixelWidth,
+                    height: pixelHeight,
+                    bitsPerComponent: 8,
+                    bytesPerRow: pixelWidth * 4,
+                    space: space,
+                    bitmapInfo: bitmapInfo
+                )
+            })
+        else { return nil }
 
         context.scaleBy(x: scale, y: scale)
         context.setShouldAntialias(true)
@@ -338,7 +347,7 @@ final class TerminalGlyphAtlas {
             // Only a complete visible-grid rebuild may exceed the cache
             // budget. Its page count is bounded by visible glyphs, not history.
             guard rebuildingVisibleGlyphs || pages.count < maximumPages,
-                  let texture = Self.makeTexture(device: device, dimension: dimension)
+                let texture = Self.makeTexture(device: device, dimension: dimension)
             else {
                 needsRebuild = true
                 return nil

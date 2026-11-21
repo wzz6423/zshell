@@ -79,9 +79,11 @@ enum CodexTitleConfiguration {
 struct CodexForkBindingTests {
     static func main() {
         let directory = FileManager.default.temporaryDirectory.path
-        let original = AgentConversationIdentity(provider: .codex, sessionID: UUID().uuidString,
+        let original = AgentConversationIdentity(
+            provider: .codex, sessionID: UUID().uuidString,
             workingDirectory: directory, configDirectory: directory)!
-        let forked = AgentConversationIdentity(provider: .codex, sessionID: UUID().uuidString,
+        let forked = AgentConversationIdentity(
+            provider: .codex, sessionID: UUID().uuidString,
             workingDirectory: directory, configDirectory: directory)!
         let source = TerminalSession(shell: 10, foreground: 20)
         let fork = TerminalSession(shell: 11, foreground: 30)
@@ -96,14 +98,16 @@ struct CodexForkBindingTests {
         print("PASS shared Codex source binds to its actual foreground TUI")
         _ = CodexDaemonBinding.titleChanged(in: fork, title: original.sessionID)
         precondition(CodexDaemonBinding.accept(.init(identity: original, reporterPID: 50, source: nil), peerPID: 50))
-        precondition(source.agentResume == original && source.agentConversationOwner?.pid == 20 && sourceObservations == 1,
-                     "A pending fork's source title must not revoke the source binding")
+        precondition(
+            source.agentResume == original && source.agentConversationOwner?.pid == 20 && sourceObservations == 1,
+            "A pending fork's source title must not revoke the source binding")
         precondition(fork.agentResume == nil && fork.agentConversationOwner == nil && forkObservations == 0)
         print("PASS a pending fork's source title and shared hook leave source history unchanged")
         _ = CodexDaemonBinding.titleChanged(in: fork, title: forked.sessionID)
         precondition(CodexDaemonBinding.accept(.init(identity: forked, reporterPID: 50, source: nil), peerPID: 50))
-        precondition(fork.agentResume == forked && fork.agentConversationOwner?.pid == 30
-                     && fork.agentConversationForkSource == nil && fork.agentConversationForkProcess == nil && forkObservations == 1)
+        precondition(
+            fork.agentResume == forked && fork.agentConversationOwner?.pid == 30
+                && fork.agentConversationForkSource == nil && fork.agentConversationForkProcess == nil && forkObservations == 1)
         precondition(source.agentResume == original && source.agentConversationOwner?.pid == 20 && sourceObservations == 1)
         print("PASS shared Codex fork confirms an independent identity without modifying its source")
     }

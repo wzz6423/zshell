@@ -87,22 +87,28 @@ public extension BlockDirective {
     /// - parameter name: The name of the directive.
     /// - parameter argumentText: The text to use when interpreting arguments to the directive.
     /// - parameter children: block child elements.
-    init<Children: Sequence>(name: String,
-                             argumentText: String? = nil,
-                             children: Children) where Children.Element == BlockMarkup {
-        let argumentSegments = argumentText?.split(
-            omittingEmptySubsequences: false,
-            whereSeparator: \.isNewline
-        ).map { lineText -> DirectiveArgumentText.LineSegment in
-            let untrimmedText = String(lineText)
-            return DirectiveArgumentText.LineSegment(untrimmedText: untrimmedText,
-                                                     range: nil)
-        } ?? []
-        try! self.init(.blockDirective(name: name,
-                                       nameLocation: nil,
-                                       argumentText: DirectiveArgumentText(segments: argumentSegments),
-                                       parsedRange: nil,
-                                       children.map { $0.raw.markup }))
+    init<Children: Sequence>(
+        name: String,
+        argumentText: String? = nil,
+        children: Children
+    ) where Children.Element == BlockMarkup {
+        let argumentSegments =
+            argumentText?.split(
+                omittingEmptySubsequences: false,
+                whereSeparator: \.isNewline
+            ).map { lineText -> DirectiveArgumentText.LineSegment in
+                let untrimmedText = String(lineText)
+                return DirectiveArgumentText.LineSegment(
+                    untrimmedText: untrimmedText,
+                    range: nil)
+            } ?? []
+        try! self.init(
+            .blockDirective(
+                name: name,
+                nameLocation: nil,
+                argumentText: DirectiveArgumentText(segments: argumentSegments),
+                parsedRange: nil,
+                children.map { $0.raw.markup }))
     }
 
     /// Create a block directive.
@@ -110,9 +116,11 @@ public extension BlockDirective {
     /// - parameter name: The name of the directive.
     /// - parameter argumentText: The text to use when interpreting arguments to the directive.
     /// - parameter children: block child elements.
-    init(name: String,
-         argumentText: String? = nil,
-         children: BlockMarkup...) {
+    init(
+        name: String,
+        argumentText: String? = nil,
+        children: BlockMarkup...
+    ) {
         self.init(name: name, argumentText: argumentText, children: children)
     }
 
@@ -126,11 +134,13 @@ public extension BlockDirective {
             return name
         }
         set {
-            _data = _data.replacingSelf(.blockDirective(name: newValue,
-                                                      nameLocation: nil,
-                                                      argumentText: argumentText,
-                                                      parsedRange: nil,
-                                                      _data.raw.markup.copyChildren()))
+            _data = _data.replacingSelf(
+                .blockDirective(
+                    name: newValue,
+                    nameLocation: nil,
+                    argumentText: argumentText,
+                    parsedRange: nil,
+                    _data.raw.markup.copyChildren()))
         }
     }
 
@@ -151,7 +161,7 @@ public extension BlockDirective {
             return nil
         }
         let end = SourceLocation(line: start.line, column: start.column + name.utf8.count, source: start.source)
-        return start..<end
+        return start ..< end
     }
 
     /// The textual content that can be interpreted as arguments to the directive.
@@ -164,11 +174,13 @@ public extension BlockDirective {
             return arguments
         }
         set {
-            _data = _data.replacingSelf(.blockDirective(name: name,
-                                                      nameLocation: nil,
-                                                      argumentText: newValue,
-                                                      parsedRange: nil,
-                                                      _data.raw.markup.copyChildren()))
+            _data = _data.replacingSelf(
+                .blockDirective(
+                    name: name,
+                    nameLocation: nil,
+                    argumentText: newValue,
+                    parsedRange: nil,
+                    _data.raw.markup.copyChildren()))
         }
     }
 

@@ -8,7 +8,6 @@
  See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 */
 
-
 /// A table.
 ///
 /// A table consists of a *head*, a single row of cells; and a *body*, which can contain zero or more *rows*.
@@ -54,13 +53,17 @@ public extension Table {
     ///   truncated or expanded with `nil` to fit the table's maximum column count.
     /// - parameter header: A ``Table/Head-swift.struct`` element serving as the table's head.
     /// - parameter body: A ``Table/Body-swift.struct`` element serving as the table's body.
-    init(columnAlignments: [ColumnAlignment?]? = nil,
-         header: Head = Head(),
-         body: Body = Body()) {
-        try! self.init(RawMarkup.table(columnAlignments: columnAlignments ?? [],
-                                       parsedRange: nil,
-                                       header: header.raw.markup,
-                                       body: body.raw.markup))
+    init(
+        columnAlignments: [ColumnAlignment?]? = nil,
+        header: Head = Head(),
+        body: Body = Body()
+    ) {
+        try! self.init(
+            RawMarkup.table(
+                columnAlignments: columnAlignments ?? [],
+                parsedRange: nil,
+                header: header.raw.markup,
+                body: body.raw.markup))
     }
 
     /// The maximum number of columns in each row.
@@ -74,10 +77,12 @@ public extension Table {
             return child(at: 0) as! Head
         }
         set {
-            _data = _data.replacingSelf(.table(columnAlignments: columnAlignments,
-                                             parsedRange: nil,
-                                             header: newValue.raw.markup,
-                                             body: raw.markup.child(at: 1)))
+            _data = _data.replacingSelf(
+                .table(
+                    columnAlignments: columnAlignments,
+                    parsedRange: nil,
+                    header: newValue.raw.markup,
+                    body: raw.markup.child(at: 1)))
         }
     }
 
@@ -87,10 +92,12 @@ public extension Table {
             return child(at: 1) as! Body
         }
         set {
-            _data = _data.replacingSelf(.table(columnAlignments: columnAlignments,
-                                             parsedRange: nil,
-                                             header: raw.markup.child(at: 0),
-                                             body: newValue.raw.markup))
+            _data = _data.replacingSelf(
+                .table(
+                    columnAlignments: columnAlignments,
+                    parsedRange: nil,
+                    header: raw.markup.child(at: 0),
+                    body: newValue.raw.markup))
         }
     }
 
@@ -104,10 +111,12 @@ public extension Table {
         }
 
         set {
-            _data = _data.replacingSelf(.table(columnAlignments: newValue,
-                                             parsedRange: nil,
-                                             header: raw.markup.child(at: 0),
-                                             body: raw.markup.child(at: 1)))
+            _data = _data.replacingSelf(
+                .table(
+                    columnAlignments: newValue,
+                    parsedRange: nil,
+                    header: raw.markup.child(at: 0),
+                    body: raw.markup.child(at: 1)))
         }
     }
 
@@ -118,7 +127,7 @@ public extension Table {
 
     // MARK: Visitation
 
-    func accept<V>(_ visitor: inout V) -> V.Result where V : MarkupVisitor {
+    func accept<V>(_ visitor: inout V) -> V.Result where V: MarkupVisitor {
         return visitor.visitTable(self)
     }
 }

@@ -12,11 +12,11 @@
 // ===----------------------------------------------------------------------===//
 
 #if canImport(Darwin)
-import Darwin
+    import Darwin
 #elseif canImport(Glibc)
-import Glibc
+    import Glibc
 #elseif canImport(Musl)
-import Musl
+    import Musl
 #endif
 
 import AsyncAlgorithms
@@ -38,9 +38,10 @@ struct TaggedResult: Sendable {
 /// Transfers a ~Copyable MPSC source into a Sendable closure.
 /// Each instance is consumed exactly once via `take()`.
 private final class SourceBox: @unchecked Sendable {
-    private let pointer: UnsafeMutablePointer<
-        MultiProducerSingleConsumerAsyncChannel<TaggedResult, Never>.Source
-    >
+    private let pointer:
+        UnsafeMutablePointer<
+            MultiProducerSingleConsumerAsyncChannel<TaggedResult, Never>.Source
+        >
 
     init(_ source: consuming MultiProducerSingleConsumerAsyncChannel<TaggedResult, Never>.Source) {
         pointer = .allocate(capacity: 1)
@@ -74,7 +75,7 @@ struct FuzzyGrep {
                 Foundation.exit(1)
             }
             minScore = value
-            args.removeSubrange(idx...idx + 1)
+            args.removeSubrange(idx ... idx + 1)
         }
 
         guard let queryString = args.first else {
@@ -92,7 +93,7 @@ struct FuzzyGrep {
         let query = matcher.prepare(queryString)
 
         let workerCount = max(1, ProcessInfo.processInfo.activeProcessorCount)
-        let workerChannels = (0..<workerCount).map { _ in AsyncChannel<TaggedChunk>() }
+        let workerChannels = (0 ..< workerCount).map { _ in AsyncChannel<TaggedChunk>() }
 
         // MPSC channel: workers → writer
         var channelAndSource = MultiProducerSingleConsumerAsyncChannel<TaggedResult, Never>.makeChannel(
@@ -103,7 +104,7 @@ struct FuzzyGrep {
         // Create one additional source per worker, then drop the original
         var boxes: [SourceBox] = []
         boxes.reserveCapacity(workerCount)
-        for _ in 0..<workerCount {
+        for _ in 0 ..< workerCount {
             boxes.append(SourceBox(channelAndSource.source.makeAdditionalSource()))
         }
         _ = consume channelAndSource
@@ -115,7 +116,7 @@ struct FuzzyGrep {
             }
 
             // Workers: score lines, send results to MPSC channel
-            for i in 0..<workerCount {
+            for i in 0 ..< workerCount {
                 let box = boxes[i]
                 let input = workerChannels[i]
                 group.addTask {
@@ -157,8 +158,10 @@ struct FuzzyGrep {
 // MARK: - Pipeline stages
 
 /// Reads stdin in 256 KB blocks, splits into lines, distributes chunks round-robin across worker channels.
-private func readStdin(into workerChannels: [AsyncChannel<TaggedChunk>],
-                       chunkSize: Int = 4096) async {
+private func readStdin(
+    into workerChannels: [AsyncChannel<TaggedChunk>],
+    chunkSize: Int = 4096
+) async {
     let handle = FileHandle.standardInput
     let newline = UInt8(ascii: "\n")
     let workerCount = workerChannels.count
@@ -175,9 +178,9 @@ private func readStdin(into workerChannels: [AsyncChannel<TaggedChunk>],
         data.withUnsafeBytes { remainder.append(contentsOf: $0) }
 
         var lineStart = 0
-        for i in scanStart..<remainder.count {
+        for i in scanStart ..< remainder.count {
             if remainder[i] == newline {
-                lines.append(String(decoding: remainder[lineStart..<i], as: UTF8.self))
+                lines.append(String(decoding: remainder[lineStart ..< i], as: UTF8.self))
                 lineStart = i + 1
                 if lines.count >= chunkSize {
                     let chunk = TaggedChunk(sequenceNumber: sequenceNumber, lines: lines)
@@ -189,7 +192,7 @@ private func readStdin(into workerChannels: [AsyncChannel<TaggedChunk>],
             }
         }
         if lineStart > 0 {
-            remainder.removeSubrange(0..<lineStart)
+            remainder.removeSubrange(0 ..< lineStart)
         }
     }
 

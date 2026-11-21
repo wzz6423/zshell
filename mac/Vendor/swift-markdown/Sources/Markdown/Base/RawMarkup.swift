@@ -95,20 +95,26 @@ public struct RawMarkupHeader {
 
 final class RawMarkup: ManagedBuffer<RawMarkupHeader, RawMarkup> {
     enum Error: LocalizedError {
-        case concreteConversionError(from: RawMarkup, to: Markup.Type)
+        case concreteConversionError(from: String, to: String)
+
+        static func concreteConversionError(from raw: RawMarkup, to type: Markup.Type) -> Self {
+            .concreteConversionError(from: String(describing: raw.data), to: String(describing: type))
+        }
+
         var errorDescription: String? {
             switch self {
-            case let .concreteConversionError(raw, to: type):
-                return "Can't wrap a \(raw.data) in a \(type)"
+            case let .concreteConversionError(data, to: type):
+                return "Can't wrap a \(data) in a \(type)"
             }
         }
     }
     private static func create(data: RawMarkupData, parsedRange: SourceRange?, children: [RawMarkup]) -> RawMarkup {
         let buffer = self.create(minimumCapacity: children.count) { _ in
-            RawMarkupHeader(data: data,
-                            childCount: children.count,
-                            subtreeCount: /* self */ 1 + children.subtreeCount,
-                            parsedRange: parsedRange)
+            RawMarkupHeader(
+                data: data,
+                childCount: children.count,
+                subtreeCount: /* self */ 1 + children.subtreeCount,
+                parsedRange: parsedRange)
         }
         let raw = unsafeDowncast(buffer, to: RawMarkup.self)
         var children = children
@@ -156,39 +162,40 @@ final class RawMarkup: ManagedBuffer<RawMarkupHeader, RawMarkup> {
 
     /// The children of this element.
     var children: AnySequence<RawMarkup> {
-        return AnySequence((0..<childCount).lazy.map { Int -> RawMarkup in
-            self.child(at: 0)
-        })
+        return AnySequence(
+            (0 ..< childCount).lazy.map { Int -> RawMarkup in
+                self.child(at: 0)
+            })
     }
 
     deinit {
         var workStack = [RawMarkup]()
-        
+
         self.withUnsafeMutablePointerToElements { elements in
-            
+
             // Retain children on a heap-allocated work stack before
             // deinitializing the tail allocation. Without this, releasing a
             // uniquely referenced child would immediately enter its deinit,
             // recursively cascading through the tree and potentially
             // overflowing the call stack for deeply nested markup.
-            for i in 0..<header.childCount {
+            for i in 0 ..< header.childCount {
                 workStack.append(elements[i])
             }
             elements.deinitialize(count: header.childCount)
         }
-        
+
         while var node = workStack.popLast() {
             guard isKnownUniquelyReferenced(&node) else {
                 continue
             }
-            
+
             node.withUnsafeMutablePointerToElements { elements in
-                for i in 0..<node.header.childCount {
+                for i in 0 ..< node.header.childCount {
                     workStack.append(elements[i])
                 }
                 elements.deinitialize(count: node.header.childCount)
             }
-            
+
             node.withUnsafeMutablePointerToHeader { headerPtr in
                 headerPtr.pointee = RawMarkupHeader(
                     data: node.header.data,
@@ -208,10 +215,11 @@ final class RawMarkup: ManagedBuffer<RawMarkupHeader, RawMarkup> {
             return true
         }
         guard self.header.childCount == other.header.childCount,
-            self.header.data == other.header.data else {
-                return false
+            self.header.data == other.header.data
+        else {
+            return false
         }
-        for i in 0..<header.childCount {
+        for i in 0 ..< header.childCount {
             guard self.child(at: i).hasSameStructure(as: other.child(at: i)) else {
                 return false
             }
@@ -253,7 +261,7 @@ final class RawMarkup: ManagedBuffer<RawMarkupHeader, RawMarkup> {
     }
 
     static func customBlock(parsedRange: SourceRange?, _ children: [RawMarkup]) -> RawMarkup {
-        return .create(data: .customBlock, parsedRange: parsedRange,  children: children)
+        return .create(data: .customBlock, parsedRange: parsedRange, children: children)
     }
 
     static func document(parsedRange: SourceRange?, _ children: [RawMarkup]) -> RawMarkup {
@@ -288,8 +296,12 @@ final class RawMarkup: ManagedBuffer<RawMarkupHeader, RawMarkup> {
         return .create(data: .paragraph, parsedRange: parsedRange, children: children)
     }
 
-    static func blockDirective(name: String, nameLocation: SourceLocation?, argumentText: DirectiveArgumentText, parsedRange: SourceRange?, _ children: [RawMarkup]) -> RawMarkup {
-        return .create(data: .blockDirective(name: name, nameLocation: nameLocation, arguments: argumentText), parsedRange: parsedRange, children: children)
+    static func blockDirective(
+        name: String, nameLocation: SourceLocation?, argumentText: DirectiveArgumentText, parsedRange: SourceRange?, _ children: [RawMarkup]
+    ) -> RawMarkup {
+        return .create(
+            data: .blockDirective(name: name, nameLocation: nameLocation, arguments: argumentText), parsedRange: parsedRange,
+            children: children)
     }
 
     // MARK: Inline Creation
@@ -318,7 +330,7 @@ final class RawMarkup: ManagedBuffer<RawMarkupHeader, RawMarkup> {
         return .create(data: .lineBreak, parsedRange: parsedRange, children: [])
     }
 
-    static func link(destination: String?, title: String? = nil,parsedRange: SourceRange?, _ children: [RawMarkup]) -> RawMarkup {
+    static func link(destination: String?, title: String? = nil, parsedRange: SourceRange?, _ children: [RawMarkup]) -> RawMarkup {
         return .create(data: .link(destination: destination, title: title), parsedRange: parsedRange, children: children)
     }
 
@@ -335,7 +347,7 @@ final class RawMarkup: ManagedBuffer<RawMarkupHeader, RawMarkup> {
     }
 
     static func symbolLink(parsedRange: SourceRange?, destination: String?) -> RawMarkup {
-        return .create(data: .symbolLink(destination: destination), parsedRange: parsedRange, children:  [])
+        return .create(data: .symbolLink(destination: destination), parsedRange: parsedRange, children: [])
     }
 
     static func inlineAttributes(attributes: String, parsedRange: SourceRange?, _ children: [RawMarkup]) -> RawMarkup {
@@ -348,14 +360,23 @@ final class RawMarkup: ManagedBuffer<RawMarkupHeader, RawMarkup> {
         return .create(data: .strikethrough, parsedRange: parsedRange, children: children)
     }
 
-    static func table(columnAlignments: [Table.ColumnAlignment?], parsedRange: SourceRange?, header: RawMarkup, body: RawMarkup) -> RawMarkup {
-        let maxColumnCount = max(header.childCount,
-                                 body.children.reduce(0, { (result, child) -> Int in
-                                    return max(result, child.childCount)
-                                 }))
-        let alignments = columnAlignments + Array(repeating: nil,
-                                                  count: max(columnAlignments.count,
-                                                             maxColumnCount) - columnAlignments.count)
+    static func table(columnAlignments: [Table.ColumnAlignment?], parsedRange: SourceRange?, header: RawMarkup, body: RawMarkup)
+        -> RawMarkup
+    {
+        let maxColumnCount = max(
+            header.childCount,
+            body.children.reduce(
+                0,
+                { (result, child) -> Int in
+                    return max(result, child.childCount)
+                }))
+        let alignments =
+            columnAlignments
+            + Array(
+                repeating: nil,
+                count: max(
+                    columnAlignments.count,
+                    maxColumnCount) - columnAlignments.count)
         return .create(data: .table(columnAlignments: alignments), parsedRange: parsedRange, children: [header, body])
     }
 
@@ -408,7 +429,7 @@ fileprivate extension Sequence where Element == RawMarkup {
 extension BidirectionalCollection where Element == RawMarkup {
     var parsedRange: SourceRange? {
         if let lowerBound = first?.parsedRange?.lowerBound, let upperBound = last?.parsedRange?.upperBound {
-            return lowerBound..<upperBound
+            return lowerBound ..< upperBound
         } else {
             return nil
         }

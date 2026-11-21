@@ -133,7 +133,8 @@ public struct FuzzyQuery: Sendable, Equatable {
 
         switch config.algorithm {
         case .editDistance(let edConfig):
-            let maxED = queryLength >= edConfig.longQueryThreshold
+            let maxED =
+                queryLength >= edConfig.longQueryThreshold
                 ? edConfig.longQueryMaxEditDistance
                 : edConfig.maxEditDistance
             let emed = min(maxED, max(1, (queryLength - 1) / 2))
@@ -149,10 +150,11 @@ public struct FuzzyQuery: Sendable, Equatable {
 
         // Split multi-word Smith-Waterman queries into atoms
         if case .smithWaterman(let swConfig) = config.algorithm,
-            containsSpaces, swConfig.splitSpaces {
+            containsSpaces, swConfig.splitSpaces
+        {
             var result: [(start: Int, length: Int)] = []
             var segStart = 0
-            for i in 0..<queryLength {
+            for i in 0 ..< queryLength {
                 if lowercased[i] == 0x20 {
                     if i > segStart {
                         result.append((start: segStart, length: i - segStart))
@@ -173,7 +175,8 @@ public struct FuzzyQuery: Sendable, Equatable {
                 var totalMax = 0
                 for atom in atoms {
                     let atomLen = atom.length
-                    totalMax += atomLen * sw.scoreMatch
+                    totalMax +=
+                        atomLen * sw.scoreMatch
                         + sw.bonusBoundaryWhitespace * (sw.bonusFirstCharMultiplier + atomLen - 1)
                 }
                 self.maxSmithWatermanScore = totalMax

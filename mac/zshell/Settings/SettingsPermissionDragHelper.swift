@@ -12,8 +12,10 @@ final class SettingsPermissionDragHelper: NSObject, NSWindowDelegate {
     private var isDragging = false
     private var lastSettingsDropPoint: NSPoint?
 
-    init(appURL: URL = Bundle.main.bundleURL, frameProvider: (() -> NSRect?)? = nil,
-         dropTargetProvider: ((NSPoint) -> Bool)? = nil) {
+    init(
+        appURL: URL = Bundle.main.bundleURL, frameProvider: (() -> NSRect?)? = nil,
+        dropTargetProvider: ((NSPoint) -> Bool)? = nil
+    ) {
         self.appURL = appURL
         self.frameProvider = frameProvider ?? Self.systemSettingsFrame
         self.dropTargetProvider = dropTargetProvider ?? Self.isSystemSettingsDrop
@@ -48,7 +50,8 @@ final class SettingsPermissionDragHelper: NSObject, NSWindowDelegate {
     }
 
     private func finishDrag(at point: NSPoint, operation: NSDragOperation) {
-        let isSettingsDrop = !operation.isEmpty
+        let isSettingsDrop =
+            !operation.isEmpty
             && (lastSettingsDropPoint == point || dropTargetProvider(point))
         isDragging = false
         pendingFrame = nil
@@ -83,8 +86,9 @@ final class SettingsPermissionDragHelper: NSObject, NSWindowDelegate {
             self.lastSettingsDropPoint = self.dropTargetProvider(point) ? point : nil
         }
         icon.onDragEnded = { [weak self] point, operation in self?.finishDrag(at: point, operation: operation) }
-        let name = NSTextField(wrappingLabelWithString: Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
-            ?? appURL.deletingPathExtension().lastPathComponent)
+        let name = NSTextField(
+            wrappingLabelWithString: Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+                ?? appURL.deletingPathExtension().lastPathComponent)
         name.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
         name.alignment = .center
         let instruction = NSTextField(wrappingLabelWithString: String(localized: "Drag this icon into the permission list."))
@@ -138,8 +142,9 @@ final class SettingsPermissionDragHelper: NSObject, NSWindowDelegate {
         let desiredX = right + size.width <= visibleFrame.maxX - inset ? right : left
         return NSRect(
             x: min(max(desiredX, visibleFrame.minX + inset), max(visibleFrame.minX + inset, visibleFrame.maxX - size.width - inset)),
-            y: min(max(reference.maxY - size.height - 40, visibleFrame.minY + inset),
-                   max(visibleFrame.minY + inset, visibleFrame.maxY - size.height - inset)),
+            y: min(
+                max(reference.maxY - size.height - 40, visibleFrame.minY + inset),
+                max(visibleFrame.minY + inset, visibleFrame.maxY - size.height - inset)),
             width: size.width, height: size.height
         )
     }
@@ -153,11 +158,13 @@ final class SettingsPermissionDragHelper: NSObject, NSWindowDelegate {
     }
 
     private static func systemSettingsFrame() -> NSRect? {
-        let pids = Set(NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.systempreferences")
-            .map(\.processIdentifier))
+        let pids = Set(
+            NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.systempreferences")
+                .map(\.processIdentifier))
         guard !pids.isEmpty,
-              let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
-                as? [[String: Any]] else { return nil }
+            let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]]
+        else { return nil }
         return windowFrame(in: windows, ownerPIDs: pids, primaryScreenTop: CGDisplayBounds(CGMainDisplayID()).height)
     }
 
@@ -165,13 +172,15 @@ final class SettingsPermissionDragHelper: NSObject, NSWindowDelegate {
         var candidate: CGRect?
         for window in windows {
             guard let pid = (window[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value, ownerPIDs.contains(pid),
-                  window[kCGWindowLayer as String] as? Int == 0,
-                  window[kCGWindowIsOnscreen as String] as? Bool == true,
-                  let bounds = window[kCGWindowBounds as String] as? [String: Any],
-                  let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary), rect.width > 300,
-                  rect.height > 200 else { continue }
+                window[kCGWindowLayer as String] as? Int == 0,
+                window[kCGWindowIsOnscreen as String] as? Bool == true,
+                let bounds = window[kCGWindowBounds as String] as? [String: Any],
+                let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary), rect.width > 300,
+                rect.height > 200
+            else { continue }
             if let previous = candidate,
-               previous.width * previous.height >= rect.width * rect.height {
+                previous.width * previous.height >= rect.width * rect.height
+            {
                 continue
             }
             candidate = rect
@@ -182,24 +191,30 @@ final class SettingsPermissionDragHelper: NSObject, NSWindowDelegate {
     }
 
     private static func isSystemSettingsDrop(at point: NSPoint) -> Bool {
-        let pids = Set(NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.systempreferences")
-            .map(\.processIdentifier))
+        let pids = Set(
+            NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.systempreferences")
+                .map(\.processIdentifier))
         guard !pids.isEmpty,
-              let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
-                as? [[String: Any]] else { return false }
-        return isSystemSettingsDrop(at: point, in: windows, ownerPIDs: pids,
-                                    primaryScreenTop: CGDisplayBounds(CGMainDisplayID()).height)
+            let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]]
+        else { return false }
+        return isSystemSettingsDrop(
+            at: point, in: windows, ownerPIDs: pids,
+            primaryScreenTop: CGDisplayBounds(CGMainDisplayID()).height)
     }
 
-    static func isSystemSettingsDrop(at point: NSPoint, in windows: [[String: Any]],
-                                     ownerPIDs: Set<pid_t>, primaryScreenTop: CGFloat) -> Bool {
+    static func isSystemSettingsDrop(
+        at point: NSPoint, in windows: [[String: Any]],
+        ownerPIDs: Set<pid_t>, primaryScreenTop: CGFloat
+    ) -> Bool {
         let location = CGPoint(x: point.x, y: primaryScreenTop - point.y)
         // Window metadata is front to back; a successful Finder copy must not dismiss this helper.
         for window in windows {
             guard window[kCGWindowLayer as String] as? Int == 0,
-                  window[kCGWindowIsOnscreen as String] as? Bool == true,
-                  let bounds = window[kCGWindowBounds as String] as? [String: Any],
-                  let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary), rect.contains(location) else { continue }
+                window[kCGWindowIsOnscreen as String] as? Bool == true,
+                let bounds = window[kCGWindowBounds as String] as? [String: Any],
+                let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary), rect.contains(location)
+            else { continue }
             guard let pid = (window[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value else { return false }
             return ownerPIDs.contains(pid)
         }

@@ -16,11 +16,11 @@ let package = Package(
     products: [
         .library(
             name: "Markdown",
-            targets: ["Markdown"]),
+            targets: ["Markdown"])
     ],
     dependencies: [
         // Vendored copy of swift-cmark beside this package; see ../DEPENDENCIES.md.
-        .package(path: "../swift-cmark"),
+        .package(path: "../swift-cmark")
     ],
     targets: [
         .target(

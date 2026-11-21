@@ -14,7 +14,7 @@ import PackageDescription
 let package = Package(
     name: "Tools",
     products: [
-        .executable(name: "markdown-tool", targets: ["markdown-tool"]),
+        .executable(name: "markdown-tool", targets: ["markdown-tool"])
     ],
     dependencies: [
         .package(name: "swift-markdown", path: "../."),
@@ -25,9 +25,9 @@ let package = Package(
             name: "markdown-tool",
             dependencies: [
                 .product(name: "Markdown", package: "swift-markdown"),
-                .product(name: "ArgumentParser", package: "swift-argument-parser")
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ],
             path: "markdown-tool"
-        ),
+        )
     ]
 )

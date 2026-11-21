@@ -12,7 +12,8 @@ final class NSTextLayoutFragmentTests: XCTestCase {
         let textContainer = NSTextContainer(size: CGSize(width: 100, height: 1000))
         textLayoutManager.textContainer = textContainer
 
-        let longText = "This is a long paragraph that should wrap to multiple lines within a single layout fragment when rendered in a narrow container."
+        let longText =
+            "This is a long paragraph that should wrap to multiple lines within a single layout fragment when rendered in a narrow container."
         textContentStorage.textStorage?.setAttributedString(
             NSAttributedString(string: longText, attributes: [.font: NSFont.systemFont(ofSize: 14)])
         )
@@ -26,7 +27,9 @@ final class NSTextLayoutFragmentTests: XCTestCase {
         }
 
         guard let multiLineFragment = layoutFragments.first(where: { $0.textLineFragments.count > 1 }) else {
-            XCTFail("Expected at least one layout fragment with multiple line fragments. Fragments: \(layoutFragments.map { $0.textLineFragments.count })")
+            XCTFail(
+                "Expected at least one layout fragment with multiple line fragments. Fragments: \(layoutFragments.map { $0.textLineFragments.count })"
+            )
             return
         }
 
@@ -49,8 +52,10 @@ final class NSTextLayoutFragmentTests: XCTestCase {
         let line0 = lineFragments[0]
         let line1 = lineFragments[1]
 
-        XCTAssertNotEqual(line0.typographicBounds.origin.y, line1.typographicBounds.origin.y,
-            "Line fragments should have different Y origins within layout fragment. Line0: \(line0.typographicBounds), Line1: \(line1.typographicBounds)")
+        XCTAssertNotEqual(
+            line0.typographicBounds.origin.y, line1.typographicBounds.origin.y,
+            "Line fragments should have different Y origins within layout fragment. Line0: \(line0.typographicBounds), Line1: \(line1.typographicBounds)"
+        )
 
         let line0DocRect = line0.typographicBounds.offsetBy(
             dx: multiLineFragment.layoutFragmentFrame.origin.x,
@@ -76,9 +81,13 @@ final class NSTextLayoutFragmentTests: XCTestCase {
         XCTAssertNotNil(foundLine0, "Should find line fragment for point in line 0")
         XCTAssertNotNil(foundLine1, "Should find line fragment for point in line 1")
 
-        XCTAssertEqual(foundLine0?.characterRange, line0.characterRange,
-            "Point in line 0 rect should find line 0. Found: \(String(describing: foundLine0?.characterRange)), Expected: \(line0.characterRange)")
-        XCTAssertEqual(foundLine1?.characterRange, line1.characterRange,
-            "Point in line 1 rect should find line 1. Found: \(String(describing: foundLine1?.characterRange)), Expected: \(line1.characterRange)")
+        XCTAssertEqual(
+            foundLine0?.characterRange, line0.characterRange,
+            "Point in line 0 rect should find line 0. Found: \(String(describing: foundLine0?.characterRange)), Expected: \(line0.characterRange)"
+        )
+        XCTAssertEqual(
+            foundLine1?.characterRange, line1.characterRange,
+            "Point in line 1 rect should find line 1. Found: \(String(describing: foundLine1?.characterRange)), Expected: \(line1.characterRange)"
+        )
     }
 }

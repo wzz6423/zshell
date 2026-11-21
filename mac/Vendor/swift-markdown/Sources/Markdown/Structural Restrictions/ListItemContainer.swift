@@ -11,7 +11,7 @@
 /// A markup element that can contain only `ListItem`s as children and require no other information.
 public protocol ListItemContainer: BlockMarkup {
     /// Create a list from a sequence of items.
-    init<Items: Sequence>(_ items: Items) where  Items.Element == ListItem
+    init<Items: Sequence>(_ items: Items) where Items.Element == ListItem
 }
 
 // MARK: - Public API
@@ -36,7 +36,7 @@ public extension ListItemContainer {
 
     /// Replace all list items with a sequence of items.
     mutating func setListItems<Items: Sequence>(_ newItems: Items) where Items.Element == ListItem {
-        replaceItemsInRange(0..<childCount, with: newItems)
+        replaceItemsInRange(0 ..< childCount, with: newItems)
     }
 
     /// Replace list items in a range with a sequence of items.
@@ -49,6 +49,6 @@ public extension ListItemContainer {
 
     /// Append an item to the list.
     mutating func appendItem(_ item: ListItem) {
-        replaceItemsInRange(childCount..<childCount, with: CollectionOfOne(item))
+        replaceItemsInRange(childCount ..< childCount, with: CollectionOfOne(item))
     }
 }

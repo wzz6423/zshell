@@ -28,7 +28,7 @@ final class NotificationDeliveryFixture: TerminalNotificationDelivery {
 @MainActor
 struct TerminalNotificationServiceTests {
     static func settle() async {
-        for _ in 0..<20 { await Task.yield() }
+        for _ in 0 ..< 20 { await Task.yield() }
         try? await Task.sleep(for: .milliseconds(20))
     }
 
@@ -40,7 +40,7 @@ struct TerminalNotificationServiceTests {
         await history.flush()
         service.configure()
         await settle()
-        for index in 0..<250 { service.post(message: "Event \(index)", sessionID: UUID()) }
+        for index in 0 ..< 250 { service.post(message: "Event \(index)", sessionID: UUID()) }
         await settle()
         precondition(history.records.count == 200 && delivery.delivered.isEmpty && delivery.authorizationRequests == 0)
         service.markAllRead()
@@ -51,14 +51,15 @@ struct TerminalNotificationServiceTests {
         delivery.current = .init(status: .undetermined)
         service.post(message: "Permission fixture", sessionID: UUID())
         await settle()
-        for index in 0..<300 { service.post(message: "Pending \(index)", sessionID: UUID()) }
+        for index in 0 ..< 300 { service.post(message: "Pending \(index)", sessionID: UUID()) }
         await settle()
         precondition(delivery.authorizationRequests == 1)
         var permissionAnswers: [Bool] = []
         service.requestAuthorization { permissionAnswers.append($0) }
         service.requestAuthorization { permissionAnswers.append($0) }
-        precondition(delivery.authorizationRequests == 1,
-                     "The settings page must join an in-flight notification permission prompt")
+        precondition(
+            delivery.authorizationRequests == 1,
+            "The settings page must join an in-flight notification permission prompt")
         delivery.authorization?(true)
         await settle()
         precondition(delivery.delivered.count == 1 && delivery.delivered.last?.message == "Pending 299")
@@ -71,8 +72,9 @@ struct TerminalNotificationServiceTests {
         await manualHistory.flush()
         var manualAnswer: Bool?
         manualService.requestAuthorization { manualAnswer = $0 }
-        precondition(manualDelivery.authorizationRequests == 1,
-                     "The permissions page must be able to request authorization without posting a notification")
+        precondition(
+            manualDelivery.authorizationRequests == 1,
+            "The permissions page must be able to request authorization without posting a notification")
         manualDelivery.authorization?(false)
         await settle()
         precondition(manualAnswer == false && manualDelivery.delivered.isEmpty && manualHistory.records.isEmpty)
@@ -80,10 +82,13 @@ struct TerminalNotificationServiceTests {
 
         delivery.current = .init(status: .allowed)
         let session = TerminalSession()
-        func update(_ phase: ZshellAgentPhase, authority: ZshellAgentStateAuthority = .integration,
-                    attention: ZshellAgentAttention? = nil, progress: Int? = nil) {
+        func update(
+            _ phase: ZshellAgentPhase, authority: ZshellAgentStateAuthority = .integration,
+            attention: ZshellAgentAttention? = nil, progress: Int? = nil
+        ) {
             let previous = session.agentStatus
-            session.agentStatus = ZshellAgentStatus(alias: "Fixture Agent", kind: .codex, phase: phase,
+            session.agentStatus = ZshellAgentStatus(
+                alias: "Fixture Agent", kind: .codex, phase: phase,
                 authority: authority, reason: "fixture", updatedAt: Date(), processID: nil,
                 unseen: phase == .done, progress: progress, attention: attention, tasks: [])
             service.agentChanged(in: session, previous: previous)
@@ -115,11 +120,13 @@ struct TerminalNotificationServiceTests {
         session.hasExited = true
         service.terminalClosed(session)
         precondition(history.filtered(.pending).isEmpty)
-        print("PASS explicit lifecycle: screen hints ignored, progress deduplicated, read state stable, pending resolved, errors classified")
+        print(
+            "PASS explicit lifecycle: screen hints ignored, progress deduplicated, read state stable, pending resolved, errors classified")
 
         service.clear()
         let replaySession = TerminalSession()
-        replaySession.agentStatus = ZshellAgentStatus(alias: "Fixture Agent", kind: .codex, phase: .blocked,
+        replaySession.agentStatus = ZshellAgentStatus(
+            alias: "Fixture Agent", kind: .codex, phase: .blocked,
             authority: .report, reason: "fixture", updatedAt: Date(), processID: nil,
             unseen: false, progress: nil, attention: .input, tasks: [])
         service.agentChanged(in: replaySession, previous: nil)
@@ -144,7 +151,8 @@ struct TerminalNotificationServiceTests {
         let host = RemoteHost(id: UUID(), name: "Fixture host")
         let remoteID = UUID()
         let first = TerminalSession(), second = TerminalSession()
-        let blocked = ZshellAgentStatus(alias: "Remote agent", kind: .codex, phase: .blocked,
+        let blocked = ZshellAgentStatus(
+            alias: "Remote agent", kind: .codex, phase: .blocked,
             authority: .report, reason: "fixture", updatedAt: Date(), processID: nil,
             unseen: false, progress: nil, attention: .input, tasks: [])
         let connected = RemoteRelayStatus(state: .connected, agentStatus: nil, exitCode: nil)
@@ -168,8 +176,9 @@ struct TerminalNotificationServiceTests {
         precondition(remoteHistory.filtered(.pending).isEmpty)
         second.remoteStatus = connected
         remoteService.remoteChanged(in: second, status: connected)
-        precondition(remoteHistory.filtered(.pending).count == 1 && remoteHistory.records.count == 1
-            && remoteHistory.record(id: pending.id)?.isRead == true)
+        precondition(
+            remoteHistory.filtered(.pending).count == 1 && remoteHistory.records.count == 1
+                && remoteHistory.record(id: pending.id)?.isRead == true)
         let exited = RemoteRelayStatus(state: .exited, agentStatus: nil, exitCode: 7)
         second.remoteStatus = exited
         remoteService.remoteChanged(in: second, status: exited)
@@ -192,7 +201,8 @@ struct TerminalNotificationServiceTests {
         precondition(focusDelivery.delivered.count == 1 && focusHistory.filtered(.pending).count == 1)
         minimized.surface.window = Window(isMiniaturized: false)
         let previous = minimized.agentStatus
-        minimized.agentStatus = ZshellAgentStatus(alias: "Remote agent", kind: .codex, phase: .done,
+        minimized.agentStatus = ZshellAgentStatus(
+            alias: "Remote agent", kind: .codex, phase: .done,
             authority: .report, reason: "fixture", updatedAt: Date(), processID: nil,
             unseen: false, progress: nil, attention: nil, tasks: [])
         focusService.agentChanged(in: minimized, previous: previous)
@@ -221,7 +231,8 @@ struct TerminalNotificationServiceTests {
         let preferenceSession = TerminalSession()
         func preferenceEvent(_ phase: ZshellAgentPhase) {
             let previous = preferenceSession.agentStatus
-            preferenceSession.agentStatus = ZshellAgentStatus(alias: "Preference agent", kind: .codex, phase: phase,
+            preferenceSession.agentStatus = ZshellAgentStatus(
+                alias: "Preference agent", kind: .codex, phase: phase,
                 authority: .integration, reason: "fixture", updatedAt: Date(), processID: nil,
                 unseen: phase == .done, progress: nil, attention: phase == .blocked ? .approval : nil, tasks: [])
             preferenceService.agentChanged(in: preferenceSession, previous: previous)
@@ -250,8 +261,9 @@ struct TerminalNotificationServiceTests {
         AppSettings.shared.notifyOnAgentAttention = false
         preferenceEvent(.working)
         await settle()
-        precondition(preferenceDelivery.delivered.count == 2,
-                     "queued attention keeps its type after its pending record resolves")
+        precondition(
+            preferenceDelivery.delivered.count == 2,
+            "queued attention keeps its type after its pending record resolves")
         AppSettings.shared.notifyOnAgentAttention = true
         AppSettings.shared.notifyOnAgentCompletion = true
         await preferenceHistory.flush()
@@ -265,9 +277,11 @@ struct TerminalNotificationServiceTests {
         func remote(_ session: TerminalSession, _ phase: ZshellAgentPhase, generation: UInt64) {
             let previous = session.agentStatus
             session.remoteConnection = RemoteConnection(host: host, sessionID: staleID)
-            session.remoteStatus = RemoteRelayStatus(state: .connected,
+            session.remoteStatus = RemoteRelayStatus(
+                state: .connected,
                 agentStatus: RemoteAgentStatus(generation: generation, phase: phase.rawValue), exitCode: nil)
-            session.agentStatus = ZshellAgentStatus(alias: "Remote agent", kind: .codex, phase: phase,
+            session.agentStatus = ZshellAgentStatus(
+                alias: "Remote agent", kind: .codex, phase: phase,
                 authority: .report, reason: "fixture", updatedAt: Date(), processID: nil,
                 unseen: phase == .done, progress: nil, attention: nil, tasks: [])
             staleService.agentChanged(in: session, previous: previous)
@@ -300,11 +314,14 @@ struct TerminalNotificationServiceTests {
         let reportedService = TerminalNotificationService(history: reportedHistory, delivery: NotificationDeliveryFixture())
         await reportedHistory.flush()
         let reported = TerminalSession()
-        reported.agentObservation.programReport = Observation(owner: ProcessIdentity(pid: 41, startedSeconds: 1, startedMicroseconds: 0),
-                                                              report: Report(activityPhase: .done))
-        func native(_ phase: ZshellAgentPhase, authority: ZshellAgentStateAuthority = .integration, attention: ZshellAgentAttention? = nil) {
+        reported.agentObservation.programReport = Observation(
+            owner: ProcessIdentity(pid: 41, startedSeconds: 1, startedMicroseconds: 0),
+            report: Report(activityPhase: .done))
+        func native(_ phase: ZshellAgentPhase, authority: ZshellAgentStateAuthority = .integration, attention: ZshellAgentAttention? = nil)
+        {
             let previous = reported.agentStatus
-            reported.agentStatus = ZshellAgentStatus(alias: "Native Agent", kind: .codex, phase: phase,
+            reported.agentStatus = ZshellAgentStatus(
+                alias: "Native Agent", kind: .codex, phase: phase,
                 authority: authority, reason: "fixture", updatedAt: Date(), processID: 41,
                 unseen: false, progress: nil, attention: attention, tasks: [])
             reportedService.agentChanged(in: reported, previous: previous)
@@ -328,9 +345,12 @@ struct TerminalNotificationServiceTests {
         let program = TerminalSession()
         func report(_ phase: ZshellAgentPhase?) {
             let previous = program.agentStatus
-            program.agentStatus = phase.map { ZshellAgentStatus(alias: "Program", kind: .codex, phase: $0,
-                authority: .report, reason: "fixture", updatedAt: Date(), processID: 42,
-                unseen: false, progress: nil, attention: .input, tasks: []) }
+            program.agentStatus = phase.map {
+                ZshellAgentStatus(
+                    alias: "Program", kind: .codex, phase: $0,
+                    authority: .report, reason: "fixture", updatedAt: Date(), processID: 42,
+                    unseen: false, progress: nil, attention: .input, tasks: [])
+            }
             clearedService.agentChanged(in: program, previous: previous)
         }
         report(.blocked)
@@ -351,11 +371,12 @@ struct TerminalNotificationServiceTests {
         let loadingHistory = TerminalNotificationHistoryStore(url: root.appendingPathComponent("loading/records.json"))
         let loadingService = TerminalNotificationService(history: loadingHistory, delivery: loadingDelivery)
         precondition(loadingHistory.isLoading)
-        for index in 0..<3 { loadingService.post(message: "Before load \(index)", sessionID: UUID()) }
+        for index in 0 ..< 3 { loadingService.post(message: "Before load \(index)", sessionID: UUID()) }
         await loadingHistory.flush()
         await settle()
-        precondition(Set(loadingDelivery.delivered.map(\.message)) == ["Before load 0", "Before load 1", "Before load 2"],
-                     "\(loadingDelivery.delivered.map(\.message))")
+        precondition(
+            Set(loadingDelivery.delivered.map(\.message)) == ["Before load 0", "Before load 1", "Before load 2"],
+            "\(loadingDelivery.delivered.map(\.message))")
         print("PASS every banner posted before history finishes loading is delivered after it loads")
     }
 }

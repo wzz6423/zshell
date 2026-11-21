@@ -31,16 +31,16 @@ enum zshellApp {
         guard !defaults.bool(forKey: migrationKey) else { return }
 
         for key in defaults.dictionaryRepresentation().keys
-            where key.hasPrefix("NSWindow Frame main") {
+        where key.hasPrefix("NSWindow Frame main") {
             guard let savedFrame = defaults.string(forKey: key) else { continue }
             var components = savedFrame.split(whereSeparator: { $0 == " " || $0 == "\t" })
                 .map(String.init)
             guard components.count >= 4,
-                  let x = Double(components[0]),
-                  let width = Double(components[2]),
-                  let height = Double(components[3]),
-                  width == 900,
-                  height == 600
+                let x = Double(components[0]),
+                let width = Double(components[2]),
+                let height = Double(components[3]),
+                width == 900,
+                height == 600
             else { continue }
 
             components[0] = String(Int((x - 90).rounded()))
@@ -57,17 +57,17 @@ enum zshellApp {
         guard !defaults.bool(forKey: migrationKey) else { return }
 
         for key in defaults.dictionaryRepresentation().keys
-            where key.hasPrefix("NSWindow Frame main") {
+        where key.hasPrefix("NSWindow Frame main") {
             guard let savedFrame = defaults.string(forKey: key) else { continue }
             var components = savedFrame.split(whereSeparator: { $0 == " " || $0 == "\t" })
                 .map(String.init)
             guard components.count >= 4,
-                  let x = Double(components[0]),
-                  let y = Double(components[1]),
-                  let width = Double(components[2]),
-                  let height = Double(components[3]),
-                  width == 1080,
-                  height == 600
+                let x = Double(components[0]),
+                let y = Double(components[1]),
+                let width = Double(components[2]),
+                let height = Double(components[3]),
+                width == 1080,
+                height == 600
             else { continue }
 
             components[0] = String(Int((x - 90).rounded()))
@@ -104,8 +104,9 @@ final class ZshellWorkspaceWindowController: NSWindowController, NSWindowDelegat
         window.isMovableByWindowBackground = false
         window.collectionBehavior.insert(.fullScreenPrimary)
         window.delegate = self
-        let content = NSHostingView(rootView: ContentView(manager: manager)
-            .environment(\.locale, AppLocalization.current.locale))
+        let content = NSHostingView(
+            rootView: ContentView(manager: manager)
+                .environment(\.locale, AppLocalization.current.locale))
         window.contentView = content
         window.setContentSize(NSSize(width: 1260, height: 706))
         let frameName = "main-AppWindow-\(number)"

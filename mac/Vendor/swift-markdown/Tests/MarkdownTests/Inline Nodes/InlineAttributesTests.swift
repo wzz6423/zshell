@@ -24,7 +24,7 @@ class InlineAttributesTests: XCTestCase {
         XCTAssertEqual(newAttributes, newInlineAttributes.attributes)
         XCTAssertFalse(inlineAttributes.isIdentical(to: newInlineAttributes))
     }
-    
+
     func testInlineAttributesFromSequence() {
         let children = [Text("Hello, world!")]
         let inlineAttributes = InlineAttributes(attributes: "rainbow: 'extreme'", children)
@@ -34,7 +34,7 @@ class InlineAttributesTests: XCTestCase {
             """
         XCTAssertEqual(expectedDump, inlineAttributes.debugDescription())
     }
-    
+
     func testParseInlineAttributes() {
         let source = "^[Hello, world!](rainbow: 'extreme')"
         let document = Document(parsing: source)

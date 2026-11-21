@@ -16,7 +16,7 @@ import Foundation
 import Testing
 
 #if canImport(SwiftUI)
-import SwiftUI
+    import SwiftUI
 #endif
 
 // MARK: - Helpers
@@ -73,7 +73,7 @@ private func assertRangeInvariants(
         )
     }
     // Sorted and non-overlapping
-    for idx in 1..<ranges.count {
+    for idx in 1 ..< ranges.count {
         #expect(
             ranges[idx].lowerBound >= ranges[idx - 1].upperBound,
             "Ranges overlap or unsorted at index \(idx)",
@@ -397,7 +397,7 @@ private func assertRangeInvariants(
         ("café", "cafe"),
         ("cafe\u{0301}", "cafe"),
         ("file_browser", "fb"),
-        ("processUserInputData", "input")
+        ("processUserInputData", "input"),
     ]
     for (candidate, query) in testCases {
         if let ranges = matcher.highlight(candidate, against: query) {
@@ -505,12 +505,12 @@ private func assertRangeInvariants(
         "format:modern", "Bristol-Myers Squibb", "café", "debugging",
         "International Consolidated Airlines Group",
         "completely_unrelated_xyz", "file_browser", "processUserInputData",
-        "résumé", "naïve", "München", "España"
+        "résumé", "naïve", "München", "España",
     ]
 
     let queries = [
         "get", "user", "mod", "bms", "cafe", "xyz", "gubi", "icag",
-        "g", "fb", "input", "resume", "naive", "data"
+        "g", "fb", "input", "resume", "naive", "data",
     ]
 
     let matcher = FuzzyMatcher()
@@ -539,7 +539,7 @@ private func assertRangeInvariants(
     let candidates = [
         "getUserById", "setUser", "fetchData", "userService",
         "format:modern", "Bristol-Myers Squibb", "café", "debugging",
-        "file_browser", "processUserInputData", "fooXXXbar"
+        "file_browser", "processUserInputData", "fooXXXbar",
     ]
 
     let queries = ["get", "user", "mod", "cafe", "gubi", "fb", "input", "foo bar"]
@@ -575,7 +575,7 @@ private func assertRangeInvariants(
         ("format:modern", "mod", 3),
         ("Bristol-Myers Squibb", "bms", 3),
         ("User", "user", 4),
-        ("file_browser", "fb", 2)
+        ("file_browser", "fb", 2),
     ]
     for (candidate, query, expectedCharCount) in testCases {
         let ranges = matcher.highlight(candidate, against: query)!
@@ -594,7 +594,7 @@ private func assertRangeInvariants(
     let testCases: [(String, String, Int)] = [
         ("getUserById", "get", 3),
         ("format:modern", "mod", 3),
-        ("User", "user", 4)
+        ("User", "user", 4),
     ]
     for (candidate, query, expectedCharCount) in testCases {
         let ranges = matcher.highlight(candidate, against: query)!
@@ -824,7 +824,7 @@ private func assertRangeInvariants(
     let noMatchCases: [(String, String)] = [
         ("getUserById", "xyz"),
         ("hello", "zzz"),
-        ("short", "muchlongerquery")
+        ("short", "muchlongerquery"),
     ]
     for (candidate, queryStr) in noMatchCases {
         let query = matcher.prepare(queryStr)
@@ -844,7 +844,7 @@ private func assertRangeInvariants(
     let noMatchCases: [(String, String)] = [
         ("getUserById", "zzz"),
         ("hello", "xyz"),
-        ("short", "muchlongerquery")
+        ("short", "muchlongerquery"),
     ]
     for (candidate, queryStr) in noMatchCases {
         let query = matcher.prepare(queryStr)
@@ -1072,8 +1072,9 @@ private func assertRangeInvariants(
     let candidate = "fileName"
     let ranges = matcher.highlight(candidate, against: "ifle")!
     // Must include position 0 ("f")
-    #expect(ranges.first!.lowerBound == candidate.startIndex,
-            "Prefix typo highlight must start at position 0")
+    #expect(
+        ranges.first!.lowerBound == candidate.startIndex,
+        "Prefix typo highlight must start at position 0")
     assertRangeInvariants(candidate, ranges: ranges)
     assertHighlightedCharsMatchQuery(candidate, ranges: ranges, query: "ifle")
 }
@@ -1084,8 +1085,9 @@ private func assertRangeInvariants(
     let matcher = FuzzyMatcher()
     let candidate = "Market"
     let ranges = matcher.highlight(candidate, against: "amrket")!
-    #expect(ranges.first!.lowerBound == candidate.startIndex,
-            "Prefix typo highlight must start at position 0")
+    #expect(
+        ranges.first!.lowerBound == candidate.startIndex,
+        "Prefix typo highlight must start at position 0")
     assertRangeInvariants(candidate, ranges: ranges)
 }
 
@@ -1129,7 +1131,9 @@ private func assertRangeInvariants(
 // All candidates use the exact strings from the issue (including ! and " prefixes).
 // minScore: 0.85 with default edit distance configuration.
 
-@Test(.disabled("ED mode treats multi-word queries as a single token — word-aligned highlight would require per-word splitting like SW atoms"))
+@Test(
+    .disabled("ED mode treats multi-word queries as a single token — word-aligned highlight would require per-word splitting like SW atoms")
+)
 func issue16_jiangWild_highlightsCorrectWords() {
     // ED mode matches "jiang wild" as one 10-char substring, not two words.
     // The subsequence DP scatters "j-i-a-n-g" across the best-scoring positions
@@ -1162,7 +1166,10 @@ func issue16_jiangWild_highlightsCorrectWords() {
     }
 }
 
-@Test(.disabled("Not a highlight bug — scorer rejects at minScore 0.85 (score=0.718, kind=prefix). Length penalty on longer candidate pushes score below threshold."))
+@Test(
+    .disabled(
+        "Not a highlight bug — scorer rejects at minScore 0.85 (score=0.718, kind=prefix). Length penalty on longer candidate pushes score below threshold."
+    ))
 func issue16_goldhound_gopldTypo_shouldNotBeNil() {
     let config = MatchConfig(minScore: 0.85)
     let matcher = FuzzyMatcher(config: config)
@@ -1188,7 +1195,10 @@ func issue16_goliathPaladin_gopldTypo_shouldNotBeNil() {
     }
 }
 
-@Test(.disabled("Not a highlight bug — scorer rejects at minScore 0.85 (score=0.807, kind=prefix). User saw modaldf on an earlier build where scoring differed."))
+@Test(
+    .disabled(
+        "Not a highlight bug — scorer rejects at minScore 0.85 (score=0.807, kind=prefix). User saw modaldf on an earlier build where scoring differed."
+    ))
 func issue16_modaldfc_modalek_highlightsOnlyModal() {
     let config = MatchConfig(minScore: 0.85)
     let matcher = FuzzyMatcher(config: config)
@@ -1228,8 +1238,9 @@ func issue16_modaldfc_modalek_highlightsOnlyModal() {
     #expect(ranges != nil, "stained-glass should match sayined glass")
     if let ranges {
         let texts = highlightedText(candidate, ranges: ranges)
-        #expect(texts == ["stained-glass"] || texts == ["s", "ained-glass"],
-                "Expected plausible highlight, got \(texts)")
+        #expect(
+            texts == ["stained-glass"] || texts == ["s", "ained-glass"],
+            "Expected plausible highlight, got \(texts)")
         assertRangeInvariants(candidate, ranges: ranges)
     }
 }
@@ -1292,126 +1303,126 @@ func issue16_modaldfc_modalek_highlightsOnlyModal() {
 
 #if canImport(Foundation)
 
-/// Test-only attribute key — portable across all Foundation platforms.
-private enum HighlightMarker: AttributedStringKey {
-    typealias Value = Bool
-    static let name = "testHighlightMarker"
-}
-
-@Test func attributedHighlightBasicMatch() {
-    let matcher = FuzzyMatcher()
-    let query = matcher.prepare("mod")
-    let result = matcher.attributedHighlight("format:modern", against: query) {
-        $0[HighlightMarker.self] = true
+    /// Test-only attribute key — portable across all Foundation platforms.
+    private enum HighlightMarker: AttributedStringKey {
+        typealias Value = Bool
+        static let name = "testHighlightMarker"
     }
-    #expect(result != nil, "Should return an AttributedString for a match")
-    if let result {
-        #expect(String(result.characters) == "format:modern")
-        // Verify the styled run covers "mod"
-        for run in result.runs {
-            let text = String(result[run.range].characters)
-            if text == "mod" {
-                #expect(run[HighlightMarker.self] == true)
-            } else {
-                #expect(run[HighlightMarker.self] != true)
+
+    @Test func attributedHighlightBasicMatch() {
+        let matcher = FuzzyMatcher()
+        let query = matcher.prepare("mod")
+        let result = matcher.attributedHighlight("format:modern", against: query) {
+            $0[HighlightMarker.self] = true
+        }
+        #expect(result != nil, "Should return an AttributedString for a match")
+        if let result {
+            #expect(String(result.characters) == "format:modern")
+            // Verify the styled run covers "mod"
+            for run in result.runs {
+                let text = String(result[run.range].characters)
+                if text == "mod" {
+                    #expect(run[HighlightMarker.self] == true)
+                } else {
+                    #expect(run[HighlightMarker.self] != true)
+                }
             }
         }
     }
-}
 
-@Test func attributedHighlightNilOnNoMatch() {
-    let matcher = FuzzyMatcher()
-    let result = matcher.attributedHighlight("abc", against: "xyz") {
-        $0[HighlightMarker.self] = true
-    }
-    #expect(result == nil)
-}
-
-@Test func attributedHighlightDisjointRanges() {
-    // "modrn" vs "format:modern" — missing 'e' produces two ranges: "mod" + "rn"
-    let matcher = FuzzyMatcher()
-    let result = matcher.attributedHighlight("format:modern", against: "modrn") {
-        $0[HighlightMarker.self] = true
-    }
-    #expect(result != nil)
-    if let result {
-        var styledParts: [String] = []
-        for run in result.runs {
-            if run[HighlightMarker.self] == true {
-                styledParts.append(String(result[run.range].characters))
-            }
+    @Test func attributedHighlightNilOnNoMatch() {
+        let matcher = FuzzyMatcher()
+        let result = matcher.attributedHighlight("abc", against: "xyz") {
+            $0[HighlightMarker.self] = true
         }
-        #expect(styledParts == ["mod", "rn"])
+        #expect(result == nil)
     }
-}
 
-@Test func attributedHighlightEmptyQuery() {
-    let matcher = FuzzyMatcher()
-    let query = matcher.prepare("")
-    let result = matcher.attributedHighlight("hello", against: query) {
-        $0[HighlightMarker.self] = true
-    }
-    // Empty query returns empty ranges from highlight(), which means an unstyled AttributedString
-    #expect(result != nil)
-    if let result {
-        #expect(String(result.characters) == "hello")
-    }
-}
-
-@Test func attributedHighlightConvenienceOverload() {
-    let matcher = FuzzyMatcher()
-    let result = matcher.attributedHighlight("getUserById", against: "getuser") {
-        $0[HighlightMarker.self] = true
-    }
-    #expect(result != nil)
-    if let result {
-        #expect(String(result.characters) == "getUserById")
-    }
-}
-
-// MARK: - SwiftUI-specific AttributedString tests (Apple platforms only)
-
-#if canImport(SwiftUI)
-
-@Test func attributedHighlightSwiftUIForegroundColor() {
-    let matcher = FuzzyMatcher()
-    let result = matcher.attributedHighlight("format:modern", against: "mod") {
-        $0.foregroundColor = .orange
-    }
-    #expect(result != nil)
-    if let result {
-        for run in result.runs {
-            let text = String(result[run.range].characters)
-            if text == "mod" {
-                #expect(run.foregroundColor == .orange)
-            } else {
-                #expect(run.foregroundColor == nil)
+    @Test func attributedHighlightDisjointRanges() {
+        // "modrn" vs "format:modern" — missing 'e' produces two ranges: "mod" + "rn"
+        let matcher = FuzzyMatcher()
+        let result = matcher.attributedHighlight("format:modern", against: "modrn") {
+            $0[HighlightMarker.self] = true
+        }
+        #expect(result != nil)
+        if let result {
+            var styledParts: [String] = []
+            for run in result.runs {
+                if run[HighlightMarker.self] == true {
+                    styledParts.append(String(result[run.range].characters))
+                }
             }
+            #expect(styledParts == ["mod", "rn"])
         }
     }
-}
 
-@Test func attributedHighlightSwiftUIMultipleAttributes() {
-    let matcher = FuzzyMatcher()
-    let result = matcher.attributedHighlight("getUserById", against: "get") {
-        $0.foregroundColor = .red
-        $0.underlineStyle = .single
-    }
-    #expect(result != nil)
-    if let result {
-        for run in result.runs {
-            let text = String(result[run.range].characters)
-            if text == "get" {
-                #expect(run.foregroundColor == .red)
-                #expect(run.underlineStyle == .single)
-            } else {
-                #expect(run.foregroundColor == nil)
-                #expect(run.underlineStyle == nil)
-            }
+    @Test func attributedHighlightEmptyQuery() {
+        let matcher = FuzzyMatcher()
+        let query = matcher.prepare("")
+        let result = matcher.attributedHighlight("hello", against: query) {
+            $0[HighlightMarker.self] = true
+        }
+        // Empty query returns empty ranges from highlight(), which means an unstyled AttributedString
+        #expect(result != nil)
+        if let result {
+            #expect(String(result.characters) == "hello")
         }
     }
-}
 
-#endif // canImport(SwiftUI)
+    @Test func attributedHighlightConvenienceOverload() {
+        let matcher = FuzzyMatcher()
+        let result = matcher.attributedHighlight("getUserById", against: "getuser") {
+            $0[HighlightMarker.self] = true
+        }
+        #expect(result != nil)
+        if let result {
+            #expect(String(result.characters) == "getUserById")
+        }
+    }
+
+    // MARK: - SwiftUI-specific AttributedString tests (Apple platforms only)
+
+    #if canImport(SwiftUI)
+
+        @Test func attributedHighlightSwiftUIForegroundColor() {
+            let matcher = FuzzyMatcher()
+            let result = matcher.attributedHighlight("format:modern", against: "mod") {
+                $0.foregroundColor = .orange
+            }
+            #expect(result != nil)
+            if let result {
+                for run in result.runs {
+                    let text = String(result[run.range].characters)
+                    if text == "mod" {
+                        #expect(run.foregroundColor == .orange)
+                    } else {
+                        #expect(run.foregroundColor == nil)
+                    }
+                }
+            }
+        }
+
+        @Test func attributedHighlightSwiftUIMultipleAttributes() {
+            let matcher = FuzzyMatcher()
+            let result = matcher.attributedHighlight("getUserById", against: "get") {
+                $0.foregroundColor = .red
+                $0.underlineStyle = .single
+            }
+            #expect(result != nil)
+            if let result {
+                for run in result.runs {
+                    let text = String(result[run.range].characters)
+                    if text == "get" {
+                        #expect(run.foregroundColor == .red)
+                        #expect(run.underlineStyle == .single)
+                    } else {
+                        #expect(run.foregroundColor == nil)
+                        #expect(run.underlineStyle == nil)
+                    }
+                }
+            }
+        }
+
+    #endif // canImport(SwiftUI)
 
 #endif // canImport(Foundation)

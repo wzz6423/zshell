@@ -23,9 +23,10 @@ nonisolated enum AgentConversationBinding {
         var visited = Set<Int32>()
         var current = reporterPID
         var agent: (pid: Int32, group: Int32)?
-        for _ in 0..<64 {
+        for _ in 0 ..< 64 {
             guard current > 1, visited.insert(current).inserted,
-                  let evidence = process(current) else { return nil }
+                let evidence = process(current)
+            else { return nil }
             guard !evidence.isSharedService else { return nil }
             if let detected = evidence.provider {
                 guard detected == provider else { return nil }
@@ -33,14 +34,15 @@ nonisolated enum AgentConversationBinding {
                     // The official npm launcher waits for its native Codex
                     // child in the same job. A nested CLI is a different root.
                     guard evidence.isProviderLauncher,
-                          evidence.groupID == agent.group else { return nil }
+                        evidence.groupID == agent.group
+                    else { return nil }
                 } else {
                     agent = (current, evidence.groupID)
                 }
             }
             if current == shellPID {
                 guard let agent,
-                      agent.pid == foregroundPID || agent.group == foregroundPID
+                    agent.pid == foregroundPID || agent.group == foregroundPID
                 else { return nil }
                 return agent.pid
             }
@@ -60,12 +62,14 @@ nonisolated enum AgentConversationBinding {
         process: (Int32) -> ProcessEvidence?
     ) -> Int32? {
         guard let peerPID, peerPID > 1,
-              reporterPID == peerPID || process(peerPID)?.parentPID == reporterPID else { return nil }
+            reporterPID == peerPID || process(peerPID)?.parentPID == reporterPID
+        else { return nil }
         var current = peerPID
         var visited = Set<Int32>()
-        for _ in 0..<64 {
+        for _ in 0 ..< 64 {
             guard current > 1, visited.insert(current).inserted,
-                  let evidence = process(current) else { return nil }
+                let evidence = process(current)
+            else { return nil }
             if evidence.isSharedService {
                 return evidence.provider == .codex ? current : nil
             }
@@ -78,8 +82,9 @@ nonisolated enum AgentConversationBinding {
 
     static func isCodexLauncher(executablePath: String?, arguments: [String]) -> Bool {
         guard let executablePath,
-              ["node", "nodejs", "bun"].contains((executablePath as NSString).lastPathComponent),
-              arguments.count >= 2 else { return false }
+            ["node", "nodejs", "bun"].contains((executablePath as NSString).lastPathComponent),
+            arguments.count >= 2
+        else { return false }
         let script = URL(fileURLWithPath: arguments[1]).resolvingSymlinksInPath().path
         return script.hasSuffix("/@openai/codex/bin/codex.js")
     }
@@ -93,7 +98,7 @@ nonisolated enum AgentConversationBinding {
         process: (Int32) -> ProcessEvidence?
     ) -> Int32? {
         guard let peerPID, peerPID > 1,
-              reporterPID == peerPID || process(peerPID)?.parentPID == reporterPID
+            reporterPID == peerPID || process(peerPID)?.parentPID == reporterPID
         else { return nil }
         // Start at the kernel-owned peer, including any inherited-capability
         // subagent between it and the claimed reporter.
@@ -121,9 +126,10 @@ nonisolated struct CodexTitleSessionEvidence: Equatable {
 
     init?(title: String) {
         guard title.utf8.count <= 4_096,
-              !title.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
+            !title.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
         else { return nil }
-        let pattern = "(?<![0-9A-Fa-f-])[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-(?:[0-9A-Fa-f]{12}|[0-9A-Fa-f]{5}\\.\\.\\.)(?![0-9A-Fa-f.-])"
+        let pattern =
+            "(?<![0-9A-Fa-f-])[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-(?:[0-9A-Fa-f]{12}|[0-9A-Fa-f]{5}\\.\\.\\.)(?![0-9A-Fa-f.-])"
         guard let expression = try? NSRegularExpression(pattern: pattern) else { return nil }
         let matches = expression.matches(in: title, range: NSRange(title.startIndex..., in: title))
         guard matches.count == 1, let range = Range(matches[0].range, in: title) else { return nil }
@@ -132,9 +138,13 @@ nonisolated struct CodexTitleSessionEvidence: Equatable {
         sessionPrefix = token.hasSuffix("...") ? String(token.dropLast(3)) : token
         var leading = String(title[..<range.lowerBound])
         var trailing = String(title[range.upperBound...])
-        if leading.hasSuffix(" | ") { leading.removeLast(3) }
-        else if trailing.hasPrefix(" | ") { trailing.removeFirst(3) }
-        else if leading.hasSuffix(" ") { leading.removeLast() }
+        if leading.hasSuffix(" | ") {
+            leading.removeLast(3)
+        } else if trailing.hasPrefix(" | ") {
+            trailing.removeFirst(3)
+        } else if leading.hasSuffix(" ") {
+            leading.removeLast()
+        }
         titleWithoutSessionID = (leading + trailing).trimmingCharacters(in: .whitespaces)
     }
 

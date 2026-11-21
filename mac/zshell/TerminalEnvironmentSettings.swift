@@ -51,7 +51,7 @@ nonisolated struct TerminalLaunchSettings: Codable, Equatable {
 
     static func isValidEnvironmentVariableName(_ name: String) -> Bool {
         guard let first = name.unicodeScalars.first,
-              first == "_" || CharacterSet.letters.contains(first)
+            first == "_" || CharacterSet.letters.contains(first)
         else { return false }
         return name.unicodeScalars.dropFirst().allSatisfy {
             $0 == "_" || CharacterSet.alphanumerics.contains($0)
@@ -61,8 +61,8 @@ nonisolated struct TerminalLaunchSettings: Codable, Equatable {
     static func isValidTermName(_ name: String) -> Bool {
         guard !name.isEmpty, name.utf8.count <= 128 else { return false }
         return name.utf8.allSatisfy {
-            (65...90).contains($0) || (97...122).contains($0)
-                || (48...57).contains($0) || [45, 46, 95, 43].contains($0)
+            (65 ... 90).contains($0) || (97 ... 122).contains($0)
+                || (48 ... 57).contains($0) || [45, 46, 95, 43].contains($0)
         }
     }
 
@@ -70,9 +70,10 @@ nonisolated struct TerminalLaunchSettings: Codable, Equatable {
     /// capabilities. Letting persisted user input replace them would break
     /// shell integration or grant one terminal another terminal's authority.
     static func isProtectedEnvironmentVariable(_ name: String) -> Bool {
-        name.hasPrefix("ZSHELL_") || [
-            "TERM", "COLORTERM", "TERM_PROGRAM", "TERM_PROGRAM_VERSION",
-        ].contains(name)
+        name.hasPrefix("ZSHELL_")
+            || [
+                "TERM", "COLORTERM", "TERM_PROGRAM", "TERM_PROGRAM_VERSION",
+            ].contains(name)
     }
 }
 

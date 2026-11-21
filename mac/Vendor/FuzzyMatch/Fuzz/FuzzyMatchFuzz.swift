@@ -42,13 +42,13 @@ private func parseInput(_ start: UnsafeRawPointer, _ count: Int) -> (String, Str
     // Map raw bytes to printable ASCII to avoid invalid UTF-8
     var queryChars = [Character]()
     queryChars.reserveCapacity(splitPoint)
-    for i in 0..<splitPoint {
+    for i in 0 ..< splitPoint {
         queryChars.append(Character(UnicodeScalar(32 + (Int(data[i + 2]) % 95))!))
     }
 
     var candidateChars = [Character]()
     candidateChars.reserveCapacity(stringCount - splitPoint)
-    for i in splitPoint..<stringCount {
+    for i in splitPoint ..< stringCount {
         candidateChars.append(Character(UnicodeScalar(32 + (Int(data[i + 2]) % 95))!))
     }
 
@@ -59,7 +59,7 @@ private func parseInput(_ start: UnsafeRawPointer, _ count: Int) -> (String, Str
 
 private let configs: [MatchConfig] = [
     // Edit distance configs (indices 0-4)
-    MatchConfig(),                                                        // ED: default
+    MatchConfig(), // ED: default
     MatchConfig(minScore: 0.0, algorithm: .editDistance(EditDistanceConfig(maxEditDistance: 0))), // ED: exact only
     MatchConfig(minScore: 0.5, algorithm: .editDistance(EditDistanceConfig(maxEditDistance: 1))), // ED: strict
     MatchConfig(minScore: 0.0, algorithm: .editDistance(EditDistanceConfig(maxEditDistance: 3))), // ED: lenient
@@ -70,13 +70,15 @@ private let configs: [MatchConfig] = [
     ),
 
     // Smith-Waterman configs (indices 5-9)
-    .smithWaterman,                                                       // SW: default
-    MatchConfig(minScore: 0.0, algorithm: .smithWaterman()),              // SW: lenient
-    MatchConfig(minScore: 0.5, algorithm: .smithWaterman()),              // SW: strict
-    MatchConfig(algorithm: .smithWaterman(                                // SW: high gap penalty
-        SmithWatermanConfig(penaltyGapStart: 8, penaltyGapExtend: 4))),
-    MatchConfig(algorithm: .smithWaterman(                                // SW: no space splitting
-        SmithWatermanConfig(splitSpaces: false))),
+    .smithWaterman, // SW: default
+    MatchConfig(minScore: 0.0, algorithm: .smithWaterman()), // SW: lenient
+    MatchConfig(minScore: 0.5, algorithm: .smithWaterman()), // SW: strict
+    MatchConfig(
+        algorithm: .smithWaterman( // SW: high gap penalty
+            SmithWatermanConfig(penaltyGapStart: 8, penaltyGapExtend: 4))),
+    MatchConfig(
+        algorithm: .smithWaterman( // SW: no space splitting
+            SmithWatermanConfig(splitSpaces: false))),
 ]
 
 // MARK: - Fuzz entry point
@@ -99,18 +101,21 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
     if let match = result {
         precondition(match.score >= 0.0, "Score \(match.score) < 0.0")
         precondition(match.score <= 1.0, "Score \(match.score) > 1.0")
-        precondition(match.score >= config.minScore,
-                     "Score \(match.score) < minScore \(config.minScore)")
+        precondition(
+            match.score >= config.minScore,
+            "Score \(match.score) < minScore \(config.minScore)")
     }
 
     // ── INVARIANT 3: Self-match scores 1.0 ──
     if !query.isEmpty {
         let selfResult = matcher.score(query, against: prepared, buffer: &buffer)
         if let r = selfResult {
-            precondition(r.score == 1.0,
-                         "Self-match scored \(r.score), expected 1.0 for \"\(query)\"")
-            precondition(r.kind == .exact,
-                         "Self-match kind \(r.kind), expected .exact")
+            precondition(
+                r.score == 1.0,
+                "Self-match scored \(r.score), expected 1.0 for \"\(query)\"")
+            precondition(
+                r.kind == .exact,
+                "Self-match kind \(r.kind), expected .exact")
         }
         // selfResult could be nil only if prefilters erroneously reject
         // self-match — which would also be a bug caught by the crash invariant
@@ -121,19 +126,23 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
     let emptyPrepared = matcher.prepare("")
     let emptyResult = matcher.score(candidate, against: emptyPrepared, buffer: &buffer)
     precondition(emptyResult != nil, "Empty query returned nil for candidate")
-    precondition(emptyResult!.score == 1.0,
-                 "Empty query scored \(emptyResult!.score), expected 1.0")
+    precondition(
+        emptyResult!.score == 1.0,
+        "Empty query scored \(emptyResult!.score), expected 1.0")
 
     // ── INVARIANT 5: Buffer reuse consistency ──
     let result2 = matcher.score(candidate, against: prepared, buffer: &buffer)
     if let first = result, let second = result2 {
-        precondition(first.score == second.score,
-                     "Buffer reuse: \(first.score) != \(second.score)")
-        precondition(first.kind == second.kind,
-                     "Buffer reuse: \(first.kind) != \(second.kind)")
+        precondition(
+            first.score == second.score,
+            "Buffer reuse: \(first.score) != \(second.score)")
+        precondition(
+            first.kind == second.kind,
+            "Buffer reuse: \(first.kind) != \(second.kind)")
     } else {
-        precondition((result == nil) == (result2 == nil),
-                     "Buffer reuse: nil mismatch")
+        precondition(
+            (result == nil) == (result2 == nil),
+            "Buffer reuse: nil mismatch")
     }
 
     // Note: No symmetry invariant for same-length strings. Prefix edit distance

@@ -35,11 +35,14 @@ nonisolated enum RemoteSessionRelay {
     }
 
     private static func validateConfiguration(_ url: URL) throws {
-        for (path, type, permissions) in [(url.path, mode_t(S_IFREG), mode_t(0o600)),
-                                           (url.deletingLastPathComponent().path, mode_t(S_IFDIR), mode_t(0o700))] {
+        for (path, type, permissions) in [
+            (url.path, mode_t(S_IFREG), mode_t(0o600)),
+            (url.deletingLastPathComponent().path, mode_t(S_IFDIR), mode_t(0o700)),
+        ] {
             var metadata = stat()
             guard lstat(path, &metadata) == 0, metadata.st_mode & mode_t(S_IFMT) == type,
-                  metadata.st_uid == geteuid(), metadata.st_mode & 0o777 == permissions else {
+                metadata.st_uid == geteuid(), metadata.st_mode & 0o777 == permissions
+            else {
                 throw RemoteHostError.message("Remote relay configuration must be private and owned by this user.")
             }
         }
@@ -77,8 +80,11 @@ nonisolated enum RemoteSessionRelay {
             if controls.paused {
                 status.state = .detached
                 try writeStatus(status, to: statusURL)
-                guard try idle(until: Date().addingTimeInterval(0.2), output: &output,
-                               controlURL: controlURL, controls: &controls) else { return 0 }
+                guard
+                    try idle(
+                        until: Date().addingTimeInterval(0.2), output: &output,
+                        controlURL: controlURL, controls: &controls)
+                else { return 0 }
                 continue
             }
             status.state = .connecting
@@ -90,29 +96,33 @@ nonisolated enum RemoteSessionRelay {
                 transport = connection
                 try connection.handshake()
                 if shouldCreate {
-                    _ = try connection.exchange(RemoteFrame(
-                        kind: "create", project: configuration.project,
-                        sessionId: configuration.sessionID.uuidString,
-                        command: configuration.command, environment: configuration.environment,
-                        initializationCommand: configuration.initializationCommand,
-                        shellCompletions: configuration.shellCompletions
-                    )).decodedResult(RemoteSessionInfo.self)
+                    _ = try connection.exchange(
+                        RemoteFrame(
+                            kind: "create", project: configuration.project,
+                            sessionId: configuration.sessionID.uuidString,
+                            command: configuration.command, environment: configuration.environment,
+                            initializationCommand: configuration.initializationCommand,
+                            shellCompletions: configuration.shellCompletions
+                        )
+                    ).decodedResult(RemoteSessionInfo.self)
                     shouldCreate = false
                 }
                 let size = dimensions()
-                let attached = try connection.exchange(RemoteFrame(
-                    kind: "attach", project: configuration.project,
-                    sessionId: configuration.sessionID.uuidString,
-                    clientId: configuration.clientID.uuidString.lowercased(),
-                    columns: size.columns, rows: size.rows
-                ))
+                let attached = try connection.exchange(
+                    RemoteFrame(
+                        kind: "attach", project: configuration.project,
+                        sessionId: configuration.sessionID.uuidString,
+                        clientId: configuration.clientID.uuidString.lowercased(),
+                        columns: size.columns, rows: size.rows
+                    ))
                 status = updatedStatus(status, from: try attached.decodedResult(RemoteSessionInfo.self))
                 try writeStatus(status, to: statusURL)
                 failures = 0
                 try nonblocking(connection.input)
                 if connection.input != connection.output { try nonblocking(connection.output) }
-                let result = try pump(connection, output: &output, status: &status, statusURL: statusURL,
-                                      controlURL: controlURL, controls: &controls)
+                let result = try pump(
+                    connection, output: &output, status: &status, statusURL: statusURL,
+                    controlURL: controlURL, controls: &controls)
                 connection.close()
                 transport = nil
                 if let result {
@@ -126,14 +136,19 @@ nonisolated enum RemoteSessionRelay {
                 try writeStatus(status, to: statusURL)
                 failures = min(failures + 1, 4)
                 let delay = controls.reconnect || controls.wake ? 0.0 : min(15.0, pow(2, Double(failures - 1)))
-                guard try idle(until: Date().addingTimeInterval(delay), output: &output,
-                               controlURL: controlURL, controls: &controls) else { return 0 }
+                guard
+                    try idle(
+                        until: Date().addingTimeInterval(delay), output: &output,
+                        controlURL: controlURL, controls: &controls)
+                else { return 0 }
             }
         }
     }
 
-    private static func pump(_ transport: RemoteHostTransport, output: inout Data, status: inout RemoteRelayStatus,
-                             statusURL: URL, controlURL: URL, controls: inout Controls) throws -> Int32? {
+    private static func pump(
+        _ transport: RemoteHostTransport, output: inout Data, status: inout RemoteRelayStatus,
+        statusURL: URL, controlURL: URL, controls: inout Controls
+    ) throws -> Int32? {
         var incoming = Data()
         var outgoing = Data()
         var exited: Int32?
@@ -187,9 +202,13 @@ nonisolated enum RemoteSessionRelay {
                 lastHeartbeat = now
             }
             var descriptors = [
-                pollfd(fd: transport.output, events: Int16(exited == nil && output.count < PTYMuxConstants.maximumSnapshotBytes ? POLLIN : 0), revents: 0),
+                pollfd(
+                    fd: transport.output, events: Int16(exited == nil && output.count < PTYMuxConstants.maximumSnapshotBytes ? POLLIN : 0),
+                    revents: 0),
                 pollfd(fd: transport.input, events: Int16(!outgoing.isEmpty ? POLLOUT : 0), revents: 0),
-                pollfd(fd: STDIN_FILENO, events: Int16(exited == nil && outgoing.count < PTYMuxConstants.maximumBacklogBytes ? POLLIN : 0), revents: 0),
+                pollfd(
+                    fd: STDIN_FILENO, events: Int16(exited == nil && outgoing.count < PTYMuxConstants.maximumBacklogBytes ? POLLIN : 0),
+                    revents: 0),
                 pollfd(fd: STDOUT_FILENO, events: Int16(!output.isEmpty ? POLLOUT : 0), revents: 0),
             ]
             let ready = Darwin.poll(&descriptors, nfds_t(descriptors.count), 100)
@@ -203,7 +222,8 @@ nonisolated enum RemoteSessionRelay {
                         if let error = frame.error { throw RemoteHostError.message(error) }
                         if frame.kind == "snapshot" || frame.kind == "output" {
                             guard let text = frame.data, let bytes = Data(base64Encoded: text),
-                                  output.count + bytes.count <= PTYMuxConstants.maximumSnapshotBytes + PTYMuxConstants.maximumBacklogBytes else {
+                                output.count + bytes.count <= PTYMuxConstants.maximumSnapshotBytes + PTYMuxConstants.maximumBacklogBytes
+                            else {
                                 throw RemoteHostError.message("Remote terminal output exceeds its memory limit.")
                             }
                             output.append(bytes)
@@ -229,8 +249,11 @@ nonisolated enum RemoteSessionRelay {
                             try writeStatus(status, to: statusURL)
                         }
                     }
-                } else if count == 0 { throw RemoteHostError.message(String(localized: "The remote connection closed.")) }
-                else if errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK { throw PTYMuxWire.errnoError("read") }
+                } else if count == 0 {
+                    throw RemoteHostError.message(String(localized: "The remote connection closed."))
+                } else if errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK {
+                    throw PTYMuxWire.errnoError("read")
+                }
             }
             if descriptors[2].revents & Int16(POLLIN | POLLHUP) != 0, exited == nil {
                 let count = Darwin.read(STDIN_FILENO, &buffer, buffer.count)
@@ -243,16 +266,22 @@ nonisolated enum RemoteSessionRelay {
                     if !controls.paused && !controls.reconnect {
                         try enqueue(RemoteFrame(kind: "input", data: Data(buffer.prefix(count)).base64EncodedString()), into: &outgoing)
                     }
-                } else if errno != EINTR && errno != EAGAIN { status.state = .detached; return 0 }
+                } else if errno != EINTR && errno != EAGAIN {
+                    status.state = .detached; return 0
+                }
             }
             if descriptors[1].revents & Int16(POLLOUT) != 0 { try flush(&outgoing, to: transport.input) }
             if descriptors[3].revents & Int16(POLLOUT) != 0 { try flush(&output, to: STDOUT_FILENO) }
             if descriptors[0].revents & Int16(POLLERR | POLLNVAL) != 0
-                || descriptors[1].revents & Int16(POLLERR | POLLNVAL) != 0 {
+                || descriptors[1].revents & Int16(POLLERR | POLLNVAL) != 0
+            {
                 throw RemoteHostError.message(String(localized: "The remote connection closed."))
             }
             if descriptors[2].revents & Int16(POLLERR | POLLNVAL) != 0
-                || descriptors[3].revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0 { status.state = .detached; return 0 }
+                || descriptors[3].revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0
+            {
+                status.state = .detached; return 0
+            }
             // 先排空已到达的回复，避免调度停顿把健康连接误判成超时。
             let checkedAt = clock.now
             if lastIteration.duration(to: checkedAt) > .seconds(1) { continue }
@@ -271,8 +300,10 @@ nonisolated enum RemoteSessionRelay {
         repeat {
             readControls(controlURL, into: &controls)
             if controls.reconnect || controls.wake && !controls.paused { return true }
-            var descriptors = [pollfd(fd: STDIN_FILENO, events: Int16(POLLIN), revents: 0),
-                               pollfd(fd: STDOUT_FILENO, events: Int16(!output.isEmpty ? POLLOUT : 0), revents: 0)]
+            var descriptors = [
+                pollfd(fd: STDIN_FILENO, events: Int16(POLLIN), revents: 0),
+                pollfd(fd: STDOUT_FILENO, events: Int16(!output.isEmpty ? POLLOUT : 0), revents: 0),
+            ]
             let ready = Darwin.poll(&descriptors, 2, 100)
             if ready < 0, errno != EINTR { throw PTYMuxWire.errnoError("poll") }
             if descriptors[0].revents & Int16(POLLIN | POLLHUP) != 0 {
@@ -284,14 +315,18 @@ nonisolated enum RemoteSessionRelay {
             }
             if descriptors[1].revents & Int16(POLLOUT) != 0 { try flush(&output, to: STDOUT_FILENO) }
             if descriptors[0].revents & Int16(POLLERR | POLLNVAL) != 0
-                || descriptors[1].revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0 { return false }
+                || descriptors[1].revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0
+            {
+                return false
+            }
         } while Date() < deadline
         return true
     }
 
     private static func readControls(_ url: URL, into controls: inout Controls) {
         guard let bytes = try? Data(contentsOf: url), bytes.count < 8192,
-              let command = try? JSONDecoder().decode(RemoteRelayControl.self, from: bytes) else { return }
+            let command = try? JSONDecoder().decode(RemoteRelayControl.self, from: bytes)
+        else { return }
         if command.sequence > controls.sequence {
             controls.sequence = command.sequence
             switch command.action {
@@ -309,11 +344,12 @@ nonisolated enum RemoteSessionRelay {
     }
 
     private static func updatedStatus(_ previous: RemoteRelayStatus, from info: RemoteSessionInfo) -> RemoteRelayStatus {
-        RemoteRelayStatus(state: info.running ? .connected : .exited, relayPID: previous.relayPID,
-                          remotePID: info.pid, exitCode: info.exitCode,
-                          clients: info.clientCount, activeClientID: info.activeClientId,
-                          agentStatus: info.agentStatus, conversation: info.conversation,
-                          sessionCommand: info.command, profileContext: info.profileContext)
+        RemoteRelayStatus(
+            state: info.running ? .connected : .exited, relayPID: previous.relayPID,
+            remotePID: info.pid, exitCode: info.exitCode,
+            clients: info.clientCount, activeClientID: info.activeClientId,
+            agentStatus: info.agentStatus, conversation: info.conversation,
+            sessionCommand: info.command, profileContext: info.profileContext)
     }
 
     private static func writeStatus(_ status: RemoteRelayStatus, to url: URL) throws {
@@ -335,7 +371,8 @@ nonisolated enum RemoteSessionRelay {
     private static func enqueue(_ frame: RemoteFrame, into data: inout Data) throws {
         let bytes = try JSONEncoder().encode(frame)
         guard bytes.count <= PTYMuxConstants.maximumFrameBytes,
-              data.count + bytes.count + 4 <= PTYMuxConstants.maximumBacklogBytes else {
+            data.count + bytes.count + 4 <= PTYMuxConstants.maximumBacklogBytes
+        else {
             throw RemoteHostError.message("Remote terminal input exceeds its memory limit.")
         }
         var length = UInt32(bytes.count).bigEndian
@@ -349,7 +386,9 @@ nonisolated enum RemoteSessionRelay {
         guard count > 0, count <= PTYMuxConstants.maximumFrameBytes else { throw RemoteHostError.message("Remote frame exceeds 256 KiB.") }
         guard data.count >= 4 + count else { return nil }
         let frame = try JSONDecoder().decode(RemoteFrame.self, from: Data(data.dropFirst(4).prefix(count)))
-        guard frame.version == 1 else { throw RemoteHostError.message(String(localized: "The remote server uses an incompatible protocol.")) }
+        guard frame.version == 1 else {
+            throw RemoteHostError.message(String(localized: "The remote server uses an incompatible protocol."))
+        }
         data.removeFirst(4 + count)
         return frame
     }
@@ -357,7 +396,10 @@ nonisolated enum RemoteSessionRelay {
     private static func flush(_ data: inout Data, to descriptor: Int32) throws {
         guard !data.isEmpty else { return }
         let count = data.withUnsafeBytes { Darwin.write(descriptor, $0.baseAddress, $0.count) }
-        if count > 0 { data.removeFirst(count) }
-        else if count < 0, errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK { throw PTYMuxWire.errnoError("write") }
+        if count > 0 {
+            data.removeFirst(count)
+        } else if count < 0, errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK {
+            throw PTYMuxWire.errnoError("write")
+        }
     }
 }

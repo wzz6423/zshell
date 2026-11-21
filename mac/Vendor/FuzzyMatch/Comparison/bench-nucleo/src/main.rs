@@ -119,8 +119,12 @@ fn main() {
             } else {
                 &name_candidates
             };
-            let pattern =
-                Pattern::new(&q.text, CaseMatching::Ignore, Normalization::Smart, AtomKind::Fuzzy);
+            let pattern = Pattern::new(
+                &q.text,
+                CaseMatching::Ignore,
+                Normalization::Smart,
+                AtomKind::Fuzzy,
+            );
             for candidate in candidates {
                 buf.clear();
                 let haystack = Utf32Str::new(candidate, &mut buf);
@@ -159,8 +163,12 @@ fn main() {
             };
             let q_start = Instant::now();
 
-            let pattern =
-                Pattern::new(&q.text, CaseMatching::Ignore, Normalization::Smart, AtomKind::Fuzzy);
+            let pattern = Pattern::new(
+                &q.text,
+                CaseMatching::Ignore,
+                Normalization::Smart,
+                AtomKind::Fuzzy,
+            );
             let mut match_count: usize = 0;
             let mut heap: BinaryHeap<Reverse<(u32, usize)>> = BinaryHeap::with_capacity(TOP_K + 1);
 
@@ -306,9 +314,7 @@ fn main() {
         sa.sort_by(|x, y| x.partial_cmp(y).unwrap());
         let mut sb = query_timings_ms[b].clone();
         sb.sort_by(|x, y| x.partial_cmp(y).unwrap());
-        sb[iterations / 2]
-            .partial_cmp(&sa[iterations / 2])
-            .unwrap()
+        sb[iterations / 2].partial_cmp(&sa[iterations / 2]).unwrap()
     });
 
     for qi in sorted_indices {

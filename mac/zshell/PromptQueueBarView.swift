@@ -156,10 +156,11 @@ final class PromptQueueBarView: NSView {
         closeButton.target = self
         closeButton.action = #selector(closeClicked)
         // Icon-only control, so it carries its own name (and tooltip).
-        closeButton.setAccessibilityLabel(String(
-            localized: "Close Prompt Queue",
-            comment: "Accessibility label for the prompt queue bar's close button."
-        ))
+        closeButton.setAccessibilityLabel(
+            String(
+                localized: "Close Prompt Queue",
+                comment: "Accessibility label for the prompt queue bar's close button."
+            ))
         closeButton.toolTip = closeButton.accessibilityLabel()
         closeButton.setContentHuggingPriority(.required, for: .horizontal)
 
@@ -281,10 +282,10 @@ final class PromptQueueBarView: NSView {
                 // restore needs so AppKit cannot resign the field editor
                 // afterwards and leave the window without a first responder.
                 guard let session = self.session,
-                      NSApp.isActive,
-                      let window = session.surface.window,
-                      window.isKeyWindow,
-                      window.firstResponder !== session.surface
+                    NSApp.isActive,
+                    let window = session.surface.window,
+                    window.isKeyWindow,
+                    window.firstResponder !== session.surface
                 else { return }
                 window.makeFirstResponder(session.surface)
             }
@@ -308,7 +309,8 @@ final class PromptQueueBarView: NSView {
                 equalTo: listStack.widthAnchor
             ).isActive = true
         }
-        countLabel.stringValue = commands.isEmpty
+        countLabel.stringValue =
+            commands.isEmpty
             ? ""
             : String(
                 localized: "Queued: \(commands.count)",
@@ -433,8 +435,9 @@ final class PromptQueueBarView: NSView {
 
     private func updateReadinessObservation(hasCommands: Bool? = nil) {
         guard !isHidden, isPaneVisible, window?.isVisible == true,
-              window?.isMiniaturized == false,
-              hasCommands ?? (queue?.commands.isEmpty == false) else {
+            window?.isMiniaturized == false,
+            hasCommands ?? (queue?.commands.isEmpty == false)
+        else {
             readinessObservation = nil
             return
         }
@@ -451,7 +454,9 @@ final class PromptQueueBarView: NSView {
     private func refreshSendAvailability() {
         let enabled = session?.canSendQueuedPrompt == true
         let title = String(localized: "Send Now")
-        let explanation = enabled ? title : String(localized: "Sending waits for an empty prompt in the original zsh shell and for command tasks to finish.")
+        let explanation =
+            enabled
+            ? title : String(localized: "Sending waits for an empty prompt in the original zsh shell and for command tasks to finish.")
         for button in sendButtons {
             if button.isEnabled != enabled { button.isEnabled = enabled }
             button.toolTip = explanation
@@ -473,11 +478,13 @@ final class PromptQueueBarView: NSView {
         windowVisibilityObservation = nil
         windowVisibleObservation = nil
         if let window {
-            windowVisibilityObservation = Publishers.MergeMany([
-                NSWindow.didChangeOcclusionStateNotification,
-                NSWindow.didMiniaturizeNotification, NSWindow.didDeminiaturizeNotification,
-            ].map { NotificationCenter.default.publisher(for: $0, object: window) })
-                .sink { [weak self] _ in self?.updateReadinessObservation() }
+            windowVisibilityObservation = Publishers.MergeMany(
+                [
+                    NSWindow.didChangeOcclusionStateNotification,
+                    NSWindow.didMiniaturizeNotification, NSWindow.didDeminiaturizeNotification,
+                ].map { NotificationCenter.default.publisher(for: $0, object: window) }
+            )
+            .sink { [weak self] _ in self?.updateReadinessObservation() }
             windowVisibleObservation = window.publisher(for: \.isVisible).removeDuplicates()
                 .sink { [weak self] _ in self?.updateReadinessObservation() }
         }
@@ -496,12 +503,17 @@ final class PromptQueueBarView: NSView {
             return
         }
         compactButtons = compact
-        for button in [addButton] + listStack.arrangedSubviews.flatMap({ row in
-            (row as? NSStackView)?.arrangedSubviews.compactMap { $0 as? NSButton } ?? []
-        }) {
-            let title = button === addButton ? String(localized: "Add to Queue")
-                : button.action == #selector(sendNow(_:)) ? String(localized: "Send Now")
-                : String(localized: "Remove")
+        for button in [addButton]
+            + listStack.arrangedSubviews.flatMap({ row in
+                (row as? NSStackView)?.arrangedSubviews.compactMap { $0 as? NSButton } ?? []
+            })
+        {
+            let title =
+                button === addButton
+                ? String(localized: "Add to Queue")
+                : button.action == #selector(sendNow(_:))
+                    ? String(localized: "Send Now")
+                    : String(localized: "Remove")
             button.setAccessibilityLabel(title)
             if compact {
                 let symbol = button === addButton ? "plus" : button.action == #selector(sendNow(_:)) ? "paperplane" : "trash"

@@ -164,33 +164,40 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
         accessibilityLabel: String(localized: "Terminal background opacity"),
         onChange: { AppSettings.shared.terminalBackgroundOpacity = $0 }
     )
-    private lazy var backgroundGroup = SettingsGroup(header: String(localized: "Background"), rows: [
-        terminalBackgroundOpacityRow,
-        SettingsRow(title: String(localized: "Blur behind window"), control: terminalBackgroundBlurSwitch),
-        SettingsRow(
-            title: String(localized: "Padding color"),
-            description: String(localized: "Automatic keeps prompts and partially colored rows from extending vertically. Always extends every edge."),
-            control: terminalPaddingColorPopUp,
-            symbolName: "rectangle.inset.filled",
-            symbolColor: SettingsCategory.appearance.iconColor
-        ),
-    ])
-    private lazy var fontGroup = SettingsGroup(header: String(localized: "Font"), rows: [
-        SettingsRow(title: String(localized: "Latin family"), control: familyPopUp),
-        SettingsRow(title: String(localized: "CJK fallback"), control: fallbackFamilyPopUp),
-        fontSizeRow,
-        lineHeightRow,
-        cellWidthRow,
-        SettingsRow(title: String(localized: "Font ligatures"), control: ligaturesSwitch),
-        featuresRow,
-        SettingsRow(title: String(localized: "Thicken font strokes"), control: thickenSwitch),
-        thickenStrengthRow,
-        SettingsCustomRow(preview),
-    ])
-    private lazy var panesGroup = SettingsGroup(header: String(localized: "Panes"), rows: [
-        SettingsRow(title: String(localized: "Show focus ring on active pane"), control: paneFocusRingSwitch),
-        paneFocusRingOpacityRow,
-    ])
+    private lazy var backgroundGroup = SettingsGroup(
+        header: String(localized: "Background"),
+        rows: [
+            terminalBackgroundOpacityRow,
+            SettingsRow(title: String(localized: "Blur behind window"), control: terminalBackgroundBlurSwitch),
+            SettingsRow(
+                title: String(localized: "Padding color"),
+                description: String(
+                    localized: "Automatic keeps prompts and partially colored rows from extending vertically. Always extends every edge."),
+                control: terminalPaddingColorPopUp,
+                symbolName: "rectangle.inset.filled",
+                symbolColor: SettingsCategory.appearance.iconColor
+            ),
+        ])
+    private lazy var fontGroup = SettingsGroup(
+        header: String(localized: "Font"),
+        rows: [
+            SettingsRow(title: String(localized: "Latin family"), control: familyPopUp),
+            SettingsRow(title: String(localized: "CJK fallback"), control: fallbackFamilyPopUp),
+            fontSizeRow,
+            lineHeightRow,
+            cellWidthRow,
+            SettingsRow(title: String(localized: "Font ligatures"), control: ligaturesSwitch),
+            featuresRow,
+            SettingsRow(title: String(localized: "Thicken font strokes"), control: thickenSwitch),
+            thickenStrengthRow,
+            SettingsCustomRow(preview),
+        ])
+    private lazy var panesGroup = SettingsGroup(
+        header: String(localized: "Panes"),
+        rows: [
+            SettingsRow(title: String(localized: "Show focus ring on active pane"), control: paneFocusRingSwitch),
+            paneFocusRingOpacityRow,
+        ])
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -209,36 +216,50 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
 
     override func makeGroups() -> [NSView] {
         [
-            SettingsGroup(header: String(localized: "Theme"), rows: [
-                SettingsCustomRow(themePicker),
-            ]),
-            SettingsGroup(header: String(localized: "App Icon"), rows: [
-                SettingsRow(title: String(localized: "Dock icon"), control: iconPicker, symbolName: "app"),
-            ]),
-            SettingsGroup(header: String(localized: "Colors"), rows: [
-                SettingsRow(title: String(localized: "Dark theme"), control: darkThemePopUp),
-                SettingsRow(title: String(localized: "Light theme"), control: lightThemePopUp),
-                SettingsRow(
-                    title: String(localized: "Terminal theme only"),
-                    description: String(localized: "Keep the window, sidebars, and editor on Zshell’s default colors"),
-                    control: terminalThemeOnlySwitch,
-                    symbolName: "terminal"
-                ),
-                minimumContrastRow,
-            ]),
+            SettingsGroup(
+                header: String(localized: "Theme"),
+                rows: [
+                    SettingsCustomRow(themePicker)
+                ]),
+            SettingsGroup(
+                header: String(localized: "App Icon"),
+                rows: [
+                    SettingsRow(title: String(localized: "Dock icon"), control: iconPicker, symbolName: "app")
+                ]),
+            SettingsGroup(
+                header: String(localized: "Colors"),
+                rows: [
+                    SettingsRow(title: String(localized: "Dark theme"), control: darkThemePopUp),
+                    SettingsRow(title: String(localized: "Light theme"), control: lightThemePopUp),
+                    SettingsRow(
+                        title: String(localized: "Terminal theme only"),
+                        description: String(localized: "Keep the window, sidebars, and editor on Zshell’s default colors"),
+                        control: terminalThemeOnlySwitch,
+                        symbolName: "terminal"
+                    ),
+                    minimumContrastRow,
+                ]),
             fontGroup,
-            SettingsGroup(header: String(localized: "Cursor"), rows: [
-                SettingsCustomRow(cursorShapeView),
-                SettingsCustomRow(cursorBlinkingView),
-            ]),
+            SettingsGroup(
+                header: String(localized: "Cursor"),
+                rows: [
+                    SettingsCustomRow(cursorShapeView),
+                    SettingsCustomRow(cursorBlinkingView),
+                ]),
             backgroundGroup,
-            SettingsGroup(header: String(localized: "Interface"), rows: [
-                interfaceScaleRow,
-                sidebarFontSizeRow,
-            ]),
-            SettingsGroup(header: String(localized: "Project Sidebar"), rows: [
-                SettingsRow(title: String(localized: "Double-click empty space to create a session"), control: sidebarDoubleClickSwitch, symbolName: "plus.rectangle"),
-            ]),
+            SettingsGroup(
+                header: String(localized: "Interface"),
+                rows: [
+                    interfaceScaleRow,
+                    sidebarFontSizeRow,
+                ]),
+            SettingsGroup(
+                header: String(localized: "Project Sidebar"),
+                rows: [
+                    SettingsRow(
+                        title: String(localized: "Double-click empty space to create a session"), control: sidebarDoubleClickSwitch,
+                        symbolName: "plus.rectangle")
+                ]),
             panesGroup,
         ]
     }
@@ -280,11 +301,12 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
         paneFocusRingOpacityRow.setValue(settings.paneFocusRingOpacity)
         panesGroup.setRowHidden(!visibility.showPaneFocusRing, at: 1)
         preview.configure(
-            font: TerminalFontFeatures(settings.fontFeatures, ligatures: settings.fontLigatures).applying(to: TerminalFont.resolve(
-                family: settings.fontFamily,
-                fallbackFamily: settings.fontFallbackFamily,
-                size: CGFloat(settings.fontSize)
-            )),
+            font: TerminalFontFeatures(settings.fontFeatures, ligatures: settings.fontLigatures).applying(
+                to: TerminalFont.resolve(
+                    family: settings.fontFamily,
+                    fallbackFamily: settings.fontFallbackFamily,
+                    size: CGFloat(settings.fontSize)
+                )),
             thicken: settings.fontThicken,
             thickenStrength: settings.fontThickenStrength,
             lineHeight: CGFloat(settings.terminalLineHeight),

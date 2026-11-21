@@ -64,13 +64,16 @@ nonisolated struct SessionWorktreeService: Sendable {
         var refusal: String? {
             if isLocked { return String(localized: "The worktree is locked. Unlock it in Git before removing it.") }
             if changedPaths > 0 {
-                return String(localized: "The worktree contains changed, untracked, or ignored files. Keep it and commit or remove those files first.")
+                return String(
+                    localized: "The worktree contains changed, untracked, or ignored files. Keep it and commit or remove those files first."
+                )
             }
             if unmergedCommits == nil {
                 return String(localized: "The merge baseline is unavailable. Keep the worktree and review its branch in Git.")
             }
             if unmergedCommits != 0 {
-                return String(localized: "The worktree has commits that are not merged into its baseline. Keep it and merge the branch first.")
+                return String(
+                    localized: "The worktree has commits that are not merged into its baseline. Keep it and merge the branch first.")
             }
             return nil
         }
@@ -89,20 +92,26 @@ nonisolated struct SessionWorktreeService: Sendable {
             throw SessionWorktreeError(message: String(localized: "Choose a directory inside a Git repository."))
         }
         guard Self.line(bare.stdout) == "false" else {
-            throw SessionWorktreeError(message: String(localized: "Bare repositories cannot start worktree sessions. Open a normal checkout first."))
+            throw SessionWorktreeError(
+                message: String(localized: "Bare repositories cannot start worktree sessions. Open a normal checkout first."))
         }
         let root = Self.canonical(try await command(["rev-parse", "--show-toplevel"], in: directory))
-        let common = Self.canonical(try await command([
-            "rev-parse", "--path-format=absolute", "--git-common-dir",
-        ], in: root))
+        let common = Self.canonical(
+            try await command(
+                [
+                    "rev-parse", "--path-format=absolute", "--git-common-dir",
+                ], in: root))
         let head = try await command(["rev-parse", "--verify", "HEAD^{commit}"], in: root)
-        let branches = try await command([
-            "for-each-ref", "--format=%(refname:strip=2)", "refs/heads/",
-        ], in: root).split(separator: "\n").map(String.init)
+        let branches = try await command(
+            [
+                "for-each-ref", "--format=%(refname:strip=2)", "refs/heads/",
+            ], in: root
+        ).split(separator: "\n").map(String.init)
         let worktrees = try await records(in: root)
         let defaultReference = try await defaultReference(in: root, branches: branches)
-        return Repository(root: root, commonGitDirectory: common, head: head,
-                          branches: branches, defaultReference: defaultReference, worktrees: worktrees)
+        return Repository(
+            root: root, commonGitDirectory: common, head: head,
+            branches: branches, defaultReference: defaultReference, worktrees: worktrees)
     }
 
     func create(
@@ -135,9 +144,11 @@ nonisolated struct SessionWorktreeService: Sendable {
         case .reference(let reference): baseReference = reference
         }
         guard exists || baseReference != nil else {
-            throw SessionWorktreeError(message: String(localized: "No default branch was found. Choose Current HEAD or an explicit baseline."))
+            throw SessionWorktreeError(
+                message: String(localized: "No default branch was found. Choose Current HEAD or an explicit baseline."))
         }
-        let initialHead = exists
+        let initialHead =
+            exists
             ? try await command(["rev-parse", "--verify", "refs/heads/\(name)^{commit}"], in: repository.root)
             : try await command(["rev-parse", "--verify", "--end-of-options", "\(baseReference!)^{commit}"], in: repository.root)
         let requested = destination ?? Self.defaultPath(repositoryRoot: repository.root, branch: name)
@@ -162,16 +173,18 @@ nonisolated struct SessionWorktreeService: Sendable {
             let args = ["worktree", "add", "--", path, name]
             let run = await runner.run(args, in: repository.root)
             guard run.status == 0 else { throw Self.failure(run) }
-            let association = try await association(at: path, repository: repository,
-                                                    baseReference: baseReference, createdBranch: ownsBranch,
-                                                    initialHead: initialHead)
+            let association = try await association(
+                at: path, repository: repository,
+                baseReference: baseReference, createdBranch: ownsBranch,
+                initialHead: initialHead)
             guard association.branch == name else {
                 throw SessionWorktreeError(message: String(localized: "The worktree changed before the session could start."))
             }
             return association
         } catch {
-            await rollbackFailedCreation(path: path, identity: reservedIdentity, repository: repository,
-                                         branch: name, initialHead: initialHead, createdBranch: ownsBranch)
+            await rollbackFailedCreation(
+                path: path, identity: reservedIdentity, repository: repository,
+                branch: name, initialHead: initialHead, createdBranch: ownsBranch)
             Self.removeEmptyParents(createdParents)
             throw error
         }
@@ -179,29 +192,34 @@ nonisolated struct SessionWorktreeService: Sendable {
 
     func association(at path: String, sourceDirectory: String) async throws -> SessionWorktree {
         let repository = try await repository(at: sourceDirectory)
-        return try await association(at: path, repository: repository,
-                                     baseReference: repository.defaultReference, createdBranch: false,
-                                     initialHead: nil)
+        return try await association(
+            at: path, repository: repository,
+            baseReference: repository.defaultReference, createdBranch: false,
+            initialHead: nil)
     }
 
     func inspect(_ worktree: SessionWorktree) async throws -> Inspection {
         let record = try await validatedRecord(worktree)
-        let status = try await command([
-            "status", "--porcelain=v2", "-z", "--untracked-files=all", "--ignored=matching",
-        ], in: worktree.path, stripLineEnding: false)
+        let status = try await command(
+            [
+                "status", "--porcelain=v2", "-z", "--untracked-files=all", "--ignored=matching",
+            ], in: worktree.path, stripLineEnding: false)
         let paths = status.split(separator: "\0").filter {
             $0.hasPrefix("1 ") || $0.hasPrefix("2 ") || $0.hasPrefix("u ") || $0.hasPrefix("? ") || $0.hasPrefix("! ")
         }.count
         var unmerged: Int?
         if let baseReference = worktree.baseReference,
-           let baseHead = try? await command([
-               "rev-parse", "--verify", "--end-of-options", "\(baseReference)^{commit}",
-           ], in: worktree.path), let head = record.headOID,
-           let count = try? await command(["rev-list", "--count", "\(baseHead)..\(head)"], in: worktree.path) {
+            let baseHead = try? await command(
+                [
+                    "rev-parse", "--verify", "--end-of-options", "\(baseReference)^{commit}",
+                ], in: worktree.path), let head = record.headOID,
+            let count = try? await command(["rev-list", "--count", "\(baseHead)..\(head)"], in: worktree.path)
+        {
             unmerged = Int(count)
         }
-        return Inspection(head: record.headOID ?? "", branch: record.branch, changedPaths: paths,
-                          unmergedCommits: unmerged, isLocked: record.isLocked)
+        return Inspection(
+            head: record.headOID ?? "", branch: record.branch, changedPaths: paths,
+            unmergedCommits: unmerged, isLocked: record.isLocked)
     }
 
     func remove(
@@ -214,11 +232,13 @@ nonisolated struct SessionWorktreeService: Sendable {
             throw SessionWorktreeError(message: String(localized: "The worktree changed. Review it before removing it."))
         }
         guard current.changedPaths == 0, !current.isLocked,
-              !requireMerged || current.unmergedCommits == 0 else {
+            !requireMerged || current.unmergedCommits == 0
+        else {
             throw SessionWorktreeError(message: current.refusal ?? String(localized: "The worktree cannot be removed safely."))
         }
         guard !(await isInUse()) else {
-            throw SessionWorktreeError(message: String(localized: "Other open sessions still use this worktree. Close them before removing it."))
+            throw SessionWorktreeError(
+                message: String(localized: "Other open sessions still use this worktree. Close them before removing it."))
         }
         _ = try await command(["worktree", "remove", "--", worktree.path], in: worktree.commonGitDirectory)
     }
@@ -227,12 +247,14 @@ nonisolated struct SessionWorktreeService: Sendable {
     /// A changed checkout remains available for inspection instead of losing data.
     func rollback(_ worktree: SessionWorktree, isInUse: @Sendable () async -> Bool = { false }) async -> Bool {
         guard let inspection = try? await inspect(worktree), inspection.head == worktree.initialHead,
-              inspection.changedPaths == 0, !inspection.isLocked else { return false }
+            inspection.changedPaths == 0, !inspection.isLocked
+        else { return false }
         do {
             try await remove(worktree, expected: inspection, requireMerged: false, isInUse: isInUse)
             if worktree.createdBranch {
-                await removeCreatedBranch(worktree.branch, expectedHead: worktree.initialHead,
-                                          in: worktree.commonGitDirectory)
+                await removeCreatedBranch(
+                    worktree.branch, expectedHead: worktree.initialHead,
+                    in: worktree.commonGitDirectory)
             }
             return true
         } catch { return false }
@@ -253,7 +275,8 @@ nonisolated struct SessionWorktreeService: Sendable {
     }
 
     static func parseWorktrees(_ output: String) -> [Record] {
-        let records = output.contains("\0")
+        let records =
+            output.contains("\0")
             ? output.split(separator: "\0", omittingEmptySubsequences: false).map(String.init)
             : output.components(separatedBy: "\n")
         var result: [Record] = []
@@ -264,20 +287,31 @@ nonisolated struct SessionWorktreeService: Sendable {
         var locked = false
         var prunable = false
         func append() {
-            if let path { result.append(Record(path: canonical(path), headOID: head, branch: branch,
-                                              isBare: bare, isLocked: locked, isPrunable: prunable)) }
+            if let path {
+                result.append(
+                    Record(
+                        path: canonical(path), headOID: head, branch: branch,
+                        isBare: bare, isLocked: locked, isPrunable: prunable))
+            }
             path = nil; head = nil; branch = nil; bare = false; locked = false; prunable = false
         }
         for record in records {
-            if record.isEmpty { append() }
-            else if record.hasPrefix("worktree ") {
+            if record.isEmpty {
+                append()
+            } else if record.hasPrefix("worktree ") {
                 if path != nil { append() }
                 path = String(record.dropFirst(9))
-            } else if record.hasPrefix("HEAD ") { head = String(record.dropFirst(5)) }
-            else if record.hasPrefix("branch refs/heads/") { branch = String(record.dropFirst(18)) }
-            else if record == "bare" { bare = true }
-            else if record == "locked" || record.hasPrefix("locked ") { locked = true }
-            else if record == "prunable" || record.hasPrefix("prunable ") { prunable = true }
+            } else if record.hasPrefix("HEAD ") {
+                head = String(record.dropFirst(5))
+            } else if record.hasPrefix("branch refs/heads/") {
+                branch = String(record.dropFirst(18))
+            } else if record == "bare" {
+                bare = true
+            } else if record == "locked" || record.hasPrefix("locked ") {
+                locked = true
+            } else if record == "prunable" || record.hasPrefix("prunable ") {
+                prunable = true
+            }
         }
         append()
         return result
@@ -308,33 +342,41 @@ nonisolated struct SessionWorktreeService: Sendable {
     ) async throws -> SessionWorktree {
         let path = Self.canonical(path)
         guard let record = try await records(in: repository.root).first(where: { $0.path == path }),
-              !record.isBare, !record.isPrunable, let head = record.headOID else {
+            !record.isBare, !record.isPrunable, let head = record.headOID
+        else {
             throw SessionWorktreeError(message: String(localized: "The selected worktree is no longer available"))
         }
         let gitDirectory = Self.canonical(try await command(["rev-parse", "--absolute-git-dir"], in: path))
         guard gitDirectory.hasPrefix(repository.commonGitDirectory + "/worktrees/"),
-              let identity = Self.fileIdentity(gitDirectory) else {
+            let identity = Self.fileIdentity(gitDirectory)
+        else {
             throw SessionWorktreeError(message: String(localized: "The main checkout cannot be removed with a session."))
         }
         let primaryRoot = repository.worktrees.first(where: { !$0.isBare })?.path ?? repository.root
-        return SessionWorktree(path: path, repositoryRoot: primaryRoot,
-                               commonGitDirectory: repository.commonGitDirectory, gitDirectory: gitDirectory,
-                               branch: record.branch, baseReference: baseReference, createdBranch: createdBranch,
-                               initialHead: initialHead ?? head, gitDirectoryIdentity: identity)
+        return SessionWorktree(
+            path: path, repositoryRoot: primaryRoot,
+            commonGitDirectory: repository.commonGitDirectory, gitDirectory: gitDirectory,
+            branch: record.branch, baseReference: baseReference, createdBranch: createdBranch,
+            initialHead: initialHead ?? head, gitDirectoryIdentity: identity)
     }
 
     private func validatedRecord(_ worktree: SessionWorktree) async throws -> Record {
-        guard Self.entryExists(worktree.path), let record = try await records(in: worktree.commonGitDirectory)
-            .first(where: { $0.path == worktree.path }), !record.isBare, !record.isPrunable else {
+        guard Self.entryExists(worktree.path),
+            let record = try await records(in: worktree.commonGitDirectory)
+                .first(where: { $0.path == worktree.path }), !record.isBare, !record.isPrunable
+        else {
             throw SessionWorktreeError(message: String(localized: "The selected worktree is no longer available"))
         }
         let actualGit = Self.canonical(try await command(["rev-parse", "--absolute-git-dir"], in: worktree.path))
-        let actualCommon = Self.canonical(try await command([
-            "rev-parse", "--path-format=absolute", "--git-common-dir",
-        ], in: worktree.path))
+        let actualCommon = Self.canonical(
+            try await command(
+                [
+                    "rev-parse", "--path-format=absolute", "--git-common-dir",
+                ], in: worktree.path))
         guard actualGit == worktree.gitDirectory, actualCommon == worktree.commonGitDirectory,
-              actualGit.hasPrefix(actualCommon + "/worktrees/"), record.branch == worktree.branch,
-              let identity = worktree.gitDirectoryIdentity, Self.fileIdentity(actualGit) == identity else {
+            actualGit.hasPrefix(actualCommon + "/worktrees/"), record.branch == worktree.branch,
+            let identity = worktree.gitDirectoryIdentity, Self.fileIdentity(actualGit) == identity
+        else {
             throw SessionWorktreeError(message: String(localized: "The worktree changed before the session could start."))
         }
         return record
@@ -350,9 +392,11 @@ nonisolated struct SessionWorktreeService: Sendable {
             return
         }
         guard Self.fileIdentity(path) == identity else { return }
-        if let association = try? await association(at: path, repository: repository,
-                                                   baseReference: nil, createdBranch: createdBranch,
-                                                   initialHead: initialHead), association.branch == branch {
+        if let association = try? await association(
+            at: path, repository: repository,
+            baseReference: nil, createdBranch: createdBranch,
+            initialHead: initialHead), association.branch == branch
+        {
             _ = await rollback(association)
         } else if (try? FileManager.default.contentsOfDirectory(atPath: path).isEmpty) == true {
             if rmdir(path) == 0, createdBranch {
@@ -363,7 +407,8 @@ nonisolated struct SessionWorktreeService: Sendable {
 
     private func removeCreatedBranch(_ branch: String?, expectedHead: String, in directory: String) async {
         guard let branch, let records = try? await records(in: directory),
-              !records.contains(where: { $0.branch == branch }) else { return }
+            !records.contains(where: { $0.branch == branch })
+        else { return }
         _ = await runner.run(["update-ref", "-d", "refs/heads/\(branch)", expectedHead], in: directory)
     }
 

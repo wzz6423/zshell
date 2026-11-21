@@ -23,7 +23,8 @@ extension STTextView {
         // has any form of underline on it
         // then underline is removed
         if let location = selectionRanges.first?.location,
-           textContentManager.attributes(at: location).contains(where: { $0.key == .underlineStyle }) {
+            textContentManager.attributes(at: location).contains(where: { $0.key == .underlineStyle })
+        {
             for textRange in selectionRanges {
                 removeAttribute(.underlineStyle, range: textRange)
                 removeAttribute(.underlineColor, range: textRange)

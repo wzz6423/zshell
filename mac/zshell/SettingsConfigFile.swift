@@ -29,7 +29,8 @@ nonisolated enum SettingsConfigFile {
             let candidate = directory.appendingPathComponent(component)
             var attributes = stat()
             if lstat(candidate.path, &attributes) == 0,
-               attributes.st_mode & S_IFMT == S_IFLNK {
+                attributes.st_mode & S_IFMT == S_IFLNK
+            {
                 links += 1
                 guard links <= 40 else { throw Failure.tooManyLinks }
                 onVisit(candidate)
@@ -62,7 +63,8 @@ nonisolated enum SettingsConfigFile {
         guard attributes.st_size <= maximumBytes else { throw Failure.tooLarge }
         var data = Data()
         while let chunk = try file.read(upToCount: min(64 << 10, maximumBytes + 1 - data.count)),
-              !chunk.isEmpty {
+            !chunk.isEmpty
+        {
             data.append(chunk)
             guard data.count <= maximumBytes else { throw Failure.tooLarge }
         }
@@ -108,7 +110,8 @@ nonisolated enum SettingsConfigFile {
             .appendingPathComponent("config.toml.bak")
         var attributes = stat()
         if lstat(backup.path, &attributes) == 0,
-           attributes.st_mode & S_IFMT == S_IFLNK {
+            attributes.st_mode & S_IFMT == S_IFLNK
+        {
             // Older imports copied the config link. Replace that backup link
             // so importing cannot overwrite the only copy of the old contents.
             guard unlink(backup.path) == 0 else { throw posixError() }
@@ -218,9 +221,9 @@ nonisolated final class SettingsConfigMonitor: @unchecked Sendable {
         lock.unlock()
         guard !pending else { return }
         let contents: String?
-        do { contents = try SettingsConfigFile.read(at: url) }
-        catch let error as POSIXError where error.code == .ENOENT { contents = missingText }
-        catch { contents = nil }
+        do { contents = try SettingsConfigFile.read(at: url) } catch let error as POSIXError where error.code == .ENOENT {
+            contents = missingText
+        } catch { contents = nil }
         guard let text = contents else {
             emptySince = nil
             return
@@ -237,7 +240,8 @@ nonisolated final class SettingsConfigMonitor: @unchecked Sendable {
             emptySince = nil
         }
         guard text != lastText,
-              isCurrent(readRevision) else { return }
+            isCurrent(readRevision)
+        else { return }
         lock.lock()
         guard revision == readRevision, !writePending else {
             lock.unlock()

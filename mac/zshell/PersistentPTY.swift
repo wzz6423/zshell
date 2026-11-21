@@ -16,9 +16,10 @@ final class PersistentPTY: @unchecked Sendable {
 
     private init?(result: ZshellJSONValue) {
         guard let info = result.objectValue,
-              let text = info["id"]?.stringValue, let id = UUID(uuidString: text),
-              let pid = info["pid"]?.intValue, pid > 1,
-              info["running"]?.boolValue == true else { return nil }
+            let text = info["id"]?.stringValue, let id = UUID(uuidString: text),
+            let pid = info["pid"]?.intValue, pid > 1,
+            info["running"]?.boolValue == true
+        else { return nil }
         self.id = id
         shellPID = pid_t(pid)
         foreground = pid_t(info["foregroundPid"]?.intValue ?? pid)
@@ -34,9 +35,11 @@ final class PersistentPTY: @unchecked Sendable {
     }
 
     static func reconnect(id: UUID) -> PersistentPTY? {
-        guard let response = try? PTYMuxCommandLine.exchange(
-            method: "get", params: ["id": .string(id.uuidString)], timeout: 0.2
-        ), let result = response.result else { return nil }
+        guard
+            let response = try? PTYMuxCommandLine.exchange(
+                method: "get", params: ["id": .string(id.uuidString)], timeout: 0.2
+            ), let result = response.result
+        else { return nil }
         return Self(result: result)
     }
 
@@ -79,9 +82,11 @@ final class PersistentPTY: @unchecked Sendable {
     /// One daemon read of the foreground pid. ``foregroundPID`` is only the
     /// last poll, so a command can exit while that cache still names the child.
     func fetchForegroundPID() -> pid_t? {
-        guard let response = try? PTYMuxCommandLine.exchange(
-            method: "get", params: ["id": .string(id.uuidString)], timeout: 0.2
-        ), let value = response.result?.objectValue?["foregroundPid"]?.intValue else {
+        guard
+            let response = try? PTYMuxCommandLine.exchange(
+                method: "get", params: ["id": .string(id.uuidString)], timeout: 0.2
+            ), let value = response.result?.objectValue?["foregroundPid"]?.intValue
+        else {
             return nil
         }
         let pid = pid_t(value)
@@ -92,9 +97,11 @@ final class PersistentPTY: @unchecked Sendable {
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue(label: "sh.zshell.pty-mux.foreground.\(id)"))
         timer.schedule(deadline: .now(), repeating: .milliseconds(350), leeway: .milliseconds(100))
         timer.setEventHandler { [weak self] in
-            guard let self, let response = try? PTYMuxCommandLine.exchange(
-                method: "get", params: ["id": .string(self.id.uuidString)], timeout: 0.2
-            ), let value = response.result?.objectValue?["foregroundPid"]?.intValue else { return }
+            guard let self,
+                let response = try? PTYMuxCommandLine.exchange(
+                    method: "get", params: ["id": .string(self.id.uuidString)], timeout: 0.2
+                ), let value = response.result?.objectValue?["foregroundPid"]?.intValue
+            else { return }
             self.lock.lock()
             self.foreground = pid_t(value)
             self.lock.unlock()
@@ -118,9 +125,11 @@ final class PersistentPTY: @unchecked Sendable {
         var theme = theme
         let encoded = withUnsafeBytes(of: &theme) { Data($0).base64EncodedString() }
         DispatchQueue.global(qos: .utility).async { [id] in
-            _ = try? PTYMuxCommandLine.exchange(method: "theme", params: [
-                "id": .string(id.uuidString), "theme": .string(encoded),
-            ])
+            _ = try? PTYMuxCommandLine.exchange(
+                method: "theme",
+                params: [
+                    "id": .string(id.uuidString), "theme": .string(encoded),
+                ])
         }
     }
 

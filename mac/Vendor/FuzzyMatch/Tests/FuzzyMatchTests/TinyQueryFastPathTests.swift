@@ -53,7 +53,7 @@ struct TinyQueryFastPathTests {
             ("x", "index"),
             ("u", "user"),
             ("u", "User"),
-            ("5", "test5value")
+            ("5", "test5value"),
         ]
         for (q, c) in pairs {
             let query = matcher.prepare(q)
@@ -61,10 +61,12 @@ struct TinyQueryFastPathTests {
             let fast = matcher.score(c, against: query, buffer: &buffer)
             let full = scoreViaFullPipeline(c, against: query)
             if let f = fast, let p = full {
-                #expect(abs(f.score - p.score) < 0.001,
+                #expect(
+                    abs(f.score - p.score) < 0.001,
                     "Score mismatch for q=\(q) c=\(c): fast=\(f.score) full=\(p.score)")
             } else {
-                #expect((fast == nil) == (full == nil),
+                #expect(
+                    (fast == nil) == (full == nil),
                     "Nil mismatch for q=\(q) c=\(c): fast=\(fast?.score as Any) full=\(full?.score as Any)")
             }
         }

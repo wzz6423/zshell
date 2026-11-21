@@ -107,15 +107,24 @@ impl<T> Term<T> {
             return;
         }
         let key = |point: Point| (point.line, point.column);
-        let ids: Vec<_> = self.command_blocks.records.iter()
+        let ids: Vec<_> = self
+            .command_blocks
+            .records
+            .iter()
             .filter(|record| record.finished_at_ms.is_some() && record.location_valid)
             .filter_map(|record| {
                 let region = self.command_region(record.id)?;
-                (key(start) < key(region.end) && key(end) >= key(region.prompt)).then_some(record.id)
-            }).collect();
-        if ids.is_empty() { return; }
+                (key(start) < key(region.end) && key(end) >= key(region.prompt))
+                    .then_some(record.id)
+            })
+            .collect();
+        if ids.is_empty() {
+            return;
+        }
         for record in &mut self.command_blocks.records {
-            if ids.contains(&record.id) { record.location_valid = false; }
+            if ids.contains(&record.id) {
+                record.location_valid = false;
+            }
         }
         self.command_blocks.revision = self.command_blocks.revision.wrapping_add(1);
     }
@@ -123,15 +132,35 @@ impl<T> Term<T> {
     pub(super) fn invalidate_written_command_row(&mut self) {
         // New output is after the last completed block. Inspect old ranges
         // only when a program moves back into already completed output.
-        if self.mode.contains(TermMode::ALT_SCREEN) { return; }
+        if self.mode.contains(TermMode::ALT_SCREEN) {
+            return;
+        }
         let point = self.grid.cursor.point;
         let previous = self.command_blocks.last_write.replace(point);
-        if previous.is_none_or(|previous| (point.line, point.column) >= (previous.line, previous.column)) { return; }
-        let Some(record) = self.command_blocks.records.iter().rev()
-            .find(|record| record.finished_at_ms.is_some() && record.location_valid) else { return; };
+        if previous
+            .is_none_or(|previous| (point.line, point.column) >= (previous.line, previous.column))
+        {
+            return;
+        }
+        let Some(record) = self
+            .command_blocks
+            .records
+            .iter()
+            .rev()
+            .find(|record| record.finished_at_ms.is_some() && record.location_valid)
+        else {
+            return;
+        };
         let anchors = self.grid.cursor_cell().semantic_anchors();
-        if anchors.iter().any(|&(id, kind)| id == record.id && kind == 3) { return; }
-        let Some(region) = self.command_region(record.id) else { return; };
+        if anchors
+            .iter()
+            .any(|&(id, kind)| id == record.id && kind == 3)
+        {
+            return;
+        }
+        let Some(region) = self.command_region(record.id) else {
+            return;
+        };
         if (point.line, point.column) < (region.end.line, region.end.column) {
             self.invalidate_command_range(point, Point::new(point.line, self.last_column()));
         }
@@ -145,11 +174,15 @@ impl<T> Term<T> {
 
     pub(super) fn mark_prompt_continuation(&mut self) {
         if self.mode.contains(TermMode::ALT_SCREEN) {
-            if self.alt_prompt { self.grid.cursor_cell().add_semantic_anchor((0, 4)); }
+            if self.alt_prompt {
+                self.grid.cursor_cell().add_semantic_anchor((0, 4));
+            }
             return;
         }
         if let Some((id, kind)) = self.command_blocks.zone {
-            if kind <= 1 { self.command_anchor(id, 4); }
+            if kind <= 1 {
+                self.command_anchor(id, 4);
+            }
         }
     }
 
@@ -302,13 +335,17 @@ impl<T: EventListener> Term<T> {
                         let line = self.grid.cursor.point.line;
                         for column in (0..self.grid.columns()).map(Column) {
                             let cell = &mut self.grid[line][column];
-                            let anchors = cell.semantic_anchors().iter().copied()
-                                .filter(|&(_, kind)| kind != 4).collect();
+                            let anchors = cell
+                                .semantic_anchors()
+                                .iter()
+                                .copied()
+                                .filter(|&(_, kind)| kind != 4)
+                                .collect();
                             cell.set_semantic_anchors(anchors);
                         }
                     }
                 }
-                _ => {},
+                _ => {}
             }
             return;
         }
@@ -358,8 +395,12 @@ impl<T: EventListener> Term<T> {
                         if cell.semantic_zone().is_some_and(|(_, kind)| kind == 0) {
                             cell.set_semantic_zone(None);
                         }
-                        let anchors = cell.semantic_anchors().iter().copied()
-                            .filter(|&(_, kind)| kind != 4).collect();
+                        let anchors = cell
+                            .semantic_anchors()
+                            .iter()
+                            .copied()
+                            .filter(|&(_, kind)| kind != 4)
+                            .collect();
                         cell.set_semantic_anchors(anchors);
                     }
                 }
@@ -429,7 +470,7 @@ impl<T: EventListener> Term<T> {
 mod tests {
     use super::*;
     use crate::event::VoidListener;
-    use crate::term::{Config, test::TermSize};
+    use crate::term::{test::TermSize, Config};
     use crate::vte::ansi::Processor;
 
     fn terminal() -> (Term<VoidListener>, Processor) {
@@ -482,10 +523,16 @@ mod tests {
         let mut parser: Processor = Processor::new();
         parser.advance(&mut term, b"\x1b]133;A\x07> \x1b]133;B\x07echo previous\r\n\x1b]133;C;cmdline_url=echo%20previous\x07previous\r\n\x1b]133;D;0\x07\x1b]133;A\x07> \x1b]133;B\x07make update\r\n\x1b]133;C;cmdline_url=make%20update\x07");
         let anchor_revision = term.command_blocks.anchors.borrow().0;
-        let line = format!("SwiftCompile normal arm64 /tmp/Source.swift {}\r\n", "-I /tmp/Products/Debug/include ".repeat(6));
+        let line = format!(
+            "SwiftCompile normal arm64 /tmp/Source.swift {}\r\n",
+            "-I /tmp/Products/Debug/include ".repeat(6)
+        );
         parser.advance(&mut term, line.repeat(256).as_bytes());
-        assert_eq!(term.command_blocks.anchors.borrow().0, anchor_revision,
-                   "fresh output must not scan scrollback to resolve completed command locations");
+        assert_eq!(
+            term.command_blocks.anchors.borrow().0,
+            anchor_revision,
+            "fresh output must not scan scrollback to resolve completed command locations"
+        );
         assert!(term.command_records()[0].location_valid);
     }
 
@@ -524,7 +571,16 @@ mod tests {
 
     #[test]
     fn overwritten_and_erased_output_cannot_keep_a_live_token() {
-        for rewrite in [b"\x1b[2;1Hreplacement".as_slice(), b"\x1b[2;1H\x1b[2K".as_slice(), b"\x1b[2;1H\x1b[J".as_slice(), b"\x1b[2;6H\x1b[1J".as_slice(), b"\x1b[2;3H\x1b[2P".as_slice(), b"\x1b[2;3H\x1b[2@".as_slice(), b"\x1b[2;1H\x1b[M".as_slice(), b"\x1b[2;1H\x1b[L".as_slice()] {
+        for rewrite in [
+            b"\x1b[2;1Hreplacement".as_slice(),
+            b"\x1b[2;1H\x1b[2K".as_slice(),
+            b"\x1b[2;1H\x1b[J".as_slice(),
+            b"\x1b[2;6H\x1b[1J".as_slice(),
+            b"\x1b[2;3H\x1b[2P".as_slice(),
+            b"\x1b[2;3H\x1b[2@".as_slice(),
+            b"\x1b[2;1H\x1b[M".as_slice(),
+            b"\x1b[2;1H\x1b[L".as_slice(),
+        ] {
             let (mut term, mut parser) = terminal();
             parser.advance(&mut term, b"\x1b]133;A\x07> \x1b]133;B\x07echo one\r\n\x1b]133;C\x07result\r\n\x1b]133;D;0\x07");
             let id = term.command_records()[0].id;

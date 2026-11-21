@@ -190,11 +190,12 @@ final class DisplayLinkLifecycleTests: DisplayLinkTestCase {
         DispatchQueue.global().async {
             DispatchQueue.concurrentPerform(iterations: 8) { worker in
                 for index in 0 ..< 250 {
-                    let link = DisplayLink(preferredFrameRateRange: .init(
-                        minimum: Float(worker * 10 + 1),
-                        maximum: 120,
-                        preferred: Float(index % 120)
-                    ))
+                    let link = DisplayLink(
+                        preferredFrameRateRange: .init(
+                            minimum: Float(worker * 10 + 1),
+                            maximum: 120,
+                            preferred: Float(index % 120)
+                        ))
                     link.delegatingObject(recorder)
                 }
             }

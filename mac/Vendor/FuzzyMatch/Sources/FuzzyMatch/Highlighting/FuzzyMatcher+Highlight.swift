@@ -157,7 +157,7 @@ extension FuzzyMatcher {
         // Exact match check
         if normalizedLength == queryLength {
             var isExact = true
-            for i in 0..<queryLength {
+            for i in 0 ..< queryLength {
                 if normalizedBytes[i] != query.lowercased[i] {
                     isExact = false
                     break
@@ -166,7 +166,7 @@ extension FuzzyMatcher {
             if isExact {
                 let start = candidate.startIndex
                 let end = candidate.endIndex
-                return [start..<end]
+                return [start ..< end]
             }
         }
 
@@ -233,8 +233,8 @@ extension FuzzyMatcher {
 
         // Truncate to actual length
         if outLength < count {
-            normalized.removeSubrange(outLength..<count)
-            mapping.removeSubrange(outLength..<count)
+            normalized.removeSubrange(outLength ..< count)
+            mapping.removeSubrange(outLength ..< count)
         }
 
         return (normalized, mapping, isASCII)
@@ -281,7 +281,7 @@ extension FuzzyMatcher {
                     )
                     if let dist = prefixDist {
                         if dist == 0 {
-                            return Array(0..<queryLength)
+                            return Array(0 ..< queryLength)
                         }
                         return editDistancePositions(
                             query: querySpan,
@@ -303,7 +303,7 @@ extension FuzzyMatcher {
 
                 if let dist = prefixDist, dist == 0 {
                     // Exact prefix: return positions 0..<queryLength
-                    return Array(0..<queryLength)
+                    return Array(0 ..< queryLength)
                 }
 
                 // Try substring exact match
@@ -322,7 +322,7 @@ extension FuzzyMatcher {
                         boundaryMask: boundaryMask
                     )
                     if start >= 0 {
-                        return (0..<queryLength).map { start + $0 }
+                        return (0 ..< queryLength).map { start + $0 }
                     }
                 }
 
@@ -348,11 +348,11 @@ extension FuzzyMatcher {
                                     boundaryMask: boundaryMask
                                 )
                                 if start >= 0 {
-                                    return (0..<queryLength).map { start + $0 }
+                                    return (0 ..< queryLength).map { start + $0 }
                                 }
                             }
                         }
-                        return Array(matchPositions[0..<posCount])
+                        return Array(matchPositions[0 ..< posCount])
                     }
                     // Greedy failed (boundary preference can skip viable positions).
                     // Fall back to DP-optimal alignment which considers all options.
@@ -370,7 +370,7 @@ extension FuzzyMatcher {
                             config: edConfig
                         )
                         if dpCount == queryLength {
-                            return Array(matchPositions[0..<dpCount])
+                            return Array(matchPositions[0 ..< dpCount])
                         }
                     }
                 } else if normalizedLength <= Self.optimalAlignmentLengthThreshold {
@@ -387,7 +387,7 @@ extension FuzzyMatcher {
                         config: edConfig
                     )
                     if posCount == queryLength {
-                        return Array(matchPositions[0..<posCount])
+                        return Array(matchPositions[0 ..< posCount])
                     }
                 } else {
                     let posCount = findMatchPositions(
@@ -397,7 +397,7 @@ extension FuzzyMatcher {
                         positions: &matchPositions
                     )
                     if posCount == queryLength {
-                        return Array(matchPositions[0..<posCount])
+                        return Array(matchPositions[0 ..< posCount])
                     }
                 }
 
@@ -468,14 +468,16 @@ extension FuzzyMatcher {
                         var allPositions: [Int] = []
                         for atom in query.atoms {
                             let atomQuery = UnsafeBufferPointer(
-                                rebasing: querySpan[atom.start..<(atom.start + atom.length)]
+                                rebasing: querySpan[atom.start ..< (atom.start + atom.length)]
                             )
-                            guard let atomPositions = smithWatermanPositions(
-                                query: atomQuery,
-                                candidate: candidateSpan,
-                                bonus: bonusSpan,
-                                config: swConfig
-                            ) else {
+                            guard
+                                let atomPositions = smithWatermanPositions(
+                                    query: atomQuery,
+                                    candidate: candidateSpan,
+                                    bonus: bonusSpan,
+                                    config: swConfig
+                                )
+                            else {
                                 return nil
                             }
                             allPositions.append(contentsOf: atomPositions)
@@ -518,7 +520,7 @@ extension FuzzyMatcher {
         // but indexed by normalized positions. This mirrors the merged pass logic.
         if isASCII {
             var prevByte: UInt8 = 0
-            for i in 0..<normalizedLength {
+            for i in 0 ..< normalizedLength {
                 let byte = candidateUTF8[i]
                 let posBonus: Int32
                 if i == 0 {
@@ -538,7 +540,8 @@ extension FuzzyMatcher {
                         if prevIsWhitespace {
                             posBonus = bonusBoundaryWhitespaceVal
                         } else if prevByte == 0x2F || prevByte == 0x3A
-                            || prevByte == 0x3B || prevByte == 0x7C {
+                            || prevByte == 0x3B || prevByte == 0x7C
+                        {
                             posBonus = bonusBoundaryDelimiterVal
                         } else {
                             let prevIsLower = prevByte >= 0x61 && prevByte <= 0x7A
@@ -699,7 +702,8 @@ extension FuzzyMatcher {
                             if prevIsWhitespace {
                                 posBonus = bonusBoundaryWhitespaceVal
                             } else if prevByte == 0x2F || prevByte == 0x3A
-                                || prevByte == 0x3B || prevByte == 0x7C {
+                                || prevByte == 0x3B || prevByte == 0x7C
+                            {
                                 posBonus = bonusBoundaryDelimiterVal
                             } else {
                                 let prevIsLower = prevByte >= 0x61 && prevByte <= 0x7A
@@ -710,7 +714,8 @@ extension FuzzyMatcher {
                                     if !prevIsDigit && currIsDigit {
                                         posBonus = bonusCamelCaseVal
                                     } else {
-                                        let prevIsAlnum = (prevByte >= 0x41 && prevByte <= 0x5A)
+                                        let prevIsAlnum =
+                                            (prevByte >= 0x41 && prevByte <= 0x5A)
                                             || (prevByte >= 0x61 && prevByte <= 0x7A)
                                             || prevByte == 0xC3
                                             || prevByte == 0xCE || prevByte == 0xCF
@@ -742,19 +747,21 @@ extension FuzzyMatcher {
         candidateLength: Int
     ) -> [Int]? {
         let queryLength = querySpan.count
-        guard queryLength >= Self.minAcronymQueryLength
-            && queryLength <= Self.maxAcronymQueryLength else { return nil }
+        guard
+            queryLength >= Self.minAcronymQueryLength
+                && queryLength <= Self.maxAcronymQueryLength
+        else { return nil }
 
         // Collect word-initial positions and their bytes
         var initials: [(pos: Int, byte: UInt8)] = []
         let limit = min(candidateLength, Self.boundaryMaskBitWidth)
-        for i in 0..<limit {
+        for i in 0 ..< limit {
             if (boundaryMask & (1 << i)) != 0 {
                 initials.append((pos: i, byte: candidateSpan[i]))
             }
         }
         if candidateLength > Self.boundaryMaskBitWidth {
-            for i in Self.boundaryMaskBitWidth..<candidateLength {
+            for i in Self.boundaryMaskBitWidth ..< candidateLength {
                 if isWordBoundary(at: i, in: candidateSpan) {
                     initials.append((pos: i, byte: candidateSpan[i]))
                 }
@@ -818,7 +825,8 @@ extension FuzzyMatcher {
                 // Extend past any following combining marks
                 while charEnd < candidateLength {
                     if charEnd + 1 < candidateLength
-                        && isCombiningMark(lead: candidateUTF8[charEnd], second: candidateUTF8[charEnd + 1]) {
+                        && isCombiningMark(lead: candidateUTF8[charEnd], second: candidateUTF8[charEnd + 1])
+                    {
                         charEnd += 2
                     } else {
                         break
@@ -845,12 +853,14 @@ extension FuzzyMatcher {
         // Convert byte offsets to String.Index
         let startIndex = utf8View.startIndex
         return coalesced.compactMap { range in
-            let lower = utf8View.index(startIndex, offsetBy: range.lower, limitedBy: utf8View.endIndex)
+            let lower =
+                utf8View.index(startIndex, offsetBy: range.lower, limitedBy: utf8View.endIndex)
                 ?? utf8View.endIndex
-            let upper = utf8View.index(startIndex, offsetBy: range.upper, limitedBy: utf8View.endIndex)
+            let upper =
+                utf8View.index(startIndex, offsetBy: range.upper, limitedBy: utf8View.endIndex)
                 ?? utf8View.endIndex
             guard lower < upper else { return nil }
-            return lower..<upper
+            return lower ..< upper
         }
     }
 }

@@ -13,11 +13,12 @@
             let plain = URL(fileURLWithPath: "/tmp/plain.png")
             let spaced = URL(fileURLWithPath: "/tmp/image with space.png")
             let quoted = URL(fileURLWithPath: "/tmp/user's image.png")
-            #expect(pasteboard.writeObjects([
-                plain as NSURL,
-                spaced as NSURL,
-                quoted as NSURL,
-            ]))
+            #expect(
+                pasteboard.writeObjects([
+                    plain as NSURL,
+                    spaced as NSURL,
+                    quoted as NSURL,
+                ]))
 
             #expect(
                 TerminalPasteboard.string(from: pasteboard)

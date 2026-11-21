@@ -67,14 +67,16 @@ final class BrowserRemoteRouting: ObservableObject {
 
     nonisolated static func routedURL(_ url: URL) -> URL {
         guard let target = directLoopbackTarget(url),
-              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else { return url }
         components.host = alias(for: target)
         return components.url ?? url
     }
 
     static func displayURL(_ url: URL) -> URL {
         guard let target = url.host.flatMap(loopbackTarget(forAlias:)),
-              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else { return url }
         components.host = target.contains(":") ? "[\(target)]" : target
         return components.url ?? url
     }
@@ -88,8 +90,10 @@ final class BrowserRemoteRouting: ObservableObject {
     /// The remote address a direct loopback URL asks for. The alias keeps it,
     /// so a service bound only to 127.0.0.2 or ::1 is still the one reached.
     nonisolated private static func directLoopbackTarget(_ url: URL) -> String? {
-        guard isDirectLoopback(url), let host = url.host?.lowercased()
-            .trimmingCharacters(in: CharacterSet(charactersIn: "[].")) else { return nil }
+        guard isDirectLoopback(url),
+            let host = url.host?.lowercased()
+                .trimmingCharacters(in: CharacterSet(charactersIn: "[]."))
+        else { return nil }
         if host == "localhost" || host == "::1" { return host }
         // Wildcard listeners answer on localhost; their bind addresses name no host.
         if host == "0.0.0.0" || host == "::" { return "localhost" }
@@ -131,7 +135,8 @@ final class BrowserRemoteRouting: ObservableObject {
     ) {
         let space = challenge.protectionSpace
         guard space.authenticationMethod == NSURLAuthenticationMethodServerTrust,
-              let target = loopbackTarget(forAlias: space.host), let trust = space.serverTrust else {
+            let target = loopbackTarget(forAlias: space.host), let trust = space.serverTrust
+        else {
             DispatchQueue.main.async { completion(nil) }
             return
         }
@@ -146,12 +151,12 @@ final class BrowserRemoteRouting: ObservableObject {
     /// Fail closed for loopback URLs that page scripts or redirects produce
     /// outside the bridge below.
     private static let loopbackRuleSource = #"""
-    [{"trigger":{"url-filter":"^[a-z]+://localhost\\.?[:/]"},"action":{"type":"block"}},
-    {"trigger":{"url-filter":"^[a-z]+://127\\."},"action":{"type":"block"}},
-    {"trigger":{"url-filter":"^[a-z]+://0\\.0\\.0\\.0[:/]"},"action":{"type":"block"}},
-    {"trigger":{"url-filter":"^[a-z]+://\\[::1?\\]"},"action":{"type":"block"}},
-    {"trigger":{"url-filter":"^[a-z]+://\\[::ffff:7f"},"action":{"type":"block"}}]
-    """#
+        [{"trigger":{"url-filter":"^[a-z]+://localhost\\.?[:/]"},"action":{"type":"block"}},
+        {"trigger":{"url-filter":"^[a-z]+://127\\."},"action":{"type":"block"}},
+        {"trigger":{"url-filter":"^[a-z]+://0\\.0\\.0\\.0[:/]"},"action":{"type":"block"}},
+        {"trigger":{"url-filter":"^[a-z]+://\\[::1?\\]"},"action":{"type":"block"}},
+        {"trigger":{"url-filter":"^[a-z]+://\\[::ffff:7f"},"action":{"type":"block"}}]
+        """#
 
     static let loopbackMessageName = "zshellRemoteLoopback"
     static let loopbackInvalidationName = "zshellRemoteLoopbackInvalidated"
@@ -185,176 +190,176 @@ final class BrowserRemoteRouting: ObservableObject {
     }
 
     static let bridgeScript = """
-    (() => {
-      const alias = '\(aliasHost)';
-      const direct = host => host === 'localhost' || host === 'localhost.' || host === '[::1]' || host === '[::]' || host === '0.0.0.0'
-        || host.startsWith('[::ffff:7f') || /^127\\.\\d+\\.\\d+\\.\\d+$/.test(host);
-      // Keep the requested loopback address in the alias, matching routedURL().
-      const aliasFor = host => {
-        host = host.replace(/^\\[|\\]$/g, '').replace(/\\.$/, '');
-        if (host === 'localhost' || host === '0.0.0.0' || host === '::') return alias;
-        if (host === '::1') return 'ipv6-1.' + alias;
-        const mapped = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(host);
-        if (mapped) {
-          const high = parseInt(mapped[1], 16), low = parseInt(mapped[2], 16);
-          host = [high >> 8, high & 255, low >> 8, low & 255].join('.');
-        }
-        return host.replace(/\\./g, '-') + '.' + alias;
-      };
-      const route = value => {
-        try {
-          const url = new URL(String(value), document.baseURI);
-          if (!direct(url.hostname)) return value;
-          url.hostname = aliasFor(url.hostname);
-          return url.href;
-        } catch { return value; }
-      };
-      // A public page can request loopback before the tunnel exists: start it
-      // and hold routed requests until it is ready. If it cannot start, they
-      // still go out and fail on the closed proxy.
-      const tunnel = window.webkit.messageHandlers.\(loopbackMessageName);
-      let connected = location.hostname === alias || location.hostname.endsWith('.' + alias);
-      let readiness, generation = -1, revision = 0;
-      const invalidation = '\(loopbackInvalidationName)';
-      const invalidate = next => {
-        if (!Number.isSafeInteger(next) || next < 0) return;
-        if (next > generation) {
-          generation = next;
-          revision++;
-          connected = false;
-          readiness = undefined;
-        }
-        for (let index = 0; index < window.frames.length; index++) {
-          window.frames[index].postMessage({ [invalidation]: next }, '*');
-        }
-      };
-      window.addEventListener(invalidation, event => invalidate(event.detail));
-      window.addEventListener('message', event => {
-        if (event.source === window.parent) invalidate(event.data && event.data[invalidation]);
-      });
-      const settle = () => {
-        if (readiness) return readiness;
-        const current = revision;
-        const pending = tunnel.postMessage(null).then(next => {
-          if (current === revision && next >= generation) { generation = next; connected = true; }
-        }, () => { if (readiness === pending) readiness = undefined; });
-        return readiness = pending;
-      };
-      const deferred = (Native, url, rest, events) => {
-        const target = new EventTarget();
-        Object.setPrototypeOf(target, Native.prototype);
-        let native, closing;
-        let binaryType = 'blob';
-        const handlers = {}, forwarded = new Set(events);
-        const forward = type => native.addEventListener(type, event => {
-          const copy = new event.constructor(event.type, event);
-          target.dispatchEvent(copy);
-          if (handlers[type]) handlers[type].call(target, copy);
-        });
-        for (const type of events) {
-          Object.defineProperty(target, 'on' + type, { get: () => handlers[type] || null,
-            set: handler => { handlers[type] = typeof handler === 'function' ? handler : null; } });
-        }
-        const add = EventTarget.prototype.addEventListener;
-        Object.defineProperty(target, 'addEventListener', { value(type, ...options) {
-          type = String(type);
-          if (!forwarded.has(type)) { forwarded.add(type); if (native) forward(type); }
-          return add.call(this, type, ...options);
-        } });
-        const property = (name, fallback) => Object.defineProperty(target, name, { get: () => native ? native[name] : fallback() });
-        property('url', () => url);
-        property('readyState', () => closing ? 2 : 0);
-        for (const name of ['protocol', 'extensions']) property(name, () => '');
-        property('bufferedAmount', () => 0);
-        if ('withCredentials' in Native.prototype) property('withCredentials', () => !!(rest[0] && rest[0].withCredentials));
-        Object.defineProperty(target, 'binaryType', { get: () => native ? native.binaryType : binaryType,
-          set: value => { if (native) native.binaryType = value; else binaryType = String(value); } });
-        Object.defineProperty(target, 'send', { value(data) {
-          if (!native) throw new DOMException('Still connecting', 'InvalidStateError');
-          return native.send(data);
-        } });
-        Object.defineProperty(target, 'close', { value(...args) { if (native) native.close(...args); else closing = args; } });
-        settle().then(() => {
-          native = new Native(url, ...rest);
-          if ('binaryType' in native) native.binaryType = binaryType;
-          forwarded.forEach(forward);
-          if (closing) native.close(...closing);
-        });
-        return target;
-      };
-      const wrap = (name, Native, events) => {
-        if (!Native) return;
-        const Routed = function (url, ...rest) {
-          const routed = route(url);
-          return routed === url || connected ? new Native(routed, ...rest) : deferred(Native, routed, rest, events);
-        };
-        Routed.prototype = Native.prototype;
-        Object.setPrototypeOf(Routed, Native);
-        window[name] = Routed;
-      };
-      wrap('WebSocket', window.WebSocket, ['open', 'message', 'error', 'close']);
-      wrap('EventSource', window.EventSource, ['open', 'message', 'error']);
-      const fetch = window.fetch;
-      window.fetch = function (input, init) {
-        const request = input instanceof Request, value = request ? input.url : input, routed = route(value);
-        const issue = () => fetch.call(this, request ? new Request(routed, input) : routed, init);
-        return routed === value || connected ? issue() : settle().then(issue);
-      };
-      const open = XMLHttpRequest.prototype.open, send = XMLHttpRequest.prototype.send;
-      const held = new WeakSet();
-      XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-        const routed = route(url);
-        if (routed !== url && !connected && rest[0] !== false) held.add(this); else held.delete(this);
-        return open.call(this, method, routed, ...rest);
-      };
-      XMLHttpRequest.prototype.send = function (body) {
-        if (!held.has(this)) return send.call(this, body);
-        held.delete(this);
-        settle().then(() => send.call(this, body));
-      };
-      // The latest assignment wins, including one made while an earlier
-      // routed value waits for the tunnel.
-      const pending = new WeakMap();
-      const assign = (element, value, set) => {
-        const routed = route(value), token = {};
-        pending.set(element, token);
-        if (routed === value || connected) return set(routed);
-        settle().then(() => { if (pending.get(element) === token) set(routed); });
-      };
-      const attributes = { SCRIPT: 'src', IMG: 'src', IFRAME: 'src', LINK: 'href', SOURCE: 'src', VIDEO: 'src', AUDIO: 'src', EMBED: 'src' };
-      // Script and media elements start fetching as soon as they are inserted
-      // or assigned, before a MutationObserver runs, so route the value as it
-      // is written.
-      const routedProperties = [['HTMLScriptElement', 'src'], ['HTMLImageElement', 'src'], ['HTMLIFrameElement', 'src'],
-        ['HTMLLinkElement', 'href'], ['HTMLSourceElement', 'src'], ['HTMLMediaElement', 'src'], ['HTMLEmbedElement', 'src']];
-      for (const [type, name] of routedProperties) {
-        const prototype = window[type] && window[type].prototype;
-        const descriptor = prototype && Object.getOwnPropertyDescriptor(prototype, name);
-        if (!descriptor || !descriptor.set) continue;
-        Object.defineProperty(prototype, name, { ...descriptor, set(value) { assign(this, value, routed => descriptor.set.call(this, routed)); } });
-      }
-      const setAttribute = Element.prototype.setAttribute;
-      Element.prototype.setAttribute = function (name, value) {
-        if (attributes[this.tagName] !== String(name).toLowerCase()) return setAttribute.call(this, name, value);
-        assign(this, value, routed => setAttribute.call(this, name, routed));
-      };
-      const patch = node => {
-        const name = attributes[node.tagName];
-        const value = name && node.getAttribute(name);
-        if (value && route(value) !== value) node.setAttribute(name, route(value));
-      };
-      new MutationObserver(records => {
-        for (const record of records) {
-          if (record.type === 'attributes') { patch(record.target); continue; }
-          for (const node of record.addedNodes) {
-            if (node.nodeType !== 1) continue;
-            patch(node);
-            node.querySelectorAll('[src],link[href]').forEach(patch);
+        (() => {
+          const alias = '\(aliasHost)';
+          const direct = host => host === 'localhost' || host === 'localhost.' || host === '[::1]' || host === '[::]' || host === '0.0.0.0'
+            || host.startsWith('[::ffff:7f') || /^127\\.\\d+\\.\\d+\\.\\d+$/.test(host);
+          // Keep the requested loopback address in the alias, matching routedURL().
+          const aliasFor = host => {
+            host = host.replace(/^\\[|\\]$/g, '').replace(/\\.$/, '');
+            if (host === 'localhost' || host === '0.0.0.0' || host === '::') return alias;
+            if (host === '::1') return 'ipv6-1.' + alias;
+            const mapped = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(host);
+            if (mapped) {
+              const high = parseInt(mapped[1], 16), low = parseInt(mapped[2], 16);
+              host = [high >> 8, high & 255, low >> 8, low & 255].join('.');
+            }
+            return host.replace(/\\./g, '-') + '.' + alias;
+          };
+          const route = value => {
+            try {
+              const url = new URL(String(value), document.baseURI);
+              if (!direct(url.hostname)) return value;
+              url.hostname = aliasFor(url.hostname);
+              return url.href;
+            } catch { return value; }
+          };
+          // A public page can request loopback before the tunnel exists: start it
+          // and hold routed requests until it is ready. If it cannot start, they
+          // still go out and fail on the closed proxy.
+          const tunnel = window.webkit.messageHandlers.\(loopbackMessageName);
+          let connected = location.hostname === alias || location.hostname.endsWith('.' + alias);
+          let readiness, generation = -1, revision = 0;
+          const invalidation = '\(loopbackInvalidationName)';
+          const invalidate = next => {
+            if (!Number.isSafeInteger(next) || next < 0) return;
+            if (next > generation) {
+              generation = next;
+              revision++;
+              connected = false;
+              readiness = undefined;
+            }
+            for (let index = 0; index < window.frames.length; index++) {
+              window.frames[index].postMessage({ [invalidation]: next }, '*');
+            }
+          };
+          window.addEventListener(invalidation, event => invalidate(event.detail));
+          window.addEventListener('message', event => {
+            if (event.source === window.parent) invalidate(event.data && event.data[invalidation]);
+          });
+          const settle = () => {
+            if (readiness) return readiness;
+            const current = revision;
+            const pending = tunnel.postMessage(null).then(next => {
+              if (current === revision && next >= generation) { generation = next; connected = true; }
+            }, () => { if (readiness === pending) readiness = undefined; });
+            return readiness = pending;
+          };
+          const deferred = (Native, url, rest, events) => {
+            const target = new EventTarget();
+            Object.setPrototypeOf(target, Native.prototype);
+            let native, closing;
+            let binaryType = 'blob';
+            const handlers = {}, forwarded = new Set(events);
+            const forward = type => native.addEventListener(type, event => {
+              const copy = new event.constructor(event.type, event);
+              target.dispatchEvent(copy);
+              if (handlers[type]) handlers[type].call(target, copy);
+            });
+            for (const type of events) {
+              Object.defineProperty(target, 'on' + type, { get: () => handlers[type] || null,
+                set: handler => { handlers[type] = typeof handler === 'function' ? handler : null; } });
+            }
+            const add = EventTarget.prototype.addEventListener;
+            Object.defineProperty(target, 'addEventListener', { value(type, ...options) {
+              type = String(type);
+              if (!forwarded.has(type)) { forwarded.add(type); if (native) forward(type); }
+              return add.call(this, type, ...options);
+            } });
+            const property = (name, fallback) => Object.defineProperty(target, name, { get: () => native ? native[name] : fallback() });
+            property('url', () => url);
+            property('readyState', () => closing ? 2 : 0);
+            for (const name of ['protocol', 'extensions']) property(name, () => '');
+            property('bufferedAmount', () => 0);
+            if ('withCredentials' in Native.prototype) property('withCredentials', () => !!(rest[0] && rest[0].withCredentials));
+            Object.defineProperty(target, 'binaryType', { get: () => native ? native.binaryType : binaryType,
+              set: value => { if (native) native.binaryType = value; else binaryType = String(value); } });
+            Object.defineProperty(target, 'send', { value(data) {
+              if (!native) throw new DOMException('Still connecting', 'InvalidStateError');
+              return native.send(data);
+            } });
+            Object.defineProperty(target, 'close', { value(...args) { if (native) native.close(...args); else closing = args; } });
+            settle().then(() => {
+              native = new Native(url, ...rest);
+              if ('binaryType' in native) native.binaryType = binaryType;
+              forwarded.forEach(forward);
+              if (closing) native.close(...closing);
+            });
+            return target;
+          };
+          const wrap = (name, Native, events) => {
+            if (!Native) return;
+            const Routed = function (url, ...rest) {
+              const routed = route(url);
+              return routed === url || connected ? new Native(routed, ...rest) : deferred(Native, routed, rest, events);
+            };
+            Routed.prototype = Native.prototype;
+            Object.setPrototypeOf(Routed, Native);
+            window[name] = Routed;
+          };
+          wrap('WebSocket', window.WebSocket, ['open', 'message', 'error', 'close']);
+          wrap('EventSource', window.EventSource, ['open', 'message', 'error']);
+          const fetch = window.fetch;
+          window.fetch = function (input, init) {
+            const request = input instanceof Request, value = request ? input.url : input, routed = route(value);
+            const issue = () => fetch.call(this, request ? new Request(routed, input) : routed, init);
+            return routed === value || connected ? issue() : settle().then(issue);
+          };
+          const open = XMLHttpRequest.prototype.open, send = XMLHttpRequest.prototype.send;
+          const held = new WeakSet();
+          XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+            const routed = route(url);
+            if (routed !== url && !connected && rest[0] !== false) held.add(this); else held.delete(this);
+            return open.call(this, method, routed, ...rest);
+          };
+          XMLHttpRequest.prototype.send = function (body) {
+            if (!held.has(this)) return send.call(this, body);
+            held.delete(this);
+            settle().then(() => send.call(this, body));
+          };
+          // The latest assignment wins, including one made while an earlier
+          // routed value waits for the tunnel.
+          const pending = new WeakMap();
+          const assign = (element, value, set) => {
+            const routed = route(value), token = {};
+            pending.set(element, token);
+            if (routed === value || connected) return set(routed);
+            settle().then(() => { if (pending.get(element) === token) set(routed); });
+          };
+          const attributes = { SCRIPT: 'src', IMG: 'src', IFRAME: 'src', LINK: 'href', SOURCE: 'src', VIDEO: 'src', AUDIO: 'src', EMBED: 'src' };
+          // Script and media elements start fetching as soon as they are inserted
+          // or assigned, before a MutationObserver runs, so route the value as it
+          // is written.
+          const routedProperties = [['HTMLScriptElement', 'src'], ['HTMLImageElement', 'src'], ['HTMLIFrameElement', 'src'],
+            ['HTMLLinkElement', 'href'], ['HTMLSourceElement', 'src'], ['HTMLMediaElement', 'src'], ['HTMLEmbedElement', 'src']];
+          for (const [type, name] of routedProperties) {
+            const prototype = window[type] && window[type].prototype;
+            const descriptor = prototype && Object.getOwnPropertyDescriptor(prototype, name);
+            if (!descriptor || !descriptor.set) continue;
+            Object.defineProperty(prototype, name, { ...descriptor, set(value) { assign(this, value, routed => descriptor.set.call(this, routed)); } });
           }
-        }
-      }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'href'] });
-    })();
-    """
+          const setAttribute = Element.prototype.setAttribute;
+          Element.prototype.setAttribute = function (name, value) {
+            if (attributes[this.tagName] !== String(name).toLowerCase()) return setAttribute.call(this, name, value);
+            assign(this, value, routed => setAttribute.call(this, name, routed));
+          };
+          const patch = node => {
+            const name = attributes[node.tagName];
+            const value = name && node.getAttribute(name);
+            if (value && route(value) !== value) node.setAttribute(name, route(value));
+          };
+          new MutationObserver(records => {
+            for (const record of records) {
+              if (record.type === 'attributes') { patch(record.target); continue; }
+              for (const node of record.addedNodes) {
+                if (node.nodeType !== 1) continue;
+                patch(node);
+                node.querySelectorAll('[src],link[href]').forEach(patch);
+              }
+            }
+          }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'href'] });
+        })();
+        """
 
     func retain(_ id: UUID, projectID: UUID) {
         users[id] = projectID
@@ -363,8 +368,7 @@ final class BrowserRemoteRouting: ObservableObject {
 
     func release(_ id: UUID) {
         users.removeValue(forKey: id)
-        if users.isEmpty { disconnect(to: .idle) }
-        else if !isAvailable { disconnect(to: .unavailable) }
+        if users.isEmpty { disconnect(to: .idle) } else if !isAvailable { disconnect(to: .unavailable) }
     }
 
     func update(location: ProjectLocation) {
@@ -439,7 +443,7 @@ final class BrowserRemoteRouting: ObservableObject {
                 state = .connected
                 timer?.invalidate()
                 timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-                    assumeMainActor {
+                    assumeMainActor { [weak self] in
                         guard let self, let forward = self.forward, !forward.isRunning else { return }
                         self.disconnect(to: self.isAvailable ? .idle : .unavailable)
                     }
@@ -500,15 +504,19 @@ final class BrowserRemoteRouting: ObservableObject {
 /// URLSession follows favicon redirects itself, outside WebKit's content
 /// rules, so a remote page could otherwise redirect it to the Mac's localhost.
 nonisolated private final class FaviconRedirects: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
-    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
-                    newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void) {
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void
+    ) {
         var request = request
         request.url = request.url.map(BrowserRemoteRouting.routedURL)
         completionHandler(request)
     }
 
-    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
-                    completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
         BrowserRemoteRouting.evaluateLoopbackTrust(challenge) { credential in
             completionHandler(credential == nil ? .performDefaultHandling : .useCredential, credential)
         }
@@ -664,12 +672,18 @@ nonisolated final class BrowserLoopbackRelay: @unchecked Sendable {
     private static func pipe(_ source: NWConnection, to destination: NWConnection, pair: Pair) {
         source.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { data, _, isComplete, error in
             guard error == nil else { return pair.finish(failed: true) }
-            destination.send(content: data, contentContext: isComplete ? .finalMessage : .defaultMessage,
-                             isComplete: isComplete, completion: .contentProcessed { sendError in
-                if sendError != nil { pair.finish(failed: true) }
-                else if isComplete { pair.finish(failed: false) }
-                else { pipe(source, to: destination, pair: pair) }
-            })
+            destination.send(
+                content: data, contentContext: isComplete ? .finalMessage : .defaultMessage,
+                isComplete: isComplete,
+                completion: .contentProcessed { sendError in
+                    if sendError != nil {
+                        pair.finish(failed: true)
+                    } else if isComplete {
+                        pair.finish(failed: false)
+                    } else {
+                        pipe(source, to: destination, pair: pair)
+                    }
+                })
         }
     }
 

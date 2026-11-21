@@ -79,7 +79,8 @@ nonisolated enum TerminalHintMatcher {
         let all = NSRange(location: 0, length: nsText.length)
         var candidates: [Candidate] = []
         var occupied = IndexSet()
-        let ordered = Array(expressions.enumerated().prefix(6)) + [(patterns.count, supplemental)]
+        let ordered =
+            Array(expressions.enumerated().prefix(6)) + [(patterns.count, supplemental)]
             + Array(expressions.enumerated().dropFirst(6))
         for (index, expression) in ordered {
             expression.enumerateMatches(in: text, range: all) { match, _, _ in
@@ -93,15 +94,18 @@ nonisolated enum TerminalHintMatcher {
                     }
                 }
                 if index == 1 || index == expressions.count {
-                    while range.length > 0, ").,;!?\"'>]}。，、；？！）".contains(nsText.substring(with: NSRange(location: NSMaxRange(range) - 1, length: 1))) {
+                    while range.length > 0,
+                        ").,;!?\"'>]}。，、；？！）".contains(nsText.substring(with: NSRange(location: NSMaxRange(range) - 1, length: 1)))
+                    {
                         range.length -= 1
                     }
                 }
                 guard range.length > 0,
-                      !nsText.substring(with: range).contains(where: \.isNewline) else { return }
+                    !nsText.substring(with: range).contains(where: \.isNewline)
+                else { return }
                 // Earlier patterns own overlaps (a URL is not also a path,
                 // IP, hash and number). Keep duplicate values at distinct cells.
-                let offsets = range.location..<NSMaxRange(range)
+                let offsets = range.location ..< NSMaxRange(range)
                 guard !occupied.intersects(integersIn: offsets) else { return }
                 occupied.insert(integersIn: offsets)
                 candidates.append(Candidate(range: range, value: nsText.substring(with: range)))
@@ -113,7 +117,8 @@ nonisolated enum TerminalHintMatcher {
             let fragments = rowRanges.compactMap { row -> TerminalHint.Fragment? in
                 let overlap = NSIntersectionRange(row.range, candidate.range)
                 guard overlap.length > 0,
-                      let columns = snapshot.rows[row.row].columns(for: NSRange(location: overlap.location - row.range.location, length: overlap.length))
+                    let columns = snapshot.rows[row.row].columns(
+                        for: NSRange(location: overlap.location - row.range.location, length: overlap.length))
                 else { return nil }
                 return TerminalHint.Fragment(row: row.row, columns: columns)
             }

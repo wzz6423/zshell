@@ -68,4 +68,3 @@ struct LazySplitLines: Sequence {
         return Iterator(input, source: source)
     }
 }
-

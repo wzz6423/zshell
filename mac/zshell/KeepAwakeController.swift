@@ -10,18 +10,19 @@ final class KeepAwakeController: nonisolated ObservableObject {
         var create: () -> (IOReturn, IOPMAssertionID)
         var release: (IOPMAssertionID) -> IOReturn
 
-        static let system = Assertions(create: {
-            var id: IOPMAssertionID = 0
-            // Idle sleep is the only constraint: displays, lid close, and
-            // explicit sleep must keep following macOS policy.
-            let result = IOPMAssertionCreateWithName(
-                kIOPMAssertionTypePreventUserIdleSystemSleep as CFString,
-                IOPMAssertionLevel(kIOPMAssertionLevelOn),
-                "Zshell keep computer awake" as CFString,
-                &id
-            )
-            return (result, id)
-        }, release: { IOPMAssertionRelease($0) })
+        static let system = Assertions(
+            create: {
+                var id: IOPMAssertionID = 0
+                // Idle sleep is the only constraint: displays, lid close, and
+                // explicit sleep must keep following macOS policy.
+                let result = IOPMAssertionCreateWithName(
+                    kIOPMAssertionTypePreventUserIdleSystemSleep as CFString,
+                    IOPMAssertionLevel(kIOPMAssertionLevelOn),
+                    "Zshell keep computer awake" as CFString,
+                    &id
+                )
+                return (result, id)
+            }, release: { IOPMAssertionRelease($0) })
     }
 
     @Published private(set) var isActive = false
@@ -49,13 +50,14 @@ final class KeepAwakeController: nonisolated ObservableObject {
         hasWorkingLocalAgent = AgentAutomationMonitor.shared.hasWorkingLocalAgent
         let center = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.willSleepNotification, NSWorkspace.didWakeNotification] {
-            workspaceObservations.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] notification in
-                MainActor.assumeIsolated {
-                    self?.isSleeping = notification.name == NSWorkspace.willSleepNotification
-                    self?.nextRetry = .distantPast
-                    self?.reconcile()
-                }
-            })
+            workspaceObservations.append(
+                center.addObserver(forName: name, object: nil, queue: .main) { [weak self] notification in
+                    MainActor.assumeIsolated {
+                        self?.isSleeping = notification.name == NSWorkspace.willSleepNotification
+                        self?.nextRetry = .distantPast
+                        self?.reconcile()
+                    }
+                })
         }
         settingsObservation = AppSettings.shared.$keepAwakeMode.removeDuplicates().sink { [weak self] mode in
             guard let self else { return }
@@ -97,8 +99,10 @@ final class KeepAwakeController: nonisolated ObservableObject {
     }
 
     private func reconcile() {
-        let hold = isRunning && !isSleeping && (mode == .whileRunning
-            || mode == .whileAgentsWork && hasWorkingLocalAgent)
+        let hold =
+            isRunning && !isSleeping
+            && (mode == .whileRunning
+                || mode == .whileAgentsWork && hasWorkingLocalAgent)
         guard hold != (assertionID != nil) else {
             if lastError != nil { lastError = nil }
             retryTimer?.invalidate()

@@ -19,10 +19,13 @@ private final class RemoteAgentEvents: @unchecked Sendable {
             do {
                 _ = try ZshellAutomationSocketServer.followEvents(
                     path: environment["ZSHELL_AUTOMATION_SOCKET"]!,
-                    request: .init(version: 1, id: UUID().uuidString, method: "events.subscribe",
+                    request: .init(
+                        version: 1, id: UUID().uuidString, method: "events.subscribe",
                         token: environment["ZSHELL_AUTOMATION_TOKEN"]!,
                         terminalID: environment["ZSHELL_TERMINAL_ID"]!, params: [:]), timeoutMS: 90_000
-                ) { value in self.values.set(self.values.get() + [value]); return false }
+                ) { value in
+                    self.values.set(self.values.get() + [value]); return false
+                }
             } catch { self.error.set(String(describing: error)) }
         }
     }
@@ -51,8 +54,7 @@ struct RemoteAgentSurfaceTests {
         if PTYMuxCommandLine.shouldRunRelay { PTYMuxRelay.run() }
         if PTYMuxCommandLine.shouldRunDaemon { PTYMuxCommandLine.runDaemon() }
         if RemoteSessionRelay.shouldRun { RemoteSessionRelay.run() }
-        do { try run() }
-        catch { fputs("Remote Agent surfaces failed: \(error)\n", stderr); exit(1) }
+        do { try run() } catch { fputs("Remote Agent surfaces failed: \(error)\n", stderr); exit(1) }
     }
 
     private static func pump(_ duration: TimeInterval) {
@@ -72,7 +74,8 @@ struct RemoteAgentSurfaceTests {
         NSApp.setActivationPolicy(.prohibited)
         QuickTerminalOffscreen.install()
         let backend = CommandLine.arguments[1]
-        let host = try RemoteHost(name: "Official Codex SSH fixture", address: CommandLine.arguments[3], serverPath: CommandLine.arguments[5])
+        let host = try RemoteHost(
+            name: "Official Codex SSH fixture", address: CommandLine.arguments[3], serverPath: CommandLine.arguments[5])
         let directory = CommandLine.arguments[4]
         let root = URL(fileURLWithPath: CommandLine.arguments[6])
         let codex = CommandLine.arguments[7]
@@ -91,7 +94,9 @@ struct RemoteAgentSurfaceTests {
         var completed = false
 
         func check(_ condition: @autoclosure () -> Bool, _ label: String) throws {
-            guard condition() else { throw NSError(domain: "RemoteAgentSurfaceTest", code: 2, userInfo: [NSLocalizedDescriptionKey: label]) }
+            guard condition() else {
+                throw NSError(domain: "RemoteAgentSurfaceTest", code: 2, userInfo: [NSLocalizedDescriptionKey: label])
+            }
             checks += 1; print("PASS \(backend): \(label)")
         }
         func mount(_ session: TerminalSession) {
@@ -111,9 +116,12 @@ struct RemoteAgentSurfaceTests {
             defer { transport.close() }
             try transport.handshake()
             let remoteID = UUID()
-            let info = try transport.exchange(RemoteFrame(kind: "create", project: directory,
-                sessionId: remoteID.uuidString, command: ["/bin/sh", "-ic", "exec " + TerminalSession.shellQuote(codex)]))
-                .decodedResult(RemoteSessionInfo.self)
+            let info = try transport.exchange(
+                RemoteFrame(
+                    kind: "create", project: directory,
+                    sessionId: remoteID.uuidString, command: ["/bin/sh", "-ic", "exec " + TerminalSession.shellQuote(codex)])
+            )
+            .decodedResult(RemoteSessionInfo.self)
             remoteIDs.insert(remoteID)
             project.attachRemoteSession(info)
             let session = project.sessions.first { $0.remoteConnection?.sessionID == remoteID }!
@@ -134,7 +142,9 @@ struct RemoteAgentSurfaceTests {
         defer {
             if !completed {
                 for session in project.sessions {
-                    print("DIAGNOSTIC \(backend) status=\(String(describing: session.remoteStatus)) title=\(session.title) text=\(session.surface.readVisibleText(maxLines: 60, maxColumns: 200) ?? "")")
+                    print(
+                        "DIAGNOSTIC \(backend) status=\(String(describing: session.remoteStatus)) title=\(session.title) text=\(session.surface.readVisibleText(maxLines: 60, maxColumns: 200) ?? "")"
+                    )
                 }
             }
             AgentConversationHistoryController.shared.close(ifOwnedBy: manager)
@@ -151,33 +161,48 @@ struct RemoteAgentSurfaceTests {
         }
         try check(first.agentResume == nil && second.agentResume == nil, "native titles await a verified full provider identity")
         let events = RemoteAgentEvents(environment: ZshellCLIService.shared.terminalEnvironment(for: first.id))
-        try wait("authenticated event stream did not start") { events.values.get().contains { $0.objectValue?["event"]?.stringValue == "stream.ready" } }
+        try wait("authenticated event stream did not start") {
+            events.values.get().contains { $0.objectValue?["event"]?.stringValue == "stream.ready" }
+        }
         for session in [first, second] {
             session.sendCommand("zshell isolated native SSH binding verification")
             pump(0.35); session.sendEnter()
-            try wait("official SessionStart did not bind: \(session.title)") { session.agentResume?.provider == .codex && session.agentStatus?.phase == .working }
+            try wait("official SessionStart did not bind: \(session.title)") {
+                session.agentResume?.provider == .codex && session.agentStatus?.phase == .working
+            }
         }
         let firstIdentity = first.agentResume!, secondIdentity = second.agentResume!
-        try check(firstIdentity.sessionID != secondIdentity.sessionID && firstIdentity.workingDirectory == secondIdentity.workingDirectory,
+        try check(
+            firstIdentity.sessionID != secondIdentity.sessionID && firstIdentity.workingDirectory == secondIdentity.workingDirectory,
             "same-cwd native shared daemon preserves two distinct full IDs")
-        try check(firstIdentity.remoteHostID == host.id && firstIdentity.remoteProjectDirectory == directory,
+        try check(
+            firstIdentity.remoteHostID == host.id && firstIdentity.remoteProjectDirectory == directory,
             "conversation identity keeps its SSH host and project")
         try wait("remote Agent event did not arrive") { events.count("agent.status", terminalID: first.id) > 0 }
-        let event = events.values.get().first { $0.objectValue?["event"]?.stringValue == "agent.status"
-            && $0.objectValue?["data"]?.objectValue?["terminal_id"]?.stringValue == first.id.uuidString }!
-        try check(event.objectValue?["data"]?.objectValue?["host_id"]?.stringValue == host.id.uuidString
-            && event.objectValue?["data"]?.objectValue?["remote_session_id"]?.stringValue == first.remoteConnection?.sessionID.uuidString,
+        let event = events.values.get().first {
+            $0.objectValue?["event"]?.stringValue == "agent.status"
+                && $0.objectValue?["data"]?.objectValue?["terminal_id"]?.stringValue == first.id.uuidString
+        }!
+        try check(
+            event.objectValue?["data"]?.objectValue?["host_id"]?.stringValue == host.id.uuidString
+                && event.objectValue?["data"]?.objectValue?["remote_session_id"]?.stringValue
+                    == first.remoteConnection?.sessionID.uuidString,
             "authenticated events identify the host and remote PTY")
         let listings = try RemoteHostClient.catalog(host: host)
-        AgentConversationHistoryStore.shared.importRemote(listings.first { $0.directory == directory }!.conversations, host: host, project: project)
+        AgentConversationHistoryStore.shared.importRemote(
+            listings.first { $0.directory == directory }!.conversations, host: host, project: project)
         let store = AgentConversationHistoryStore.shared
         let found = store.search(secondIdentity.sessionID, filter: .all, projectID: project.conversationHistoryProjectID)
         try check(found.count == 1 && found[0].identity == secondIdentity, "existing history search returns the exact remote conversation")
         manager.showConversationHistory(all: true)
-        guard let panel = NSApp.windows.first(where: { window in window.contentView.map { descendants($0).contains { $0 is NSSearchField } } ?? false }),
-              let content = panel.contentView,
-              let search = descendants(content).compactMap({ $0 as? NSSearchField }).first,
-              let table = descendants(content).compactMap({ $0 as? NSTableView }).first else {
+        guard
+            let panel = NSApp.windows.first(where: { window in
+                window.contentView.map { descendants($0).contains { $0 is NSSearchField } } ?? false
+            }),
+            let content = panel.contentView,
+            let search = descendants(content).compactMap({ $0 as? NSSearchField }).first,
+            let table = descendants(content).compactMap({ $0 as? NSTableView }).first
+        else {
             throw NSError(domain: "RemoteHistoryAppKitMissing", code: 1)
         }
         panel.orderOut(nil)
@@ -191,7 +216,9 @@ struct RemoteAgentSurfaceTests {
         try wait("approval did not reach first pane") { first.agentStatus?.attention == .approval }
         try check(second.agentStatus?.phase == .working, "native approval affects only the exact remote pane")
         try report(firstIdentity.sessionID, event: "Stop")
-        try wait("completion did not reach first pane") { first.agentStatus?.phase == .done && events.count("agent.finished", terminalID: first.id) == 1 }
+        try wait("completion did not reach first pane") {
+            first.agentStatus?.phase == .done && events.count("agent.finished", terminalID: first.id) == 1
+        }
         let doneStatus = first.remoteStatus!
         first.acceptRemoteAgentStatus(doneStatus)
         first.acceptRemoteAgentStatus(doneStatus)
@@ -208,8 +235,9 @@ struct RemoteAgentSurfaceTests {
         project.closeContent(.session(first), terminate: false)
         var resumed: Result<TerminalManager.ConversationContext, Error>?
         Task { @MainActor in
-            do { resumed = .success(try await manager.resumeRemoteConversation(id: firstRecord.id, in: project, focus: false)) }
-            catch { resumed = .failure(error) }
+            do { resumed = .success(try await manager.resumeRemoteConversation(id: firstRecord.id, in: project, focus: false)) } catch {
+                resumed = .failure(error)
+            }
         }
         try wait("asynchronous remote history resume did not finish") { resumed != nil }
         let restored = try resumed!.get().session
@@ -225,8 +253,9 @@ struct RemoteAgentSurfaceTests {
         pump(0.6)
         resumed = nil
         Task { @MainActor in
-            do { resumed = .success(try await manager.resumeRemoteConversation(id: firstRecord.id, in: project, focus: false)) }
-            catch { resumed = .failure(error) }
+            do { resumed = .success(try await manager.resumeRemoteConversation(id: firstRecord.id, in: project, focus: false)) } catch {
+                resumed = .failure(error)
+            }
         }
         try wait("ended remote conversation did not invoke provider resume") { resumed != nil }
         let restarted = try resumed!.get().session
@@ -244,14 +273,16 @@ struct RemoteAgentSurfaceTests {
         let sourcePID = restarted.remoteStatus!.remotePID
         let beforeFork = Set(project.sessions.map(\.id))
         manager.showConversationHistory(all: true)
-        guard let forkPanel = NSApp.windows.first(where: { window in
-            window.contentView.map { descendants($0).contains { $0 is NSSearchField } } ?? false
-        }), let forkContent = forkPanel.contentView,
-              let forkSearch = descendants(forkContent).compactMap({ $0 as? NSSearchField }).first,
-              let forkTable = descendants(forkContent).compactMap({ $0 as? NSTableView }).first,
-              let forkButton = descendants(forkContent).compactMap({ $0 as? NSButton }).first(where: {
-                  $0.accessibilityLabel() == String(localized: "Fork Conversation in New Pane")
-              }) else { throw NSError(domain: "RemoteForkAppKitMissing", code: 1) }
+        guard
+            let forkPanel = NSApp.windows.first(where: { window in
+                window.contentView.map { descendants($0).contains { $0 is NSSearchField } } ?? false
+            }), let forkContent = forkPanel.contentView,
+            let forkSearch = descendants(forkContent).compactMap({ $0 as? NSSearchField }).first,
+            let forkTable = descendants(forkContent).compactMap({ $0 as? NSTableView }).first,
+            let forkButton = descendants(forkContent).compactMap({ $0 as? NSButton }).first(where: {
+                $0.accessibilityLabel() == String(localized: "Fork Conversation in New Pane")
+            })
+        else { throw NSError(domain: "RemoteForkAppKitMissing", code: 1) }
         forkSearch.stringValue = firstIdentity.sessionID
         forkSearch.delegate?.controlTextDidChange?(Notification(name: NSControl.textDidChangeNotification, object: forkSearch))
         try wait("AppKit fork query did not select the remote source") { forkTable.numberOfRows == 1 }
@@ -267,26 +298,31 @@ struct RemoteAgentSurfaceTests {
         try wait("official forked Codex TUI did not connect", timeout: 25) {
             forked.remoteStatus?.state == .connected && forked.title.contains("...")
         }
-        try check(forked.agentResume?.sessionID != firstIdentity.sessionID,
+        try check(
+            forked.agentResume?.sessionID != firstIdentity.sessionID,
             "pending remote fork cannot bind to the source conversation")
         forked.sendCommand("zshell isolated native SSH fork verification"); pump(0.35); forked.sendEnter()
         try wait("official forked Codex did not confirm an independent identity", timeout: 30) {
             forked.agentResume.map(firstIdentity.acceptsFork) == true && !forkPanel.isVisible
         }
-        try check(forked.remoteConnection?.sessionID != sourceRemote && project.selectedSession === forked,
+        try check(
+            forked.remoteConnection?.sessionID != sourceRemote && project.selectedSession === forked,
             "AppKit remote fork focuses its independent provider conversation and PTY")
-        try check(restarted.agentResume == firstIdentity && restarted.remoteConnection?.sessionID == sourceRemote
-            && restarted.remoteStatus?.remotePID == sourcePID && store.record(id: firstRecord.id) == sourceRecord,
+        try check(
+            restarted.agentResume == firstIdentity && restarted.remoteConnection?.sessionID == sourceRemote
+                && restarted.remoteStatus?.remotePID == sourcePID && store.record(id: firstRecord.id) == sourceRecord,
             "native remote fork preserves the source pane, process and history")
         let forkRecord = store.record(id: forked.agentConversationHistoryID!)!
-        try check(forkRecord.id != sourceRecord.id && forkRecord.projectID == sourceRecord.projectID
-            && forkRecord.identity.configDirectory == firstIdentity.configDirectory
-            && forkRecord.identity.remoteHostID == host.id && forkRecord.identity.remoteProjectDirectory == directory,
+        try check(
+            forkRecord.id != sourceRecord.id && forkRecord.projectID == sourceRecord.projectID
+                && forkRecord.identity.configDirectory == firstIdentity.configDirectory
+                && forkRecord.identity.remoteHostID == host.id && forkRecord.identity.remoteProjectDirectory == directory,
             "remote fork records an independent history entry in the original profile and SSH project")
-        try check(NSWorkspace.shared.frontmostApplication?.processIdentifier != getpid()
-            && NSApp.windows.filter(\.isVisible).allSatisfy { window in
-                window.ignoresMouseEvents && NSScreen.screens.allSatisfy { !$0.frame.intersects(window.frame) }
-            }, "native SSH fork surface probes preserve the user's app focus")
+        try check(
+            NSWorkspace.shared.frontmostApplication?.processIdentifier != getpid()
+                && NSApp.windows.filter(\.isVisible).allSatisfy { window in
+                    window.ignoresMouseEvents && NSScreen.screens.allSatisfy { !$0.frame.intersects(window.frame) }
+                }, "native SSH fork surface probes preserve the user's app focus")
         completed = true
         print("\(checks) \(backend) official Codex SSH Agent surface checks passed")
     }

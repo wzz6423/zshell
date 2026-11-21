@@ -12,19 +12,19 @@ import WebKit
 private enum BrowserContextMenuSupport {
     static let messageName = "zshellContextMenuLink"
     static let script = #"""
-    (() => {
-      window.addEventListener("contextmenu", event => {
-        let element = event.target;
-        if (element?.nodeType === Node.TEXT_NODE) {
-          element = element.parentElement;
-        }
-        const link = element?.closest?.("a[href], area[href]");
-        window.webkit.messageHandlers.zshellContextMenuLink.postMessage(
-          link?.href || ""
-        );
-      }, true);
-    })()
-    """#
+        (() => {
+          window.addEventListener("contextmenu", event => {
+            let element = event.target;
+            if (element?.nodeType === Node.TEXT_NODE) {
+              element = element.parentElement;
+            }
+            const link = element?.closest?.("a[href], area[href]");
+            window.webkit.messageHandlers.zshellContextMenuLink.postMessage(
+              link?.href || ""
+            );
+          }, true);
+        })()
+        """#
 }
 
 private final class BrowserContextMenuBridge: NSObject, WKScriptMessageHandler {
@@ -49,9 +49,9 @@ final class BrowserWebView: WKWebView {
     fileprivate var contextMenuLink: String? {
         didSet {
             guard let contextMenuLink,
-                  let url = URL(string: contextMenuLink),
-                  let scheme = url.scheme?.lowercased(),
-                  ["http", "https", "file"].contains(scheme)
+                let url = URL(string: contextMenuLink),
+                let scheme = url.scheme?.lowercased(),
+                ["http", "https", "file"].contains(scheme)
             else {
                 contextMenuLinkURL = nil
                 return
@@ -90,9 +90,11 @@ final class BrowserWebView: WKWebView {
         guard let linkURL = contextMenuLinkURL else { return }
 
         removeDefaultOpenInNewWindow(from: menu)
-        guard menu.items.contains(where: {
-            $0.identifier == Self.openLinkInNewTabIdentifier
-        }) == false else { return }
+        guard
+            menu.items.contains(where: {
+                $0.identifier == Self.openLinkInNewTabIdentifier
+            }) == false
+        else { return }
 
         let tabItem = linkMenuItem(
             String(localized: "Open Link in New Tab"),
@@ -112,7 +114,8 @@ final class BrowserWebView: WKWebView {
         menu.insertItem(paneItem, at: insertionIndex + 1)
         let separatorIndex = insertionIndex + 2
         if separatorIndex < menu.items.count,
-           !menu.items[separatorIndex].isSeparatorItem {
+            !menu.items[separatorIndex].isSeparatorItem
+        {
             menu.insertItem(.separator(), at: separatorIndex)
         }
     }
@@ -210,34 +213,35 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     private static let maximumFaviconBytes = BrowserFaviconDownload.maximumBytes
     /// WKWebView's default macOS user agent has no browser/version token, so
     /// some sites mistake the current WebKit engine for an obsolete browser.
-    private static let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Safari/605.1.15"
+    private static let userAgent =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Safari/605.1.15"
     private static let faviconCache: NSCache<NSURL, NSImage> = {
         let cache = NSCache<NSURL, NSImage>()
         cache.countLimit = 128
         return cache
     }()
     private static let faviconCandidatesScript = #"""
-    (() => {
-      const score = link => {
-        const sizes = Array.from(link.sizes || []);
-        if (link.type === "image/svg+xml" || sizes.includes("any")) return 10000;
-        return sizes.reduce((best, size) => {
-          const match = size.match(/^(\d+)x(\d+)$/);
-          return match
-            ? Math.max(best, Math.min(Number(match[1]), Number(match[2])))
-            : best;
-        }, 0);
-      };
-      return Array.from(document.querySelectorAll("link[rel][href]"))
-        .filter(link => {
-          const rel = link.rel.toLowerCase();
-          return rel.split(/\s+/).includes("icon")
-            || rel.includes("apple-touch-icon");
-        })
-        .sort((a, b) => score(b) - score(a))
-        .map(link => link.href);
-    })()
-    """#
+        (() => {
+          const score = link => {
+            const sizes = Array.from(link.sizes || []);
+            if (link.type === "image/svg+xml" || sizes.includes("any")) return 10000;
+            return sizes.reduce((best, size) => {
+              const match = size.match(/^(\d+)x(\d+)$/);
+              return match
+                ? Math.max(best, Math.min(Number(match[1]), Number(match[2])))
+                : best;
+            }, 0);
+          };
+          return Array.from(document.querySelectorAll("link[rel][href]"))
+            .filter(link => {
+              const rel = link.rel.toLowerCase();
+              return rel.split(/\s+/).includes("icon")
+                || rel.includes("apple-touch-icon");
+            })
+            .sort((a, b) => score(b) - score(a))
+            .map(link => link.href);
+        })()
+        """#
 
     init(
         initialURL: String? = nil,
@@ -274,12 +278,13 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.preferences.isElementFullscreenEnabled = true
         let contextWorld = WKContentWorld.defaultClient
-        configuration.userContentController.addUserScript(WKUserScript(
-            source: BrowserContextMenuSupport.script,
-            injectionTime: .atDocumentStart,
-            forMainFrameOnly: false,
-            in: contextWorld
-        ))
+        configuration.userContentController.addUserScript(
+            WKUserScript(
+                source: BrowserContextMenuSupport.script,
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: false,
+                in: contextWorld
+            ))
         configuration.userContentController.add(
             contextMenuBridge,
             contentWorld: contextWorld,
@@ -289,12 +294,13 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
             configuration.userContentController.addScriptMessageHandler(
                 routing.loopbackMessageHandler(), contentWorld: .page, name: BrowserRemoteRouting.loopbackMessageName
             )
-            configuration.userContentController.addUserScript(WKUserScript(
-                source: BrowserRemoteRouting.bridgeScript,
-                injectionTime: .atDocumentStart,
-                forMainFrameOnly: false,
-                in: .page
-            ))
+            configuration.userContentController.addUserScript(
+                WKUserScript(
+                    source: BrowserRemoteRouting.bridgeScript,
+                    injectionTime: .atDocumentStart,
+                    forMainFrameOnly: false,
+                    in: .page
+                ))
         }
         return BrowserWebView(frame: .zero, configuration: configuration)
     }
@@ -370,8 +376,8 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
 
     var shareURL: URL? {
         guard let url = webView.url,
-              let scheme = url.scheme?.lowercased(),
-              scheme == "http" || scheme == "https"
+            let scheme = url.scheme?.lowercased(),
+            scheme == "http" || scheme == "https"
         else { return nil }
         return displayed(url)
     }
@@ -439,7 +445,9 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         case "reload":
             if let url = pendingURL {
                 load(URLRequest(url: url))
-            } else { performNavigation(to: webView.url) { [webView] in webView.reload() } }
+            } else {
+                performNavigation(to: webView.url) { [webView] in webView.reload() }
+            }
         case "stop": stopLoading()
         default: break
         }
@@ -519,7 +527,8 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
                     self.invalidateLoopbackRouting()
                     // A public page needs no forwarding, so it keeps running.
                     guard let url = self.pendingURL ?? self.webView.url,
-                          BrowserRemoteRouting.isLoopback(url) else { return }
+                        BrowserRemoteRouting.isLoopback(url)
+                    else { return }
                     self.stopLoading()
                     self.errorMessage = String(localized: "Reconnect the remote session to preview localhost.")
                 case .idle:
@@ -590,7 +599,8 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
 
     private func refreshTitle() {
         if let pageTitle = pageTitle?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !pageTitle.isEmpty {
+            !pageTitle.isEmpty
+        {
             title = pageTitle
         } else if let host = webView.url.map(displayed)?.host, !host.isEmpty {
             title = host
@@ -601,8 +611,8 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
 
     private func displayAddress(for url: URL?) -> String {
         guard let url,
-              url.absoluteString != "about:blank",
-              url.scheme != nil
+            url.absoluteString != "about:blank",
+            url.scheme != nil
         else { return "" }
         return displayed(url).absoluteString
     }
@@ -625,7 +635,8 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
 
         if !input.contains(where: \.isWhitespace), looksLikeHost(input) {
             let host = host(in: input).lowercased()
-            let useHTTP = host == "localhost" || host.hasSuffix(".localhost")
+            let useHTTP =
+                host == "localhost" || host.hasSuffix(".localhost")
                 || host.hasSuffix(".local")
                 || isIPv4(host)
                 || host.hasPrefix("[::")
@@ -649,7 +660,8 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     private static func host(in input: String) -> String {
         let authority = input.split(separator: "/", maxSplits: 1).first.map(String.init) ?? input
         if authority.hasPrefix("["),
-           let bracket = authority.firstIndex(of: "]") {
+            let bracket = authority.firstIndex(of: "]")
+        {
             return String(authority[...bracket])
         }
         return authority.split(separator: ":", maxSplits: 1).first.map(String.init)
@@ -661,14 +673,15 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         return components.count == 4
             && components.allSatisfy {
                 guard let octet = Int($0) else { return false }
-                return (0...255).contains(octet)
+                return (0 ... 255).contains(octet)
             }
     }
 
     private static func hasExplicitPort(_ input: String) -> Bool {
         let authority = input.split(separator: "/", maxSplits: 1).first.map(String.init) ?? input
         if authority.hasPrefix("["),
-           let bracket = authority.firstIndex(of: "]") {
+            let bracket = authority.firstIndex(of: "]")
+        {
             let remainder = authority[authority.index(after: bracket)...]
             return remainder.first == ":" && Int(remainder.dropFirst()) != nil
         }
@@ -723,21 +736,23 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
     ) {
         guard let url = navigationAction.request.url,
-              let scheme = url.scheme?.lowercased()
+            let scheme = url.scheme?.lowercased()
         else {
             decisionHandler(.allow)
             return
         }
         if automation.restrictsNavigation,
-           (!BrowserAutomation.isAllowedURL(
+            (!BrowserAutomation.isAllowedURL(
                 url, isMainFrame: navigationAction.targetFrame?.isMainFrame ?? true
-           ) || navigationAction.shouldPerformDownload) {
+            ) || navigationAction.shouldPerformDownload)
+        {
             automation.rejectNavigation()
             decisionHandler(.cancel)
             return
         }
         if remoteRouting != nil, navigationAction.targetFrame?.isMainFrame == true,
-           BrowserRemoteRouting.routedURL(url) != url {
+            BrowserRemoteRouting.routedURL(url) != url
+        {
             reroutedNavigation = true
             decisionHandler(.cancel)
             load(navigationAction.request)
@@ -757,10 +772,12 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         decidePolicyFor navigationResponse: WKNavigationResponse,
         decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void
     ) {
-        let disposition = (navigationResponse.response as? HTTPURLResponse)?
+        let disposition =
+            (navigationResponse.response as? HTTPURLResponse)?
             .value(forHTTPHeaderField: "Content-Disposition")?.lowercased() ?? ""
         if automation.restrictsNavigation,
-           (!navigationResponse.canShowMIMEType || disposition.hasPrefix("attachment")) {
+            (!navigationResponse.canShowMIMEType || disposition.hasPrefix("attachment"))
+        {
             automation.rejectNavigation()
             decisionHandler(.cancel)
         } else {
@@ -798,7 +815,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         let revision = faviconRevision
         faviconTask = Task { @MainActor [weak self] in
             guard let webView = self?.webView,
-                  let pageURL = webView.url
+                let pageURL = webView.url
             else { return }
 
             let result = try? await webView.evaluateJavaScript(
@@ -820,17 +837,18 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
                 guard !Task.isCancelled else { return }
 
                 if self?.remoteRouting == nil, candidate.scheme?.lowercased() != "data",
-                   let cached = Self.faviconCache.object(
-                       forKey: candidate as NSURL
-                   ) {
+                    let cached = Self.faviconCache.object(
+                        forKey: candidate as NSURL
+                    )
+                {
                     guard let self, self.faviconRevision == revision else { return }
                     self.favicon = cached
                     return
                 }
 
                 guard let data = await Self.faviconData(from: candidate, routing: self?.remoteRouting),
-                      !Task.isCancelled,
-                      let image = Self.faviconImage(from: data)
+                    !Task.isCancelled,
+                    let image = Self.faviconImage(from: data)
                 else { continue }
 
                 if self?.remoteRouting == nil, candidate.scheme?.lowercased() != "data" {
@@ -862,12 +880,15 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
                 forHTTPHeaderField: "Accept"
             )
             let result: (Data, URLResponse)?
-            if let routing { result = try? await routing.faviconData(for: request) }
-            else { result = try? await BrowserFaviconDownload.data(for: request, session: .shared) }
+            if let routing {
+                result = try? await routing.faviconData(for: request)
+            } else {
+                result = try? await BrowserFaviconDownload.data(for: request, session: .shared)
+            }
             guard let (data, response) = result,
-            let response = response as? HTTPURLResponse,
-            (200..<300).contains(response.statusCode),
-            data.count <= maximumFaviconBytes
+                let response = response as? HTTPURLResponse,
+                (200 ..< 300).contains(response.statusCode),
+                data.count <= maximumFaviconBytes
             else { return nil }
             return data
         default:
@@ -895,7 +916,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     /// tiny tab icon allocate at its source dimensions.
     private static func faviconImage(from data: Data) -> NSImage? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              CGImageSourceGetCount(source) > 0
+            CGImageSourceGetCount(source) > 0
         else { return nil }
 
         let options: [CFString: Any] = [
@@ -903,11 +924,13 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
             kCGImageSourceCreateThumbnailWithTransform: true,
             kCGImageSourceThumbnailMaxPixelSize: 64,
         ]
-        guard let image = CGImageSourceCreateThumbnailAtIndex(
-            source,
-            0,
-            options as CFDictionary
-        ) else { return nil }
+        guard
+            let image = CGImageSourceCreateThumbnailAtIndex(
+                source,
+                0,
+                options as CFDictionary
+            )
+        else { return nil }
         let favicon = NSImage(
             cgImage: image,
             size: NSSize(width: image.width, height: image.height)
@@ -1011,10 +1034,11 @@ struct BrowserFaviconView: View {
                 .interpolation(.high)
                 .scaledToFit()
                 .frame(width: size, height: size)
-                .clipShape(RoundedRectangle(
-                    cornerRadius: max(1.5, size * 0.18),
-                    style: .continuous
-                ))
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: max(1.5, size * 0.18),
+                        style: .continuous
+                    ))
         } else {
             Image(systemName: fallbackSystemImage)
                 .frame(width: size, height: size)
@@ -1518,7 +1542,8 @@ private struct BrowserWebViewRepresentable: NSViewRepresentable {
         coordinator: Coordinator
     ) {
         guard let webView = container.webView,
-              webView.superview === container else {
+            webView.superview === container
+        else {
             if let webView = container.webView {
                 container.releaseWebView(webView)
             }
@@ -1543,7 +1568,8 @@ private struct BrowserWebViewRepresentable: NSViewRepresentable {
             self.manager = manager
             self.browser = browser
             // Preserve a request issued before the representable was mounted.
-            self.handledFocusRequest = handledFocusRequest == 0
+            self.handledFocusRequest =
+                handledFocusRequest == 0
                 ? 0
                 : nil
         }
@@ -1561,15 +1587,17 @@ private struct BrowserWebViewRepresentable: NSViewRepresentable {
         ) {
             DispatchQueue.main.async { [weak self, weak webView, weak container] in
                 guard let self,
-                      let manager = self.manager,
-                      let browser = self.browser,
-                      let webView,
-                      let container,
-                      browser.belongs(to: manager),
-                      container.webView === webView,
-                      webView.superview === container else { return }
+                    let manager = self.manager,
+                    let browser = self.browser,
+                    let webView,
+                    let container,
+                    browser.belongs(to: manager),
+                    container.webView === webView,
+                    webView.superview === container
+                else { return }
                 if let window = webView.window,
-                   window.makeFirstResponder(webView) {
+                    window.makeFirstResponder(webView)
+                {
                     return
                 }
                 guard attemptsRemaining > 1 else { return }

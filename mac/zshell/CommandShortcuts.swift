@@ -52,9 +52,9 @@ struct CommandShortcut: Equatable {
         guard let persistedValue else { return nil }
         let components = persistedValue.split(separator: ":", omittingEmptySubsequences: false)
         guard components.count == 2, components[0].hasPrefix("u"),
-              let code = UInt32(components[0].dropFirst(), radix: 16),
-              let scalar = Unicode.Scalar(code),
-              Self.isRecordable(Character(String(scalar)))
+            let code = UInt32(components[0].dropFirst(), radix: 16),
+            let scalar = Unicode.Scalar(code),
+            Self.isRecordable(Character(String(scalar)))
         else { return nil }
         var modifiers: NSEvent.ModifierFlags = []
         for part in components[1].split(separator: "+") {

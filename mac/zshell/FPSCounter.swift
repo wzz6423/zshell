@@ -36,23 +36,25 @@ final class FPSCounter: ObservableObject {
         resetWindow()
 
         let center = NotificationCenter.default
-        observers.append(center.addObserver(
-            forName: NSApplication.didResignActiveNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            // Bind the weak self to an immutable local first: the
-            // @Sendable observer block and the forwarded actor closure
-            // must not capture the mutable `weak var` itself.
-            let counter = self
-            assumeMainActor { counter?.setPaused(true) }
-        })
-        observers.append(center.addObserver(
-            forName: NSApplication.didBecomeActiveNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            let counter = self
-            assumeMainActor { counter?.setPaused(false) }
-        })
+        observers.append(
+            center.addObserver(
+                forName: NSApplication.didResignActiveNotification,
+                object: nil, queue: .main
+            ) { [weak self] _ in
+                // Bind the weak self to an immutable local first: the
+                // @Sendable observer block and the forwarded actor closure
+                // must not capture the mutable `weak var` itself.
+                let counter = self
+                assumeMainActor { counter?.setPaused(true) }
+            })
+        observers.append(
+            center.addObserver(
+                forName: NSApplication.didBecomeActiveNotification,
+                object: nil, queue: .main
+            ) { [weak self] _ in
+                let counter = self
+                assumeMainActor { counter?.setPaused(false) }
+            })
     }
 
     func stop() {

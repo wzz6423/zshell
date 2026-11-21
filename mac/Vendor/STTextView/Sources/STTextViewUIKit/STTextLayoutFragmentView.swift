@@ -74,7 +74,8 @@ final class STTextLayoutFragmentView: UIView {
                         let glyph = glyphs[idx]
                         let glyphPosition = glyphPositions[idx]
                         let boundingRect = boundingRects[idx]
-                        let glyphLayer = GlyphLayer(font: run.font, color: run.attributes[.foregroundColor] as? UIColor ?? UIColor.label, glyph: glyph)
+                        let glyphLayer = GlyphLayer(
+                            font: run.font, color: run.attributes[.foregroundColor] as? UIColor ?? UIColor.label, glyph: glyph)
 
                         glyphLayer.frame = CGRect(
                             x: textLineFragment.typographicBounds.origin.x + glyphPosition.x,

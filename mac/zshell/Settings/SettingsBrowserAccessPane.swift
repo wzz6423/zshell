@@ -25,8 +25,12 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
     private lazy var openRemoteButton = SettingsActionButton(title: String(localized: "Open Private Network Page")) { [weak self] in
         if let url = self?.access.remoteURL { NSWorkspace.shared.open(url) }
     }
-    private lazy var exportButton = SettingsActionButton(title: String(localized: "Export TLS Certificate…")) { [weak self] in self?.access.exportCertificate() }
-    private lazy var revokeButton = SettingsActionButton(title: String(localized: "Revoke All Clients")) { [weak self] in self?.access.revoke(nil) }
+    private lazy var exportButton = SettingsActionButton(title: String(localized: "Export TLS Certificate…")) { [weak self] in
+        self?.access.exportCertificate()
+    }
+    private lazy var revokeButton = SettingsActionButton(title: String(localized: "Revoke All Clients")) { [weak self] in
+        self?.access.revoke(nil)
+    }
 
     override func makeGroups() -> [NSView] {
         interfacePicker.controlSize = .small
@@ -51,25 +55,35 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
             label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         }
         fingerprintLabel.font = .monospacedSystemFont(ofSize: 10, weight: .regular)
-        let main = SettingsGroup(header: String(localized: "Browser Access"), rows: [
-            SettingsRow(title: String(localized: "Enable browser access"), control: enabledSwitch, symbolName: "network"),
-            SettingsCustomRow(statusLabel), SettingsButtonRow(title: String(localized: "Retry")) { [weak self] in self?.access.retry() },
-        ])
+        let main = SettingsGroup(
+            header: String(localized: "Browser Access"),
+            rows: [
+                SettingsRow(title: String(localized: "Enable browser access"), control: enabledSwitch, symbolName: "network"),
+                SettingsCustomRow(statusLabel),
+                SettingsButtonRow(title: String(localized: "Retry")) { [weak self] in self?.access.retry() },
+            ])
         mainGroup = main
-        let network = SettingsGroup(header: String(localized: "Private Network"), rows: [
-            SettingsRow(title: String(localized: "Listen on"), control: interfacePicker),
-            SettingsRow(title: String(localized: "HTTPS port"), control: portField),
-            SettingsCustomRow(addressLabel), SettingsCustomRow(openButton), SettingsCustomRow(openRemoteButton),
-        ])
+        let network = SettingsGroup(
+            header: String(localized: "Private Network"),
+            rows: [
+                SettingsRow(title: String(localized: "Listen on"), control: interfacePicker),
+                SettingsRow(title: String(localized: "HTTPS port"), control: portField),
+                SettingsCustomRow(addressLabel), SettingsCustomRow(openButton), SettingsCustomRow(openRemoteButton),
+            ])
         networkGroup = network
-        let trust = NSTextField(wrappingLabelWithString: String(localized:
-            "Before pairing remotely, compare the TLS certificate fingerprint on this Mac and trust that certificate on your client device."))
+        let trust = NSTextField(
+            wrappingLabelWithString: String(
+                localized:
+                    "Before pairing remotely, compare the TLS certificate fingerprint on this Mac and trust that certificate on your client device."
+            ))
         trust.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         trust.textColor = .secondaryLabelColor
         trust.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        let certificates = SettingsGroup(header: String(localized: "TLS Certificate"), rows: [
-            SettingsCustomRow(trust), SettingsCustomRow(fingerprintLabel), SettingsCustomRow(exportButton),
-        ])
+        let certificates = SettingsGroup(
+            header: String(localized: "TLS Certificate"),
+            rows: [
+                SettingsCustomRow(trust), SettingsCustomRow(fingerprintLabel), SettingsCustomRow(exportButton),
+            ])
         certificateGroup = certificates
         for stack in [pendingStack, clientsStack] {
             stack.orientation = .vertical
@@ -78,7 +92,8 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
         }
         let pairing = SettingsGroup(header: String(localized: "Pairing Requests"), rows: [SettingsCustomRow(pendingStack)])
         pairingGroup = pairing
-        let clients = SettingsGroup(header: String(localized: "Authorized Clients"), rows: [SettingsCustomRow(clientsStack), SettingsCustomRow(revokeButton)])
+        let clients = SettingsGroup(
+            header: String(localized: "Authorized Clients"), rows: [SettingsCustomRow(clientsStack), SettingsCustomRow(revokeButton)])
         clientsGroup = clients
         observe(access.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.syncFromSettings() })
         return [main, network, certificates, pairing, clients]
@@ -91,13 +106,18 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
             interfaceIDs = values
             interfacePicker.removeAllItems()
             for interface in access.interfaces {
-                interfacePicker.addItem(withTitle: interface.isLoopback ? String(localized: "Localhost Only")
-                    : (interface.isTailscale ? "Tailscale" : String(localized: "LAN"))
-                        + " · " + interface.name + " · " + interface.address)
+                interfacePicker.addItem(
+                    withTitle: interface.isLoopback
+                        ? String(localized: "Localhost Only")
+                        : (interface.isTailscale ? "Tailscale" : String(localized: "LAN"))
+                            + " · " + interface.name + " · " + interface.address)
             }
         }
-        if let index = interfaceIDs.firstIndex(of: settings.browserAccessInterface) { interfacePicker.selectItem(at: index) }
-        else { interfacePicker.select(nil) }
+        if let index = interfaceIDs.firstIndex(of: settings.browserAccessInterface) {
+            interfacePicker.selectItem(at: index)
+        } else {
+            interfacePicker.select(nil)
+        }
         if portField.currentEditor() == nil { portField.stringValue = String(settings.browserAccessPort) }
         networkGroup?.setRowHidden(settings.browserAccessInterface == "loopback", at: 1)
         addressLabel.stringValue = access.remoteURL?.absoluteString ?? access.localURL?.absoluteString ?? ""
@@ -116,7 +136,8 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
             statusLabel.textColor = .secondaryLabelColor
         }
         mainGroup?.setRowHidden(statusLabel.stringValue.isEmpty, at: 1)
-        let canRetry = settings.browserAccessEnabled && access.error != nil && !access.isStarting
+        let canRetry =
+            settings.browserAccessEnabled && access.error != nil && !access.isStarting
             && access.localURL == nil && access.remoteURL == nil
         mainGroup?.setRowHidden(!canRetry, at: 2)
         fingerprintLabel.stringValue = access.fingerprint ?? ""
@@ -135,9 +156,12 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
             pendingIDs = access.pending.map(\.id)
             clear(pendingStack)
             for pending in access.pending {
-                let row = clientRow(name: pending.name, detail: pending.origin + " · " + pending.address + " · " + pending.code,
-                    buttons: [SettingsActionButton(title: String(localized: "Approve")) { [weak self] in self?.access.approve(pending.id) },
-                              SettingsActionButton(title: String(localized: "Deny")) { [weak self] in self?.access.deny(pending.id) }])
+                let row = clientRow(
+                    name: pending.name, detail: pending.origin + " · " + pending.address + " · " + pending.code,
+                    buttons: [
+                        SettingsActionButton(title: String(localized: "Approve")) { [weak self] in self?.access.approve(pending.id) },
+                        SettingsActionButton(title: String(localized: "Deny")) { [weak self] in self?.access.deny(pending.id) },
+                    ])
                 pendingStack.addArrangedSubview(row)
                 row.widthAnchor.constraint(equalTo: pendingStack.widthAnchor).isActive = true
             }
@@ -146,7 +170,8 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
             clientIDs = access.clients.map(\.id)
             clear(clientsStack)
             for client in access.clients {
-                let row = clientRow(name: client.name, detail: client.origin + " · " + client.address,
+                let row = clientRow(
+                    name: client.name, detail: client.origin + " · " + client.address,
                     buttons: [SettingsActionButton(title: String(localized: "Revoke")) { [weak self] in self?.access.revoke(client.id) }])
                 clientsStack.addArrangedSubview(row)
                 row.widthAnchor.constraint(equalTo: clientsStack.widthAnchor).isActive = true
@@ -180,7 +205,10 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
     }
 
     func controlTextDidEndEditing(_ notification: Notification) {
-        if (1024...65_535).contains(portField.integerValue) { settings.browserAccessPort = portField.integerValue }
-        else { portField.stringValue = String(settings.browserAccessPort) }
+        if (1024 ... 65_535).contains(portField.integerValue) {
+            settings.browserAccessPort = portField.integerValue
+        } else {
+            portField.stringValue = String(settings.browserAccessPort)
+        }
     }
 }

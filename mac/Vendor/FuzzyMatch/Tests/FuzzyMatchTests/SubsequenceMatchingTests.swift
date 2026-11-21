@@ -19,11 +19,14 @@ import Testing
 // diacritic-insensitive `contains`: only contiguous occurrences survive.
 
 private func strictContains() -> FuzzyMatcher {
-    FuzzyMatcher(config: .init(algorithm: .editDistance(.init(
-        maxEditDistance: 0,
-        acronymWeight: 0,
-        isSubsequenceMatchingEnabled: false
-    ))))
+    FuzzyMatcher(
+        config: .init(
+            algorithm: .editDistance(
+                .init(
+                    maxEditDistance: 0,
+                    acronymWeight: 0,
+                    isSubsequenceMatchingEnabled: false
+                ))))
 }
 
 @Test func defaultMatchesGapBasedSubsequence() {

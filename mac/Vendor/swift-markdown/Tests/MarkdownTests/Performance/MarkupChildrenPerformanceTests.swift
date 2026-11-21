@@ -13,7 +13,7 @@ import Markdown
 
 final class MarkupChildrenPerformanceTests: XCTestCase {
     /// Iteration over the children should be fast: no heap allocation should be necessary.
-    let paragraph = Paragraph((0..<10000).map { _ in Text("OK") })
+    let paragraph = Paragraph((0 ..< 10000).map { _ in Text("OK") })
     func testIterateChildrenForward() {
         measure {
             for child in paragraph.children {
@@ -24,7 +24,7 @@ final class MarkupChildrenPerformanceTests: XCTestCase {
 
     /// Iteration over the children in reverse should be fast: no heap allocation should be necessary.
     func testIterateChildrenReversed() {
-        let paragraph = Paragraph((0..<10000).map { _ in Text("OK") })
+        let paragraph = Paragraph((0 ..< 10000).map { _ in Text("OK") })
         measure {
             for child in paragraph.children.reversed() {
                 _ = child
@@ -33,7 +33,7 @@ final class MarkupChildrenPerformanceTests: XCTestCase {
     }
 
     func testDropFirst() {
-        let paragraph = Paragraph((0..<10000).map { _ in Text("OK") })
+        let paragraph = Paragraph((0 ..< 10000).map { _ in Text("OK") })
         measure {
             for child in paragraph.children.dropFirst(5000) {
                 _ = child
@@ -42,7 +42,7 @@ final class MarkupChildrenPerformanceTests: XCTestCase {
     }
 
     func testSuffix() {
-        let paragraph = Paragraph((0..<10000).map { _ in Text("OK") })
+        let paragraph = Paragraph((0 ..< 10000).map { _ in Text("OK") })
         measure {
             for child in paragraph.children.suffix(5000) {
                 _ = child

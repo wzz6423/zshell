@@ -87,10 +87,11 @@ final class WindowScreenConstraint {
 
     private func constrain(_ window: NSWindow, to screens: [NSScreen]) {
         guard shouldConstrain(window),
-              let screenIndex = WindowScreenGeometry.targetScreenIndex(
+            let screenIndex = WindowScreenGeometry.targetScreenIndex(
                 for: window.frame,
                 screenFrames: screens.map(\.frame)
-              ) else {
+            )
+        else {
             return
         }
 
@@ -101,7 +102,8 @@ final class WindowScreenConstraint {
 
     private func shouldConstrain(_ window: NSWindow) -> Bool {
         guard let identifier = window.identifier?.rawValue,
-              identifier == "settings" || identifier.hasPrefix("main") else {
+            identifier == "settings" || identifier.hasPrefix("main")
+        else {
             return false
         }
         return window.isVisible

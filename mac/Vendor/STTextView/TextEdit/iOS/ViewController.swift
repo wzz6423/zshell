@@ -43,7 +43,7 @@ class ViewController: UIViewController {
         textView.addAttributes(
             [
                 .foregroundColor: UIColor.tintColor,
-                .font: UIFont.preferredFont(forTextStyle: .largeTitle)
+                .font: UIFont.preferredFont(forTextStyle: .largeTitle),
             ],
             range: NSRange(location: 0, length: 20)
         )
@@ -120,7 +120,8 @@ private class MyTextAttachmentViewProvider: NSTextAttachmentViewProvider {
         proposedLineFragment _: CGRect,
         position _: CGPoint
     )
-        -> CGRect {
+        -> CGRect
+    {
         self.view?.bounds ?? .zero
     }
 }
@@ -131,7 +132,8 @@ private class MyTextAttachment: NSTextAttachment {
         location: any NSTextLocation,
         textContainer: NSTextContainer?
     )
-        -> NSTextAttachmentViewProvider? {
+        -> NSTextAttachmentViewProvider?
+    {
         let viewProvider = MyTextAttachmentViewProvider(
             textAttachment: self,
             parentView: parentView,

@@ -111,7 +111,8 @@ class SettingsPaneViewController: NSViewController {
                 var ancestor: NSView? = current
                 while let candidate = ancestor, candidate !== document {
                     if candidate is SettingsRow || candidate is SettingsSliderRow
-                        || candidate is SettingsCustomRow || candidate is SettingsButtonRow {
+                        || candidate is SettingsCustomRow || candidate is SettingsButtonRow
+                    {
                         return candidate
                     }
                     ancestor = candidate.superview

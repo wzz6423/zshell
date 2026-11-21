@@ -147,10 +147,10 @@ enum SyntaxHighlighting {
         let url: URL
         switch language {
         case .bundled(.markdown): url = TreeSitterMarkdownQueries.Query.injectionsFileURL
-        case .bundled(.html):     url = TreeSitterHTMLQueries.Query.injectionsFileURL
-        case .bundled(.php):      url = TreeSitterPHPQueries.Query.injectionsFileURL
-        case .bundled(.rust):     url = TreeSitterRustQueries.Query.injectionsFileURL
-        default:                  return nil
+        case .bundled(.html): url = TreeSitterHTMLQueries.Query.injectionsFileURL
+        case .bundled(.php): url = TreeSitterPHPQueries.Query.injectionsFileURL
+        case .bundled(.rust): url = TreeSitterRustQueries.Query.injectionsFileURL
+        default: return nil
         }
         return try? Data(contentsOf: url)
     }

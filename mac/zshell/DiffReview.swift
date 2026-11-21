@@ -53,10 +53,12 @@ enum DiffReviewFingerprint {
             return untrackedFingerprint(path: path, in: repositoryRoot)
         }
         let paths = [originalPath, path].compactMap { $0 }
-        guard let patches = trackedPatches(
-            for: paths, layer: layer, hasHead: hasHead,
-            in: repositoryRoot, runGit: runGit
-        ) else { return nil }
+        guard
+            let patches = trackedPatches(
+                for: paths, layer: layer, hasHead: hasHead,
+                in: repositoryRoot, runGit: runGit
+            )
+        else { return nil }
         return fingerprint(path: path, originalPath: originalPath, patches: patches)
     }
 
@@ -84,7 +86,8 @@ enum DiffReviewFingerprint {
             guard !batch.isEmpty else { return true }
             let output = runGit(args + batch, repositoryRoot)
             guard output.status == 0, !output.truncated,
-                  let parsed = parsePatches(output.stdout) else { return false }
+                let parsed = parsePatches(output.stdout)
+            else { return false }
             patches.merge(parsed, uniquingKeysWith: { _, latest in latest })
             batch.removeAll(keepingCapacity: true)
             bytes = 0
@@ -115,14 +118,16 @@ enum DiffReviewFingerprint {
     private nonisolated static func parsePatches(_ output: Data) -> [String: Data]? {
         guard !output.isEmpty else { return [:] }
         guard let separator = output.range(of: Data([0, 0])),
-              let raw = String(data: output[..<separator.lowerBound], encoding: .utf8) else { return nil }
+            let raw = String(data: output[..<separator.lowerBound], encoding: .utf8)
+        else { return nil }
         let records = raw.split(separator: "\u{0}", omittingEmptySubsequences: false)
         guard records.count.isMultiple(of: 2) else { return nil }
         var paths: [String] = []
         for index in stride(from: 0, to: records.count, by: 2) {
             let fields = records[index].split(separator: " ")
             guard fields.count == 5, fields[0].first == ":", !fields[0].hasPrefix("::"),
-                  !["R", "C", "U"].contains(fields[4]), !records[index + 1].isEmpty else { return nil }
+                !["R", "C", "U"].contains(fields[4]), !records[index + 1].isEmpty
+            else { return nil }
             paths.append(String(records[index + 1]))
         }
         // Git can emit non-UTF-8 text patches. Decode only the raw path table
@@ -136,11 +141,13 @@ enum DiffReviewFingerprint {
             cursor = patch.index(after: newline)
         }
         guard starts.first == patch.startIndex, starts.count == paths.count,
-              Set(paths).count == paths.count else { return nil }
-        return Dictionary(uniqueKeysWithValues: paths.enumerated().map { index, path in
-            let end = index + 1 < starts.count ? starts[index + 1] : patch.endIndex
-            return (path, Data(patch[starts[index]..<end]))
-        })
+            Set(paths).count == paths.count
+        else { return nil }
+        return Dictionary(
+            uniqueKeysWithValues: paths.enumerated().map { index, path in
+                let end = index + 1 < starts.count ? starts[index + 1] : patch.endIndex
+                return (path, Data(patch[starts[index] ..< end]))
+            })
     }
 
     /// Untracked files have no index blob. Hash their bytes and Git mode
@@ -170,12 +177,13 @@ enum DiffReviewFingerprint {
         }
         var final = stat()
         guard lstat(url.path, &final) == 0,
-              initial.st_dev == final.st_dev, initial.st_ino == final.st_ino,
-              initial.st_mode == final.st_mode, initial.st_size == final.st_size,
-              initial.st_mtimespec.tv_sec == final.st_mtimespec.tv_sec,
-              initial.st_mtimespec.tv_nsec == final.st_mtimespec.tv_nsec,
-              initial.st_ctimespec.tv_sec == final.st_ctimespec.tv_sec,
-              initial.st_ctimespec.tv_nsec == final.st_ctimespec.tv_nsec else { return nil }
+            initial.st_dev == final.st_dev, initial.st_ino == final.st_ino,
+            initial.st_mode == final.st_mode, initial.st_size == final.st_size,
+            initial.st_mtimespec.tv_sec == final.st_mtimespec.tv_sec,
+            initial.st_mtimespec.tv_nsec == final.st_mtimespec.tv_nsec,
+            initial.st_ctimespec.tv_sec == final.st_ctimespec.tv_sec,
+            initial.st_ctimespec.tv_nsec == final.st_ctimespec.tv_nsec
+        else { return nil }
         var input = Data("untracked\u{0}\(path)\u{0}\(mode)\u{0}".utf8)
         input.append(data)
         return SHA256.hash(data: input).map { String(format: "%02x", $0) }.joined()
@@ -201,7 +209,7 @@ final class DiffReviewStore: ObservableObject {
 
     private init() {
         guard let data = UserDefaults.standard.data(forKey: Self.defaultsKey),
-              let saved = try? JSONDecoder().decode([SavedReview].self, from: data)
+            let saved = try? JSONDecoder().decode([SavedReview].self, from: data)
         else {
             reviewedFingerprints = [:]
             return
@@ -270,7 +278,8 @@ final class DiffReviewStore: ObservableObject {
         }
         currentFingerprints[snapshot.key] = snapshot.fingerprint
         if reviewedFingerprints[snapshot.key] != snapshot.fingerprint,
-           reviewedFingerprints.removeValue(forKey: snapshot.key) != nil {
+            reviewedFingerprints.removeValue(forKey: snapshot.key) != nil
+        {
             save()
         }
         revision &+= 1
@@ -323,10 +332,12 @@ final class DiffReviewButton: NSButton {
             systemSymbolName: reviewed ? "checkmark.circle.fill" : "circle",
             accessibilityDescription: nil
         )
-        title = reviewed
+        title =
+            reviewed
             ? String(localized: "Reviewed")
             : String(localized: "Mark Reviewed")
-        toolTip = available
+        toolTip =
+            available
             ? (reviewed
                 ? String(localized: "Mark this file as unreviewed")
                 : String(localized: "Mark these exact changes as reviewed"))
@@ -389,7 +400,8 @@ final class DiffReviewIndicatorButton: NSButton {
         )
         contentTintColor = reviewed ? Theme.accent : .secondaryLabelColor
         let label = reviewed ? String(localized: "Reviewed") : String(localized: "Unreviewed")
-        toolTip = reviewed
+        toolTip =
+            reviewed
             ? String(localized: "Mark this file as unreviewed")
             : String(localized: "Mark these exact changes as reviewed")
         setAccessibilityLabel(String(localized: "File review status"))
@@ -470,7 +482,8 @@ final class DiffReviewSummaryNSView: NSView {
         imageView.contentTintColor = complete ? Theme.accent : .secondaryLabelColor
         label.font = .systemFont(ofSize: 10.5 * fontScale, weight: .medium)
         label.textColor = .secondaryLabelColor
-        label.stringValue = complete
+        label.stringValue =
+            complete
             ? String(
                 localized: "All \(totalCount) changes reviewed",
                 comment: "Git review summary. The placeholder is the number of staged and unstaged file changes."

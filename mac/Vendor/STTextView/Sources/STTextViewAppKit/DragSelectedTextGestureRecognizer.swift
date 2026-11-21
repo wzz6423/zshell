@@ -31,7 +31,8 @@ final class DragSelectedTextGestureRecognizer: NSPressGestureRecognizer {
         }
 
         return currentSelectionRanges.reduce(true) { partialResult, range in
-            guard let interationLocation = textView.textLayoutManager.caretLocation(interactingAt: location, inContainerAt: range.location) else {
+            guard let interationLocation = textView.textLayoutManager.caretLocation(interactingAt: location, inContainerAt: range.location)
+            else {
                 return partialResult
             }
             return partialResult && range.contains(interationLocation)

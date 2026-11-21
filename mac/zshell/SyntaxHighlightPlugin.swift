@@ -281,7 +281,8 @@ final class SyntaxHighlightCoordinator {
             return
         }
 
-        let injectionsQuery = HighlightQueryCache.cachedInjection(language)
+        let injectionsQuery =
+            HighlightQueryCache.cachedInjection(language)
             ?? (try? SwiftTreeSitter.Query(language: tsLanguage, data: injectionsData))
         guard let injectionsQuery else {
             setTokenProvider(query: highlightsQuery, textContentManager: textContentManager)
@@ -363,10 +364,10 @@ final class SyntaxHighlightCoordinator {
     ) -> [Neon.Token] {
         let injectionRange = injection.range
         guard injectionRange.length > 0,
-              let language = SyntaxHighlighting.language(forInjectionName: injection.name),
-              let query = injectedHighlightsQuery(for: language),
-              let fragment = textProvider(injectionRange, Point.zero..<Point.zero),
-              !fragment.isEmpty
+            let language = SyntaxHighlighting.language(forInjectionName: injection.name),
+            let query = injectedHighlightsQuery(for: language),
+            let fragment = textProvider(injectionRange, Point.zero ..< Point.zero),
+            !fragment.isEmpty
         else {
             return []
         }
@@ -470,8 +471,8 @@ final class SyntaxHighlightCoordinator {
 private func stableTextSnapshot(for textView: STTextView) -> String {
     let length = textView.textContentManager.length
     if let editor = textView as? FocusReportingTextView,
-       editor.isTextSnapshotValid,
-       editor.textSnapshotUTF16Length == length
+        editor.isTextSnapshotValid,
+        editor.textSnapshotUTF16Length == length
     {
         return editor.textSnapshot
     }
@@ -515,8 +516,8 @@ private final class UTF16LineIndex {
         let delta = replacementLength - range.length
         let removeStart = firstLineStart(after: range.location)
         let removeEnd = firstLineStart(after: range.max)
-        lineStarts.removeSubrange(removeStart..<removeEnd)
-        for index in removeStart..<lineStarts.count {
+        lineStarts.removeSubrange(removeStart ..< removeEnd)
+        for index in removeStart ..< lineStarts.count {
             lineStarts[index] += delta
         }
 
@@ -564,7 +565,7 @@ private final class SyntaxHighlightTextInterface: TextSystemInterface {
 
     func clearStyle(in range: NSRange) {
         guard let textView,
-              let textRange = NSTextRange(range, in: textView.textContentManager)
+            let textRange = NSTextRange(range, in: textView.textContentManager)
         else { return }
         textView.textLayoutManager.removeRenderingAttribute(.foregroundColor, for: textRange)
         textView.addAttributes([.font: textView.font], range: range)
@@ -575,9 +576,9 @@ private final class SyntaxHighlightTextInterface: TextSystemInterface {
         // used as a rendering-attribute range; STTextLayoutManager also guards
         // this, but skipping here avoids the wasted work.
         guard let textView,
-              token.range.length > 0,
-              let attributes = attributeProvider(token),
-              let textRange = NSTextRange(token.range, in: textView.textContentManager)
+            token.range.length > 0,
+            let attributes = attributeProvider(token),
+            let textRange = NSTextRange(token.range, in: textView.textContentManager)
         else {
             return
         }
@@ -597,7 +598,7 @@ private final class SyntaxHighlightTextInterface: TextSystemInterface {
 
     var visibleRange: NSRange {
         guard let textView,
-              let viewportRange = textView.textLayoutManager.textViewportLayoutController.viewportRange
+            let viewportRange = textView.textLayoutManager.textViewportLayoutController.viewportRange
         else {
             return .zero
         }

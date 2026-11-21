@@ -16,7 +16,7 @@ class TextTests: XCTestCase {
         let string = "OK"
         let text = Text(string)
         XCTAssertEqual(string, text.string)
-        
+
         let string2 = "Changed"
         var newText = text
         newText.string = string2

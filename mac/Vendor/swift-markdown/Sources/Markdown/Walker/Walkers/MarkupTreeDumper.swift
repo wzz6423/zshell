@@ -88,7 +88,8 @@ struct MarkupTreeDumper: MarkupWalker {
         indent(markup)
         result += "\(type(of: markup))"
         if options.contains(.printSourceLocations),
-            let range = markup.range {
+            let range = markup.range
+        {
             result += " @\(range.diagnosticDescription(includePath: false))"
         }
         if options.contains(.printUniqueIdentifiers) {
@@ -114,11 +115,12 @@ struct MarkupTreeDumper: MarkupWalker {
         var prefix = ""
         for (depth, element) in path.enumerated().reversed() {
             guard let lastChildIndex = element.parent?.children.reversed().first?.indexInParent,
-                lastChildIndex != element.indexInParent else {
-                    if depth > 0 {
-                        prefix.append("   ")
-                    }
-                    continue
+                lastChildIndex != element.indexInParent
+            else {
+                if depth > 0 {
+                    prefix.append("   ")
+                }
+                continue
             }
             prefix.append("  │")
         }
@@ -135,7 +137,7 @@ struct MarkupTreeDumper: MarkupWalker {
         path.removeLast()
         return result
     }
-    
+
     /**
      Add an indentation prefix for a markup element using the current `path`.
      - parameter markup: The `Markup` element about to be printed
@@ -217,7 +219,7 @@ struct MarkupTreeDumper: MarkupWalker {
                 let segmentText = segment.untrimmedText[segment.parseIndex...].debugDescription
                 return "|    \(range)\(segmentText)"
             }.joined(separator: "\n")
-            
+
             argumentsDescription = "\n" + indentLiteralBlock(description, from: blockDirective)
         } else {
             argumentsDescription = ""

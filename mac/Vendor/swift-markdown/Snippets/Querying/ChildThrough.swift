@@ -3,22 +3,24 @@
 import Markdown
 
 let source = """
-Reach into a document to find the *emphasized text*.
-"""
+    Reach into a document to find the *emphasized text*.
+    """
 let document = Document(parsing: source)
-let emphasizedText = document.child(through: [
-    (0, Paragraph.self),
-    (1, Emphasis.self),
-    (0, Text.self)
-]) as! Text
+let emphasizedText =
+    document.child(through: [
+        (0, Paragraph.self),
+        (1, Emphasis.self),
+        (0, Text.self),
+    ]) as! Text
 
-print("""
-## Document structure:
-\(document.debugDescription())
+print(
+    """
+    ## Document structure:
+    \(document.debugDescription())
 
-## Found element:
-\(emphasizedText.detachedFromParent.debugDescription())
-""")
+    ## Found element:
+    \(emphasizedText.detachedFromParent.debugDescription())
+    """)
 // snippet.hide
 /*
  This source file is part of the Swift.org open source project

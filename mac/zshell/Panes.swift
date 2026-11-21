@@ -193,15 +193,17 @@ indirect enum PaneNode {
         switch self {
         case .pane(let existing):
             guard existing.id == target else { return self }
-            let axis: PaneSplitAxis = edge == .left || edge == .right
+            let axis: PaneSplitAxis =
+                edge == .left || edge == .right
                 ? .horizontal : .vertical
             let insertedFirst = edge == .left || edge == .top
-            return .split(PaneSplit(
-                axis: axis,
-                fraction: 0.5,
-                first: insertedFirst ? node : .pane(existing),
-                second: insertedFirst ? .pane(existing) : node
-            ))
+            return .split(
+                PaneSplit(
+                    axis: axis,
+                    fraction: 0.5,
+                    first: insertedFirst ? node : .pane(existing),
+                    second: insertedFirst ? .pane(existing) : node
+                ))
         case .split(var split):
             if split.first.contains(target) {
                 split.first = split.first.inserting(node, toward: edge, beside: target)
@@ -288,14 +290,18 @@ indirect enum PaneNode {
             return pane.id == paneID ? [] : nil
         case .split(let split):
             if let descendants = split.first.ancestors(of: paneID) {
-                return [PaneSplitAncestor(
-                    id: split.id, axis: split.axis, paneIsInFirstChild: true
-                )] + descendants
+                return [
+                    PaneSplitAncestor(
+                        id: split.id, axis: split.axis, paneIsInFirstChild: true
+                    )
+                ] + descendants
             }
             if let descendants = split.second.ancestors(of: paneID) {
-                return [PaneSplitAncestor(
-                    id: split.id, axis: split.axis, paneIsInFirstChild: false
-                )] + descendants
+                return [
+                    PaneSplitAncestor(
+                        id: split.id, axis: split.axis, paneIsInFirstChild: false
+                    )
+                ] + descendants
             }
             return nil
         }
@@ -330,15 +336,16 @@ indirect enum PaneNode {
                     gap: gap,
                     to: &geometry
                 )
-                geometry.dividers.append(PaneDividerPlacement(
-                    id: split.id,
-                    axis: split.axis,
-                    frame: CGRect(
-                        x: dividerX, y: bounds.minY,
-                        width: gap, height: bounds.height
-                    ),
-                    availableLength: available
-                ))
+                geometry.dividers.append(
+                    PaneDividerPlacement(
+                        id: split.id,
+                        axis: split.axis,
+                        frame: CGRect(
+                            x: dividerX, y: bounds.minY,
+                            width: gap, height: bounds.height
+                        ),
+                        availableLength: available
+                    ))
                 split.second.appendGeometry(
                     in: CGRect(
                         x: dividerX + gap, y: bounds.minY,
@@ -359,15 +366,16 @@ indirect enum PaneNode {
                     gap: gap,
                     to: &geometry
                 )
-                geometry.dividers.append(PaneDividerPlacement(
-                    id: split.id,
-                    axis: split.axis,
-                    frame: CGRect(
-                        x: bounds.minX, y: dividerY,
-                        width: bounds.width, height: gap
-                    ),
-                    availableLength: available
-                ))
+                geometry.dividers.append(
+                    PaneDividerPlacement(
+                        id: split.id,
+                        axis: split.axis,
+                        frame: CGRect(
+                            x: bounds.minX, y: dividerY,
+                            width: bounds.width, height: gap
+                        ),
+                        availableLength: available
+                    ))
                 split.second.appendGeometry(
                     in: CGRect(
                         x: bounds.minX, y: dividerY + gap,
@@ -498,11 +506,15 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     var sessions: [TerminalSession] {
-        allContents.compactMap { if case .session(let session) = $0 { return session }; return nil }
+        allContents.compactMap {
+            if case .session(let session) = $0 { return session }; return nil
+        }
     }
 
     var diffs: [DiffTab] {
-        allContents.compactMap { if case .diff(let diff) = $0 { return diff }; return nil }
+        allContents.compactMap {
+            if case .diff(let diff) = $0 { return diff }; return nil
+        }
     }
 
     var browsers: [BrowserTab] {
@@ -516,7 +528,8 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     var canReplaceFilePreview: Bool {
         guard isFilePreview, customName == nil, allPanes.count == 1,
-              case .file(let file) = allPanes[0].content else { return false }
+            case .file(let file) = allPanes[0].content
+        else { return false }
         return !file.isDirty
     }
 
@@ -543,7 +556,8 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
         filePreviewDirtyObservation?.cancel()
         filePreviewDirtyObservation = nil
         guard customName == nil, allPanes.count == 1,
-              case .file(let file) = allPanes[0].content, !file.isDirty else {
+            case .file(let file) = allPanes[0].content, !file.isDirty
+        else {
             isFilePreview = false
             return
         }
@@ -637,7 +651,8 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
                 )
                 centerDistance = abs(frame.midX - current.frame.midX)
             }
-            let score = (perpendicularGap > 0 ? 10 : 0)
+            let score =
+                (perpendicularGap > 0 ? 10 : 0)
                 + perpendicularGap * 5 + primary + centerDistance * 0.01
             return (placement.pane.id, score)
         }
@@ -657,7 +672,8 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
         unzoom()
         let panes = allPanes
         guard panes.count > 1,
-              let index = panes.firstIndex(where: { $0.id == focusedPaneID }) else { return }
+            let index = panes.firstIndex(where: { $0.id == focusedPaneID })
+        else { return }
         focusedPaneID = panes[(index + delta + panes.count) % panes.count].id
     }
 
@@ -702,7 +718,8 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     ) {
         pinFilePreview()
         unzoom()
-        let target = layout.contains(requestedTarget)
+        let target =
+            layout.contains(requestedTarget)
             ? requestedTarget : layout.allPanes[0].id
         layout = layout.inserting(pane, toward: edge, beside: target)
         if focusInserted { focusedPaneID = pane.id }
@@ -731,7 +748,8 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
         unzoom()
         let result = layout.removingPane(dragged)
         guard let moved = result.pane, let remaining = result.node,
-              remaining.contains(target) else { return }
+            remaining.contains(target)
+        else { return }
         layout = remaining.inserting(moved, toward: edge, beside: target)
         focusedPaneID = moved.id
     }
@@ -796,10 +814,12 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
         unzoom()
         guard let ancestors = layout.ancestors(of: focusedPaneID) else { return }
         let matching = ancestors.reversed().filter { $0.axis == axis }
-        guard let split = matching.first(where: {
-            $0.paneIsInFirstChild == (direction > 0)
-        }) ?? matching.first,
-        let fraction = layout.fraction(of: split.id) else { return }
+        guard
+            let split = matching.first(where: {
+                $0.paneIsInFirstChild == (direction > 0)
+            }) ?? matching.first,
+            let fraction = layout.fraction(of: split.id)
+        else { return }
         let next = min(
             max(fraction + CGFloat(direction) * Self.resizeStep, Self.minShare),
             1 - Self.minShare

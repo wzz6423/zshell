@@ -7,13 +7,13 @@ final class PredicateTests: XCTestCase {
             .string("eq?"),
             .capture("@a"),
             .string("thing"),
-            .done
+            .done,
         ]
 
         let predicates = try PredicateParser().parse(steps)
 
         let expectedPredicates = [
-            Predicate.eq(["thing"], captureNames: ["@a"]),
+            Predicate.eq(["thing"], captureNames: ["@a"])
         ]
 
         XCTAssertEqual(predicates, expectedPredicates)
@@ -26,13 +26,13 @@ final class PredicateTests: XCTestCase {
             .capture("@b"),
             .capture("@c"),
             .capture("@d"),
-            .done
+            .done,
         ]
 
         let predicates = try PredicateParser().parse(steps)
 
         let expectedPredicates = [
-            Predicate.eq([], captureNames: ["@a", "@b", "@c", "@d"]),
+            Predicate.eq([], captureNames: ["@a", "@b", "@c", "@d"])
         ]
 
         XCTAssertEqual(predicates, expectedPredicates)
@@ -47,7 +47,7 @@ final class PredicateTests: XCTestCase {
             .string("eq?"),
             .capture("@b"),
             .string("thing"),
-            .done
+            .done,
         ]
 
         let predicates = try PredicateParser().parse(steps)
@@ -65,13 +65,13 @@ final class PredicateTests: XCTestCase {
             .string("not-eq?"),
             .capture("@a"),
             .string("thing"),
-            .done
+            .done,
         ]
 
         let predicates = try PredicateParser().parse(steps)
 
         let expectedPredicates = [
-            Predicate.notEq(["thing"], captureNames: ["@a"]),
+            Predicate.notEq(["thing"], captureNames: ["@a"])
         ]
 
         XCTAssertEqual(predicates, expectedPredicates)
@@ -82,7 +82,7 @@ final class PredicateTests: XCTestCase {
             .string("match?"),
             .capture("@a"),
             .string("^(a|b|c)$"),
-            .done
+            .done,
         ]
 
         let predicates = try PredicateParser().parse(steps)
@@ -99,7 +99,7 @@ final class PredicateTests: XCTestCase {
             .string("not-match?"),
             .capture("@a"),
             .string("^(a|b|c)$"),
-            .done
+            .done,
         ]
 
         let predicates = try PredicateParser().parse(steps)
@@ -115,7 +115,7 @@ final class PredicateTests: XCTestCase {
         let steps: [QueryPredicateStep] = [
             .string("is-not?"),
             .string("local"),
-            .done
+            .done,
         ]
 
         let predicates = try PredicateParser().parse(steps)
@@ -127,21 +127,21 @@ final class PredicateTests: XCTestCase {
         XCTAssertEqual(predicates, expectedPredicates)
     }
 
-	func testParseIsNotGroupMember() throws {
-		let steps: [QueryPredicateStep] = [
-			.string("is-not?"),
-			.string("some_group_name"),
-			.done
-		]
+    func testParseIsNotGroupMember() throws {
+        let steps: [QueryPredicateStep] = [
+            .string("is-not?"),
+            .string("some_group_name"),
+            .done,
+        ]
 
-		let predicates = try PredicateParser().parse(steps)
+        let predicates = try PredicateParser().parse(steps)
 
-		let expectedPredicates = [
-			Predicate.isNot("some_group_name")
-		]
+        let expectedPredicates = [
+            Predicate.isNot("some_group_name")
+        ]
 
-		XCTAssertEqual(predicates, expectedPredicates)
-	}
+        XCTAssertEqual(predicates, expectedPredicates)
+    }
 
     func testParseAnyOf() throws {
         let steps: [QueryPredicateStep] = [
@@ -150,13 +150,13 @@ final class PredicateTests: XCTestCase {
             .string("foo"),
             .string("bar"),
             .string("baz"),
-            .done
+            .done,
         ]
 
         let predicates = try PredicateParser().parse(steps)
 
         let expectedPredicates = [
-            Predicate.anyOf(Set(["foo", "bar", "baz"]), captureName: "@a"),
+            Predicate.anyOf(Set(["foo", "bar", "baz"]), captureName: "@a")
         ]
 
         XCTAssertEqual(predicates, expectedPredicates)
@@ -169,52 +169,52 @@ final class PredicateTests: XCTestCase {
             .string("foo"),
             .string("bar"),
             .string("baz"),
-            .done
+            .done,
         ]
 
         let predicates = try PredicateParser().parse(steps)
 
         let expectedPredicates = [
-            Predicate.notAnyOf(Set(["foo", "bar", "baz"]), captureName: "@a"),
+            Predicate.notAnyOf(Set(["foo", "bar", "baz"]), captureName: "@a")
         ]
 
         XCTAssertEqual(predicates, expectedPredicates)
     }
 
-	func testParseSet() throws {
-		let steps: [QueryPredicateStep] = [
-			.string("set!"),
-			.string("value"),
-			.string("foo"),
-			.done
-		]
+    func testParseSet() throws {
+        let steps: [QueryPredicateStep] = [
+            .string("set!"),
+            .string("value"),
+            .string("foo"),
+            .done,
+        ]
 
-		let predicates = try PredicateParser().parse(steps)
+        let predicates = try PredicateParser().parse(steps)
 
-		let expectedPredicates = [
-			Predicate.set(key: "value", value: "foo"),
-		]
+        let expectedPredicates = [
+            Predicate.set(key: "value", value: "foo")
+        ]
 
-		XCTAssertEqual(predicates, expectedPredicates)
-	}
+        XCTAssertEqual(predicates, expectedPredicates)
+    }
 
-	func testParseSetWithCapture() throws {
-		let steps: [QueryPredicateStep] = [
-			.string("set!"),
-			.capture("@label"),
-			.string("value"),
-			.string("foo"),
-			.done
-		]
+    func testParseSetWithCapture() throws {
+        let steps: [QueryPredicateStep] = [
+            .string("set!"),
+            .capture("@label"),
+            .string("value"),
+            .string("foo"),
+            .done,
+        ]
 
-		let predicates = try PredicateParser().parse(steps)
+        let predicates = try PredicateParser().parse(steps)
 
-		let expectedPredicates = [
-			Predicate.set(captureName: "@label", key: "value", value: "foo"),
-		]
+        let expectedPredicates = [
+            Predicate.set(captureName: "@label", key: "value", value: "foo")
+        ]
 
-		XCTAssertEqual(predicates, expectedPredicates)
-	}
+        XCTAssertEqual(predicates, expectedPredicates)
+    }
 
     func testParseUnknown() throws {
         let steps: [QueryPredicateStep] = [
@@ -222,7 +222,7 @@ final class PredicateTests: XCTestCase {
             .string("a"),
             .capture("@b"),
             .capture("@c"),
-            .done
+            .done,
         ]
 
         let predicates = try PredicateParser().parse(steps)
@@ -236,33 +236,33 @@ final class PredicateTests: XCTestCase {
 }
 
 extension PredicateTests {
-	func testEvaluateMatch() throws {
-		let pred = Predicate.match(try NSRegularExpression(pattern: "^(private|protected|public)$"), captureNames: ["@type"])
+    func testEvaluateMatch() throws {
+        let pred = Predicate.match(try NSRegularExpression(pattern: "^(private|protected|public)$"), captureNames: ["@type"])
 
-		XCTAssertTrue(pred.evalulate(with: "private"))
-		XCTAssertFalse(pred.evalulate(with: "nonprivate"))
-	}
+        XCTAssertTrue(pred.evalulate(with: "private"))
+        XCTAssertFalse(pred.evalulate(with: "nonprivate"))
+    }
 
-	func testEvaluateMatchWithDifferentLengthStrings() throws {
-		let pred = Predicate.match(try NSRegularExpression(pattern: "^[A-Z]"), captureNames: ["@type"])
+    func testEvaluateMatchWithDifferentLengthStrings() throws {
+        let pred = Predicate.match(try NSRegularExpression(pattern: "^[A-Z]"), captureNames: ["@type"])
 
-		XCTAssertTrue(pred.evalulate(with: "Abc"))
-		XCTAssertFalse(pred.evalulate(with: "abc"))
-	}
+        XCTAssertTrue(pred.evalulate(with: "Abc"))
+        XCTAssertFalse(pred.evalulate(with: "abc"))
+    }
 
-	func testEvaluateIsNot() throws {
-		let pred = Predicate.isNot("local")
+    func testEvaluateIsNot() throws {
+        let pred = Predicate.isNot("local")
 
-		XCTAssertFalse(pred.evalulate(with: ""))
-		XCTAssertFalse(pred.evalulate(with: "abc"))
-	}
+        XCTAssertFalse(pred.evalulate(with: ""))
+        XCTAssertFalse(pred.evalulate(with: "abc"))
+    }
 
-	func testEvaluateAnyOf() throws {
-		let pred = Predicate.anyOf(["a", "b", "c"], captureName: "@value")
+    func testEvaluateAnyOf() throws {
+        let pred = Predicate.anyOf(["a", "b", "c"], captureName: "@value")
 
-		XCTAssertTrue(pred.evalulate(with: "a"))
-		XCTAssertTrue(pred.evalulate(with: "b"))
-		XCTAssertTrue(pred.evalulate(with: "c"))
-		XCTAssertFalse(pred.evalulate(with: "d"))
-	}
+        XCTAssertTrue(pred.evalulate(with: "a"))
+        XCTAssertTrue(pred.evalulate(with: "b"))
+        XCTAssertTrue(pred.evalulate(with: "c"))
+        XCTAssertFalse(pred.evalulate(with: "d"))
+    }
 }

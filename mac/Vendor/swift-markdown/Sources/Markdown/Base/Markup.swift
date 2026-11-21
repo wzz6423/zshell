@@ -88,7 +88,7 @@ func makeMarkup(_ data: _MarkupData) -> Markup {
 ///
 /// > Note: All supported markup elements are already implemented in the framework.
 /// Use this protocol only as a generic constraint.
-public protocol Markup {
+public protocol Markup: SendableMetatype {
     /// Accept a `MarkupVisitor` and call the specific visitation method for this element.
     ///
     /// - parameter visitor: The `MarkupVisitor` visiting the element.
@@ -201,24 +201,24 @@ extension Markup {
         guard position < raw.markup.childCount else {
             return nil
         }
-        
+
         let childMetadata: MarkupMetadata
         if position == 0 {
             childMetadata = raw.metadata.firstChild()
         } else {
-            let siblingSubtreeCount = (0..<position).reduce(0) { partialSubtreeCount, currentPosition in
+            let siblingSubtreeCount = (0 ..< position).reduce(0) { partialSubtreeCount, currentPosition in
                 return partialSubtreeCount + raw.markup.child(at: currentPosition).subtreeCount
             }
-            
+
             let firstChildID = raw.metadata.firstChild().id
             let childID = MarkupIdentifier(
                 rootId: firstChildID.rootId,
                 childId: firstChildID.childId + siblingSubtreeCount
             )
-            
+
             childMetadata = MarkupMetadata(id: childID, indexInParent: position)
         }
-        
+
         let rawChild = raw.markup.child(at: position)
         let absoluteRawMarkup = AbsoluteRawMarkup(markup: rawChild, metadata: childMetadata)
         let data = _MarkupData(absoluteRawMarkup, parent: self)
@@ -278,7 +278,7 @@ extension Markup {
             guard let childElement = element.child(at: pathElement.index) else {
                 return nil
             }
-            
+
             element = childElement
 
             guard let expectedType = pathElement.expectedType else {
@@ -322,7 +322,7 @@ extension Markup {
     /// ]
     /// ```
     public func child<S: Sequence>(through path: S) -> Markup? where S.Element == Int {
-        let pathElements = path.map { TypedChildIndexPath.Element(index: $0, expectedType: nil)}
+        let pathElements = path.map { TypedChildIndexPath.Element(index: $0, expectedType: nil) }
         return child(through: TypedChildIndexPath(pathElements))
     }
 
@@ -408,4 +408,3 @@ fileprivate struct SoftBreakDeleter: MarkupRewriter {
         return Text(" ")
     }
 }
-

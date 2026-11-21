@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 #if !HISTORY_STORE_PROBE
-@testable import zshell
+    @testable import zshell
 #endif
 
 private enum CommandHistoryFailure: Error { case failed(String) }
@@ -17,7 +17,7 @@ struct TerminalCommandHistoryTests {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try stores(in: root)
         #if HISTORY_RECORD_PROBE || !HISTORY_STORE_PROBE
-        try records(in: root)
+            try records(in: root)
         #endif
         print("Command history: \(checks) checks passed")
     }
@@ -38,9 +38,10 @@ struct TerminalCommandHistoryTests {
 
     private static func entry(_ index: Int, id: UUID = UUID(), command: String? = nil) -> TerminalCommandHistoryEntry {
         let date = Date(timeIntervalSince1970: 1_700_000_000 + Double(index))
-        return .init(id: id, terminalID: UUID(), command: command ?? "printf '命令 \(index)'",
-                     workingDirectory: "/tmp/café/项目", startedAt: date,
-                     finishedAt: date.addingTimeInterval(0.125), durationNanos: 125_000_000, exitCode: 7)
+        return .init(
+            id: id, terminalID: UUID(), command: command ?? "printf '命令 \(index)'",
+            workingDirectory: "/tmp/café/项目", startedAt: date,
+            finishedAt: date.addingTimeInterval(0.125), durationNanos: 125_000_000, exitCode: 7)
     }
 
     private static func stores(in root: URL) throws {
@@ -57,13 +58,15 @@ struct TerminalCommandHistoryTests {
         let reloaded = TerminalCommandHistoryStore(url: url)
         try wait("saved metadata reloads") { !reloaded.isLoading }
         try check(reloaded.entries == [original], "command, directory, dates, duration and exit status survive reload")
-        try check((try url.resourceValues(forKeys: [.fileSizeKey])).fileSize! < TerminalCommandHistoryStore.maximumBytes,
-                  "serialized history stays under its byte cap")
+        try check(
+            (try url.resourceValues(forKeys: [.fileSizeKey])).fileSize! < TerminalCommandHistoryStore.maximumBytes,
+            "serialized history stays under its byte cap")
 
-        for index in 2...2_101 { store.note(entry(index)) }
+        for index in 2 ... 2_101 { store.note(entry(index)) }
         try check(store.entries.count == TerminalCommandHistoryStore.maximumRecords, "history evicts oldest records at the count limit")
-        try check(store.entries.first?.command.contains("2101") == true
-                  && store.entries.last?.command.contains("102") == true, "history retains the newest commands in descending order")
+        try check(
+            store.entries.first?.command.contains("2101") == true
+                && store.entries.last?.command.contains("102") == true, "history retains the newest commands in descending order")
         store.flush()
         let bounded = TerminalCommandHistoryStore(url: url)
         try wait("bounded history reloads") { !bounded.isLoading }
@@ -101,7 +104,7 @@ struct TerminalCommandHistoryTests {
         let bytesURL = root.appendingPathComponent("byte-history/records.json")
         let bytes = TerminalCommandHistoryStore(url: bytesURL)
         try wait("byte-limit fixture loads") { !bytes.isLoading }
-        for index in 1...300 { bytes.note(entry(index, command: String(repeating: "字", count: 5_000))) }
+        for index in 1 ... 300 { bytes.note(entry(index, command: String(repeating: "字", count: 5_000))) }
         try check(bytes.entries.count < 300 && !bytes.entries.isEmpty, "history also evicts to its byte budget")
         bytes.flush()
         let encoded = try Data(contentsOf: bytesURL)
@@ -117,8 +120,9 @@ struct TerminalCommandHistoryTests {
         }
 
         let brokenURL = root.appendingPathComponent("broken/records.json")
-        try FileManager.default.createDirectory(at: brokenURL.deletingLastPathComponent(), withIntermediateDirectories: true,
-                                               attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(
+            at: brokenURL.deletingLastPathComponent(), withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700])
         try PersistentCLIConnection.writePrivate(Data("not json".utf8), to: brokenURL)
         let broken = TerminalCommandHistoryStore(url: brokenURL)
         try wait("corrupt history load settles") { !broken.isLoading }
@@ -130,8 +134,9 @@ struct TerminalCommandHistoryTests {
         let target = root.appendingPathComponent("sentinel")
         try Data("unchanged".utf8).write(to: target)
         let symlinkURL = root.appendingPathComponent("symlink/records.json")
-        try FileManager.default.createDirectory(at: symlinkURL.deletingLastPathComponent(), withIntermediateDirectories: true,
-                                               attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(
+            at: symlinkURL.deletingLastPathComponent(), withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700])
         try FileManager.default.createSymbolicLink(at: symlinkURL, withDestinationURL: target)
         let symlink = TerminalCommandHistoryStore(url: symlinkURL)
         try wait("symlink history load settles") { !symlink.isLoading }
@@ -142,48 +147,54 @@ struct TerminalCommandHistoryTests {
     }
 
     #if HISTORY_RECORD_PROBE || !HISTORY_STORE_PROBE
-    private static func records(in root: URL) throws {
-        let store = TerminalCommandHistoryStore(url: root.appendingPathComponent("command-records/records.json"))
-        try wait("command-record integration loads") { !store.isLoading }
-        let terminalID = UUID()
-        let startedAt = Date(timeIntervalSince1970: 1_700_010_000)
-        var record = TerminalCommandRecord(id: UUID(), command: "printf '命令 👩🏽‍💻'\nprintf 'next line'",
-            workingDirectory: "/tmp/原目录", startedAt: startedAt, outputLocation: nil)
-        store.observe([record], previous: [], terminalID: terminalID)
-        try check(store.entries.first?.id == record.id && store.entries.first?.terminalID == terminalID,
-                  "history uses the command block's stable ID and owning terminal ID")
-        let running = record
-        record.finishedAt = startedAt.addingTimeInterval(0.25)
-        record.durationNanos = 250_000_000
-        record.exitCode = 7
-        store.observe([record], previous: [running], terminalID: terminalID)
-        try check(store.entries == [TerminalCommandHistoryEntry(record: record, terminalID: terminalID)],
-                  "completion updates metadata without duplicating a command")
-        store.delete(id: record.id)
-        store.observe([record], previous: [record], terminalID: terminalID)
-        try check(store.entries.isEmpty, "later block reports cannot recreate a deleted history row")
-        let next = TerminalCommandRecord(id: UUID(), command: record.command, workingDirectory: nil,
-            startedAt: startedAt.addingTimeInterval(1), outputLocation: nil)
-        store.observe([record, next], previous: [record], terminalID: terminalID)
-        try check(store.entries.map(\.id) == [next.id] && store.entries.first?.workingDirectory == "",
-                  "new commands survive deletion and unknown directories are not guessed")
-        store.clear()
-        var completed = next
-        completed.finishedAt = next.startedAt.addingTimeInterval(1)
-        completed.exitCode = 0
-        store.observe([record, completed], previous: [record, next], terminalID: terminalID)
-        try check(store.entries.isEmpty, "a running command finishing after clear cannot revive the list")
-        let unknown = TerminalCommandRecord(id: UUID(), command: "", workingDirectory: nil,
-                                           startedAt: startedAt.addingTimeInterval(2), outputLocation: nil)
-        store.observe([unknown], previous: [], terminalID: terminalID)
-        var known = unknown
-        known.command = "echo now known"
-        store.observe([known], previous: [unknown], terminalID: terminalID)
-        try check(store.entries.map(\.id) == [known.id], "a block becomes eligible when its command text arrives")
-        store.flush()
-        let reloaded = TerminalCommandHistoryStore(url: root.appendingPathComponent("command-records/records.json"))
-        try wait("integrated command metadata reloads") { !reloaded.isLoading }
-        try check(reloaded.entries == store.entries, "clear and later new block observations remain durable")
-    }
+        private static func records(in root: URL) throws {
+            let store = TerminalCommandHistoryStore(url: root.appendingPathComponent("command-records/records.json"))
+            try wait("command-record integration loads") { !store.isLoading }
+            let terminalID = UUID()
+            let startedAt = Date(timeIntervalSince1970: 1_700_010_000)
+            var record = TerminalCommandRecord(
+                id: UUID(), command: "printf '命令 👩🏽‍💻'\nprintf 'next line'",
+                workingDirectory: "/tmp/原目录", startedAt: startedAt, outputLocation: nil)
+            store.observe([record], previous: [], terminalID: terminalID)
+            try check(
+                store.entries.first?.id == record.id && store.entries.first?.terminalID == terminalID,
+                "history uses the command block's stable ID and owning terminal ID")
+            let running = record
+            record.finishedAt = startedAt.addingTimeInterval(0.25)
+            record.durationNanos = 250_000_000
+            record.exitCode = 7
+            store.observe([record], previous: [running], terminalID: terminalID)
+            try check(
+                store.entries == [TerminalCommandHistoryEntry(record: record, terminalID: terminalID)],
+                "completion updates metadata without duplicating a command")
+            store.delete(id: record.id)
+            store.observe([record], previous: [record], terminalID: terminalID)
+            try check(store.entries.isEmpty, "later block reports cannot recreate a deleted history row")
+            let next = TerminalCommandRecord(
+                id: UUID(), command: record.command, workingDirectory: nil,
+                startedAt: startedAt.addingTimeInterval(1), outputLocation: nil)
+            store.observe([record, next], previous: [record], terminalID: terminalID)
+            try check(
+                store.entries.map(\.id) == [next.id] && store.entries.first?.workingDirectory == "",
+                "new commands survive deletion and unknown directories are not guessed")
+            store.clear()
+            var completed = next
+            completed.finishedAt = next.startedAt.addingTimeInterval(1)
+            completed.exitCode = 0
+            store.observe([record, completed], previous: [record, next], terminalID: terminalID)
+            try check(store.entries.isEmpty, "a running command finishing after clear cannot revive the list")
+            let unknown = TerminalCommandRecord(
+                id: UUID(), command: "", workingDirectory: nil,
+                startedAt: startedAt.addingTimeInterval(2), outputLocation: nil)
+            store.observe([unknown], previous: [], terminalID: terminalID)
+            var known = unknown
+            known.command = "echo now known"
+            store.observe([known], previous: [unknown], terminalID: terminalID)
+            try check(store.entries.map(\.id) == [known.id], "a block becomes eligible when its command text arrives")
+            store.flush()
+            let reloaded = TerminalCommandHistoryStore(url: root.appendingPathComponent("command-records/records.json"))
+            try wait("integrated command metadata reloads") { !reloaded.isLoading }
+            try check(reloaded.entries == store.entries, "clear and later new block observations remain durable")
+        }
     #endif
 }

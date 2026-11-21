@@ -37,7 +37,7 @@ public extension InlineAttributes {
     init(attributes: String, _ children: RecurringInlineMarkup...) {
         self.init(attributes: attributes, children)
     }
-    
+
     /// The specified attributes in JSON5 format.
     var attributes: String {
         get {
@@ -50,7 +50,7 @@ public extension InlineAttributes {
             _data = _data.replacingSelf(.inlineAttributes(attributes: newValue, parsedRange: nil, _data.raw.markup.copyChildren()))
         }
     }
-    
+
     // MARK: Visitation
 
     func accept<V: MarkupVisitor>(_ visitor: inout V) -> V.Result {

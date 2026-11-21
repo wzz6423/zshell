@@ -15,8 +15,7 @@ final class RemoteHostStore: ObservableObject {
 
     func save(_ host: RemoteHost) throws {
         var updated = hosts
-        if let index = updated.firstIndex(where: { $0.id == host.id }) { updated[index] = host }
-        else { updated.append(host) }
+        if let index = updated.firstIndex(where: { $0.id == host.id }) { updated[index] = host } else { updated.append(host) }
         try persist(updated)
     }
 
@@ -67,8 +66,9 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
     private var languageObservation: NSObjectProtocol?
 
     private init() {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 700, height: 680),
-                              styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 700, height: 680),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         window.minSize = NSSize(width: 620, height: 670)
         window.isReleasedWhenClosed = false
         super.init(window: window)
@@ -79,7 +79,8 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         sharingObservation = sharing.objectWillChange.sink { [weak self] _ in
             DispatchQueue.main.async { [weak self] in self?.updateSharing() }
         }
-        languageObservation = NotificationCenter.default.addObserver(forName: AppLocalization.didChange, object: nil, queue: .main) { [weak self] _ in
+        languageObservation = NotificationCenter.default.addObserver(forName: AppLocalization.didChange, object: nil, queue: .main) {
+            [weak self] _ in
             guard let self else { return }
             assumeMainActor { self.refreshLabels() }
         }
@@ -110,13 +111,19 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         scroll.hasVerticalScroller = true
         scroll.borderType = .bezelBorder
         scroll.heightAnchor.constraint(equalToConstant: 130).isActive = true
-        let grid = NSGridView(views: [[nameLabel, nameField], [addressLabel, addressField],
-                                     [executableLabel, executableField], [directoryLabel, directoryField]])
+        let grid = NSGridView(views: [
+            [nameLabel, nameField], [addressLabel, addressField],
+            [executableLabel, executableField], [directoryLabel, directoryField],
+        ])
         grid.rowSpacing = 10
         grid.columnSpacing = 14
         grid.column(at: 0).xPlacement = .trailing
-        for field in [nameField, addressField, executableField, directoryField, usersField] { field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal) }
-        for button in [newButton, saveButton, removeButton, connectButton, openButton, docsButton, installButton, shareButton] { button.bezelStyle = .rounded; button.target = self }
+        for field in [nameField, addressField, executableField, directoryField, usersField] {
+            field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        }
+        for button in [newButton, saveButton, removeButton, connectButton, openButton, docsButton, installButton, shareButton] {
+            button.bezelStyle = .rounded; button.target = self
+        }
         newButton.action = #selector(newHost)
         saveButton.action = #selector(saveHost)
         removeButton.action = #selector(removeHost)
@@ -143,8 +150,10 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         separator.boxType = .separator
         let shareButtons = NSStackView(views: [shareButton, docsButton])
         shareButtons.spacing = 8
-        let stack = NSStackView(views: [scroll, editButtons, grid, explanation, connectButtons, statusLabel,
-                                       separator, shareGrid, shareButtons, sharingLabel])
+        let stack = NSStackView(views: [
+            scroll, editButtons, grid, explanation, connectButtons, statusLabel,
+            separator, shareGrid, shareButtons, sharingLabel,
+        ])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 14
@@ -182,11 +191,16 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         portLabel.stringValue = String(localized: "Sharing Port")
         usersLabel.stringValue = String(localized: "Allowed Tailscale Users")
         usersField.placeholderString = String(localized: "Owner only, or comma-separated logins")
-        explanation.stringValue = String(localized: "SSH uses your existing keys and trusted host keys. Install the bundled server on a matching Mac, or choose a Linux server executable.")
+        explanation.stringValue = String(
+            localized:
+                "SSH uses your existing keys and trusted host keys. Install the bundled server on a matching Mac, or choose a Linux server executable."
+        )
         table.setAccessibilityLabel(String(localized: "Remote Hosts"))
-        for (field, label) in [(nameField, nameLabel), (addressField, addressLabel),
-                               (executableField, executableLabel), (directoryField, directoryLabel),
-                               (portField, portLabel), (usersField, usersLabel)] {
+        for (field, label) in [
+            (nameField, nameLabel), (addressField, addressLabel),
+            (executableField, executableLabel), (directoryField, directoryLabel),
+            (portField, portLabel), (usersField, usersLabel),
+        ] {
             field.setAccessibilityLabel(label.stringValue)
         }
         updateButtons()
@@ -217,8 +231,9 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
     }
 
     private func hostFromForm() throws -> RemoteHost {
-        try RemoteHost(id: editingID ?? UUID(), name: nameField.stringValue,
-                       address: addressField.stringValue, serverPath: executableField.stringValue)
+        try RemoteHost(
+            id: editingID ?? UUID(), name: nameField.stringValue,
+            address: addressField.stringValue, serverPath: executableField.stringValue)
     }
 
     @objc private func installServer() {
@@ -238,8 +253,9 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
                     let target = try await Task.detached(priority: .userInitiated) { try RemoteServerInstaller.inspect(host: host) }.value
                     let bundled = await Task.detached(priority: .utility) { RemoteServerInstaller.bundledExecutable(for: target) }.value
                     let executable: URL
-                    if let bundled { executable = bundled }
-                    else {
+                    if let bundled {
+                        executable = bundled
+                    } else {
                         guard let window = self.window else { return }
                         let panel = NSOpenPanel()
                         panel.canChooseDirectories = false
@@ -257,7 +273,8 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
                     statusLabel.stringValue = String(localized: "Setting up remote agent integrations…")
                     do {
                         try await Task.detached(priority: .userInitiated) { try RemoteServerInstaller.installAgentHooks(host: host) }.value
-                        statusLabel.stringValue = String(localized: "Installed zshell-server \(version.version) and agent integrations on \(host.name).")
+                        statusLabel.stringValue = String(
+                            localized: "Installed zshell-server \(version.version) and agent integrations on \(host.name).")
                     } catch {
                         statusLabel.stringValue = String(localized: "Server installed. Agent setup failed: \(error.localizedDescription)")
                         statusLabel.textColor = .systemRed
@@ -279,7 +296,7 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
             }
             return
         }
-        guard let port = Int(portField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)), (1...65_535).contains(port) else {
+        guard let port = Int(portField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)), (1 ... 65_535).contains(port) else {
             sharingLabel.stringValue = String(localized: "Enter a port from 1 to 65535.")
             sharingLabel.textColor = .systemRed
             return
@@ -290,8 +307,9 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         Task { @MainActor [weak self] in
             guard let self else { return }
             defer { sharingBusy = false; updateSharing() }
-            do { try await sharing.start(port: port, allowedUsers: users) }
-            catch { sharingLabel.stringValue = error.localizedDescription; sharingLabel.textColor = .systemRed }
+            do { try await sharing.start(port: port, allowedUsers: users) } catch {
+                sharingLabel.stringValue = error.localizedDescription; sharingLabel.textColor = .systemRed
+            }
         }
     }
 
@@ -308,7 +326,11 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
             sharingLabel.stringValue = "tailscale://\(address):\(endpoint.port)"
             sharingLabel.textColor = .secondaryLabelColor
         } else {
-            sharingLabel.stringValue = sharing.message ?? String(localized: "Sharing is off. Tailscale verifies the machine owner and any allowed users. Stopping sharing ends its sessions.")
+            sharingLabel.stringValue =
+                sharing.message
+                ?? String(
+                    localized:
+                        "Sharing is off. Tailscale verifies the machine owner and any allowed users. Stopping sharing ends its sessions.")
             sharingLabel.textColor = sharing.message == nil ? .secondaryLabelColor : .systemRed
         }
     }
@@ -331,8 +353,10 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
     }
 
     @objc private func saveHost() {
-        do { let host = try hostFromForm(); try store.save(host); editingID = host.id; statusLabel.stringValue = String(localized: "Host saved."); statusLabel.textColor = .secondaryLabelColor; updateButtons() }
-        catch { showError(error) }
+        do {
+            let host = try hostFromForm(); try store.save(host); editingID = host.id;
+            statusLabel.stringValue = String(localized: "Host saved."); statusLabel.textColor = .secondaryLabelColor; updateButtons()
+        } catch { showError(error) }
     }
 
     @objc private func removeHost() {
@@ -373,7 +397,9 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
             Task { @MainActor [weak self, weak manager] in
                 defer { self?.busy = false; self?.updateButtons() }
                 do {
-                    let session = try await Task.detached(priority: .userInitiated) { try RemoteHostClient.create(host: host, directory: directory.isEmpty ? "~" : directory) }.value
+                    let session = try await Task.detached(priority: .userInitiated) {
+                        try RemoteHostClient.create(host: host, directory: directory.isEmpty ? "~" : directory)
+                    }.value
                     manager?.openSharedProject(host: host, session: session)
                     self?.statusLabel.stringValue = String(localized: "Connected to \(host.name).")
                 } catch { self?.showError(error) }
@@ -406,8 +432,11 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         alert.beginSheetModal(for: window) { response in
             guard response == .alertFirstButtonReturn else { return }
             Task { @MainActor in
-                do { try await Task.detached(priority: .userInitiated) { try RemoteHostClient.terminate(host: host, directory: directory, sessionID: id) }.value }
-                catch {
+                do {
+                    try await Task.detached(priority: .userInitiated) {
+                        try RemoteHostClient.terminate(host: host, directory: directory, sessionID: id)
+                    }.value
+                } catch {
                     let errorAlert = NSAlert(error: error)
                     _ = await errorAlert.beginSheetModal(for: window)
                 }

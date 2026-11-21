@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
 
 use bitflags::bitflags;
 #[cfg(feature = "serde")]
@@ -68,7 +68,10 @@ impl From<VteHyperlink> for Hyperlink {
 
 impl From<Hyperlink> for VteHyperlink {
     fn from(val: Hyperlink) -> Self {
-        VteHyperlink { id: Some(val.id().to_owned()), uri: val.uri().to_owned() }
+        VteHyperlink {
+            id: Some(val.id().to_owned()),
+            uri: val.uri().to_owned(),
+        }
     }
 }
 
@@ -87,10 +90,12 @@ impl HyperlinkInner {
         let id = match id {
             Some(id) => id.to_string(),
             None => {
-                let mut id = HYPERLINK_ID_SUFFIX.fetch_add(1, Ordering::Relaxed).to_string();
+                let mut id = HYPERLINK_ID_SUFFIX
+                    .fetch_add(1, Ordering::Relaxed)
+                    .to_string();
                 id.push_str("_alacritty");
                 id
-            },
+            }
         };
 
         Self { id, uri }
@@ -159,15 +164,21 @@ impl Cell {
     pub fn clear_preserving_semantic_anchors(&mut self, background: Color) {
         let anchors = self.semantic_anchors().to_vec();
         *self = background.into();
-        if !anchors.is_empty() { self.set_semantic_anchors(anchors); }
+        if !anchors.is_empty() {
+            self.set_semantic_anchors(anchors);
+        }
     }
 
     pub fn semantic_anchors(&self) -> &[(u64, u8)] {
-        self.extra.as_ref().map_or(&[], |extra| extra.semantic_anchors.as_slice())
+        self.extra
+            .as_ref()
+            .map_or(&[], |extra| extra.semantic_anchors.as_slice())
     }
 
     pub fn set_semantic_anchors(&mut self, anchors: Vec<(u64, u8)>) {
-        if anchors.is_empty() && self.extra.is_none() { return; }
+        if anchors.is_empty() && self.extra.is_none() {
+            return;
+        }
         let extra = self.extra.get_or_insert(Default::default());
         Arc::make_mut(extra).semantic_anchors = anchors;
     }
@@ -175,8 +186,12 @@ impl Cell {
     pub fn add_semantic_anchor(&mut self, anchor: (u64, u8)) {
         let extra = self.extra.get_or_insert(Default::default());
         let anchors = &mut Arc::make_mut(extra).semantic_anchors;
-        if anchors.contains(&anchor) { return; }
-        if anchors.len() == 8 { anchors.remove(0); }
+        if anchors.contains(&anchor) {
+            return;
+        }
+        if anchors.len() == 8 {
+            anchors.remove(0);
+        }
         anchors.push(anchor);
     }
 
@@ -185,8 +200,12 @@ impl Cell {
     }
 
     pub fn set_semantic_zone(&mut self, zone: Option<(u64, u8)>) {
-        if self.semantic_zone() == zone { return; }
-        if zone.is_none() && self.extra.is_none() { return; }
+        if self.semantic_zone() == zone {
+            return;
+        }
+        if zone.is_none() && self.extra.is_none() {
+            return;
+        }
         let extra = self.extra.get_or_insert(Default::default());
         Arc::make_mut(extra).semantic_zone = zone;
     }
@@ -218,10 +237,12 @@ impl Cell {
     pub fn set_underline_color(&mut self, color: Option<Color>) {
         // If we reset color and we don't have zerowidth we should drop extra storage.
         if color.is_none()
-            && self
-                .extra
-                .as_ref()
-                .is_none_or(|extra| extra.zerowidth.is_empty() && extra.hyperlink.is_none() && extra.semantic_zone.is_none() && extra.semantic_anchors.is_empty())
+            && self.extra.as_ref().is_none_or(|extra| {
+                extra.zerowidth.is_empty()
+                    && extra.hyperlink.is_none()
+                    && extra.semantic_zone.is_none()
+                    && extra.semantic_anchors.is_empty()
+            })
         {
             self.extra = None;
         } else {
@@ -239,10 +260,12 @@ impl Cell {
     /// Set hyperlink.
     pub fn set_hyperlink(&mut self, hyperlink: Option<Hyperlink>) {
         let should_drop = hyperlink.is_none()
-            && self
-                .extra
-                .as_ref()
-                .is_none_or(|extra| extra.zerowidth.is_empty() && extra.underline_color.is_none() && extra.semantic_zone.is_none() && extra.semantic_anchors.is_empty());
+            && self.extra.as_ref().is_none_or(|extra| {
+                extra.zerowidth.is_empty()
+                    && extra.underline_color.is_none()
+                    && extra.semantic_zone.is_none()
+                    && extra.semantic_anchors.is_empty()
+            });
 
         if should_drop {
             self.extra = None;
@@ -262,7 +285,8 @@ impl Cell {
 impl GridCell for Cell {
     #[inline]
     fn is_empty(&self) -> bool {
-        self.semantic_zone().is_none() && self.semantic_anchors().is_empty()
+        self.semantic_zone().is_none()
+            && self.semantic_anchors().is_empty()
             && (self.c == ' ' || self.c == '\t')
             && self.bg == Color::Named(NamedColor::Background)
             && self.fg == Color::Named(NamedColor::Foreground)
@@ -289,14 +313,20 @@ impl GridCell for Cell {
 
     #[inline]
     fn reset(&mut self, template: &Self) {
-        *self = Cell { bg: template.bg, ..Cell::default() };
+        *self = Cell {
+            bg: template.bg,
+            ..Cell::default()
+        };
     }
 }
 
 impl From<Color> for Cell {
     #[inline]
     fn from(color: Color) -> Self {
-        Self { bg: color, ..Cell::default() }
+        Self {
+            bg: color,
+            ..Cell::default()
+        }
     }
 }
 
@@ -315,7 +345,9 @@ impl LineLength for grid::Row<Cell> {
         }
 
         for (index, cell) in self[..].iter().rev().enumerate() {
-            if cell.c != ' ' || cell.semantic_zone().is_some() || !cell.semantic_anchors().is_empty()
+            if cell.c != ' '
+                || cell.semantic_zone().is_some()
+                || !cell.semantic_anchors().is_empty()
                 || cell.extra.as_ref().map(|extra| extra.zerowidth.is_empty()) == Some(false)
             {
                 length = Column(self.len() - index);

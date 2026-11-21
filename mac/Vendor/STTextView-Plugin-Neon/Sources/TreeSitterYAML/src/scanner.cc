@@ -146,7 +146,7 @@ struct Scanner {
   }
 
   unsigned serialize(char *buffer) {
-    size_t i = 0;
+    unsigned i = 0;
     buffer[i++] = row;
     buffer[i++] = col;
     buffer[i++] = blk_imp_row;

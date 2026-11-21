@@ -43,22 +43,31 @@ struct DiffWrapSurfaceTests {
     }
 
     static func wrapButton(in view: NSView) -> NSButton {
-        guard let button = descendants(view).compactMap({ $0 as? NSButton }).first(where: {
-            $0.accessibilityLabel() == String(localized: "Wrap lines to diff width")
-        }) else { fatalError("Native diff toolbar has no wrapping button") }
+        guard
+            let button = descendants(view).compactMap({ $0 as? NSButton }).first(where: {
+                $0.accessibilityLabel() == String(localized: "Wrap lines to diff width")
+            })
+        else { fatalError("Native diff toolbar has no wrapping button") }
         precondition(button.image != nil, "Diff wrap button has no visible symbol")
-        precondition(!button.isHiddenOrHasHiddenAncestor && !button.visibleRect.isEmpty,
+        precondition(
+            !button.isHiddenOrHasHiddenAncestor && !button.visibleRect.isEmpty,
             "Diff wrap button is not visible in the pane")
         return button
     }
 
     static func wrapping(_ web: WKWebView, _ wraps: Bool) -> Bool {
-        let modes = evaluate(web, "Array.from(document.querySelectorAll('diffs-container')).flatMap(node => Array.from(node.shadowRoot?.querySelectorAll('[data-overflow]') || [])).map(node => node.dataset.overflow)") as? [String] ?? []
+        let modes =
+            evaluate(
+                web,
+                "Array.from(document.querySelectorAll('diffs-container')).flatMap(node => Array.from(node.shadowRoot?.querySelectorAll('[data-overflow]') || [])).map(node => node.dataset.overflow)"
+            ) as? [String] ?? []
         return !modes.isEmpty && modes.allSatisfy { $0 == (wraps ? "wrap" : "scroll") }
     }
 
     static func lineGeometry(_ web: WKWebView) -> [String: Double] {
-        evaluate(web, """
+        evaluate(
+            web,
+            """
             (() => {
               const line = Array.from(document.querySelectorAll('diffs-container')).flatMap(node =>
                 Array.from(node.shadowRoot?.querySelectorAll('[data-line]') || [])).find(node => node.textContent.includes('long_token_'));
@@ -69,7 +78,8 @@ struct DiffWrapSurfaceTests {
     }
 
     static func mount(_ diff: DiffTab, width: CGFloat = 640) -> (NSWindow, DiffViewerNSView) {
-        let window = NSWindow(contentRect: NSRect(x: -100_000, y: -100_000, width: width, height: 560),
+        let window = NSWindow(
+            contentRect: NSRect(x: -100_000, y: -100_000, width: width, height: 560),
             styleMask: [.borderless], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         let view = DiffViewerNSView(diff: diff)
@@ -96,7 +106,9 @@ struct DiffWrapSurfaceTests {
         var tabs = [ordinary]
         defer {
             tabs.forEach { $0.pullRequest.detach() }
-            windows.forEach { $0.orderOut(nil); $0.contentView = nil; $0.close() }
+            windows.forEach {
+                $0.orderOut(nil); $0.contentView = nil; $0.close()
+            }
             NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: app)
         }
         wait("Default diff did not use horizontal scrolling") { wrapping(web, false) }
@@ -115,11 +127,13 @@ struct DiffWrapSurfaceTests {
         precondition((wrapped["scrollWidth"] ?? 0) <= (wrapped["width"] ?? 0) + 1, "Wrapped line still overflows horizontally")
         precondition(button.state == .on && ordinary.webHostView === host, "Wrap toggle recreated the host or lost its state")
         precondition(ordinary.saveBaseline == saveBaseline, "Wrapping changed the protected save baseline")
-        precondition(ordinary.reviewSnapshot == snapshot && snapshot.map(DiffReviewStore.shared.isReviewed) == true,
+        precondition(
+            ordinary.reviewSnapshot == snapshot && snapshot.map(DiffReviewStore.shared.isReviewed) == true,
             "A display option invalidated exact-change review status")
         wait("Toolbar did not persist its setting") { TOML.parse(at: AppSettings.configURL)?["editor.diff-wrap-lines"]?.bool == true }
 
-        let history = DiffTab(repoRoot: root, path: "Review.swift", staged: false, untracked: false,
+        let history = DiffTab(
+            repoRoot: root, path: "Review.swift", staged: false, untracked: false,
             origPath: "Before.swift", commitHash: CommandLine.arguments[2])
         let (historyWindow, historyView) = mount(history)
         windows.append(historyWindow)
@@ -130,7 +144,8 @@ struct DiffWrapSurfaceTests {
 
         let editorPane = SettingsEditorPane()
         editorPane.setCategory(.editor)
-        let settingsWindow = NSWindow(contentRect: NSRect(x: -100_000, y: -100_000, width: 500, height: 440),
+        let settingsWindow = NSWindow(
+            contentRect: NSRect(x: -100_000, y: -100_000, width: 500, height: 440),
             styleMask: [.borderless], backing: .buffered, defer: false)
         settingsWindow.isReleasedWhenClosed = false
         settingsWindow.contentViewController = editorPane
@@ -146,7 +161,9 @@ struct DiffWrapSurfaceTests {
         precondition(protectSavesSwitch.state == .on, "Editor lost its default save conflict protection")
         wait("Editor settings did not synchronize with the toolbar") { settingsSwitch.state == .on }
         settingsSwitch.performClick(nil)
-        wait("Editor settings did not update both open diffs") { !settings.diffWrapLines && wrapping(web, false) && wrapping(historyWeb, false) }
+        wait("Editor settings did not update both open diffs") {
+            !settings.diffWrapLines && wrapping(web, false) && wrapping(historyWeb, false)
+        }
         ordinary.setDiffStyle(.split)
         button.performClick(nil)
         wait("Split diff did not wrap") { wrapping(web, true) }
@@ -155,25 +172,35 @@ struct DiffWrapSurfaceTests {
         ordinary.setEditing(true)
         wait("Diff editor did not attach") { evaluate(web, "window.__INSTANCE?.getEditor('Review.swift') != null") as? Bool == true }
         let initial = ordinary.web.newContent
-        _ = evaluate(web, """
+        _ = evaluate(
+            web,
+            """
             window.wrapEditor = window.__INSTANCE.getEditor('Review.swift');
             window.wrapEditor.applyEdits([{range:{start:{line:0,character:0},end:{line:0,character:0}},newText:'// Unsaved wrapping draft\\n'}]);
             window.wrapEditor.setSelections([{start:{line:0,character:3},end:{line:0,character:9}}]);
             window.wrapSelection = JSON.stringify(window.wrapEditor.getState().selections);
             document.getElementById('diff-container').scrollTop = 55;
             """)
-        wait("Editor did not publish unsaved content") { ordinary.isDirty && ordinary.unsavedText?.hasPrefix("// Unsaved wrapping draft") == true }
+        wait("Editor did not publish unsaved content") {
+            ordinary.isDirty && ordinary.unsavedText?.hasPrefix("// Unsaved wrapping draft") == true
+        }
         let draft = ordinary.unsavedText
         let scroll = evaluate(web, "document.getElementById('diff-container').scrollTop") as? Double ?? 0
         settings.diffWrapLines = false
         wait("Editable diff did not switch to scrolling") { wrapping(web, false) }
         settings.diffWrapLines = true
         wait("Editable diff did not switch back to wrapping") { wrapping(web, true) }
-        precondition(evaluate(web, "window.__INSTANCE.getEditor('Review.swift') === window.wrapEditor && JSON.stringify(window.wrapEditor.getState().selections) === window.wrapSelection && window.wrapEditor.canUndo") as? Bool == true,
+        precondition(
+            evaluate(
+                web,
+                "window.__INSTANCE.getEditor('Review.swift') === window.wrapEditor && JSON.stringify(window.wrapEditor.getState().selections) === window.wrapSelection && window.wrapEditor.canUndo"
+            ) as? Bool == true,
             "Wrapping lost editor identity, selection, or undo history")
-        precondition(ordinary.isDirty && ordinary.unsavedText == draft && ordinary.web.newContent == initial,
+        precondition(
+            ordinary.isDirty && ordinary.unsavedText == draft && ordinary.web.newContent == initial,
             "Wrapping replaced or saved the edit draft")
-        precondition(abs((evaluate(web, "document.getElementById('diff-container').scrollTop") as? Double ?? 0) - scroll) < 2,
+        precondition(
+            abs((evaluate(web, "document.getElementById('diff-container').scrollTop") as? Double ?? 0) - scroll) < 2,
             "Wrapping moved an unaffected scroll anchor")
 
         for backend in TerminalBackend.allCases {
@@ -186,20 +213,26 @@ struct DiffWrapSurfaceTests {
 
         wait("PR comments entry did not appear") { ordinary.canShowPullRequestComments }
         ordinary.showPullRequestComments()
-        wait("PR comments diff did not load") { if case .ready = ordinary.pullRequestReviewState { return ordinary.pullRequestWeb.isReady }; return false }
+        wait("PR comments diff did not load") {
+            if case .ready = ordinary.pullRequestReviewState { return ordinary.pullRequestWeb.isReady }; return false
+        }
         let commentsWeb = webView(in: ordinary.pullRequestWebHostView)
         wait("PR comments ignored wrapping") { wrapping(commentsWeb, true) }
         let commentsHost = ordinary.pullRequestWebHostView
         let reviewState = ordinary.pullRequestReviewState
-        precondition(evaluate(commentsWeb, "window.__INSTANCE?.getEditor('Review.swift') == null") as? Bool == true,
+        precondition(
+            evaluate(commentsWeb, "window.__INSTANCE?.getEditor('Review.swift') == null") as? Bool == true,
             "PR comments became editable")
         wrapButton(in: view).performClick(nil)
-        wait("PR toolbar did not synchronize all renderers") { wrapping(web, false) && wrapping(commentsWeb, false) && wrapping(historyWeb, false) }
-        precondition(ordinary.pullRequestWebHostView === commentsHost && ordinary.pullRequestReviewState == reviewState
-            && ordinary.unsavedText == draft, "PR wrapping replaced review data, host, or local draft")
+        wait("PR toolbar did not synchronize all renderers") {
+            wrapping(web, false) && wrapping(commentsWeb, false) && wrapping(historyWeb, false)
+        }
+        precondition(
+            ordinary.pullRequestWebHostView === commentsHost && ordinary.pullRequestReviewState == reviewState
+                && ordinary.unsavedText == draft, "PR wrapping replaced review data, host, or local draft")
         for width in [180.0, 240, 320] {
             window.setContentSize(NSSize(width: width, height: 560))
-            for _ in 0..<3 { view.layoutSubtreeIfNeeded(); pump() }
+            for _ in 0 ..< 3 { view.layoutSubtreeIfNeeded(); pump() }
             precondition(!wrapButton(in: view).isHiddenOrHasHiddenAncestor, "Narrow PR toolbar lost its wrap button")
             let visible = descendants(view).compactMap { $0 as? NSControl }.filter { !$0.isHiddenOrHasHiddenAncestor && $0.frame.width > 0 }
             precondition(visible.allSatisfy { view.convert($0.bounds, from: $0).maxX <= width + 1 }, "PR toolbar escaped its pane")
@@ -211,13 +244,16 @@ struct DiffWrapSurfaceTests {
         let path = URL(fileURLWithPath: root).appendingPathComponent("Review.swift")
         try! external.write(to: path, atomically: true, encoding: .utf8)
         var conflicts = 0
-        precondition(!ordinary.save { conflict, contents in
-            conflicts += 1
-            precondition(conflict.current.text == external && contents == draft,
-                "Wrapped diff compared the wrong disk version or draft")
-            return .keepDraft
-        }, "Wrapped diff overwrote an external change without approval")
-        precondition(conflicts == 1 && ordinary.unsavedText == draft && ordinary.saveBaseline == saveBaseline,
+        precondition(
+            !ordinary.save { conflict, contents in
+                conflicts += 1
+                precondition(
+                    conflict.current.text == external && contents == draft,
+                    "Wrapped diff compared the wrong disk version or draft")
+                return .keepDraft
+            }, "Wrapped diff overwrote an external change without approval")
+        precondition(
+            conflicts == 1 && ordinary.unsavedText == draft && ordinary.saveBaseline == saveBaseline,
             "Save conflict handling lost the wrapped draft or its baseline")
         protectSavesSwitch.performClick(nil)
         precondition(!settings.protectEditorSaves && ordinary.save(), "Editor save protection gate did not apply to the wrapped diff")
@@ -230,7 +266,7 @@ struct DiffWrapSurfaceTests {
             let localizedPane = SettingsEditorPane()
             localizedPane.setCategory(.editor)
             settingsWindow.contentViewController = localizedPane
-            for _ in 0..<3 { localizedPane.view.layoutSubtreeIfNeeded(); pump() }
+            for _ in 0 ..< 3 { localizedPane.view.layoutSubtreeIfNeeded(); pump() }
             let localizedSwitch = descendants(localizedPane.view).compactMap { $0 as? NSSwitch }.first {
                 $0.accessibilityLabel() == String(localized: "Wrap lines to diff width")
             }!
@@ -240,23 +276,27 @@ struct DiffWrapSurfaceTests {
             precondition(icon.frame.size == NSSize(width: 32, height: 32), "Diff setting icon is not square")
             let bitmap = icon.bitmapImageRepForCachingDisplay(in: icon.bounds)!
             icon.cacheDisplay(in: icon.bounds, to: bitmap)
-            let hasGlyph = (0..<bitmap.pixelsHigh).contains { y in
-                (0..<bitmap.pixelsWide).contains { x in
+            let hasGlyph = (0 ..< bitmap.pixelsHigh).contains { y in
+                (0 ..< bitmap.pixelsWide).contains { x in
                     let color = bitmap.colorAt(x: x, y: y)!.usingColorSpace(.deviceRGB)!
                     return min(color.redComponent, color.greenComponent, color.blueComponent) > 0.85
                 }
             }
             precondition(hasGlyph, "Diff setting icon has no visible symbol")
             let search = SettingsSearchIndex.results(for: "editor.diff-wrap-lines")
-            precondition(search.count == 1 && search.first?.title == String(localized: "Wrap lines to diff width"),
+            precondition(
+                search.count == 1 && search.first?.title == String(localized: "Wrap lines to diff width"),
                 "Diff setting did not appear in localized search")
             for width in [180.0, 240, 320, 480, 820, 240, 820] {
                 ordinary.setEditing(true)
                 window.setContentSize(NSSize(width: width, height: 560))
-                for _ in 0..<3 { view.layoutSubtreeIfNeeded(); pump() }
-                let visible = descendants(view).compactMap { $0 as? NSControl }.filter { !$0.isHiddenOrHasHiddenAncestor && $0.frame.width > 0 }
+                for _ in 0 ..< 3 { view.layoutSubtreeIfNeeded(); pump() }
+                let visible = descendants(view).compactMap { $0 as? NSControl }.filter {
+                    !$0.isHiddenOrHasHiddenAncestor && $0.frame.width > 0
+                }
                 let frames = visible.map { view.convert($0.bounds, from: $0) }
-                precondition(frames.allSatisfy { $0.minX >= -1 && $0.maxX <= width + 1 },
+                precondition(
+                    frames.allSatisfy { $0.minX >= -1 && $0.maxX <= width + 1 },
                     "Toolbar escaped pane bounds: \(language.rawValue) \(width) \(frames)")
                 for index in frames.indices {
                     for other in frames.indices where index < other {
@@ -265,7 +305,8 @@ struct DiffWrapSurfaceTests {
                 }
                 let localizedButton = wrapButton(in: view)
                 // SF Symbol controls add optical insets outside the layout rectangle.
-                precondition(localizedButton.alignmentRect(forFrame: localizedButton.frame).size == NSSize(width: 24, height: 24),
+                precondition(
+                    localizedButton.alignmentRect(forFrame: localizedButton.frame).size == NSSize(width: 24, height: 24),
                     "Wrap entry lost its square layout bounds: \(language.rawValue), \(width), \(localizedButton.frame)")
                 let options = descendants(view).compactMap { $0 as? NSButton }.first {
                     $0.accessibilityLabel() == String(localized: "Diff Options")
@@ -299,6 +340,8 @@ struct DiffWrapSurfaceTests {
             while !FileManager.default.fileExists(atPath: URL(fileURLWithPath: directory).appendingPathComponent("done").path) { pump(0.1) }
         }
         withExtendedLifetime(historyView) {}
-        print("Native diff wrapping: toolbar/settings synchronization, Unicode/tab line geometry, unified/split/edit/history/PR, draft/selection/undo/review preservation, config persistence, and 17-language narrow layout passed")
+        print(
+            "Native diff wrapping: toolbar/settings synchronization, Unicode/tab line geometry, unified/split/edit/history/PR, draft/selection/undo/review preservation, config persistence, and 17-language narrow layout passed"
+        )
     }
 }

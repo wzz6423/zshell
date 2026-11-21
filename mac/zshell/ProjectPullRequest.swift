@@ -9,8 +9,9 @@ nonisolated struct GitHubRepository: Hashable, Sendable {
         let parts = nameWithOwner.split(separator: "/", omittingEmptySubsequences: false)
         let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._")
         guard parts.count == 2, parts.allSatisfy({ !$0.isEmpty && $0.count <= 100 }),
-              parts.allSatisfy({ $0.unicodeScalars.allSatisfy(allowed.contains) }),
-              !parts.contains("."), !parts.contains("..") else { return nil }
+            parts.allSatisfy({ $0.unicodeScalars.allSatisfy(allowed.contains) }),
+            !parts.contains("."), !parts.contains("..")
+        else { return nil }
         self.nameWithOwner = nameWithOwner.lowercased()
     }
 
@@ -18,15 +19,18 @@ nonisolated struct GitHubRepository: Hashable, Sendable {
         guard value.count <= 4_096, !value.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) else { return nil }
         let path: String
         if let components = URLComponents(string: value),
-           let scheme = components.scheme, ["https", "http", "ssh", "git"].contains(scheme),
-           let host = components.host?.lowercased(), ["github.com", "ssh.github.com"].contains(host),
-           components.query == nil, components.fragment == nil {
+            let scheme = components.scheme, ["https", "http", "ssh", "git"].contains(scheme),
+            let host = components.host?.lowercased(), ["github.com", "ssh.github.com"].contains(host),
+            components.query == nil, components.fragment == nil
+        {
             path = components.path
         } else if let colon = value.firstIndex(of: ":") {
             let host = value[..<colon].split(separator: "@").last?.lowercased()
             guard host == "github.com" else { return nil }
             path = String(value[value.index(after: colon)...])
-        } else { return nil }
+        } else {
+            return nil
+        }
         var name = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         if name.hasSuffix(".git") { name.removeLast(4) }
         return GitHubRepository(name)
@@ -122,9 +126,12 @@ nonisolated struct ProjectPullRequestContext: Hashable, Sendable {
         } else if names.count == 1 {
             headRemote = names[0]
         } else if Set(names.compactMap(repository)).count == 1,
-                  names.allSatisfy({ repository($0) != nil }) {
+            names.allSatisfy({ repository($0) != nil })
+        {
             headRemote = names[0]
-        } else { return .ambiguous }
+        } else {
+            return .ambiguous
+        }
         guard let headRepository = repository(headRemote) else { return .hidden }
         let base: GitHubRepository?
         if let name = resolved.first {
@@ -134,10 +141,13 @@ nonisolated struct ProjectPullRequestContext: Hashable, Sendable {
             base = names.contains("upstream") ? repository("upstream") : nil
         }
         let merge = value("branch.\(branch).merge")
-        let headBranch = push == nil && headRemote == tracking && merge?.hasPrefix("refs/heads/") == true
+        let headBranch =
+            push == nil && headRemote == tracking && merge?.hasPrefix("refs/heads/") == true
             ? String(merge!.dropFirst("refs/heads/".count)) : branch
-        return .context(ProjectPullRequestContext(root: snapshot.root, gitDirectory: snapshot.gitDirectory,
-            localBranch: branch, headBranch: headBranch, headRepository: headRepository, baseRepository: base))
+        return .context(
+            ProjectPullRequestContext(
+                root: snapshot.root, gitDirectory: snapshot.gitDirectory,
+                localBranch: branch, headBranch: headBranch, headRepository: headRepository, baseRepository: base))
     }
 }
 
@@ -162,8 +172,9 @@ nonisolated enum GitHubPullRequestWorker {
         environment: [String: String] = GitProxy.processEnvironment(inheriting: ProcessInfo.processInfo.environment),
         locate: @Sendable ([String: String]) -> URL? = { ProcessRunner.resolveExecutable("gh", environment: $0) },
         command: Command = {
-            try BoundedProcessRunner.run(executableURL: $0, arguments: $1, timeout: $2,
-                                         outputLimit: 262_144, environment: $3)
+            try BoundedProcessRunner.run(
+                executableURL: $0, arguments: $1, timeout: $2,
+                outputLimit: 262_144, environment: $3)
         }
     ) -> ProjectPullRequestState {
         let environment = processEnvironment(environment)
@@ -197,11 +208,14 @@ nonisolated enum GitHubPullRequestWorker {
     private static func query(_ context: ProjectPullRequestContext, run: ([String]) throws -> Data) -> ProjectPullRequestState {
         func load(_ repository: GitHubRepository) throws -> RepositoryResponse.Repository {
             let parts = repository.nameWithOwner.split(separator: "/")
-            let data = try run(["api", "graphql", "--hostname", "github.com",
+            let data = try run([
+                "api", "graphql", "--hostname", "github.com",
                 "-f", "query=" + queryText, "-f", "owner=" + parts[0], "-f", "name=" + parts[1],
-                "-f", "branch=" + context.headBranch])
+                "-f", "branch=" + context.headBranch,
+            ])
             guard let response = try? JSONDecoder().decode(RepositoryResponse.self, from: data),
-                  response.errors?.isEmpty != false, let repository = response.data?.repository else {
+                response.errors?.isEmpty != false, let repository = response.data?.repository
+            else {
                 throw QueryFailure.unavailable
             }
             return repository
@@ -209,24 +223,31 @@ nonisolated enum GitHubPullRequestWorker {
         func filtered(_ repository: GitHubRepository, state: String) throws -> RepositoryResponse.Repository.PullRequest? {
             let owner = context.headRepository.nameWithOwner.split(separator: "/")[0]
             var selected: RepositoryResponse.Repository.PullRequest?
-            for page in 1...10 {
-                let data = try run(["api", "repos/\(repository.nameWithOwner)/pulls", "--hostname", "github.com",
+            for page in 1 ... 10 {
+                let data = try run([
+                    "api", "repos/\(repository.nameWithOwner)/pulls", "--hostname", "github.com",
                     "--method", "GET", "-f", "head=\(owner):\(context.headBranch)", "-f", "state=" + state,
                     "-f", "sort=updated", "-f", "direction=desc", "-F", "per_page=50", "-F", "page=\(page)",
-                    "--jq", filteredFields])
+                    "--jq", filteredFields,
+                ])
                 guard let nodes = try? JSONDecoder().decode([RepositoryResponse.Repository.PullRequest].self, from: data) else {
                     throw QueryFailure.unavailable
                 }
                 for node in nodes where node.matches(context, in: repository) {
-                    if selected == nil || node.updatedAt > selected!.updatedAt ||
-                        (node.updatedAt == selected!.updatedAt && node.number > selected!.number) { selected = node }
+                    if selected == nil || node.updatedAt > selected!.updatedAt
+                        || (node.updatedAt == selected!.updatedAt && node.number > selected!.number)
+                    {
+                        selected = node
+                    }
                 }
                 if nodes.count < 50 { return selected }
                 if let selected, let last = nodes.last, last.updatedAt < selected.updatedAt { return selected }
             }
             throw QueryFailure.unavailable
         }
-        func matches(_ response: RepositoryResponse.Repository, in repository: GitHubRepository) throws -> [RepositoryResponse.Repository.PullRequest] {
+        func matches(_ response: RepositoryResponse.Repository, in repository: GitHubRepository) throws -> [RepositoryResponse.Repository
+            .PullRequest]
+        {
             guard response.pullRequests.pageInfo.hasNextPage else { return response.matches(context, in: repository) }
             // REST filters the head owner before paging, so popular branches
             // do not require scanning every unrelated fork in the repository.
@@ -240,7 +261,8 @@ nonisolated enum GitHubPullRequestWorker {
             if base != context.headRepository {
                 candidates += try matches(load(context.headRepository), in: context.headRepository)
             } else if context.baseRepository == nil, let parent = response.parent,
-               let parentRepository = GitHubRepository(parent.nameWithOwner), parentRepository != base {
+                let parentRepository = GitHubRepository(parent.nameWithOwner), parentRepository != base
+            {
                 candidates += try matches(load(parentRepository), in: parentRepository)
             }
             let selected = candidates.sorted {
@@ -250,11 +272,13 @@ nonisolated enum GitHubPullRequestWorker {
                 return $0.number > $1.number
             }.first
             guard let selected, let status = ProjectPullRequest.Status(rawValue: selected.state),
-                  let url = URL(string: selected.url) else { return .none }
-            return .pullRequest(ProjectPullRequest(number: selected.number,
-                status: status == .open && selected.isDraft ? .draft : status, url: url))
-        } catch QueryFailure.notSignedIn { return .failed(.notSignedIn) }
-        catch { return .failed(.unavailable) }
+                let url = URL(string: selected.url)
+            else { return .none }
+            return .pullRequest(
+                ProjectPullRequest(
+                    number: selected.number,
+                    status: status == .open && selected.isDraft ? .draft : status, url: url))
+        } catch QueryFailure.notSignedIn { return .failed(.notSignedIn) } catch { return .failed(.unavailable) }
     }
 
     private enum QueryFailure: Error { case notSignedIn, unavailable }
@@ -323,8 +347,10 @@ actor ProjectPullRequestCache {
     private var entries: [ProjectPullRequestContext: Entry] = [:]
     private var pending: [ProjectPullRequestContext: Pending] = [:]
 
-    init(capacity: Int = 64, now: @escaping @Sendable () -> Date = { Date() },
-         lookup: @escaping Lookup = { await GitHubPullRequestWorker.lookup($0) }) {
+    init(
+        capacity: Int = 64, now: @escaping @Sendable () -> Date = { Date() },
+        lookup: @escaping Lookup = { await GitHubPullRequestWorker.lookup($0) }
+    ) {
         self.capacity = max(1, capacity)
         self.now = now
         self.lookup = lookup
@@ -339,8 +365,9 @@ actor ProjectPullRequestCache {
             return cached.state
         }
         let request: Pending
-        if let existing = pending[context] { request = existing }
-        else {
+        if let existing = pending[context] {
+            request = existing
+        } else {
             guard pending.count < 16 else { return .failed(.unavailable) }
             let lookup = lookup
             request = Pending(id: UUID(), task: Task { await lookup(context) })
@@ -381,8 +408,10 @@ final class ProjectPullRequestModel: ObservableObject {
         return context
     }
 
-    init(cache: ProjectPullRequestCache = .shared,
-         probe: @escaping @Sendable (String) -> GitStatusModel.BranchSnapshotResult = { GitStatusModel.branchSnapshot(in: $0) }) {
+    init(
+        cache: ProjectPullRequestCache = .shared,
+        probe: @escaping @Sendable (String) -> GitStatusModel.BranchSnapshotResult = { GitStatusModel.branchSnapshot(in: $0) }
+    ) {
         self.cache = cache
         self.probe = probe
     }
@@ -520,7 +549,8 @@ final class ProjectPullRequestModel: ObservableObject {
         for path in paths {
             let descriptor = Darwin.open(path, O_EVTONLY | O_CLOEXEC)
             guard descriptor >= 0 else { continue }
-            let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor,
+            let source = DispatchSource.makeFileSystemObjectSource(
+                fileDescriptor: descriptor,
                 eventMask: [.write, .delete, .rename, .revoke], queue: .main)
             source.setEventHandler { [weak self] in MainActor.assumeIsolated { self?.scheduleProbe() } }
             source.setCancelHandler { Darwin.close(descriptor) }

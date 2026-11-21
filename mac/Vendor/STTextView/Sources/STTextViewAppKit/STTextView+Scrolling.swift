@@ -1,7 +1,6 @@
 //  Created by Marcin Krzyzanowski
 //  https://github.com/krzyzanowskim/STTextView/blob/main/LICENSE.md
 
-
 import AppKit
 
 extension STTextView {
@@ -44,7 +43,8 @@ extension STTextView {
         if rect.width.isZero {
             // add padding around the point to ensure the visibility the segment
             // since the width of the segment is 0 for a selection
-            rect = rect.inset(by: .init(top: 0, left: -textContainer.lineFragmentPadding, bottom: 0, right: -textContainer.lineFragmentPadding))
+            rect = rect.inset(
+                by: .init(top: 0, left: -textContainer.lineFragmentPadding, bottom: 0, right: -textContainer.lineFragmentPadding))
         }
 
         // scroll to visible IN clip view (ignoring gutter view overlay)
@@ -56,14 +56,16 @@ extension STTextView {
 
     override open func centerSelectionInVisibleArea(_ sender: Any?) {
         guard let selectionTextRange = textLayoutManager.textSelections.last?.textRanges.last,
-              var rect = textLayoutManager.textSegmentFrame(in: selectionTextRange, type: .selection) else {
+            var rect = textLayoutManager.textSegmentFrame(in: selectionTextRange, type: .selection)
+        else {
             return
         }
 
         if rect.width.isZero {
             // add padding around the point to ensure the visibility the segment
             // since the width of the segment is 0 for a selection
-            rect = rect.inset(by: .init(top: 0, left: -textContainer.lineFragmentPadding, bottom: 0, right: -textContainer.lineFragmentPadding))
+            rect = rect.inset(
+                by: .init(top: 0, left: -textContainer.lineFragmentPadding, bottom: 0, right: -textContainer.lineFragmentPadding))
         }
 
         // scroll to visible IN clip view (ignoring gutter view overlay)

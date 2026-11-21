@@ -26,13 +26,13 @@ struct TerminalStartupCommand: Equatable {
         let program = rawProgram.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !program.isEmpty else { return .success(nil) }
         guard program.hasPrefix("/"),
-              !program.contains("\0"),
-              !requireLocalExecutable || isExecutableFile(atPath: program)
+            !program.contains("\0"),
+            !requireLocalExecutable || isExecutableFile(atPath: program)
         else {
             return .failure(.programNotExecutable)
         }
         guard let arguments = parseArguments(rawArguments),
-              !arguments.contains(where: { $0.contains("\0") })
+            !arguments.contains(where: { $0.contains("\0") })
         else {
             return .failure(.invalidArguments)
         }
@@ -54,14 +54,18 @@ struct TerminalStartupCommand: Equatable {
             executableExists = isExecutableFile(atPath: program)
         } else if !program.contains("/") {
             let path = ProcessInfo.processInfo.environment["PATH"] ?? "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-            let directories = [Bundle.main.executableURL?.deletingLastPathComponent().path].compactMap { $0 }
+            let directories =
+                [Bundle.main.executableURL?.deletingLastPathComponent().path].compactMap { $0 }
                 + path.split(separator: ":", omittingEmptySubsequences: false).map(String.init)
             executableExists = directories.contains {
                 let directory: String
-                if $0.hasPrefix("/") { directory = $0 }
-                else if let workingDirectory {
+                if $0.hasPrefix("/") {
+                    directory = $0
+                } else if let workingDirectory {
                     directory = ($0.isEmpty ? workingDirectory : (workingDirectory as NSString).appendingPathComponent($0))
-                } else { return false }
+                } else {
+                    return false
+                }
                 return isExecutableFile(atPath: (directory as NSString).appendingPathComponent(program))
             }
         } else if let workingDirectory {

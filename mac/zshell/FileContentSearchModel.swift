@@ -117,7 +117,7 @@ final class FileContentSearchModel: ObservableObject {
     /// file.
     func run() {
         guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !rootPath.isEmpty
+            !rootPath.isEmpty
         else { return }
         stopProcess()
         startProcess(pattern: query, root: rootPath)
@@ -252,7 +252,8 @@ final class FileContentSearchModel: ObservableObject {
         // that ends a search with no results surfaces as a failure.
         if exitStatus > 1, !isTruncated, !wasStopped, matches.isEmpty {
             let detail = (buffer?.errorText ?? "").split(separator: "\n").first
-            failureMessage = detail.map(String.init)
+            failureMessage =
+                detail.map(String.init)
                 ?? String(localized: "Search failed")
         }
         buffer = nil
@@ -349,8 +350,8 @@ final class FileContentSearchModel: ObservableObject {
         defer { try? handle.close() }
         var metadata = stat()
         guard fstat(descriptor, &metadata) == 0,
-              metadata.st_mode & S_IFMT == S_IFREG,
-              metadata.st_size >= 0, metadata.st_size <= maxRevealFileBytes
+            metadata.st_mode & S_IFMT == S_IFREG,
+            metadata.st_size >= 0, metadata.st_size <= maxRevealFileBytes
         else { return nil }
 
         do {
@@ -363,9 +364,9 @@ final class FileContentSearchModel: ObservableObject {
                 data.append(chunk)
             }
             guard data.count <= maxRevealFileBytes,
-                  try handle.seekToEnd() == UInt64(data.count),
-                  !Task.isCancelled,
-                  let text = String(data: data, encoding: .utf8)
+                try handle.seekToEnd() == UInt64(data.count),
+                !Task.isCancelled,
+                let text = String(data: data, encoding: .utf8)
             else { return nil }
             return lineStartLocation(ofLine: line, in: text)
         } catch {
@@ -493,8 +494,8 @@ private nonisolated final class MatchBuffer: @unchecked Sendable {
     private func appendLine(_ bytes: [UInt8]) {
         guard !reachedLimit else { return }
         guard let separator = bytes.firstIndex(of: 0),
-              let colon = bytes[(separator + 1)...].firstIndex(of: 0x3A),
-              let lineNumber = Int(String(decoding: bytes[(separator + 1)..<colon], as: UTF8.self))
+            let colon = bytes[(separator + 1)...].firstIndex(of: 0x3A),
+            let lineNumber = Int(String(decoding: bytes[(separator + 1) ..< colon], as: UTF8.self))
         else { return }
 
         // grep receives an absolute root, so paths come back absolute; the

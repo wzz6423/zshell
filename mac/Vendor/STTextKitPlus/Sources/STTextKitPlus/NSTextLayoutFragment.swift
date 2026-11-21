@@ -29,9 +29,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if os(macOS) && !targetEnvironment(macCatalyst)
-import AppKit
+    import AppKit
 #elseif os(iOS) || os(visionOS)
-import UIKit
+    import UIKit
 #endif
 
 extension NSTextLayoutFragment {
@@ -52,7 +52,8 @@ extension NSTextLayoutFragment {
         let searchNSLocation = NSRange(location, in: textContentManager).location
         let fragmentLocation = NSRange(rangeInElement.location, in: textContentManager).location
         return textLineFragments.first { lineFragment in
-            let absoluteLineRange = NSRange(location: lineFragment.characterRange.location + fragmentLocation, length: lineFragment.characterRange.length)
+            let absoluteLineRange = NSRange(
+                location: lineFragment.characterRange.location + fragmentLocation, length: lineFragment.characterRange.length)
             return absoluteLineRange.contains(searchNSLocation)
         }
     }

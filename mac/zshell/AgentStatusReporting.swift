@@ -57,7 +57,7 @@ struct ZshellAgentProcessIdentity: Equatable, Sendable {
     static func isDescendant(_ pid: pid_t, of ancestor: pid_t) -> Bool {
         guard pid > 1, ancestor > 1 else { return false }
         var current = pid
-        for _ in 0..<64 {
+        for _ in 0 ..< 64 {
             if current == ancestor { return true }
             guard let parent = parent(of: current), parent > 1, parent != current else { return false }
             current = parent
@@ -70,7 +70,8 @@ struct ZshellAgentProcessIdentity: Equatable, Sendable {
         var info = proc_bsdinfo()
         let size = Int32(MemoryLayout<proc_bsdinfo>.size)
         guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size,
-              info.pbi_status != UInt32(SZOMB) else { return nil }
+            info.pbi_status != UInt32(SZOMB)
+        else { return nil }
         return info
     }
 }
@@ -101,9 +102,9 @@ struct ZshellAgentReport: Equatable, Sendable {
     init(params: [String: ZshellJSONValue]) throws {
         let allowed: Set<String> = ["name", "state", "reason", "progress", "attention", "tasks", "process_id"]
         guard Set(params.keys).isSubset(of: allowed),
-              let state = params["state"]?.stringValue,
-              let phase = ZshellAgentPhase(rawValue: state), phase != .created,
-              let name = params["name"]?.stringValue, Self.validText(name, maximum: 128), !name.isEmpty
+            let state = params["state"]?.stringValue,
+            let phase = ZshellAgentPhase(rawValue: state), phase != .created,
+            let name = params["name"]?.stringValue, Self.validText(name, maximum: 128), !name.isEmpty
         else { throw Self.invalid("Provide name and state; reports can only update the invoking terminal.") }
         self.name = name
         self.phase = phase
@@ -116,13 +117,14 @@ struct ZshellAgentReport: Equatable, Sendable {
             }
             self.tasks = try tasks.map { value in
                 guard let task = value.objectValue,
-                      Set(task.keys).isSubset(of: ["id", "title", "state", "progress", "attention"]),
-                      let id = task["id"]?.stringValue, !id.isEmpty,
-                      Self.validText(id, maximum: 128),
-                      let title = task["title"]?.stringValue, !title.isEmpty,
-                      Self.validText(title, maximum: 256),
-                      let state = task["state"]?.stringValue,
-                      let phase = ZshellAgentPhase(rawValue: state), phase != .created else {
+                    Set(task.keys).isSubset(of: ["id", "title", "state", "progress", "attention"]),
+                    let id = task["id"]?.stringValue, !id.isEmpty,
+                    Self.validText(id, maximum: 128),
+                    let title = task["title"]?.stringValue, !title.isEmpty,
+                    Self.validText(title, maximum: 256),
+                    let state = task["state"]?.stringValue,
+                    let phase = ZshellAgentPhase(rawValue: state), phase != .created
+                else {
                     throw Self.invalid("Each task needs a unique id, title, and valid state.")
                 }
                 return ZshellAgentTaskStatus(
@@ -134,14 +136,17 @@ struct ZshellAgentReport: Equatable, Sendable {
             guard Set(self.tasks.map(\.id)).count == self.tasks.count else {
                 throw Self.invalid("Task ids must be unique.")
             }
-        } else { tasks = [] }
+        } else {
+            tasks = []
+        }
     }
 
     static func validText(_ text: String, maximum: Int) -> Bool {
-        text.utf8.count <= maximum && text.unicodeScalars.allSatisfy {
-            $0.value >= 0x20 && !(0x7f...0x9f).contains($0.value)
-                && $0.value != 0x2028 && $0.value != 0x2029
-        }
+        text.utf8.count <= maximum
+            && text.unicodeScalars.allSatisfy {
+                $0.value >= 0x20 && !(0x7f ... 0x9f).contains($0.value)
+                    && $0.value != 0x2028 && $0.value != 0x2029
+            }
     }
 
     private static func text(_ value: ZshellJSONValue?, maximum: Int) throws -> String? {
@@ -154,7 +159,7 @@ struct ZshellAgentReport: Equatable, Sendable {
 
     private static func progress(_ value: ZshellJSONValue?) throws -> Int? {
         guard let value, value != .null else { return nil }
-        guard let number = value.intValue, (0...100).contains(number) else {
+        guard let number = value.intValue, (0 ... 100).contains(number) else {
             throw Self.invalid("progress must be an integer from 0 to 100.")
         }
         return number
@@ -163,7 +168,8 @@ struct ZshellAgentReport: Equatable, Sendable {
     private static func attention(_ value: ZshellJSONValue?, phase: ZshellAgentPhase) throws -> ZshellAgentAttention? {
         guard let value, value != .null else { return nil }
         guard phase == .blocked, let name = value.stringValue,
-              let attention = ZshellAgentAttention(rawValue: name) else {
+            let attention = ZshellAgentAttention(rawValue: name)
+        else {
             throw Self.invalid("attention requires blocked state and must be approval, input, login, or error.")
         }
         return attention
@@ -199,11 +205,12 @@ struct ZshellAgentLifecycleEvent {
 
     static func parse(provider: ZshellAgentKind, payload: [String: ZshellJSONValue]) -> Self? {
         guard provider == .codex || provider == .claude,
-              let event = payload["hook_event_name"]?.stringValue else { return nil }
+            let event = payload["hook_event_name"]?.stringValue
+        else { return nil }
         for key in ["session_id", "parent_session_id"] {
             if let value = payload[key] {
                 guard let id = value.stringValue,
-                      AgentConversationIdentity.Provider(rawValue: provider.rawValue)?.accepts(sessionID: id) == true
+                    AgentConversationIdentity.Provider(rawValue: provider.rawValue)?.accepts(sessionID: id) == true
                 else { return nil }
             }
         }
@@ -235,7 +242,8 @@ struct ZshellAgentLifecycleEvent {
             }
         case "SubagentStart", "SubagentStop":
             guard let id = payload["agent_id"]?.stringValue, !id.isEmpty,
-                  ZshellAgentReport.validText(id, maximum: 128) else { return nil }
+                ZshellAgentReport.validText(id, maximum: 128)
+            else { return nil }
             let title = payload["agent_type"]?.stringValue ?? id
             guard ZshellAgentReport.validText(title, maximum: 256) else { return nil }
             task = ZshellAgentTaskStatus(
@@ -260,10 +268,11 @@ struct ZshellAgentLifecycleEvent {
         }
         if task != nil { endsSession = false }
         let conversationID = payload[task == nil ? "session_id" : "parent_session_id"]?.stringValue
-        return Self(phase: phase, attention: attention, reason: "\(provider.displayName): \(event)",
-                    task: task, endsSession: endsSession, conversationID: conversationID,
-                    startsSession: event == "SessionStart" && task == nil,
-                    interrupted: event == "Interrupt" && task == nil)
+        return Self(
+            phase: phase, attention: attention, reason: "\(provider.displayName): \(event)",
+            task: task, endsSession: endsSession, conversationID: conversationID,
+            startsSession: event == "SessionStart" && task == nil,
+            interrupted: event == "Interrupt" && task == nil)
     }
 }
 
@@ -278,20 +287,21 @@ struct ZshellAgentInterruptEvidence {
 
     mutating func confirmsClaudeIdle(_ text: String, at now: Date) -> Bool {
         guard let lines = Self.footer(text), !Self.isClaudeWorking(text),
-              !lines.contains(where: {
-                  let line = $0.lowercased()
-                  return line.contains("esc to cancel") || line.contains("press enter to confirm")
-              }),
-              let prompt = lines.indices.last(where: { lines[$0].trimmingCharacters(in: .whitespaces).hasPrefix("❯") }), prompt > 0,
-              Self.isRule(lines[prompt - 1]),
-              let bottom = lines.indices.first(where: { $0 > prompt && Self.isRule(lines[$0]) }),
-              lines[(prompt + 1)..<bottom].allSatisfy({ $0.isEmpty || $0.hasPrefix("  ") }) else {
+            !lines.contains(where: {
+                let line = $0.lowercased()
+                return line.contains("esc to cancel") || line.contains("press enter to confirm")
+            }),
+            let prompt = lines.indices.last(where: { lines[$0].trimmingCharacters(in: .whitespaces).hasPrefix("❯") }), prompt > 0,
+            Self.isRule(lines[prompt - 1]),
+            let bottom = lines.indices.first(where: { $0 > prompt && Self.isRule(lines[$0]) }),
+            lines[(prompt + 1) ..< bottom].allSatisfy({ $0.isEmpty || $0.hasPrefix("  ") })
+        else {
             previousInput = nil
             samples = 0
             previousSampleAt = nil
             return false
         }
-        let input = lines[prompt..<bottom].joined(separator: "\n")
+        let input = lines[prompt ..< bottom].joined(separator: "\n")
         if input == previousInput, let previousSampleAt, now.timeIntervalSince(previousSampleAt) < 0.25 {
             return false
         }
@@ -357,9 +367,10 @@ nonisolated struct ZshellAgentScreenEvidence: Equatable, Sendable {
         default: break
         }
         if lines.contains(where: {
-            $0.count <= 160 && ($0 == "esc to interrupt"
-                || $0.hasSuffix(" · esc to interrupt") || $0.hasSuffix("(esc to interrupt)")
-                || $0.hasPrefix("esc to cancel ·"))
+            $0.count <= 160
+                && ($0 == "esc to interrupt"
+                    || $0.hasSuffix(" · esc to interrupt") || $0.hasSuffix("(esc to interrupt)")
+                    || $0.hasPrefix("esc to cancel ·"))
         }) {
             return Self(phase: .working, attention: nil, reason: "Agent activity visible in terminal footer")
         }

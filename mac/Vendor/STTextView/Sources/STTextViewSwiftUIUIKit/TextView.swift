@@ -88,7 +88,10 @@ private struct TextViewRepresentable: UIViewRepresentable {
         return isEnabled
     }
 
-    init(text: Binding<AttributedString>, selection: Binding<NSRange?>, options: TextView.Options, plugins: [any STPlugin] = [], contentInsets: EdgeInsets? = nil) {
+    init(
+        text: Binding<AttributedString>, selection: Binding<NSRange?>, options: TextView.Options, plugins: [any STPlugin] = [],
+        contentInsets: EdgeInsets? = nil
+    ) {
         self._text = text
         self._selection = selection
         self.options = options
@@ -266,4 +269,3 @@ private extension EdgeInsets {
         return UIEdgeInsets(top: top, left: left, bottom: bottom, right: right)
     }
 }
-

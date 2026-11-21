@@ -46,7 +46,8 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
         )
         super.init()
 
-        window.title = entry == nil
+        window.title =
+            entry == nil
             ? String(
                 localized: "New Quick Launch Entry",
                 comment: "Title of the Quick Launch entry editor for a new entry."
@@ -169,66 +170,75 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
         grid.rowSpacing = 10
         grid.columnSpacing = 12
         grid.addRow(with: [
-            formLabel(String(
-                localized: "Name",
-                comment: "Quick Launch editor label for the entry name."
-            )),
+            formLabel(
+                String(
+                    localized: "Name",
+                    comment: "Quick Launch editor label for the entry name."
+                )),
             nameField,
         ])
         grid.addRow(with: [
-            formLabel(String(
-                localized: "Group",
-                comment: "Quick Launch editor label for the entry's group."
-            )),
+            formLabel(
+                String(
+                    localized: "Group",
+                    comment: "Quick Launch editor label for the entry's group."
+                )),
             groupField,
         ])
         grid.addRow(with: [
-            formLabel(String(
-                localized: "Type",
-                comment: "Quick Launch editor label for the entry type."
-            )),
+            formLabel(
+                String(
+                    localized: "Type",
+                    comment: "Quick Launch editor label for the entry type."
+                )),
             typePopUp,
         ])
         grid.addRow(with: [
-            formLabel(String(
-                localized: "Command",
-                comment: "Quick Launch editor label for the shell command."
-            )),
+            formLabel(
+                String(
+                    localized: "Command",
+                    comment: "Quick Launch editor label for the shell command."
+                )),
             commandField,
         ])
         grid.addRow(with: [
-            formLabel(String(
-                localized: "Working Directory",
-                comment: "Quick Launch editor label for the command's starting directory."
-            )),
+            formLabel(
+                String(
+                    localized: "Working Directory",
+                    comment: "Quick Launch editor label for the command's starting directory."
+                )),
             directoryRow,
         ])
         grid.addRow(with: [
-            formLabel(String(
-                localized: "User",
-                comment: "Quick Launch editor label for the SSH user."
-            )),
+            formLabel(
+                String(
+                    localized: "User",
+                    comment: "Quick Launch editor label for the SSH user."
+                )),
             userField,
         ])
         grid.addRow(with: [
-            formLabel(String(
-                localized: "Host",
-                comment: "Quick Launch editor label for the SSH host."
-            )),
+            formLabel(
+                String(
+                    localized: "Host",
+                    comment: "Quick Launch editor label for the SSH host."
+                )),
             hostField,
         ])
         grid.addRow(with: [
-            formLabel(String(
-                localized: "Port",
-                comment: "Quick Launch editor label for the SSH port."
-            )),
+            formLabel(
+                String(
+                    localized: "Port",
+                    comment: "Quick Launch editor label for the SSH port."
+                )),
             portField,
         ])
         grid.addRow(with: [
-            formLabel(String(
-                localized: "Options",
-                comment: "Quick Launch editor label for extra SSH arguments."
-            )),
+            formLabel(
+                String(
+                    localized: "Options",
+                    comment: "Quick Launch editor label for extra SSH arguments."
+                )),
             optionsField,
         ])
         // Rows 0-2 are the shared name/group/type rows; 3-4 describe a
@@ -301,10 +311,11 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
         errorLabel.isHidden = true
         let hideCommand = selectedKind != .command
         let hideSSH = selectedKind != .ssh
-        for row in 3..<grid.numberOfRows {
+        for row in 3 ..< grid.numberOfRows {
             grid.row(at: row).isHidden = row >= 5 ? hideSSH : hideCommand
         }
-        kindDescription.stringValue = selectedKind == .command
+        kindDescription.stringValue =
+            selectedKind == .command
             ? String(
                 localized: "The command runs in a new terminal session using your login shell.",
                 comment: "Explains what a Quick Launch command entry does."
@@ -325,10 +336,11 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
         window.setContentSize(size)
         // setContentSize keeps the bottom-left corner fixed; re-anchor the
         // top edge and re-center horizontally so the form grows downward.
-        window.setFrameOrigin(NSPoint(
-            x: oldFrame.midX - window.frame.width / 2,
-            y: oldFrame.maxY - window.frame.height
-        ))
+        window.setFrameOrigin(
+            NSPoint(
+                x: oldFrame.midX - window.frame.width / 2,
+                y: oldFrame.maxY - window.frame.height
+            ))
     }
 
     @objc private func browseForDirectory() {
@@ -399,22 +411,26 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
         case .command:
             let command = commandField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !command.isEmpty else {
-                throw ValidationError(message: String(
-                    localized: "A command is required.",
-                    comment: "Quick Launch editor validation for an empty command."
-                ))
+                throw ValidationError(
+                    message: String(
+                        localized: "A command is required.",
+                        comment: "Quick Launch editor validation for an empty command."
+                    ))
             }
             let directory = directoryField.stringValue.trimmingCharacters(in: .whitespaces)
             if !directory.isEmpty {
                 var isDirectory: ObjCBool = false
-                guard FileManager.default.fileExists(
-                    atPath: directory,
-                    isDirectory: &isDirectory
-                ), isDirectory.boolValue else {
-                    throw ValidationError(message: String(
-                        localized: "The working directory must be an existing folder.",
-                        comment: "Quick Launch editor validation for a bad directory."
-                    ))
+                guard
+                    FileManager.default.fileExists(
+                        atPath: directory,
+                        isDirectory: &isDirectory
+                    ), isDirectory.boolValue
+                else {
+                    throw ValidationError(
+                        message: String(
+                            localized: "The working directory must be an existing folder.",
+                            comment: "Quick Launch editor validation for a bad directory."
+                        ))
                 }
                 return .command(command: command, directory: directory)
             }
@@ -422,20 +438,22 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
         case .ssh:
             let host = hostField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !host.isEmpty else {
-                throw ValidationError(message: String(
-                    localized: "A host is required.",
-                    comment: "Quick Launch editor validation for an empty SSH host."
-                ))
+                throw ValidationError(
+                    message: String(
+                        localized: "A host is required.",
+                        comment: "Quick Launch editor validation for an empty SSH host."
+                    ))
             }
             let user = userField.stringValue.trimmingCharacters(in: .whitespaces)
             let portText = portField.stringValue.trimmingCharacters(in: .whitespaces)
             var port: Int?
             if !portText.isEmpty {
-                guard let value = Int(portText), (1...65535).contains(value) else {
-                    throw ValidationError(message: String(
-                        localized: "The port must be a number between 1 and 65535.",
-                        comment: "Quick Launch editor validation for a bad SSH port."
-                    ))
+                guard let value = Int(portText), (1 ... 65535).contains(value) else {
+                    throw ValidationError(
+                        message: String(
+                            localized: "The port must be a number between 1 and 65535.",
+                            comment: "Quick Launch editor validation for a bad SSH port."
+                        ))
                 }
                 port = value
             }

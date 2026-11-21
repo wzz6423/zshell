@@ -73,8 +73,7 @@ struct PaneTab {
 
     func chooseFiles(manager: ManagerFixture, directory: String) {
         chosenDirectory = directory
-        do { _ = try FileTreeImportService.destination(root: manager.fileTree.rootPath, directory: directory) }
-        catch { self.error = error }
+        do { _ = try FileTreeImportService.destination(root: manager.fileTree.rootPath, directory: directory) } catch { self.error = error }
     }
 }
 
@@ -87,8 +86,10 @@ struct PaneTab {
 
     private(set) var rootPath = ""
 
-    func sync(root: String, projectRoot: String, projectRootSource: Project.PanelRootSource,
-              shellName: String, shellPid: pid_t?, remote: RemoteSource? = nil) {
+    func sync(
+        root: String, projectRoot: String, projectRootSource: Project.PanelRootSource,
+        shellName: String, shellPid: pid_t?, remote: RemoteSource? = nil
+    ) {
         rootPath = root
     }
 }
@@ -103,7 +104,9 @@ struct PaneTab {
 nonisolated enum FixtureFailure: LocalizedError {
     case failed(String)
     var errorDescription: String? {
-        switch self { case .failed(let message): message }
+        switch self {
+        case .failed(let message): message
+        }
     }
 }
 
@@ -170,8 +173,10 @@ nonisolated final class ListingFixture: @unchecked Sendable {
 }
 
 nonisolated struct OpenSSHTransport {
-    func listDirectory(endpoint: SSHEndpoint, directory: String, authentication: SSHAuthentication = .agent,
-                       credentialID: UUID? = nil) throws -> [SSHEndpoint.DirectoryEntry] {
+    func listDirectory(
+        endpoint: SSHEndpoint, directory: String, authentication: SSHAuthentication = .agent,
+        credentialID: UUID? = nil
+    ) throws -> [SSHEndpoint.DirectoryEntry] {
         try ListingFixture.shared.list(endpoint: endpoint, directory: directory)
     }
 }
@@ -241,24 +246,29 @@ nonisolated struct OpenSSHTransport {
         func checkEmpty() async throws {
             try check(!sidebar.fileTree.isRemote, "Empty selection retained the previous SSH endpoint")
             try await waitUntil { sidebar.fileTree.rootPath.isEmpty && sidebar.fileTree.items.isEmpty }
-            try check(sidebar.fileTree.rootPath.isEmpty && sidebar.fileTree.items.isEmpty,
-                      "Empty selection retained the previous remote tree")
+            try check(
+                sidebar.fileTree.rootPath.isEmpty && sidebar.fileTree.items.isEmpty,
+                "Empty selection retained the previous remote tree")
             try check(sidebar.fileTree.rootSubtitle.isEmpty, "Empty selection retained the SSH header")
         }
 
         sidebar.manager.selectedProject = project(root: remoteRoot, endpoint: endpointA, remote: true)
         sidebar.refresh()
         try await waitUntil { transport.requestCount == 1 }
-        try check(transport.request(at: 0).endpoint == endpointA
-                  && transport.request(at: 0).directory == remoteRoot, "Initial refresh used the wrong SSH target")
+        try check(
+            transport.request(at: 0).endpoint == endpointA
+                && transport.request(at: 0).directory == remoteRoot, "Initial refresh used the wrong SSH target")
         if !scenario.hasPrefix("late-") {
-            transport.complete(0, with: .success([
-                .init(name: "remote.txt", isDirectory: false),
-                .init(name: "folder", isDirectory: true),
-            ]))
+            transport.complete(
+                0,
+                with: .success([
+                    .init(name: "remote.txt", isDirectory: false),
+                    .init(name: "folder", isDirectory: true),
+                ]))
             try await waitUntil { !sidebar.fileTree.isRemoteLoading }
-            try check(sidebar.fileTree.isRemote && sidebar.fileTree.items.map(\.name) == ["folder", "remote.txt"],
-                      "The fixture did not establish a remote tree")
+            try check(
+                sidebar.fileTree.isRemote && sidebar.fileTree.items.map(\.name) == ["folder", "remote.txt"],
+                "The fixture did not establish a remote tree")
         }
 
         switch scenario {
@@ -271,9 +281,10 @@ nonisolated struct OpenSSHTransport {
             sidebar.manager.selectedProject = project(root: localRoot.path)
             sidebar.refresh()
             if scenario == "import-project-switch" {
-                try check(sidebar.fileTree.rootPath == localRoot.path
-                          && sidebar.manager.fileTreeImportDirectory == firstRoot.appendingPathComponent("sub").path,
-                          "Sidebar root switch must exercise a saved folder from the previous project")
+                try check(
+                    sidebar.fileTree.rootPath == localRoot.path
+                        && sidebar.manager.fileTreeImportDirectory == firstRoot.appendingPathComponent("sub").path,
+                    "Sidebar root switch must exercise a saved folder from the previous project")
             } else {
                 let selected = localRoot.appendingPathComponent("selected")
                 try fm.createDirectory(at: selected, withIntermediateDirectories: false)
@@ -293,10 +304,14 @@ nonisolated struct OpenSSHTransport {
             let explicit = localRoot.appendingPathComponent("explicit")
             if scenario == "import-explicit" { try fm.createDirectory(at: explicit, withIntermediateDirectories: false) }
             sidebar.manager.importFiles(into: scenario == "import-explicit" ? explicit.path : nil)
-            let expected = scenario == "import-valid" ? localRoot.appendingPathComponent("selected").path
+            let expected =
+                scenario == "import-valid"
+                ? localRoot.appendingPathComponent("selected").path
                 : scenario == "import-explicit" ? explicit.path : localRoot.path
-            try check(FileTreeImportController.shared.chosenDirectory == expected,
-                      "File menu did not choose the live saved folder or current root: \(FileTreeImportController.shared.chosenDirectory ?? "nil")")
+            try check(
+                FileTreeImportController.shared.chosenDirectory == expected,
+                "File menu did not choose the live saved folder or current root: \(FileTreeImportController.shared.chosenDirectory ?? "nil")"
+            )
             try check(FileTreeImportController.shared.error == nil, "Chosen destination failed production validation")
             if !["import-valid", "import-explicit"].contains(scenario) {
                 try check(sidebar.manager.fileTreeImportDirectory == nil, "Stale saved import directory was retained")
@@ -343,8 +358,9 @@ nonisolated struct OpenSSHTransport {
             sidebar.manager.selectedProject = project(root: remoteRoot, endpoint: endpointB, remote: true)
             sidebar.refresh()
             try await waitUntil { transport.requestCount == 2 }
-            try check(transport.request(at: 1).endpoint == endpointB
-                      && transport.request(at: 1).directory == remoteRoot, "A host switch retained the old SSH target")
+            try check(
+                transport.request(at: 1).endpoint == endpointB
+                    && transport.request(at: 1).directory == remoteRoot, "A host switch retained the old SSH target")
             try check(sidebar.fileTree.items.isEmpty, "A host switch retained the old host's cached rows")
             transport.complete(1, with: .success([.init(name: "second-host.txt", isDirectory: false)]))
             try await waitUntil { !sidebar.fileTree.isRemoteLoading }
@@ -369,9 +385,10 @@ nonisolated struct OpenSSHTransport {
             try await waitUntil {
                 !sidebar.fileTree.isRemoteLoading && sidebar.fileTree.items.contains { $0.name == "child.txt" }
             }
-            try check(sidebar.fileTree.isExpanded(folder)
-                      && sidebar.fileTree.items.contains { $0.name == "child.txt" && $0.depth == 1 },
-                      "An unchanged remote selection collapsed its expanded rows")
+            try check(
+                sidebar.fileTree.isExpanded(folder)
+                    && sidebar.fileTree.items.contains { $0.name == "child.txt" && $0.depth == 1 },
+                "An unchanged remote selection collapsed its expanded rows")
         case "late-local-success", "late-local-failure", "late-empty-success", "late-empty-failure":
             let local = project(root: localRoot.path)
             if scenario.hasPrefix("late-empty") { local.sessions = [] }
@@ -387,25 +404,28 @@ nonisolated struct OpenSSHTransport {
             }
             try await waitUntil { transport.returnedCount == 1 }
             try await settle()
-            try check(sidebar.fileTree.items == items && sidebar.fileTree.rootPath == root
-                      && sidebar.fileTree.remoteError == nil && !sidebar.fileTree.isRemoteLoading,
-                      "A late remote result changed the local or empty selection")
+            try check(
+                sidebar.fileTree.items == items && sidebar.fileTree.rootPath == root
+                    && sidebar.fileTree.remoteError == nil && !sidebar.fileTree.isRemoteLoading,
+                "A late remote result changed the local or empty selection")
         default:
             throw FixtureFailure.failed("Unknown regression scenario: \(scenario)")
         }
         try await settle()
         if scenario == "remote-switch" {
-            for index in 1..<transport.requestCount {
+            for index in 1 ..< transport.requestCount {
                 let request = transport.request(at: index)
-                try check(request.endpoint == endpointB && request.directory == remoteRoot,
-                          "A repeated refresh returned to the previous SSH target")
+                try check(
+                    request.endpoint == endpointB && request.directory == remoteRoot,
+                    "A repeated refresh returned to the previous SSH target")
             }
         } else if scenario == "remote-stable" {
-            for index in 0..<transport.requestCount {
+            for index in 0 ..< transport.requestCount {
                 let request = transport.request(at: index)
-                try check(request.endpoint == endpointA
-                          && [remoteRoot, remoteRoot + "/folder"].contains(request.directory),
-                          "A repeated refresh changed its SSH target or root")
+                try check(
+                    request.endpoint == endpointA
+                        && [remoteRoot, remoteRoot + "/folder"].contains(request.directory),
+                    "A repeated refresh changed its SSH target or root")
             }
         } else {
             try check(transport.requestCount == 1, "Local or empty refresh issued an unexpected SSH listing")

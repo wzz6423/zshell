@@ -140,7 +140,10 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         if !blocked.isEmpty {
             let names = blocked.map(\.browserName).formatted()
             let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Zshell"
-            return String(localized: "macOS still blocks \(names) data. Enable \(appName) in System Settings › Privacy & Security › Full Disk Access, then click Refresh. Restart it if macOS asks.")
+            return String(
+                localized:
+                    "macOS still blocks \(names) data. Enable \(appName) in System Settings › Privacy & Security › Full Disk Access, then click Refresh. Restart it if macOS asks."
+            )
         }
         return profiles.isEmpty ? String(localized: "No supported browser profiles were found.") : ""
     }
@@ -166,8 +169,10 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
             self.setBusy(false)
             self.status.stringValue = self.discoveryStatus
             guard response == .OK, let selected = open.url else { return }
-            guard selected.resolvingSymlinksInPath().standardizedFileURL.path
-                    == root.resolvingSymlinksInPath().standardizedFileURL.path else {
+            guard
+                selected.resolvingSymlinksInPath().standardizedFileURL.path
+                    == root.resolvingSymlinksInPath().standardizedFileURL.path
+            else {
                 self.incorrectAccessFolder = kind
                 self.status.stringValue = self.discoveryStatus
                 return
@@ -195,8 +200,9 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool { TerminalManager.activeWindowManager != nil }
 
     private func configure() {
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 720, height: 500),
-                            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 500),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
         panel.minSize = NSSize(width: 600, height: 360)
         panel.delegate = self
@@ -249,7 +255,9 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         accessSettingsButton.action = #selector(openAccessSettings)
         refreshButton.target = self
         refreshButton.action = #selector(refreshProfiles(_:))
-        for button in [previewButton, accessButton, accessSettingsButton, refreshButton, importButton, closeButton] { button.bezelStyle = .rounded }
+        for button in [previewButton, accessButton, accessSettingsButton, refreshButton, importButton, closeButton] {
+            button.bezelStyle = .rounded
+        }
         accessActions.addArrangedSubview(accessButton)
         accessActions.addArrangedSubview(accessSettingsButton)
         accessActions.orientation = .horizontal
@@ -364,19 +372,24 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         var lines: [String] = []
         if selection.contains(.cookies) {
             lines.append(String(localized: "Cookies: \(preview.cookieCount)"))
-            if let error = preview.cookieError { lines.append(error) }
-            else { lines.append(contentsOf: preview.cookieDomains.map { "  " + $0 }) }
+            if let error = preview.cookieError {
+                lines.append(error)
+            } else {
+                lines.append(contentsOf: preview.cookieDomains.map { "  " + $0 })
+            }
             if let warning = preview.cookieWarning { lines.append(warning) }
         }
         if selection.contains(.history) {
             lines.append(String(localized: "History: \(preview.history.total)"))
             if let error = preview.history.error { lines.append(error) }
-            lines.append(contentsOf: preview.history.values.prefix(5).map { "  " + ($0.title.isEmpty ? $0.url : "\($0.title) — \($0.url)") })
+            lines.append(
+                contentsOf: preview.history.values.prefix(5).map { "  " + ($0.title.isEmpty ? $0.url : "\($0.title) — \($0.url)") })
         }
         if selection.contains(.sessions) {
             lines.append(String(localized: "Open tabs: \(preview.sessions.total)"))
             if let error = preview.sessions.error { lines.append(error) }
-            lines.append(contentsOf: preview.sessions.values.prefix(5).map { "  " + ($0.title.isEmpty ? $0.url : "\($0.title) — \($0.url)") })
+            lines.append(
+                contentsOf: preview.sessions.values.prefix(5).map { "  " + ($0.title.isEmpty ? $0.url : "\($0.title) — \($0.url)") })
         }
         if let lastSummary { lines.append(""); lines.append(lastSummary) }
         previewText.string = lines.joined(separator: "\n")
@@ -387,9 +400,10 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         revision += 1
         let current = revision
         let categories = selection
-        let destination: Project? = if categories.contains(.cookies) || categories.contains(.sessions) {
-            manager.selectedProject ?? manager.newProject()
-        } else { manager.selectedProject }
+        let destination: Project? =
+            if categories.contains(.cookies) || categories.contains(.sessions) {
+                manager.selectedProject ?? manager.newProject()
+            } else { manager.selectedProject }
         // Pin the project and store before any suspension so switching or
         // closing the project never redirects credentials to its neighbor.
         let projectID = destination?.id
@@ -421,8 +435,9 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
                     let host = item.domain.hasPrefix(".") ? String(item.domain.dropFirst()) : item.domain
                     let urlHost = host.contains(":") && !host.hasPrefix("[") ? "[\(host)]" : host
                     guard let url = URL(string: "\(item.secure ? "https" : "http")://\(urlHost)/"),
-                          BrowserImportedPage.safeURL(url.absoluteString),
-                          item.expires == -1 || item.expires > Date().timeIntervalSince1970 else { skipped += 1; continue }
+                        BrowserImportedPage.safeURL(url.absoluteString),
+                        item.expires == -1 || item.expires > Date().timeIntervalSince1970
+                    else { skipped += 1; continue }
                     var fields: [String: ZshellJSONValue] = [
                         "name": .string(item.name), "value": .string(item.value), "domain": .string(item.domain),
                         "path": .string(item.path), "expires": .number(item.expires), "httpOnly": .bool(item.httpOnly),
@@ -432,7 +447,9 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
                     let routedURL = isRemote ? BrowserRemoteRouting.routedURL(url) : url
                     if let routedHost = routedURL.host, routedHost != url.host {
                         fields["domain"] = .string((cookie.domain.hasPrefix(".") ? "." : "") + routedHost)
-                        guard let routedCookie = try? BrowserStorageState.decodeCookie(.object(fields), for: routedURL) else { skipped += 1; continue }
+                        guard let routedCookie = try? BrowserStorageState.decodeCookie(.object(fields), for: routedURL) else {
+                            skipped += 1; continue
+                        }
                         cookie = routedCookie
                     }
                     let identity = "\(cookie.domain.lowercased())\n\(cookie.path)\n\(cookie.name)"
@@ -445,13 +462,16 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
                     store.getAllCookies { continuation.resume(returning: $0) }
                 }
                 guard hasDestination() else { return }
-                let stored = Dictionary(actual.map { ("\($0.domain.lowercased())\n\($0.path)\n\($0.name)", $0.value) },
-                                        uniquingKeysWith: { _, newer in newer })
+                let stored = Dictionary(
+                    actual.map { ("\($0.domain.lowercased())\n\($0.path)\n\($0.name)", $0.value) },
+                    uniquingKeysWith: { _, newer in newer })
                 let imported = attempted.filter { stored["\($0.domain.lowercased())\n\($0.path)\n\($0.name)"] == $0.value }.count
                 skipped += attempted.count - imported
                 results.append(String(localized: "Cookies imported: \(imported), skipped: \(skipped)"))
                 if let error = cookies.error { results.append(error) }
-            } else if categories.contains(.cookies), let error = prepared.cookieError { results.append(error) }
+            } else if categories.contains(.cookies), let error = prepared.cookieError {
+                results.append(error)
+            }
             guard self.revision == current, let manager else { return }
             if categories.contains(.history) {
                 if let error = prepared.history.error { results.append(error) }
@@ -473,7 +493,9 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
                         let count = pages.count
                         let skipped = prepared.sessions.values.count - count + prepared.sessions.skipped
                         results.append(String(localized: "Tabs opened: \(count), skipped: \(skipped)"))
-                    } else { results.append(String(localized: "The destination project is no longer available.")) }
+                    } else {
+                        results.append(String(localized: "The destination project is no longer available."))
+                    }
                 } else {
                     let count = 0
                     let skipped = prepared.sessions.skipped

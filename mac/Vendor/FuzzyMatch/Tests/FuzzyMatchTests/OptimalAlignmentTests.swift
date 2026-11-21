@@ -116,7 +116,7 @@ private func runAlignment(
         ("gubi", "getUserById"),
         ("fb", "fooBar"),
         ("sn", "setName"),
-        ("config", "configuration")
+        ("config", "configuration"),
     ]
 
     let config = EditDistanceConfig()

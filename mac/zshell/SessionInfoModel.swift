@@ -127,8 +127,9 @@ final class SessionInfoModel: nonisolated ObservableObject {
         lastRemoteRefresh = Date()
         Task.detached(priority: .utility) { [weak self] in
             let result = Result {
-                try RemoteHostClient.processes(host: source.host, directory: source.directory,
-                                               sessionID: source.sessionID)
+                try RemoteHostClient.processes(
+                    host: source.host, directory: source.directory,
+                    sessionID: source.sessionID)
             }
             await MainActor.run { [weak self] in
                 guard let self else { return }
@@ -171,8 +172,9 @@ final class SessionInfoModel: nonisolated ObservableObject {
         for line in psOut.split(separator: "\n") {
             let fields = line.split(separator: " ", maxSplits: 5, omittingEmptySubsequences: true)
             guard fields.count == 6,
-                  let pid = pid_t(fields[0]),
-                  let ppid = pid_t(fields[1]) else { continue }
+                let pid = pid_t(fields[0]),
+                let ppid = pid_t(fields[1])
+            else { continue }
             // Recorded before the zombie check so the descendant walk below
             // still traverses the tree through anything we skip.
             childPids[ppid, default: []].append(pid)
@@ -233,7 +235,8 @@ final class SessionInfoModel: nonisolated ObservableObject {
             case "n":
                 // Addresses look like "*:3000", "127.0.0.1:3000", "[::1]:3000".
                 guard let colon = value.lastIndex(of: ":"),
-                      let port = Int(value[value.index(after: colon)...]) else { continue }
+                    let port = Int(value[value.index(after: colon)...])
+                else { continue }
                 let item = PortItem(
                     port: port,
                     pid: currentPid,

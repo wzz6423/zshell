@@ -64,7 +64,7 @@ final class TabSwitcherController: ObservableObject {
             guard event.keyCode == 48 else { return event }
             let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
             guard flags.contains(.control),
-                  flags.isDisjoint(with: [.command, .option])
+                flags.isDisjoint(with: [.command, .option])
             else {
                 // Do not let a missed key-up from an interrupted switcher
                 // consume a later ordinary Tab press.
@@ -95,10 +95,11 @@ final class TabSwitcherController: ObservableObject {
 
     private func dismiss(commitSelection: Bool) {
         if commitSelection,
-           let project = activeProject,
-           project.selectedTabID == originalTabID,
-           let highlightedTabID,
-           project.tabs.contains(where: { $0.id == highlightedTabID }) {
+            let project = activeProject,
+            project.selectedTabID == originalTabID,
+            let highlightedTabID,
+            project.tabs.contains(where: { $0.id == highlightedTabID })
+        {
             project.selectedTabID = highlightedTabID
         }
         previewTask?.cancel()
@@ -120,10 +121,10 @@ final class TabSwitcherController: ObservableObject {
 
     func highlight(_ tabID: UUID, in project: Project) {
         guard acceptsPointerHighlight,
-              isPresented,
-              activeProject === project,
-              highlightedTabID != tabID,
-              project.tabs.contains(where: { $0.id == tabID })
+            isPresented,
+            activeProject === project,
+            highlightedTabID != tabID,
+            project.tabs.contains(where: { $0.id == tabID })
         else { return }
         highlightedTabID = tabID
     }
@@ -138,8 +139,8 @@ final class TabSwitcherController: ObservableObject {
 
     private func cycle(in manager: TerminalManager, reverse: Bool) -> Bool {
         guard let project = manager.selectedProject,
-              project.tabs.count > 1,
-              let selectedID = project.selectedTabID
+            project.tabs.count > 1,
+            let selectedID = project.selectedTabID
         else { return false }
 
         if !isPresented || activeProject !== project {
@@ -164,7 +165,7 @@ final class TabSwitcherController: ObservableObject {
 
         let order = orderedTabs(in: project).map(\.id)
         guard let currentHighlightedTabID = highlightedTabID,
-              let currentIndex = order.firstIndex(of: currentHighlightedTabID)
+            let currentIndex = order.firstIndex(of: currentHighlightedTabID)
         else {
             cancel()
             return false
@@ -250,12 +251,12 @@ final class TabSwitcherMonitorView: NSView {
             let input = MainThreadEvent(event)
             let output: MainThreadEvent = assumeMainActor {
                 guard let self,
-                      let window,
-                      window.isKeyWindow,
-                      let manager = self.manager,
-                      let controller = self.controller,
-                      let event = input.value,
-                      (event.window ?? NSApp.keyWindow) === window
+                    let window,
+                    window.isKeyWindow,
+                    let manager = self.manager,
+                    let controller = self.controller,
+                    let event = input.value,
+                    (event.window ?? NSApp.keyWindow) === window
                 else { return input }
                 guard !TerminalCommandRouting.isBlockingCommands(in: window) else {
                     if controller.isPresented { controller.cancel() }
@@ -272,13 +273,14 @@ final class TabSwitcherMonitorView: NSView {
             NSWindow.didResignKeyNotification,
             NSApplication.didResignActiveNotification,
         ] {
-            observers.append(NotificationCenter.default.addObserver(
-                forName: name,
-                object: name == NSWindow.didResignKeyNotification ? window : nil,
-                queue: .main
-            ) { [weak self] _ in
-                self?.cancelFromMainThreadNotification()
-            })
+            observers.append(
+                NotificationCenter.default.addObserver(
+                    forName: name,
+                    object: name == NSWindow.didResignKeyNotification ? window : nil,
+                    queue: .main
+                ) { [weak self] _ in
+                    self?.cancelFromMainThreadNotification()
+                })
         }
     }
 
@@ -400,10 +402,12 @@ struct TabSwitcherOverlay: View {
                 }
                 .background {
                     containerBackground
-                        .clipShape(RoundedRectangle(
-                            cornerRadius: TabSwitcherLayout.containerCornerRadius,
-                            style: .continuous
-                        ))
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: TabSwitcherLayout.containerCornerRadius,
+                                style: .continuous
+                            )
+                        )
                         .shadow(
                             color: .black.opacity(colorScheme == .light ? 0.18 : 0.28),
                             radius: 24,
@@ -471,7 +475,8 @@ struct TabSwitcherOverlay: View {
 
     private func gridHeight(count: Int, columns: Int, available: CGFloat) -> CGFloat {
         let rows = (count + columns - 1) / columns
-        let contentHeight = CGFloat(rows) * TabSwitcherLayout.cardHeight
+        let contentHeight =
+            CGFloat(rows) * TabSwitcherLayout.cardHeight
             + TabSwitcherLayout.gridInset * 2
         return min(
             contentHeight,
@@ -499,10 +504,12 @@ private struct TabSwitcherCard: View {
                     width: TabSwitcherLayout.previewWidth,
                     height: TabSwitcherLayout.previewHeight
                 )
-                .clipShape(RoundedRectangle(
-                    cornerRadius: TabSwitcherLayout.previewCornerRadius,
-                    style: .continuous
-                ))
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: TabSwitcherLayout.previewCornerRadius,
+                        style: .continuous
+                    )
+                )
                 .overlay {
                     RoundedRectangle(
                         cornerRadius: TabSwitcherLayout.previewCornerRadius,
@@ -516,10 +523,12 @@ private struct TabSwitcherCard: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(.primary.opacity(isHighlighted ? 1 : 0.82))
                 Text(verbatim: tab.displayTitle ?? String(localized: "Tab \(index + 1)"))
-                    .font(.system(
-                        size: 14,
-                        weight: .medium
-                    ))
+                    .font(
+                        .system(
+                            size: 14,
+                            weight: .medium
+                        )
+                    )
                     .foregroundStyle(.primary.opacity(isHighlighted ? 1 : 0.82))
                     .lineLimit(1)
                 Spacer(minLength: 0)
@@ -554,7 +563,7 @@ private struct TabSwitcherCard: View {
                 onEnter: highlight,
                 onClick: select
             )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
@@ -615,17 +624,18 @@ private final class TabSwitcherInteractionNSView: NSView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(
-            rect: .zero,
-            options: [
-                .mouseEnteredAndExited,
-                .mouseMoved,
-                .activeInKeyWindow,
-                .inVisibleRect,
-                .enabledDuringMouseDrag,
-            ],
-            owner: self
-        ))
+        addTrackingArea(
+            NSTrackingArea(
+                rect: .zero,
+                options: [
+                    .mouseEnteredAndExited,
+                    .mouseMoved,
+                    .activeInKeyWindow,
+                    .inVisibleRect,
+                    .enabledDuringMouseDrag,
+                ],
+                owner: self
+            ))
     }
 
     override func mouseEntered(with event: NSEvent) {
@@ -831,7 +841,8 @@ private struct TabPaneThumbnail: View {
             sample.removeSubrange(...newline)
         }
 
-        let lines = sample
+        let lines =
+            sample
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
             .split(separator: "\n", omittingEmptySubsequences: false)

@@ -16,9 +16,10 @@ struct BrowserStorageState {
 
     static func origin(for url: URL) throws -> String {
         guard let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme),
-              let host = url.host?.lowercased(), !host.isEmpty,
-              url.user == nil, url.password == nil,
-              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            let host = url.host?.lowercased(), !host.isEmpty,
+            url.user == nil, url.password == nil,
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else {
             throw invalid("Storage state requires an HTTP or HTTPS page without embedded credentials.")
         }
         components.scheme = scheme
@@ -34,7 +35,8 @@ struct BrowserStorageState {
     static func includes(_ cookie: HTTPCookie, for url: URL) -> Bool {
         let host = url.host?.lowercased() ?? ""
         let domain = cookie.domain.lowercased()
-        let matches = domain.hasPrefix(".")
+        let matches =
+            domain.hasPrefix(".")
             ? host == String(domain.dropFirst()) || host.hasSuffix(domain)
             : host == domain
         return matches
@@ -50,9 +52,11 @@ struct BrowserStorageState {
             }
             let value = ZshellJSONValue.object([
                 "cookies": .array(cookies.map { Self.cookieJSON($0) }),
-                "origins": .array([.object([
-                    "origin": .string(try Self.origin(for: url)), "localStorage": .array(storage),
-                ])]),
+                "origins": .array([
+                    .object([
+                        "origin": .string(try Self.origin(for: url)), "localStorage": .array(storage),
+                    ])
+                ]),
             ])
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
@@ -61,9 +65,11 @@ struct BrowserStorageState {
             var text = "# Netscape HTTP Cookie File\n# SameSite and localStorage require storage-state JSON.\n"
             for cookie in cookies {
                 let domain = (cookie.isHTTPOnly ? "#HttpOnly_" : "") + cookie.domain
-                let fields = [domain, cookie.domain.hasPrefix(".") ? "TRUE" : "FALSE", cookie.path,
-                              cookie.isSecure ? "TRUE" : "FALSE",
-                              String(Int(cookie.expiresDate?.timeIntervalSince1970 ?? 0)), cookie.name, cookie.value]
+                let fields = [
+                    domain, cookie.domain.hasPrefix(".") ? "TRUE" : "FALSE", cookie.path,
+                    cookie.isSecure ? "TRUE" : "FALSE",
+                    String(Int(cookie.expiresDate?.timeIntervalSince1970 ?? 0)), cookie.name, cookie.value,
+                ]
                 guard fields.allSatisfy({ !$0.contains(where: { $0 == "\t" || $0 == "\n" || $0 == "\r" }) }) else {
                     throw Self.invalid("A cookie cannot be represented in Netscape format.")
                 }
@@ -83,17 +89,19 @@ struct BrowserStorageState {
         switch format {
         case .storageState:
             guard let json = try? JSONDecoder().decode(ZshellJSONValue.self, from: data),
-                  let object = json.objectValue,
-                  Set(object.keys).isSubset(of: ["cookies", "origins"]),
-                  let cookies = object["cookies"]?.arrayValue,
-                  let origins = object["origins"]?.arrayValue, origins.count <= 1 else {
+                let object = json.objectValue,
+                Set(object.keys).isSubset(of: ["cookies", "origins"]),
+                let cookies = object["cookies"]?.arrayValue,
+                let origins = object["origins"]?.arrayValue, origins.count <= 1
+            else {
                 throw invalid("Expected Playwright storage-state JSON with cookies and at most the current origin.")
             }
             values = cookies
             if let entry = origins.first {
                 guard let object = entry.objectValue, Set(object.keys) == ["origin", "localStorage"],
-                      object["origin"]?.stringValue == origin,
-                      let entries = object["localStorage"]?.arrayValue else {
+                    object["origin"]?.stringValue == origin,
+                    let entries = object["localStorage"]?.arrayValue
+                else {
                     throw invalid("Every storage origin must exactly match the target page origin.")
                 }
                 storage = try decodeLocalStorage(entries)
@@ -106,18 +114,20 @@ struct BrowserStorageState {
                 if line.hasPrefix("#"), !httpOnly { continue }
                 let fields = (httpOnly ? String(line.dropFirst(10)) : line).components(separatedBy: "\t")
                 guard fields.count == 7, ["TRUE", "FALSE"].contains(fields[1]),
-                      ["TRUE", "FALSE"].contains(fields[3]), let expires = Double(fields[4]),
-                      !fields[4].isEmpty, fields[4].utf8.allSatisfy({ (48...57).contains($0) }),
-                      expires.isFinite, expires >= 0 else {
+                    ["TRUE", "FALSE"].contains(fields[3]), let expires = Double(fields[4]),
+                    !fields[4].isEmpty, fields[4].utf8.allSatisfy({ (48 ... 57).contains($0) }),
+                    expires.isFinite, expires >= 0
+                else {
                     throw invalid("Invalid Netscape cookie record.")
                 }
                 let host = fields[0].hasPrefix(".") ? String(fields[0].dropFirst()) : fields[0]
                 let domain = (fields[1] == "TRUE" ? "." : "") + host
-                entries.append(.object([
-                    "name": .string(fields[5]), "value": .string(fields[6]), "domain": .string(domain),
-                    "path": .string(fields[2]), "secure": .bool(fields[3] == "TRUE"), "httpOnly": .bool(httpOnly),
-                    "expires": .number(expires == 0 ? -1 : expires), "sameSite": .string("Lax"),
-                ]))
+                entries.append(
+                    .object([
+                        "name": .string(fields[5]), "value": .string(fields[6]), "domain": .string(domain),
+                        "path": .string(fields[2]), "secure": .bool(fields[3] == "TRUE"), "httpOnly": .bool(httpOnly),
+                        "expires": .number(expires == 0 ? -1 : expires), "sameSite": .string("Lax"),
+                    ]))
             }
             values = entries
         }
@@ -138,9 +148,10 @@ struct BrowserStorageState {
         var storage: [String: String] = [:]
         for entry in entries {
             guard let object = entry.objectValue, Set(object.keys) == ["name", "value"],
-                  let key = object["name"]?.stringValue, key.utf8.count <= 4_096,
-                  let value = object["value"]?.stringValue, value.utf8.count <= 65_536,
-                  storage.updateValue(value, forKey: key) == nil else {
+                let key = object["name"]?.stringValue, key.utf8.count <= 4_096,
+                let value = object["value"]?.stringValue, value.utf8.count <= 65_536,
+                storage.updateValue(value, forKey: key) == nil
+            else {
                 throw invalid("Invalid, duplicate, or oversized localStorage entry.")
             }
         }
@@ -149,21 +160,22 @@ struct BrowserStorageState {
 
     static func decodeCookie(_ value: ZshellJSONValue, for url: URL) throws -> HTTPCookie {
         guard let object = value.objectValue,
-              Set(object.keys) == ["name", "value", "domain", "path", "expires", "httpOnly", "secure", "sameSite"],
-              let name = object["name"]?.stringValue, !name.isEmpty, name.utf8.count <= 4_096,
-              name.utf8.allSatisfy({ (33...126).contains($0) && !Array("()<>@,;:\\\"/[]?={} \t".utf8).contains($0) }),
-              let content = object["value"]?.stringValue, content.utf8.count <= 4_096,
-              !content.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) || $0 == ";" }),
-              let domain = object["domain"]?.stringValue, domain.utf8.count <= 253,
-              let path = object["path"]?.stringValue, path.hasPrefix("/"), path.utf8.count <= 2_048,
-              !path.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) || $0 == ";" }),
-              case .number(let expires) = object["expires"], expires.isFinite,
-              expires == -1 || (expires >= 0 && expires <= 253_402_300_799),
-              let httpOnly = object["httpOnly"]?.boolValue, let secure = object["secure"]?.boolValue,
-              let sameSite = object["sameSite"]?.stringValue, ["None", "Lax", "Strict"].contains(sameSite),
-              sameSite != "None" || secure,
-              !name.hasPrefix("__Secure-") || secure,
-              !name.hasPrefix("__Host-") || (secure && path == "/" && !domain.hasPrefix(".")) else {
+            Set(object.keys) == ["name", "value", "domain", "path", "expires", "httpOnly", "secure", "sameSite"],
+            let name = object["name"]?.stringValue, !name.isEmpty, name.utf8.count <= 4_096,
+            name.utf8.allSatisfy({ (33 ... 126).contains($0) && !Array("()<>@,;:\\\"/[]?={} \t".utf8).contains($0) }),
+            let content = object["value"]?.stringValue, content.utf8.count <= 4_096,
+            !content.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) || $0 == ";" }),
+            let domain = object["domain"]?.stringValue, domain.utf8.count <= 253,
+            let path = object["path"]?.stringValue, path.hasPrefix("/"), path.utf8.count <= 2_048,
+            !path.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) || $0 == ";" }),
+            case .number(let expires) = object["expires"], expires.isFinite,
+            expires == -1 || (expires >= 0 && expires <= 253_402_300_799),
+            let httpOnly = object["httpOnly"]?.boolValue, let secure = object["secure"]?.boolValue,
+            let sameSite = object["sameSite"]?.stringValue, ["None", "Lax", "Strict"].contains(sameSite),
+            sameSite != "None" || secure,
+            !name.hasPrefix("__Secure-") || secure,
+            !name.hasPrefix("__Host-") || (secure && path == "/" && !domain.hasPrefix("."))
+        else {
             throw invalid("Invalid cookie attributes or unsupported storage-state fields.")
         }
         var properties: [HTTPCookiePropertyKey: Any] = [
@@ -172,13 +184,14 @@ struct BrowserStorageState {
         ]
         if secure { properties[.secure] = "TRUE" }
         if httpOnly { properties[HTTPCookiePropertyKey("HttpOnly")] = "TRUE" }
-        if expires == -1 { properties[.discard] = "TRUE" }
-        else { properties[.expires] = Date(timeIntervalSince1970: expires) }
+        if expires == -1 { properties[.discard] = "TRUE" } else { properties[.expires] = Date(timeIntervalSince1970: expires) }
         guard let cookie = HTTPCookie(properties: properties), includes(cookie, for: url) else {
             throw invalid("Cookie domains must apply to the target host; Secure cookies require HTTPS.")
         }
         // 使用系统 Cookie 接收规则校验公有后缀，避免手写不完整的 PSL。
-        guard let validationStore = URLSessionConfiguration.ephemeral.httpCookieStorage else { throw invalid("System cookie validation is unavailable.") }
+        guard let validationStore = URLSessionConfiguration.ephemeral.httpCookieStorage else {
+            throw invalid("System cookie validation is unavailable.")
+        }
         validationStore.cookieAcceptPolicy = .onlyFromMainDocumentDomain
         var validationProperties = properties
         validationProperties.removeValue(forKey: .expires)

@@ -15,13 +15,17 @@ final class SettingsAutomationPane: SettingsPaneViewController {
     private let notifyCompletionSwitch = SettingsSwitch { AppSettings.shared.notifyOnAgentCompletion = $0 }
     private let customRulesSwitch = SettingsSwitch { AppSettings.shared.customAgentRecognitionRules = $0 }
     private let screenInferenceSwitch = SettingsSwitch { AppSettings.shared.agentScreenInference = $0 }
-    private lazy var recognitionGroup = SettingsGroup(header: String(localized: "Agent Recognition"), rows: [
-        SettingsRow(title: String(localized: "Use custom recognition rules"), control: customRulesSwitch, symbolName: "slider.horizontal.3"),
-        SettingsRow(title: String(localized: "Infer agent state from the screen"),
-                    description: String(localized: "Uses two live footer samples. Native lifecycle events and program reports take priority."),
-                    control: screenInferenceSwitch, symbolName: "text.viewfinder"),
-        SettingsButtonRow(title: String(localized: "Manage Agent Rules…")) { AgentRecognitionRulesController.shared.show() },
-    ])
+    private lazy var recognitionGroup = SettingsGroup(
+        header: String(localized: "Agent Recognition"),
+        rows: [
+            SettingsRow(
+                title: String(localized: "Use custom recognition rules"), control: customRulesSwitch, symbolName: "slider.horizontal.3"),
+            SettingsRow(
+                title: String(localized: "Infer agent state from the screen"),
+                description: String(localized: "Uses two live footer samples. Native lifecycle events and program reports take priority."),
+                control: screenInferenceSwitch, symbolName: "text.viewfinder"),
+            SettingsButtonRow(title: String(localized: "Manage Agent Rules…")) { AgentRecognitionRulesController.shared.show() },
+        ])
     private lazy var integrationGroup = SettingsGroup(rows: [
         SettingsCustomRow(supportView),
         SettingsRow(title: String(localized: "Resume agent conversations"), control: resumeConversationsSwitch),
@@ -30,10 +34,12 @@ final class SettingsAutomationPane: SettingsPaneViewController {
             AgentConversationHistoryController.shared.show(for: manager, filter: .all)
         },
     ])
-    private lazy var notificationGroup = SettingsGroup(header: String(localized: "Notifications"), rows: [
-        SettingsRow(title: String(localized: "Notify when agents need attention"), control: notifyAttentionSwitch),
-        SettingsRow(title: String(localized: "Notify when agents finish"), control: notifyCompletionSwitch),
-    ])
+    private lazy var notificationGroup = SettingsGroup(
+        header: String(localized: "Notifications"),
+        rows: [
+            SettingsRow(title: String(localized: "Notify when agents need attention"), control: notifyAttentionSwitch),
+            SettingsRow(title: String(localized: "Notify when agents finish"), control: notifyCompletionSwitch),
+        ])
 
     override func viewDidLoad() {
         super.viewDidLoad()
