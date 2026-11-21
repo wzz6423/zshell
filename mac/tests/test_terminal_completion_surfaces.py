@@ -50,9 +50,11 @@ with tempfile.TemporaryDirectory(prefix="zshell-completion-surfaces-", dir="/tmp
         "-o", str(binary), str(root / "mac/tests/TerminalCompletionSurfaceTests.swift"),
     ]
     subprocess.run(arguments, cwd=root, check=True)
-    for backend in ("alacritty", "ghostty"):
-        home = temporary / backend
-        home.mkdir()
-        environment = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
-        environment.update({"HOME": str(home), "CFFIXED_USER_HOME": str(home)})
-        subprocess.run([str(binary), backend], cwd=root, env=environment, check=True, timeout=60)
+    for mode in ("local", "persistent"):
+        for backend in ("alacritty", "ghostty"):
+            home = temporary / f"{mode}-{backend}"
+            home.mkdir()
+            environment = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
+            environment.update({"HOME": str(home), "CFFIXED_USER_HOME": str(home),
+                                "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux")})
+            subprocess.run([str(binary), backend, mode], cwd=root, env=environment, check=True, timeout=60)
