@@ -177,7 +177,7 @@ import AppKit
             for scale in [0.9, 1.0, 1.5, 2.0, 24.0 / 14.0 * 1.5] {
                 for width in [100.0, 240.0, 480.0] {
                     let button = GitPanelButton(frame: NSRect(x: 0, y: 0, width: width, height: 40),
-                                                cell: GitPanelCommitButtonCell())
+                                                cell: GitPanelCenteredButtonCell())
                     button.configure(symbol: "checkmark", title: title, help: title, scale: scale, primary: true)
                     button.imagePosition = .imageRight
                     button.alignment = .left
