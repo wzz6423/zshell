@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from '@tanstack/react-router'
 import { DocsLink } from '@/components/site-links'
 import type { HomeCopy } from '@/lib/home-copy'
 import type { Release } from '@/lib/release'
-import { cn } from '@/lib/utils'
 
 /**
  * 现代化的 Hero 区域，带有粒子动画和渐变背景

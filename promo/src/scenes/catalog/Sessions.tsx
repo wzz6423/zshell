@@ -4,7 +4,7 @@ import { TerminalIcon } from '../../components/Icons';
 import { linear } from '../../lib/motion';
 import { typedLength } from '../../lib/typing';
 import { alpha, color } from '../../theme';
-import { Action, Badge, Code, Done, Group, ListRow, Panel, Progress, Setting, Shell, Terminal, type ChapterSpec, type DemoProps } from './Frame';
+import { Action, Badge, Code, Done, Group, ListRow, Panel, Setting, Shell, Terminal, type ChapterSpec, type DemoProps } from './Frame';
 
 const PersistenceDemo = ({ frame }: DemoProps) => {
   const enabled = frame >= 31 && frame < 179;
