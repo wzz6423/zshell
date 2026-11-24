@@ -15,12 +15,12 @@ fixes, casks, and website updates; ordinary development and skill edits still
 use PRs. The release scripts prepare packages and recipes; the release workflow
 performs the Git commits and pushes and verifies the website deployment.
 
-Release-time verification covers building, packaging, signing, publishing, and
-the update path. Do not re-test the features added or changed in this release or
-require their acceptance records as a prerequisite for publishing; feature
-acceptance belongs to development and the corresponding feature PR. If release
-preparation changes the release scripts or website, run their relevant tests or
-build/typecheck without repeating client feature acceptance.
+Release-time verification covers building, packaging, signing, publishing,
+remote asset hashes, and public feeds. Do not re-test the features added or
+changed in this release or require their acceptance records as a prerequisite
+for publishing; feature acceptance belongs to development and the corresponding
+feature PR. If release preparation changes the release scripts or website, run
+their relevant tests or build/typecheck without repeating client feature acceptance.
 
 ## Signing and credentials
 
@@ -144,12 +144,15 @@ current feeds. GitHub's new release remains a draft until its asset set is ready
 An existing release is updated without creating a duplicate tag.
 
 The publisher verifies local checksums and Ed25519 signatures, remote asset
-hashes, and all six public feed responses against the local signed files. Also
-verify anonymous package downloads and mount each DMG to check `zshell.app` and
-the Applications symlink. Do not treat a signature field's presence as a
-successful installation test.
+hashes, and all six public feed responses against the local signed files.
+Routine releases do not require extra package downloads, DMG mounting,
+installation, or upgrades from an older Release. Skipping those checks does not
+block release completion.
 
-Test an older Release installation through **Check for Updates…** to verify
+Perform real download, installation, and upgrade acceptance during development
+of the updater, installer, or signing migration and the corresponding PR, or
+when the maintainer explicitly requests release-specific acceptance. In that
+case, test an older Release installation through **Check for Updates…** to verify
 feed signature, archive signature, replacement, and restart. Verify Gitee → GitHub
 for mainland China and GitHub → Gitee elsewhere, with one retry when the preferred
 feed or package download fails. Cover IP country lookup success, failure with
