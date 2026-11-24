@@ -133,6 +133,9 @@ binary、构建目录、日志和临时文件。保留用户已有产物、依�
 
 ## 提交与 PR
 
+- 每次 `git commit` 前必须在仓库根执行 `make format`，用 Xcode `swift-format` 和稳定版
+  `rustfmt` 格式化已跟踪的 Swift、Rust 源码；命令需要 Python 3.11 或更新版本。
+  格式化后检查 `git diff`，仅暂存本次任务的改动；`make format-check` 只检查，不能代替格式化。
 - 分支前缀、Conventional Commits 标题、PR 正文七个小节、Validation 三态、AI Attribution
   的具体规则以 `CONTRIBUTING.md` 为准。
 - 绝不在 PR 里改 `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`，版本只由发布流程推进。

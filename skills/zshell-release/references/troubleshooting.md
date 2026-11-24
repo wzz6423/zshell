@@ -27,6 +27,6 @@ bun scripts/publish-release.ts --publish build/release-v<version> <version> <sou
 bun scripts/publish-release.ts --verify build/release-v<version> <version> <source-commit>
 ```
 
-任一公开 feed 无法读取、签名不符或指错架构，都不算发版完成。若测试机或网络阻塞无法消除，
+任一公开 feed 无法读取、签名不符或指错架构，都不算发版完成。若网络阻塞无法消除，
 明确记录已发布部分和未验证部分。清理只针对本次任务产生的测试包、挂载点、临时文件和
 archive；不清私钥备份，不停止用户或其他任务的 Debug 实例。

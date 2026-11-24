@@ -55,25 +55,28 @@ bun scripts/publish-release.ts --verify build/release-v<version> <version> <sour
 `--package-only` 只接受当前源码 commit 的 archive。可设置 `BUILD_JOBS=2` 与
 `RELEASE_OUTPUT_DIRECTORY`；不要继续使用旧流程的 `FORCE`、`NO_TAP`、`NO_SITE` 等开关。
 
-## 更新验收
+## 更新机制与专项验收
+
+更新机制、安装器和签名迁移的真实验收在相关开发及 PR 阶段完成；用户明确要求发版专项验收时再执行。
+普通发版不要求额外下载包、挂载 DMG、安装或从旧版升级；未执行这些专项验收不阻塞发版。
 
 - Gitee feed：`releases/download/update-release/appcast.xml`。
 - GitHub feed：`releases/latest/download/appcast.xml`。
 - 出口 IP 国家码优先，查询失败使用 macOS 系统地区：中国大陆 Gitee → GitHub，其他地区 GitHub → Gitee。
 - 单架构 feed 为 `appcast-arm64.xml` / `appcast-x86_64.xml`，Universal 为 `appcast.xml`。
 - 直接安装和 Homebrew 安装均由 Sparkle 更新。Homebrew 仅保留显式命令或落后版本兜底。
-- 旧版正式测试实例必须走真实签名 feed、下载、验签、替换、重启；首选 feed 或下载失败仅重试
+- 执行专项验收时，旧版正式测试实例必须走真实签名 feed、下载、验签、替换、重启；首选 feed 或下载失败仅重试
   备用源一次。覆盖两种地区顺序、IP 查询失败兜底、自动下载并安装开关及其重启持久化。
   测试 thin 保留架构、Universal 保留双架构、Rosetta Intel 迁移 arm64。
-- 签名字段存在、单元测试通过、Debug 能运行都不能替代真实升级验收。没有旧版测试机时如实
-  标注未验证范围，不宣称全部对齐验收完成。
+- 专项验收不能以签名字段存在、单元测试通过或 Debug 能运行代替真实升级。缺少旧版测试机时，
+  如实标注本次专项验收的未验证范围，不宣称专项验收完成。
 - 此次 0.1.0 从旧 ad-hoc build 2 迁移到固定自签名 build 3；保留旧下载名、原更新私钥和旧
   `updates` feed 的可用性，不破坏已安装版本。
 
 ## 验证与清理
 
 发版时不重复验证本次发布新增或更新的功能，也不要求提供这些功能的验收记录作为发版前置条件；
-功能验收在开发及对应 PR 阶段完成。发版仍须验证构建、打包、签名、双端资产和更新链路。
+功能验收在开发及对应 PR 阶段完成。发版仍须验证构建、打包、签名、双端资产哈希和六份公开 feed。
 本次发版准备若修改发布脚本或官网，则追加对应脚本测试或官网 build/typecheck，不重新执行
 客户端功能验收。Release 正文写清签名、公证、架构、实测系统范围和首次打开步骤；反馈入口
 指向 GitHub，Gitee 作为发版镜像。
