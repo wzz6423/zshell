@@ -1334,7 +1334,7 @@ private final class GitPanelPlaceholderLabel: NSTextField {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
 
-private final class GitPanelCommitButtonCell: NSButtonCell {
+private final class GitPanelCenteredButtonCell: NSButtonCell {
     override func drawInterior(withFrame cellFrame: NSRect, in controlView: NSView) {
         super.drawInterior(withFrame: contentFrame(in: cellFrame), in: controlView)
     }
@@ -1348,7 +1348,7 @@ private final class GitPanelCommitButtonCell: NSButtonCell {
     }
 
     private func contentFrame(in bounds: NSRect) -> NSRect {
-        // Native imageRight pins the image to the frame edge, so center its fitted frame.
+        // Native leading/trailing images sit at the frame edge, so center the fitted content.
         let width = min(max(0, bounds.width), ceil(cellSize.width))
         return NSRect(x: bounds.midX - width / 2, y: bounds.minY, width: width, height: bounds.height)
     }
@@ -1357,9 +1357,9 @@ private final class GitPanelCommitButtonCell: NSButtonCell {
 private final class GitPanelCommitView: NSView, NSTextViewDelegate {
     private let textView = GitPanelCommitTextView()
     private let placeholder = GitPanelPlaceholderLabel(labelWithString: "")
-    private let commit = GitPanelButton(frame: .zero, cell: GitPanelCommitButtonCell())
+    private let commit = GitPanelButton(frame: .zero, cell: GitPanelCenteredButtonCell())
     private let options = GitPanelButton()
-    private let sync = GitPanelButton()
+    private let sync = GitPanelButton(frame: .zero, cell: GitPanelCenteredButtonCell())
     private let fieldBackground = NSView()
     private var metrics = SidebarLayoutMetrics(fontScale: 1)
     private var showsCommit = true
