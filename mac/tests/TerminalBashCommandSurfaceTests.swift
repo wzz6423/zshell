@@ -32,10 +32,17 @@ struct TerminalBashCommandSurfaceTests {
             to: home.appendingPathComponent(".bash_profile"), atomically: true, encoding: .utf8)
         try "HISTFILE=/dev/null\nPROMPT='ZSH_NATIVE_READY> '; RPROMPT=''\n".write(
             to: home.appendingPathComponent(".zshrc"), atomically: true, encoding: .utf8)
+        let bashBin = root.appendingPathComponent("bash-bin", isDirectory: true)
+        try FileManager.default.createDirectory(at: bashBin, withIntermediateDirectories: false)
+        let bashProgram = bashBin.appendingPathComponent("bash")
+        try "#!/bin/sh\nexport HOME=\(quote(home.path)) HISTFILE=/dev/null BASH_SILENCE_DEPRECATION_WARNING=1\nexec /bin/bash \"$@\"\n"
+            .write(
+                to: bashProgram, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: bashProgram.path)
         let settings = AppSettings.shared
         settings.language = .english
         settings.terminalBackend = backend == "ghostty" ? .libghostty : .alacritty
-        settings.terminalStartupProgram = "/bin/bash"
+        settings.terminalStartupProgram = bashProgram.path
         settings.terminalStartupArguments = "-il"
         settings.automaticallyApplyTerminalProfiles = false
         settings.restoreTerminalHistory = false
