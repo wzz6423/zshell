@@ -47,13 +47,16 @@ enum TerminalContextMenu {
             menu.addItem(item)
         }
         if let upload = surface.events?.terminalFileUploadMenuItem { menu.addItem(upload) }
+        menu.addItem(TerminalSharingMenuTarget.item(for: surface))
         menu.addItem(TerminalOutputExportController.shared.menuItem(for: surface))
+        menu.addItem(TerminalSharingMenuTarget.item(for: surface, savesFile: true))
         menu.addItem(AgentContextDraftMenuTarget.item(for: surface))
         if let event, let location = surface.commandLocation(for: event),
             surface.commandRegion(at: location) != nil
         {
             menu.addItem(.separator())
             TerminalCommandBlockMenuTarget(surface: surface, location: location).items().forEach(menu.addItem)
+            menu.addItem(TerminalSharingMenuTarget.item(for: surface, location: location))
             menu.addItem(AgentContextDraftMenuTarget.item(for: surface, location: location))
             if let bookmark = TerminalCommandBookmarkController.shared.menuItem(for: surface, location: location) {
                 menu.addItem(bookmark)

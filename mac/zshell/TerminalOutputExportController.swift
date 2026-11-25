@@ -1,18 +1,21 @@
 import AppKit
 import UniformTypeIdentifiers
 
-nonisolated private final class TerminalOutputExportJob: @unchecked Sendable {
+nonisolated final class TerminalOutputExportJob: @unchecked Sendable {
     private let lock = NSLock()
     private var capture: TerminalHistorySerializer.LogCapture?
+    private var text: String?
     private var cancelled = false
 
     init(_ capture: TerminalHistorySerializer.LogCapture) { self.capture = capture }
+    init(text: String) { self.text = text }
 
     func cancel() -> TerminalHistorySerializer.LogCapture? {
         lock.lock(); defer { lock.unlock() }
         cancelled = true
         let capture = self.capture
         self.capture = nil
+        text = nil
         return capture
     }
 
@@ -20,8 +23,24 @@ nonisolated private final class TerminalOutputExportJob: @unchecked Sendable {
         lock.lock()
         let capture = self.capture
         self.capture = nil
+        let text = self.text
+        self.text = nil
         lock.unlock()
-        return capture?.read()
+        return text ?? capture?.read()
+    }
+
+    func read(maxBytes: Int) throws -> String? {
+        lock.lock()
+        let capture = self.capture
+        self.capture = nil
+        let text = self.text
+        self.text = nil
+        lock.unlock()
+        if let text {
+            guard text.utf8.count <= maxBytes else { throw TerminalHistorySerializer.LogCapture.ReadFailure.tooLarge }
+            return text
+        }
+        return try capture?.read(maxBytes: maxBytes)
     }
 
     func isCancelled() -> Bool { lock.lock(); defer { lock.unlock() }; return cancelled }
@@ -36,6 +55,7 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
         let panel: NSSavePanel
         let job: TerminalOutputExportJob
         let observations: [NSObjectProtocol]
+        let completion: ((Bool) -> Void)?
     }
     nonisolated private enum Failure: Sendable { case read; case write(URL, String) }
     private var exports: [ObjectIdentifier: Export] = [:]
@@ -72,7 +92,7 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
         if let surface = focusedSurface(in: manager) { save(from: surface) }
     }
 
-    private func focusedSurface(in manager: TerminalManager?) -> (any TerminalBackendSurface)? {
+    func focusedSurface(in manager: TerminalManager?) -> (any TerminalBackendSurface)? {
         guard let window = NSApp.keyWindow else { return nil }
         if let manager, manager.presentationWindow === window {
             if case .session(let session)? = manager.selectedProject?.focusedContent { return session.surface }
@@ -107,13 +127,23 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
             present(.read, on: host)
             return
         }
+        beginSave(job: TerminalOutputExportJob(capture), on: host)
+    }
+
+    func save(text: String, on host: NSWindow, completion: @escaping (Bool) -> Void) {
+        guard host.attachedSheet == nil, exports[ObjectIdentifier(host)] == nil else { completion(false); return }
+        beginSave(job: TerminalOutputExportJob(text: text), on: host, completion: completion)
+    }
+
+    func cancel(on host: NSWindow) { cancel(ObjectIdentifier(host)) }
+
+    private func beginSave(job: TerminalOutputExportJob, on host: NSWindow, completion: ((Bool) -> Void)? = nil) {
         let panel = makeSavePanel()
         panel.title = String(localized: "Save Terminal Output…")
         panel.allowedContentTypes = [.plainText]
         panel.nameFieldStringValue = "terminal-output.txt"
         panel.canCreateDirectories = true
         let id = ObjectIdentifier(host)
-        let job = TerminalOutputExportJob(capture)
         let observations = [NSWindow.willCloseNotification, NSApplication.willTerminateNotification].map { name in
             NotificationCenter.default.addObserver(
                 forName: name, object: name == NSWindow.willCloseNotification ? host : nil,
@@ -122,7 +152,7 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
                 assumeMainActor { [weak self] in self?.cancel(id) }
             }
         }
-        exports[id] = Export(panel: panel, job: job, observations: observations)
+        exports[id] = Export(panel: panel, job: job, observations: observations, completion: completion)
         panel.beginSheetModal(for: host) { [weak self, weak host] response in
             guard let self, self.exports[id]?.job === job else { return }
             panel.orderOut(nil)
@@ -141,7 +171,7 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
                 }
                 let result = failure
                 DispatchQueue.main.async { [weak self, weak host] in
-                    guard let self, self.finish(id, job: job), !job.isCancelled(),
+                    guard let self, self.finish(id, job: job, succeeded: result == nil), !job.isCancelled(),
                         let failure = result, let host, host.isVisible
                     else { return }
                     self.present(failure, on: host)
@@ -150,9 +180,10 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
         }
     }
 
-    private func finish(_ id: ObjectIdentifier, job: TerminalOutputExportJob) -> Bool {
+    private func finish(_ id: ObjectIdentifier, job: TerminalOutputExportJob, succeeded: Bool) -> Bool {
         guard exports[id]?.job === job, let export = exports.removeValue(forKey: id) else { return false }
         export.observations.forEach(NotificationCenter.default.removeObserver)
+        export.completion?(succeeded && !job.isCancelled())
         return true
     }
 
@@ -161,6 +192,7 @@ final class TerminalOutputExportController: NSObject, NSMenuItemValidation {
         export.observations.forEach(NotificationCenter.default.removeObserver)
         if let capture = export.job.cancel() { worker.async { capture.discard() } }
         export.panel.cancel(nil)
+        export.completion?(false)
     }
 
     private func present(_ failure: Failure, on host: NSWindow) {
