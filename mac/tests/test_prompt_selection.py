@@ -29,8 +29,16 @@ class PromptSelectionTests(unittest.TestCase):
                            source.index("    private static func configuredStartupCommand(")]
         readiness = source[source.index("    var terminalPromptSelectionIsReady: Bool {"):
                            source.index("    func terminalDidChangeTitle(")]
+        connections = (SOURCE.parent / "PersistentCLIConnection.swift").read_text()
+        private_io = connections[connections.index("    static func preparePrivateDirectory"):connections.rindex("}")]
+        wire = (SOURCE.parent / "PTYMux.swift").read_text()
+        write_all = wire[wire.index("    static func writeAll"):wire.index("    private static func readExactly")]
         helper = Path(cls.build.name) / "main.swift"
-        helper.write_text("import Foundation\n"
+        helper.write_text("import Darwin\nimport Foundation\n"
+                          "enum CLIError: Error { case message(String) }\n"
+                          "enum PTYMuxConstants { static let maximumFrameBytes = 256 * 1024 }\n"
+                          "enum PTYMuxWire { static func errnoError(_ operation: String) -> CLIError { .message(operation) }\n"
+                          + write_all + "}\nenum PersistentCLIConnection {\n" + private_io + "}\n"
                           # #76 bakes the notification settings into the shim
                           # text; stub them off so the generated script stays
                           # byte-identical to the pre-#76 baseline.
@@ -56,6 +64,8 @@ class PromptSelectionTests(unittest.TestCase):
         shutil.copytree(SOURCE.parent / "ShellIntegration", Path(cls.build.name) / "ShellIntegration")
         subprocess.run(["swiftc", str(helper),
                         str(SOURCE.parent / "TerminalCommandTaskShellIntegration.swift"),
+                        str(SOURCE.parent / "TerminalCommandNotificationResult.swift"),
+                        str(SOURCE.parent / "TerminalNextCommandNotification.swift"),
                         str(SOURCE.parent / "TerminalShellCompletions.swift"),
                         "-o", str(cls.helper)], check=True)
 

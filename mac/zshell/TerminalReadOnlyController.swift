@@ -30,7 +30,7 @@ final class TerminalReadOnlyController: NSObject, NSMenuItemValidation {
         sender.state = surface.isReadOnly ? .on : .off
     }
 
-    private func surface(for item: NSMenuItem) -> (any TerminalBackendSurface)? {
+    func surface(for item: NSMenuItem) -> (any TerminalBackendSurface)? {
         if let surface = item.representedObject as? any TerminalBackendSurface { return surface }
         guard let window = NSApp.keyWindow else { return nil }
         var view = window.firstResponder as? NSView

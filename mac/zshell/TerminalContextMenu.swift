@@ -65,6 +65,7 @@ enum TerminalContextMenu {
         menu.addItem(.separator())
         menu.addItem(surface.commandRouting.contextMenuItem())
         menu.addItem(TerminalReadOnlyController.shared.menuItem(for: surface))
+        menu.addItem(TerminalNextCommandNotificationController.shared.menuItem(for: surface))
         TerminalHintMenu.shared.items(for: surface).forEach(menu.addItem)
         menu.addItem(.separator())
         menu.addItem(surface.splitTarget.quickCommandMenuItem())

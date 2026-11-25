@@ -35,26 +35,23 @@ enum PTYMuxWire {
 
     # Compile the production zsh shim so Swift interpolation and escaping are
     # identical to the real shell launch. The fixture uses no user dotfiles.
-    source = (ROOT / "mac/zshell/TerminalSession.swift").read_text()
-    shim = source[source.index("        if AppSettings.shared.notifyFinishSeconds > 0"):
-                  source.index("        for (name, contents) in files", source.index("        if AppSettings.shared.notifyFinishSeconds > 0"))]
     generator = temporary / "Shell.swift"
     generator.write_text("""
 import Foundation
-struct AppSettings {
-    static var shared = AppSettings()
-    var notifyFinishSeconds = 5
-    var notifyOnError = true
-}
 @main struct Probe {
     static func main() throws {
-        var files = [".zshrc": "autoload -Uz add-zsh-hook\\n"]
-""" + shim + """
-        try files[".zshrc"]!.write(toFile: CommandLine.arguments[1], atomically: true, encoding: .utf8)
+        let file = URL(fileURLWithPath: CommandLine.arguments[1])
+        let script = "autoload -Uz add-zsh-hook\\n" + TerminalCommandNotificationShellIntegration.script(
+            in: file.deletingLastPathComponent(), finishSeconds: 5, onError: true)
+        try script.write(to: file, atomically: true, encoding: .utf8)
     }
 }
 """)
-    subprocess.run(["xcrun", "swiftc", "-parse-as-library", str(generator), "-o", str(binary)], cwd=ROOT, check=True)
+    subprocess.run(["xcrun", "swiftc", "-parse-as-library", str(generator),
+                    str(support),
+                    str(ROOT / "mac/zshell/TerminalCommandNotificationResult.swift"),
+                    str(ROOT / "mac/zshell/TerminalNextCommandNotification.swift"),
+                    "-o", str(binary)], cwd=ROOT, check=True)
     script = temporary / "shim.zsh"
     subprocess.run([str(binary), str(script)], cwd=ROOT, check=True)
     subprocess.run(["/bin/zsh", "-n", str(script)], cwd=ROOT, check=True)
