@@ -16,6 +16,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         case browser = "zshell-browser-menu"
         case agents = "zshell-agents-menu"
         case notifications = "zshell-notifications-menu"
+        case bookmarkedCommands = "zshell-bookmarked-commands-menu"
     }
 
     static let shared = AppMenuController()
@@ -203,6 +204,8 @@ final class AppMenuController: NSObject, NSMenuDelegate {
                 TerminalOutputExportController.shared.canSave()
             }
         ) { TerminalOutputExportController.shared.save() }
+        let bookmarks = addMenu(to: terminal, identifier: .bookmarkedCommands, title: { String(localized: "Bookmarked Commands") })
+        bookmarks.delegate = TerminalCommandBookmarkController.shared
         terminal.addItem(.separator())
         _ = addMenu(to: terminal, identifier: .agents, title: { String(localized: "Agents") })
         managed(terminal, title: { String(localized: "Agent Context Draft") }, enabled: { $0.selectedProject != nil }) {

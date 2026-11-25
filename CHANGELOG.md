@@ -21,6 +21,8 @@ the original feature bullet instead of adding separate entries for them.
 - Collect terminal selections and command output in an editable, multiline
   agent context draft per project, then copy it and focus a local agent for
   manual review and paste without submitting terminal input.
+- Bookmark command blocks and return to their output from the Terminal menu
+  for the current session, including read-only panes and Quick Terminal.
 
 ## [0.1.18]
 

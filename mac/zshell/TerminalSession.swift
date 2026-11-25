@@ -25,6 +25,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     @Published var hasExited = false {
         didSet {
             if hasExited {
+                commandBookmarks.close()
                 cancelPromptQueueDispatch()
                 promptQueueBar.setPaneVisible(false)
                 AgentAutomationMonitor.shared.unregister(self)
@@ -33,6 +34,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     }
     @Published private(set) var commandLifecycle = TerminalCommandLifecycle()
     @Published private(set) var commandRecords: [TerminalCommandRecord] = []
+    var commandBookmarks = TerminalCommandBookmarks()
     @Published private(set) var terminalCellSize: CGSize?
     @Published private(set) var remoteStatus: RemoteRelayStatus?
     @Published private(set) var activeTerminalProfileID: UUID?
@@ -542,6 +544,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// real PTY and its startup files. Closing a pane still calls terminate().
     func prepareForApplicationQuit(preserve: Bool) {
         guard !isTerminating else { return }
+        commandBookmarks.close()
         cancelPromptQueueDispatch()
         promptQueueBar.setPaneVisible(false)
         AgentAutomationMonitor.shared.unregister(self)
@@ -567,6 +570,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// or been force-stopped. Detaching first can make a backend wait
     /// synchronously for a process that ignored SIGHUP.
     private func beginTeardown(processAlive: Bool, notifyExit: Bool) {
+        commandBookmarks.close()
         cancelPromptQueueDispatch()
         promptQueueBar.setPaneVisible(false)
         AgentAutomationMonitor.shared.unregister(self)
@@ -718,6 +722,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// Clears the emulator's visible screen and scrollback, then asks the
     /// foreground shell to repaint its prompt at the top.
     func clear() {
+        commandBookmarks.clear()
         surface.clearScreen()
     }
 
@@ -1594,6 +1599,7 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
             TerminalCommandHistoryStore.shared.observe(records, previous: commandRecords, terminalID: id)
         }
         commandRecords = records
+        commandBookmarks.reconcile(records)
     }
 
     func terminalDidClose(processAlive: Bool) {
