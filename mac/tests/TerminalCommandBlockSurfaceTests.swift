@@ -5,6 +5,12 @@ import GhosttyKit
 
 private enum CommandBlockFailure: Error { case failed(String) }
 
+@MainActor
+private final class CommandBlockApplication: NSApplication {
+    weak var fixtureWindow: NSWindow?
+    override var keyWindow: NSWindow? { fixtureWindow ?? super.keyWindow }
+}
+
 @main
 @MainActor
 struct TerminalCommandBlockSurfaceTests {
@@ -17,8 +23,21 @@ struct TerminalCommandBlockSurfaceTests {
 
     private static func run() throws {
         setbuf(stdout, nil)
-        _ = NSApplication.shared
-        NSApp.setActivationPolicy(.accessory)
+        let app = CommandBlockApplication.shared as! CommandBlockApplication
+        let gui = ProcessInfo.processInfo.environment["ZSHELL_TEST_COMMAND_BLOCK_GUI"] == "1"
+        let previousApplication = NSWorkspace.shared.frontmostApplication
+        if gui {
+            NSApp.setActivationPolicy(.regular)
+            NSApp.finishLaunching()
+        } else {
+            NSApp.setActivationPolicy(.prohibited)
+            QuickTerminalOffscreen.install()
+        }
+        defer {
+            if gui, let previousApplication, previousApplication.processIdentifier != getpid() {
+                previousApplication.activate(options: [])
+            }
+        }
         let root = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         backend = CommandLine.arguments[2]
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -54,6 +73,7 @@ struct TerminalCommandBlockSurfaceTests {
         settings.promptQueueAutoDispatch = false
         settings.copyOnSelect = false
         settings.notifyOnError = false
+        AppMenuController.shared.install()
         if backend == "ghostty" { try verifyGhosttyCommandCallbacks(directory: root.path) }
         let manager = TerminalManager()
         manager.projects.forEach { manager.close($0) }
@@ -74,6 +94,13 @@ struct TerminalCommandBlockSurfaceTests {
         surface.frame = window.contentView!.bounds
         surface.onBecomeFirstResponder = { [weak session] in session?.terminalDidBecomeFocused() }
         window.makeKeyAndOrderFront(nil)
+        if gui {
+            NSApp.activate(ignoringOtherApps: true)
+            try wait("fixture window receives native menu focus") { NSApp.keyWindow === window }
+        } else {
+            app.fixtureWindow = window
+            try check(QuickTerminalOffscreen.isSafe(), "native fixture stays offscreen without taking system focus")
+        }
         window.makeFirstResponder(surface)
         surface.setSurfaceVisible(true)
         let clipboard = NSPasteboard.general
@@ -95,6 +122,7 @@ struct TerminalCommandBlockSurfaceTests {
             pump(0.3)
             window.contentView = nil
             window.close()
+            app.fixtureWindow = nil
         }
         func visible() -> String { surface.readVisibleText(maxLines: 500, maxColumns: 2_000) ?? "" }
         func seedClipboard() {
@@ -110,8 +138,9 @@ struct TerminalCommandBlockSurfaceTests {
         func run(_ command: String) throws -> TerminalCommandRecord {
             try wait("empty shell accepts fixture command") { session.terminalPromptQueueIsReady }
             let existing = Set(session.commandRecords.map(\.id))
-            session.sendCommand(command, asPaste: true)
-            session.sendEnter()
+            let sent = session.sendCommand(command, asPaste: true)
+            let entered = session.sendEnter()
+            try check(sent && entered, "fixture command is accepted by the terminal input gate")
             try wait("command finishes with semantic metadata") {
                 session.terminalPromptQueueIsReady
                     && session.commandRecords.contains {
@@ -189,13 +218,33 @@ struct TerminalCommandBlockSurfaceTests {
             try wait("zsh reports its actual edit buffer") { FileManager.default.fileExists(atPath: draft.path) }
             return try String(contentsOf: draft, encoding: .utf8)
         }
+        func bookmarksMenu() throws -> NSMenu {
+            AppMenuController.shared.refresh()
+            guard let main = NSApp.mainMenu, let menu = AppMenuController.submenu(.bookmarkedCommands, in: main) else {
+                throw CommandBlockFailure.failed("bookmarks submenu missing")
+            }
+            menu.delegate?.menuNeedsUpdate?(menu)
+            return menu
+        }
+        func bookmarkAction(_ identifier: String, for record: TerminalCommandRecord, in menu: NSMenu) throws -> NSMenuItem {
+            guard
+                let actions = menu.items.first(where: {
+                    $0.identifier?.rawValue == "zshell-command-bookmark-" + record.id.uuidString
+                })?.submenu
+            else { throw CommandBlockFailure.failed("bookmarked command missing") }
+            return try item(identifier, in: actions)
+        }
 
         try wait("native zsh reaches ready empty prompt") { session.isShellAvailableForAutomation && session.terminalPromptQueueIsReady }
         let keyboard = TerminalContextMenu.make(for: surface, linkTarget: nil)
         try check(
             keyboard.items.prefix(3).map(\.title) == ["Copy", "Paste", "Select All"]
-                && !keyboard.items.contains { $0.identifier?.rawValue == "zshell-copy-command" },
+                && !keyboard.items.contains { $0.identifier?.rawValue == "zshell-copy-command" }
+                && !keyboard.items.contains { $0.identifier?.rawValue == "zshell-toggle-command-bookmark" },
             "keyboard menu retains general actions without guessing the last block")
+        try check(
+            try bookmarksMenu().items.map(\.title) == [String(localized: "No Bookmarks")],
+            "a new terminal shows an empty bookmark list")
         let initial = try event(row: 0)
         try check(
             surface.commandLocation(for: initial) == nil
@@ -206,6 +255,30 @@ struct TerminalCommandBlockSurfaceTests {
         let first = try run("printf 'FIRST_你好 👩🏽‍💻\\nSECOND_終わり\\n'")
         let second = try run("printf 'ADJACENT_BLOCK\\n'")
         let firstMenu = try menu(for: first)
+        let firstBookmark = try item("zshell-toggle-command-bookmark", in: firstMenu)
+        try invoke(firstBookmark)
+        try check(
+            session.commandBookmarks.entries == [TerminalCommandBookmark(record: first)!]
+                && firstBookmark.title == String(localized: "Remove Bookmark"),
+            "right-click bookmarks the clicked block while history recording is disabled")
+        let secondBookmark = try item("zshell-toggle-command-bookmark", in: menu(for: second))
+        try invoke(secondBookmark)
+        let bookmarked = try bookmarksMenu()
+        try check(
+            bookmarked.items.compactMap(\.identifier).map(\.rawValue).prefix(2)
+                == ["zshell-command-bookmark-" + second.id.uuidString, "zshell-command-bookmark-" + first.id.uuidString],
+            "the Terminal menu lists adjacent bookmarks independently, newest first")
+        let firstReveal = try bookmarkAction("zshell-reveal-command-bookmark", for: first, in: bookmarked)
+        try check(validate(firstReveal), "a live bookmark can reveal its own output")
+        surface.scroll(toFraction: 1)
+        try invoke(firstReveal)
+        pump(0.1)
+        try hit("FIRST_你好", in: first)
+        let secondRemove = try bookmarkAction("zshell-remove-command-bookmark", for: second, in: bookmarked)
+        try invoke(secondRemove)
+        try check(
+            session.commandBookmarks.entries == [TerminalCommandBookmark(record: first)!],
+            "removing one bookmark preserves its adjacent bookmark")
         try hit("FIRST_你好", in: first)
         try hit("SECOND_終わり", in: first)
         try hit("ADJACENT_BLOCK", in: second)
@@ -258,6 +331,9 @@ struct TerminalCommandBlockSurfaceTests {
         let longText = String(repeating: "長é", count: 170)
         let long = try run("printf '%s\\n' '" + longText + "'")
         let longMenu = try menu(for: long)
+        let longBookmark = try item("zshell-toggle-command-bookmark", in: longMenu)
+        try invoke(longBookmark)
+        let longReveal = try bookmarkAction("zshell-reveal-command-bookmark", for: long, in: bookmarksMenu())
         try invoke(try item("zshell-copy-command-output", in: longMenu))
         try check(
             (clipboard.string(forType: .string) ?? "").contains(longText), "soft-wrapped long Unicode output copies as one logical line")
@@ -265,6 +341,15 @@ struct TerminalCommandBlockSurfaceTests {
         pump(0.2)
         try invoke(try item("zshell-copy-command", in: longMenu))
         try check(clipboard.string(forType: .string) == long.command, "an open menu token survives resize and reflow")
+        surface.scroll(toFraction: 1)
+        try invoke(longReveal)
+        pump(0.1)
+        try check(
+            surface.commandText(at: long.outputLocation!, part: .output)?.contains(longText) == true
+                && session.commandBookmarks.contains(TerminalCommandBookmark(record: long)!)
+                && validate(longReveal),
+            "a bookmarked long Unicode block resolves through native reflow")
+        try hit("長é", in: long)
         window.setContentSize(NSSize(width: 900, height: 520))
         pump(0.1)
 
@@ -278,6 +363,15 @@ struct TerminalCommandBlockSurfaceTests {
                     && item("zshell-select-command-output", in: localized).title == String(localized: "Select Command Output")
                     && item("zshell-insert-command", in: localized).title == String(localized: "Insert at Prompt"),
                 "\(language.rawValue) command-block menu uses the compiled translations")
+            let localizedBookmark = try item("zshell-toggle-command-bookmark", in: localized)
+            let navigation = try bookmarksMenu()
+            try check(
+                localizedBookmark.title == String(localized: "Bookmark Command")
+                    && navigation.title == String(localized: "Bookmarked Commands")
+                    && item("zshell-clear-command-bookmarks", in: navigation).title == String(localized: "Clear Bookmarks")
+                    && bookmarkAction("zshell-remove-command-bookmark", for: first, in: navigation).title
+                        == String(localized: "Remove Bookmark"),
+                "\(language.rawValue) bookmark menus use the compiled translations")
         }
         AppLocalization.apply(.english)
         let insertMenu = try menu(for: multiline)
@@ -306,6 +400,7 @@ struct TerminalCommandBlockSurfaceTests {
         }
         let streaming = session.commandRecords.first { !existing.contains($0.id) }!
         let streamMenu = try menu(for: streaming)
+        try invoke(try item("zshell-toggle-command-bookmark", in: streamMenu))
         let streamOutput = try item("zshell-copy-command-output", in: streamMenu)
         try check(!validate(insert), "a foreground command disables retained insertion")
         try check(
@@ -318,12 +413,24 @@ struct TerminalCommandBlockSurfaceTests {
             "a retained menu reads current output from its original block")
         try invoke(firstCommand)
         try check(clipboard.string(forType: .string) == first.command, "later output does not retarget an earlier menu")
+        try invoke(firstBookmark)
+        try check(
+            !session.commandBookmarks.contains(TerminalCommandBookmark(record: first)!)
+                && session.commandBookmarks.contains(TerminalCommandBookmark(record: streaming)!),
+            "later output never retargets a retained bookmark menu")
+        try invoke(firstBookmark)
 
         session.sendCommand("printf '\\033[?1049hALTERNATE_READY'; /bin/sleep 0.6; printf '\\033[?1049l'", asPaste: true)
         session.sendEnter()
         try wait("fixture enters alternate screen") { visible().contains("ALTERNATE_READY") }
         seedClipboard()
         try check(!validate(firstCommand), "alternate screen invalidates retained block actions")
+        try check(!validate(firstReveal) && !validate(firstBookmark), "alternate screen disables retained bookmark navigation and toggles")
+        let bookmarkCount = session.commandBookmarks.entries.count
+        try invoke(firstBookmark)
+        try check(
+            session.commandBookmarks.entries.count == bookmarkCount, "alternate-screen bookmark action preserves its original session state"
+        )
         try invoke(firstCommand)
         try check(clipboard.string(forType: .string) == "COMMAND_BLOCK_SENTINEL", "alternate screen never copies an old shell block")
         let alternateMenu = surface.menu(for: try event(row: 0))
@@ -331,9 +438,21 @@ struct TerminalCommandBlockSurfaceTests {
             alternateMenu?.items.contains { $0.identifier?.rawValue == "zshell-copy-command" } == false,
             "alternate-screen right-click has no shell block actions")
         try wait("fixture returns from alternate screen") { session.terminalPromptQueueIsReady }
+        try check(validate(firstReveal), "the original bookmark becomes navigable after returning to the main buffer")
 
         _ = try run("for item in {1..11000}; do printf 'CLIP_%s\\n' \"$item\"; done")
         try check(!validate(firstCommand), "scrollback clipping invalidates the original opaque token")
+        try check(
+            !validate(firstReveal) && !validate(firstBookmark), "clipped bookmark tokens cannot reveal or bookmark a replacement block")
+        let beforeClippedAction = session.commandBookmarks.entries
+        try invoke(firstReveal)
+        try invoke(firstBookmark)
+        try check(session.commandBookmarks.entries == beforeClippedAction, "expired menu actions do not change bookmark identities")
+        let removeExpired = try bookmarkAction("zshell-remove-command-bookmark", for: first, in: bookmarksMenu())
+        try check(validate(removeExpired), "a clipped bookmark remains removable")
+        try invoke(removeExpired)
+        try check(
+            !session.commandBookmarks.contains(TerminalCommandBookmark(record: first)!), "removing expired output retires its bookmark")
         seedClipboard()
         try invoke(firstCommand)
         try check(clipboard.string(forType: .string) == "COMMAND_BLOCK_SENTINEL", "a clipped menu never copies a replacement block")
@@ -384,13 +503,190 @@ struct TerminalCommandBlockSurfaceTests {
         let final = try run("printf 'FINAL_BLOCK\\n'")
         let finalMenu = try menu(for: final)
         let finalCopy = try item("zshell-copy-command", in: finalMenu)
+        let finalBookmark = try item("zshell-toggle-command-bookmark", in: finalMenu)
+        surface.isReadOnly = true
+        try check(validate(finalBookmark), "read-only panes allow bookmarking")
+        try invoke(finalBookmark)
+        let finalReveal = try bookmarkAction("zshell-reveal-command-bookmark", for: final, in: bookmarksMenu())
+        surface.scroll(toFraction: 0)
+        try invoke(finalReveal)
+        pump(0.1)
+        try hit("FINAL_BLOCK", in: final)
+        try check(surface.isReadOnly && validate(finalReveal), "read-only panes allow bookmark navigation without unlocking")
+        let clearBookmarks = try item("zshell-clear-command-bookmarks", in: bookmarksMenu())
+        try invoke(clearBookmarks)
+        try check(
+            session.commandBookmarks.entries.isEmpty && surface.commandRegion(at: final.outputLocation!) != nil,
+            "Clear Bookmarks leaves the terminal output intact")
+        try invoke(finalBookmark)
+        try quickTerminalChecks(app: app, gui: gui, mainWindow: window, mainSession: session)
         session.clear()
         pump(0.2)
         seedClipboard()
         try check(!validate(finalCopy), "clearing scrollback disables an open menu token")
+        try check(
+            session.commandBookmarks.entries.isEmpty && !validate(finalReveal) && !validate(finalBookmark)
+                && surface.commandRegion(at: final.outputLocation!) == nil,
+            "read-only clear removes output and bookmarks without a stale target")
+        try invoke(finalBookmark)
+        try check(session.commandBookmarks.entries.isEmpty, "a retained clear-time menu cannot resurrect a bookmark")
         try invoke(finalCopy)
         try check(clipboard.string(forType: .string) == "COMMAND_BLOCK_SENTINEL", "cleared output cannot copy a different command")
+        surface.isReadOnly = false
+        try check(try dumpDraft().isEmpty, "read-only clear preserves the shell's empty input buffer")
+        let newSession = TerminalSession(initialDirectory: root.path, allowsPersistence: false)
+        try check(newSession.commandBookmarks.entries.isEmpty, "new panes do not inherit the current terminal's bookmarks")
+        newSession.terminate()
+        session.terminate()
+        try check(
+            session.commandBookmarks.isClosed && session.commandBookmarks.entries.isEmpty
+                && !validate(finalBookmark) && !validate(finalReveal),
+            "close clears bookmarks before asynchronous terminal teardown")
+        try invoke(finalBookmark)
+        try check(session.commandBookmarks.entries.isEmpty, "closed-terminal menu cannot add a bookmark to a new pane")
         print("Command block \(backend) surfaces: \(checks) checks passed")
+    }
+
+    private static func quickTerminalChecks(app: CommandBlockApplication, gui: Bool, mainWindow: NSWindow, mainSession: TerminalSession)
+        throws
+    {
+        let overlay = GlobalTerminalOverlay.shared
+        AppSettings.shared.quickTerminalEnabled = true
+        AppSettings.shared.quickTerminalMode = .reuse
+        defer {
+            overlay.stop()
+            AppSettings.shared.quickTerminalEnabled = false
+            mainWindow.makeKeyAndOrderFront(nil)
+            mainWindow.makeFirstResponder(mainSession.surface)
+            if !gui { app.fixtureWindow = mainWindow }
+        }
+        overlay.toggle()
+        try wait("Quick Terminal creates an independent native surface") {
+            overlay.workspace?.sessions.first?.surface.window?.isVisible == true
+        }
+        guard let quick = overlay.workspace?.sessions.first, let panel = quick.surface.window else {
+            throw CommandBlockFailure.failed("Quick Terminal fixture missing")
+        }
+        let surface = quick.surface
+        if !gui { app.fixtureWindow = panel }
+        panel.makeFirstResponder(surface)
+        try check(
+            surface !== mainSession.surface && quick.commandBookmarks.entries.isEmpty,
+            "Quick Terminal starts with a separate empty bookmark list")
+        func run(_ command: String) throws -> TerminalCommandRecord {
+            try wait("Quick Terminal reaches an empty native zsh prompt") { quick.terminalPromptQueueIsReady }
+            let previous = Set(quick.commandRecords.map(\.id))
+            quick.sendCommand(command, asPaste: true)
+            quick.sendEnter()
+            try wait("Quick Terminal command finishes with semantic metadata") {
+                quick.terminalPromptQueueIsReady && quick.commandRecords.contains { !previous.contains($0.id) && $0.finishedAt != nil }
+            }
+            return quick.commandRecords.first { !previous.contains($0.id) }!
+        }
+        func invoke(_ item: NSMenuItem) throws {
+            guard let action = item.action else { throw CommandBlockFailure.failed("Quick Terminal bookmark action missing") }
+            try check(NSApp.sendAction(action, to: item.target, from: item), "Quick Terminal native bookmark action dispatches")
+        }
+        func validate(_ item: NSMenuItem) -> Bool { (item.target as? NSMenuItemValidation)?.validateMenuItem(item) ?? false }
+        func menu() throws -> NSMenu {
+            AppMenuController.shared.refresh()
+            guard let main = NSApp.mainMenu, let menu = AppMenuController.submenu(.bookmarkedCommands, in: main) else {
+                throw CommandBlockFailure.failed("Quick Terminal bookmarks menu missing")
+            }
+            menu.delegate?.menuNeedsUpdate?(menu)
+            return menu
+        }
+        let record = try run("printf 'QUICK_BOOKMARK_你好\\n'")
+        guard let location = record.outputLocation else { throw CommandBlockFailure.failed("Quick Terminal command token missing") }
+        try check(surface.revealCommand(at: location), "Quick Terminal resolves its native command token")
+        pump(0.1)
+        guard let snapshot = surface.readVisibleSnapshot(),
+            let row = snapshot.rows.firstIndex(where: { $0.text.contains("QUICK_BOOKMARK_你好") })
+        else { throw CommandBlockFailure.failed("Quick Terminal command row missing") }
+        let top = snapshot.origin.y + (CGFloat(row) + 0.5) * snapshot.cellSize.height
+        let point = NSPoint(
+            x: snapshot.origin.x + 2.25 * snapshot.cellSize.width,
+            y: surface.isFlipped ? top : surface.bounds.height - top)
+        let click = NSEvent.mouseEvent(
+            with: .rightMouseDown, location: surface.convert(point, to: nil), modifierFlags: [],
+            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: panel.windowNumber,
+            context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
+        guard let context = surface.menu(for: click),
+            let toggle = context.items.first(where: { $0.identifier?.rawValue == "zshell-toggle-command-bookmark" })
+        else { throw CommandBlockFailure.failed("Quick Terminal right-click bookmark missing") }
+        try check(surface.commandLocation(for: click) == location, "Quick Terminal right-click hits its exact command block")
+        surface.isReadOnly = true
+        try invoke(toggle)
+        try check(
+            quick.commandBookmarks.entries == [TerminalCommandBookmark(record: record)!],
+            "Quick Terminal read-only right-click adds its own bookmark")
+        let navigation = try menu()
+        try check(
+            navigation.items.compactMap(\.submenu).count == 1
+                && navigation.items.first?.identifier?.rawValue == "zshell-command-bookmark-" + record.id.uuidString,
+            "the Terminal menu lists only the focused Quick Terminal's bookmarks")
+        guard
+            let reveal = navigation.items.first?.submenu?.items.first(where: { $0.identifier?.rawValue == "zshell-reveal-command-bookmark" }
+            ),
+            let clear = navigation.items.first(where: { $0.identifier?.rawValue == "zshell-clear-command-bookmarks" })
+        else { throw CommandBlockFailure.failed("Quick Terminal navigation action missing") }
+        surface.isReadOnly = false
+        _ = try run("for item in {1..160}; do printf 'QUICK_FILL_%s\\n' \"$item\"; done")
+        surface.isReadOnly = true
+        try check(validate(reveal), "Quick Terminal retains a navigable bookmark after later output")
+        overlay.toggle()
+        mainWindow.makeKeyAndOrderFront(nil)
+        mainWindow.makeFirstResponder(mainSession.surface)
+        if !gui { app.fixtureWindow = mainWindow }
+        pump(0.1)
+        try check(
+            !panel.isVisible && quick.commandBookmarks.entries.count == 1, "hiding reusable Quick Terminal keeps its session-local bookmark"
+        )
+        let mainBookmarks = mainSession.commandBookmarks.entries
+        let mainMenu = try menu()
+        try check(
+            !mainMenu.items.contains { $0.identifier?.rawValue == "zshell-command-bookmark-" + record.id.uuidString },
+            "the main terminal menu excludes hidden Quick Terminal bookmarks")
+        try invoke(reveal)
+        pump(0.3)
+        if !gui { app.fixtureWindow = panel }
+        let quickMatch = surface.readVisibleText(maxLines: 500, maxColumns: 2_000)?.contains("QUICK_BOOKMARK_你好") == true
+        if !panel.isVisible || overlay.focusedPromptQueueSession !== quick || !quickMatch {
+            print(
+                "DIAGNOSTIC Quick reveal visible=\(panel.isVisible) focused=\(overlay.focusedPromptQueueSession === quick) valid=\(validate(reveal)) token=\(surface.commandRegion(at: location) != nil) match=\(quickMatch)"
+            )
+        }
+        try check(
+            panel.isVisible && overlay.focusedPromptQueueSession === quick
+                && surface.readVisibleText(maxLines: 500, maxColumns: 2_000)?.contains("QUICK_BOOKMARK_你好") == true,
+            "a retained bookmark reveals hidden Quick Terminal at the original block after reparenting")
+        try check(surface.isReadOnly, "Quick Terminal bookmark navigation preserves read-only state")
+        overlay.toggle()
+        mainWindow.makeKeyAndOrderFront(nil)
+        mainWindow.makeFirstResponder(mainSession.surface)
+        if !gui { app.fixtureWindow = mainWindow }
+        try invoke(clear)
+        try check(
+            quick.commandBookmarks.entries.isEmpty && mainSession.commandBookmarks.entries == mainBookmarks,
+            "a retained Quick Terminal clear action never clears the newly focused main session")
+        try check(!validate(reveal), "removing a Quick Terminal bookmark disables its retained navigation")
+        try invoke(toggle)
+        try check(quick.commandBookmarks.entries.count == 1, "a retained Quick Terminal toggle still targets its hidden original session")
+        surface.isReadOnly = false
+        _ = try run("printf '\\033cRESET_BOOKMARK_BUFFER\\n'")
+        try check(
+            quick.commandBookmarks.entries.isEmpty && !validate(toggle) && surface.commandRegion(at: location) == nil,
+            "native reset clears bookmarks and invalidates the original token")
+        let postReset = try run("printf 'POST_RESET_BOOKMARK\\n'")
+        guard let postResetLocation = postReset.outputLocation,
+            let postResetToggle = TerminalCommandBookmarkController.shared.menuItem(for: surface, location: postResetLocation)
+        else { throw CommandBlockFailure.failed("post-reset bookmark missing") }
+        try invoke(postResetToggle)
+        try check(quick.commandBookmarks.entries.count == 1, "a new command after native reset creates an independent bookmark")
+        quick.terminate()
+        try check(
+            quick.commandBookmarks.isClosed && quick.commandBookmarks.entries.isEmpty && !validate(postResetToggle),
+            "closing a bookmarked Quick Terminal clears its store before teardown")
     }
 
     private static func verifyGhosttyCommandCallbacks(directory: String) throws {

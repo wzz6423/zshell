@@ -55,6 +55,9 @@ enum TerminalContextMenu {
             menu.addItem(.separator())
             TerminalCommandBlockMenuTarget(surface: surface, location: location).items().forEach(menu.addItem)
             menu.addItem(AgentContextDraftMenuTarget.item(for: surface, location: location))
+            if let bookmark = TerminalCommandBookmarkController.shared.menuItem(for: surface, location: location) {
+                menu.addItem(bookmark)
+            }
         }
         menu.addItem(.separator())
         menu.addItem(surface.commandRouting.contextMenuItem())
