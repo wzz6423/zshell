@@ -26,8 +26,8 @@ final class TerminalSharingPreviewController: NSObject, NSWindowDelegate, NSText
     private var restoresFocus = true
     nonisolated private enum Failure: Sendable { case read, tooLarge }
 
-    init(exporter: TerminalOutputExportController = .shared) {
-        self.exporter = exporter
+    init(exporter: TerminalOutputExportController? = nil) {
+        self.exporter = exporter ?? .shared
         super.init()
     }
 
@@ -79,7 +79,7 @@ final class TerminalSharingPreviewController: NSObject, NSWindowDelegate, NSText
             NotificationCenter.default.addObserver(forName: name, object: name == NSWindow.willCloseNotification ? host : nil, queue: .main)
             {
                 [weak self] _ in
-                assumeMainActor {
+                assumeMainActor { [weak self] in
                     if name == AppLocalization.didChange { self?.localize() } else { self?.close(restoreFocus: false) }
                 }
             }
