@@ -1129,6 +1129,16 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         return String(cString: text)
     }
 
+    func commandText(at location: TerminalCommandOutputLocation, part: TerminalCommandTextPart, maxBytes: Int) -> String? {
+        guard maxBytes > 0, maxBytes < .max, commandRecordState.owns(location), let handle,
+            let text = zshell_alacritty_command_text(handle, location.blockID, part.nativeValue)
+        else { return nil }
+        defer { zshell_alacritty_string_free(text) }
+        let count = strnlen(text, maxBytes + 1)
+        guard count <= maxBytes else { return nil }
+        return String(decoding: UnsafeRawBufferPointer(start: text, count: count), as: UTF8.self)
+    }
+
     @discardableResult
     func revealCommand(at location: TerminalCommandOutputLocation) -> Bool {
         guard commandRecordState.owns(location), let handle,
@@ -2421,10 +2431,12 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         finishPointerSelection(with: event, copyOnSelect: false)
     }
 
-    private func selectedText() -> String? {
+    func readSelectedText(maxBytes: Int) -> String? { selectedText(maxBytes: maxBytes) }
+
+    private func selectedText(maxBytes: Int = .max) -> String? {
         guard let handle else { return nil }
         let required = zshell_alacritty_selection_text(handle, nil, 0)
-        guard required > 0 else { return nil }
+        guard required > 0, required <= maxBytes else { return nil }
         var bytes = [UInt8](repeating: 0, count: required)
         let written = bytes.withUnsafeMutableBufferPointer { buffer in
             zshell_alacritty_selection_text(handle, buffer.baseAddress, buffer.count)

@@ -17,6 +17,7 @@ import WebKit
 final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     nonisolated let id = UUID()
     var conversationHistoryProjectID = UUID()
+    let agentContextDraft = AgentContextDraft()
 
     @Published private(set) var location: ProjectLocation
 

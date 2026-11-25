@@ -195,10 +195,12 @@ protocol TerminalBackendSurface: NSView {
 
     /// Whether anything is selected in the grid.
     var hasSelection: Bool { get }
+    func readSelectedText(maxBytes: Int) -> String?
 
     var commandRecords: [TerminalCommandRecord] { get }
     func commandRegion(at location: TerminalCommandOutputLocation) -> TerminalCommandRegion?
     func commandText(at location: TerminalCommandOutputLocation, part: TerminalCommandTextPart) -> String?
+    func commandText(at location: TerminalCommandOutputLocation, part: TerminalCommandTextPart, maxBytes: Int) -> String?
     @discardableResult func revealCommand(at location: TerminalCommandOutputLocation) -> Bool
     @discardableResult func selectCommand(at location: TerminalCommandOutputLocation) -> Bool
     func commandLocation(for event: NSEvent?) -> TerminalCommandOutputLocation?
@@ -304,6 +306,12 @@ protocol TerminalBackendSurface: NSView {
 }
 
 extension TerminalBackendSurface {
+    func readSelectedText(maxBytes: Int) -> String? { nil }
+    func readSelectedText() -> String? { readSelectedText(maxBytes: 262_144) }
+    func commandText(at location: TerminalCommandOutputLocation, part: TerminalCommandTextPart, maxBytes: Int) -> String? {
+        guard maxBytes > 0, let text = commandText(at: location, part: part), text.utf8.count <= maxBytes else { return nil }
+        return text
+    }
     var logContentRevision: UInt64 { 0 }
     var findMatchesNewestFirst: Bool { false }
     func revealLogMatch(needle: String, occurrence: Int, total: Int) -> Bool? { nil }

@@ -66,6 +66,15 @@
             surface?.readSelection()
         }
 
+        public func readSelectionText(maxBytes: Int) -> String? {
+            guard maxBytes > 0, let raw = surface?.rawValue else { return nil }
+            var result = ghostty_text_s()
+            guard ghostty_surface_read_selection(raw, &result) else { return nil }
+            defer { ghostty_surface_free_text(raw, &result) }
+            guard let text = result.text, result.text_len <= maxBytes else { return nil }
+            return String(decoding: UnsafeRawBufferPointer(start: text, count: Int(result.text_len)), as: UTF8.self)
+        }
+
         /// True when the application running in the terminal owns mouse input.
         public var isMouseCaptured: Bool {
             surface?.isMouseCaptured ?? false

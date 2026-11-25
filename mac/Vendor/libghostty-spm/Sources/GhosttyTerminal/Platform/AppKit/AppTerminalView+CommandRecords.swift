@@ -40,11 +40,12 @@
                 output: position(result.output), end: position(result.end))
         }
 
-        public func semanticCommandText(id: UInt64, part: UInt8) -> String? {
+        public func semanticCommandText(id: UInt64, part: UInt8, maxBytes: Int = .max) -> String? {
             guard let raw = surface?.rawValue else { return nil }
             var result = ghostty_text_s()
             guard ghostty_surface_command_text(raw, id, part, &result), let text = result.text else { return nil }
             defer { ghostty_surface_free_text(raw, &result) }
+            guard maxBytes > 0, result.text_len <= maxBytes else { return nil }
             return String(decoding: UnsafeRawBufferPointer(start: text, count: Int(result.text_len)), as: UTF8.self)
         }
 

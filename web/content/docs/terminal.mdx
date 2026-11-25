@@ -101,6 +101,26 @@ In **Settings → Terminal → Input → Right-click action**, choose **Context 
 
 When shell integration identifies the block you right-click, the menu offers **Copy Command**, **Copy Output**, **Copy Command Block** (visible prompt, command, and output), and **Select Command Output**. **Insert at Prompt** fills a ready, empty native zsh prompt with the command for editing; press Enter yourself to run it. Empty output disables output actions. These actions use the clicked block in both backends; the keyboard menu keeps the general terminal actions.
 
+## Agent context draft [#agent-context-draft]
+
+Select terminal text and choose **Add Selection to Agent Draft** from the context
+menu, or right-click a command block and choose **Add Output to Agent Draft**.
+Each source appends its original multiline text to the current project's draft.
+Edit the text in the native draft window. **Terminal → Agent Context Draft**
+reopens it; closing the window or pressing Escape keeps the draft.
+
+Choose an active local agent from the same project, use **Copy Draft**, then
+**Focus Agent** to review the agent's current input and paste manually. Copy and
+focus never write to the terminal or press Enter. The draft keeps its source project
+and chosen agent even if you switch projects while editing. An agent that exits,
+changes conversation, or moves to another project cannot be focused by the old
+selection; choose an active agent again. Copy remains available without a target.
+
+Drafts stay in memory until the project closes or Zshell exits. Each draft holds
+at most 256 KiB of text and 64 source references; larger additions fail and keep
+the existing text. Both terminal backends support selection and command output
+capture. Remote agents are not listed.
+
 ## Terminal profiles
 
 **Apply terminal profiles automatically** is on by default (`terminal.auto-profiles = true`). Turn it off to stop automatic matching; manual profile selection remains available.
