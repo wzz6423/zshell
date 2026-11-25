@@ -27,7 +27,7 @@ func processWorkingDirectory(pid: pid_t) -> String? {
 /// Absolute executable path for a live process. Agent recognition intentionally
 /// uses the kernel-reported image rather than tab titles or shell command text,
 /// both of which are user-controlled terminal output.
-func processExecutablePath(pid: pid_t) -> String? {
+nonisolated func processExecutablePath(pid: pid_t) -> String? {
     guard pid > 0 else { return nil }
     // PROC_PIDPATHINFO_MAXSIZE is a C arithmetic macro Swift does not import;
     // Darwin defines it as four MAXPATHLEN buffers (4096 bytes).
@@ -57,7 +57,7 @@ func processEffectiveUser(pid: pid_t) -> String? {
 /// `processExecutablePath(pid:)` for script-backed CLIs: macOS reports `node`
 /// or `python` as their executable image, while argv still identifies the
 /// script the shell actually launched.
-func processArguments(pid: pid_t) -> [String]? {
+nonisolated func processArguments(pid: pid_t) -> [String]? {
     guard pid > 0 else { return nil }
     var name = [Int32(CTL_KERN), Int32(KERN_PROCARGS2), pid]
     var size = 0

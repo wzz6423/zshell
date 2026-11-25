@@ -127,6 +127,7 @@ final class PaneHeaderNSView: NSView {
 private final class PaneHeaderTitleNSView: NSView {
     private let iconView = NSImageView()
     private let titleLabel = NSTextField(labelWithString: "")
+    private let notificationIndicator = NSImageView()
     private let badge = AgentStatusBadgeView(frame: .zero)
     private var isDirty = false
     private var badgeWidth: CGFloat = 0
@@ -152,7 +153,11 @@ private final class PaneHeaderTitleNSView: NSView {
         iconView.imageScaling = .scaleProportionallyDown
         iconView.setAccessibilityElement(false)
         badge.translatesAutoresizingMaskIntoConstraints = true
-        for view in [iconView, titleLabel, badge] { addSubview(view) }
+        notificationIndicator.identifier = .init("terminal-next-command-notification-indicator")
+        notificationIndicator.imageScaling = .scaleProportionallyDown
+        notificationIndicator.contentTintColor = .secondaryLabelColor
+        notificationIndicator.setAccessibilityElement(false)
+        for view in [iconView, titleLabel, notificationIndicator, badge] { addSubview(view) }
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
     }
@@ -183,6 +188,16 @@ private final class PaneHeaderTitleNSView: NSView {
             badgeWidth = 0
         }
         badge.isHidden = rollup == nil
+        let notificationArmed: Bool
+        if case .session(let session) = content {
+            notificationArmed = session.nextCommandNotification != nil
+        } else {
+            notificationArmed = false
+        }
+        notificationIndicator.isHidden = !notificationArmed
+        notificationIndicator.image = NSImage(systemSymbolName: "bell.fill", accessibilityDescription: nil)?
+            .withSymbolConfiguration(.init(pointSize: 10, weight: .medium))
+        notificationIndicator.toolTip = String(localized: "Next command notification is armed")
         isDirty = content.isDirty
         toolTip = content.fileIconPath
         if case .browser(let browser) = content { toolTip = browser.urlString }
@@ -191,6 +206,7 @@ private final class PaneHeaderTitleNSView: NSView {
             [
                 isFocused ? String(localized: "Selected") : nil,
                 isDirty ? String(localized: "Modified") : nil,
+                notificationArmed ? String(localized: "Next command notification is armed") : nil,
                 rollup.map { $0.phase.statusDescription + "\n" + $0.detail },
             ].compactMap { $0 }.joined(separator: ", "))
         needsLayout = true
@@ -200,12 +216,14 @@ private final class PaneHeaderTitleNSView: NSView {
     override func layout() {
         super.layout()
         iconView.frame = NSRect(x: 0, y: (bounds.height - 13) / 2, width: 13, height: 13)
-        let available = max(0, bounds.width - 19)
+        let notificationWidth: CGFloat = notificationIndicator.isHidden ? 0 : 18
+        notificationIndicator.frame = NSRect(x: 19, y: (bounds.height - 13) / 2, width: 12, height: 13)
+        let available = max(0, bounds.width - 19 - notificationWidth)
         let visibleBadgeWidth = min(badgeWidth, max(0, available - (isDirty ? 11 : 0)))
         badge.isHidden = visibleBadgeWidth == 0
         let titleWidth = max(0, available - (visibleBadgeWidth > 0 ? visibleBadgeWidth + 6 : 0) - (isDirty ? 11 : 0))
         let height = ceil((titleLabel.font?.ascender ?? 12) - (titleLabel.font?.descender ?? -3)) + 2
-        titleLabel.frame = NSRect(x: 19, y: (bounds.height - height) / 2, width: titleWidth, height: height)
+        titleLabel.frame = NSRect(x: 19 + notificationWidth, y: (bounds.height - height) / 2, width: titleWidth, height: height)
         badge.frame = NSRect(
             x: titleLabel.frame.maxX + 6, y: (bounds.height - 15) / 2,
             width: visibleBadgeWidth, height: 15)

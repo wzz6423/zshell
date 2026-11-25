@@ -198,6 +198,9 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         let readOnly = TerminalReadOnlyController.shared.menuItem()
         terminal.addItem(readOnly)
         titleUpdates.append { readOnly.title = String(localized: "Read Only") }
+        let nextCommandNotification = TerminalNextCommandNotificationController.shared.menuItem()
+        terminal.addItem(nextCommandNotification)
+        titleUpdates.append { TerminalNextCommandNotificationController.shared.refresh(nextCommandNotification) }
         command(
             terminal, title: { String(localized: "Save Terminal Output…") },
             enabled: {

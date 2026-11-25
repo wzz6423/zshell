@@ -101,7 +101,7 @@ struct PersistentCLIConnection: Codable {
         }
     }
 
-    static func readPrivate(_ url: URL, maximumBytes: Int = PTYMuxConstants.maximumFrameBytes) throws -> Data {
+    nonisolated static func readPrivate(_ url: URL, maximumBytes: Int = PTYMuxConstants.maximumFrameBytes) throws -> Data {
         let descriptor = Darwin.open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
         guard descriptor >= 0 else { throw PTYMuxWire.errnoError("open") }
         defer { Darwin.close(descriptor) }

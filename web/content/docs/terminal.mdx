@@ -335,6 +335,21 @@ notification permission is disabled.
 
 ### Command completion
 
+Choose **Terminal → Notify When Next Command Finishes** or the same action in
+the terminal context menu to request one completion notification. The pane's
+header shows a bell while it is armed. **Cancel Next Command Notification**
+cancels it before or during the command.
+
+The reminder follows the next command that starts in this pane's original local
+zsh. Arming it while a command, nested shell, or SSH program is running leaves
+that current command alone and waits for the following original-shell command.
+It works with either terminal backend and can be armed or cancelled in a read-only
+pane. Closing the pane or quitting Zshell discards it.
+
+This one-time reminder works even when automatic command notifications are off.
+If the command also qualifies for an automatic notification, Zshell records and
+delivers it once. It uses the same notification history, sound, and pane routing.
+
 Open **Settings → Terminal → Notifications** to have Zshell notify you
 when a command finishes:
 
