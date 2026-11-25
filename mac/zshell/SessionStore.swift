@@ -288,6 +288,7 @@ struct SessionSnapshot: Codable {
         /// Fixed projects stay before regular projects. Older snapshots omit
         /// this field and decode as unpinned.
         var isPinned = false
+        var notificationsMuted = false
         /// Opaque sRGB marker color; optional for pre-color snapshots.
         var markerColorHex: String?
         /// User-pinned project directory; nil when the directory is
@@ -310,13 +311,15 @@ struct SessionSnapshot: Codable {
         var selectedTabIndex: Int?
 
         enum CodingKeys: String, CodingKey {
-            case customName, isPinned, markerColorHex, customDirectory, groupID, conversationHistoryProjectID, tabGroups, launchSettings,
+            case customName, isPinned, notificationsMuted, markerColorHex, customDirectory, groupID, conversationHistoryProjectID,
+                tabGroups, launchSettings,
                 location, tabs, selectedTabIndex
         }
 
         init(
             customName: String?,
             isPinned: Bool = false,
+            notificationsMuted: Bool = false,
             markerColorHex: String? = nil,
             customDirectory: String?,
             groupID: UUID? = nil,
@@ -329,6 +332,7 @@ struct SessionSnapshot: Codable {
         ) {
             self.customName = customName
             self.isPinned = isPinned
+            self.notificationsMuted = notificationsMuted
             self.markerColorHex = markerColorHex
             self.customDirectory = customDirectory
             self.groupID = groupID
@@ -344,6 +348,7 @@ struct SessionSnapshot: Codable {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             customName = try container.decodeIfPresent(String.self, forKey: .customName)
             isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
+            notificationsMuted = try container.decodeIfPresent(Bool.self, forKey: .notificationsMuted) ?? false
             markerColorHex = try container.decodeIfPresent(String.self, forKey: .markerColorHex)
             customDirectory = try container.decodeIfPresent(
                 String.self, forKey: .customDirectory
@@ -370,6 +375,7 @@ struct SessionSnapshot: Codable {
             if isPinned {
                 try container.encode(true, forKey: .isPinned)
             }
+            if notificationsMuted { try container.encode(true, forKey: .notificationsMuted) }
             try container.encodeIfPresent(markerColorHex, forKey: .markerColorHex)
             try container.encodeIfPresent(customDirectory, forKey: .customDirectory)
             try container.encodeIfPresent(groupID, forKey: .groupID)

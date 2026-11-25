@@ -304,6 +304,14 @@ Hints scan the current visible screen on both backends, including soft-wrapped t
 
 In **Settings → Automation → Notifications**, **Notify when agents need attention** and **Notify when agents finish** are both on by default (`ai.notify-on-attention` and `ai.notify-on-completion`). Each controls macOS delivery of that agent event; notification history still records it when delivery is off.
 
+Right-click a project in the sidebar and choose **Mute Notifications** to silence
+its terminal notifications, bells, command results, and agent completions. The
+crossed-out bell marks a muted project. **Unmute Notifications** restores delivery.
+The choice survives app restarts and follows the project; a tab moved to another
+project uses that project's choice. History keeps recording. Agent approval and
+attention requests still notify you when **Notify when agents need attention** is
+on. Closing a project removes its mute choice.
+
 Zshell forwards two terminal events to Notification Center:
 
 - a bell from a session that is not focused;

@@ -51,22 +51,31 @@ struct Surface { var hasEffectiveTerminalFocus = false; var window: Window? }
     var remoteStatus: RemoteRelayStatus?
     var remoteConnection: RemoteConnection?
 }
-struct Project { let id: UUID; let name: String }
+@MainActor final class Project {
+    let id = UUID(); var name = "Fixture project"; var notificationsMuted = false
+}
 struct Tab { let id: UUID; let displayTitle: String? }
 struct Pane { let id: UUID }
 @MainActor final class GlobalTerminalOverlay {
     static let shared = GlobalTerminalOverlay()
     func notificationPane(for id: UUID) -> (tab: Tab, pane: Pane, session: TerminalSession)? { nil }
 }
-enum ZshellAutomationRouter {
+@MainActor enum ZshellAutomationRouter {
     struct PaneContext { let project: Project; let tab: Tab; let pane: Pane; let session: TerminalSession? }
-    static func context(forSession: UUID) -> PaneContext? { nil }
+    static var contexts: [UUID: PaneContext] = [:]
+    static func context(forSession id: UUID) -> PaneContext? { contexts[id] }
 }
-@MainActor enum TerminalManager {
+@MainActor final class TerminalManager {
+    static var automationManagers: [TerminalManager] = []
+    var projects: [Project] = []
     static func automationIsSessionFocused(_ id: UUID) -> Bool { false }
-    static func notificationContext(for target: TerminalNotificationTarget) -> ZshellAutomationRouter.PaneContext? { nil }
+    static func notificationContext(for target: TerminalNotificationTarget) -> ZshellAutomationRouter.PaneContext? {
+        target.terminalID.flatMap { ZshellAutomationRouter.context(forSession: $0) }
+    }
     static var connectedRemoteSession: TerminalSession?
-    static func notificationSession(for target: TerminalNotificationTarget) -> TerminalSession? { connectedRemoteSession }
+    static func notificationSession(for target: TerminalNotificationTarget) -> TerminalSession? {
+        notificationContext(for: target)?.session ?? connectedRemoteSession
+    }
     static func connectedRemoteNotificationSession(for target: TerminalNotificationTarget, excluding id: UUID?) -> TerminalSession? {
         guard let session = connectedRemoteSession, session.id != id,
               session.remoteConnection?.host.id == target.remoteHostID,

@@ -1483,7 +1483,8 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
         )
 
         guard AppSettings.shared.terminalBell else { return }
-        NSSound.beep()
+        let notificationsAllowed = TerminalNotificationService.allowsProjectNotifications(for: id)
+        if notificationsAllowed { NSSound.beep() }
         // A miniaturized key window keeps its first responder, so the focus
         // check alone still reads "focused" while the user cannot see the
         // surface at all — minimized terminals need the notification too.
@@ -1494,7 +1495,7 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
             sessionID: id,
             kind: .bell
         )
-        if !NSApp.isActive || windowMiniaturized {
+        if notificationsAllowed, !NSApp.isActive || windowMiniaturized {
             NSApp.requestUserAttention(.informationalRequest)
         }
     }

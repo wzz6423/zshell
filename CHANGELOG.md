@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Mute a project's terminal and completion notifications from the sidebar,
+  while preserving notification history and agent attention alerts across restarts.
 - Arm a one-time completion notification for the next command in a local zsh
   pane, with an armed indicator and cancellation from the Terminal menu.
 - Search named hosts from your SSH configuration and choose an alias when

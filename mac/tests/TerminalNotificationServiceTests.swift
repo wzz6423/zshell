@@ -10,11 +10,18 @@ final class NotificationDeliveryFixture: TerminalNotificationDelivery {
     var authorization: (@Sendable (Bool) -> Void)?
     var delivered: [TerminalNotificationRecord] = []
     var removed: [UUID] = []
+    var defersSettings = false
+    var pendingSettings: [@Sendable (TerminalNotificationAuthorization) -> Void] = []
 
     func configure(delegate: any UNUserNotificationCenterDelegate) {}
     func settings(_ completion: @escaping @Sendable (TerminalNotificationAuthorization) -> Void) {
         settingsRequests += 1
-        completion(current)
+        if defersSettings { pendingSettings.append(completion) } else { completion(current) }
+    }
+    func finishSettings() {
+        let callbacks = pendingSettings
+        pendingSettings.removeAll()
+        callbacks.forEach { $0(current) }
     }
     func authorize(_ completion: @escaping @Sendable (Bool) -> Void) {
         authorizationRequests += 1
@@ -378,5 +385,140 @@ struct TerminalNotificationServiceTests {
             Set(loadingDelivery.delivered.map(\.message)) == ["Before load 0", "Before load 1", "Before load 2"],
             "\(loadingDelivery.delivered.map(\.message))")
         print("PASS every banner posted before history finishes loading is delivered after it loads")
+
+        let policyHistory = TerminalNotificationHistoryStore(url: root.appendingPathComponent("policy/records.json"))
+        let policyDelivery = NotificationDeliveryFixture()
+        policyDelivery.current = .init(status: .allowed)
+        let policyService = TerminalNotificationService(history: policyHistory, delivery: policyDelivery)
+        await policyHistory.flush()
+        let muted = Project(), audible = Project()
+        muted.notificationsMuted = true
+        let firstManager = TerminalManager(), secondManager = TerminalManager()
+        firstManager.projects = [muted]; secondManager.projects = [audible]
+        TerminalManager.automationManagers = [firstManager, secondManager]
+        let policySession = TerminalSession(), audibleSession = TerminalSession()
+        func assign(_ session: TerminalSession, to project: Project) {
+            ZshellAutomationRouter.contexts[session.id] = .init(
+                project: project, tab: .init(id: UUID(), displayTitle: nil), pane: .init(id: UUID()), session: session)
+        }
+        assign(policySession, to: muted); assign(audibleSession, to: audible)
+        for kind in [TerminalNotificationRecord.Kind.terminal, .bell, .command] {
+            policyService.post(message: "Muted \(kind)", sessionID: policySession.id, kind: kind, isFailure: kind == .command)
+        }
+        policyService.post(message: "Other project", sessionID: audibleSession.id)
+        policyService.post(message: "No project", sessionID: nil)
+        await settle()
+        precondition(policyHistory.records.count == 5 && policyHistory.filtered(.failed).count == 1)
+        precondition(Set(policyDelivery.delivered.map(\.message)) == ["Other project", "No project"])
+        precondition(!TerminalNotificationService.allowsProjectNotifications(for: policySession.id))
+        print("PASS project UUID mutes terminal, bell and failed commands while preserving history and other identically named projects")
+
+        func policyAgent(_ phase: ZshellAgentPhase, attention: ZshellAgentAttention? = nil) {
+            let previous = policySession.agentStatus
+            policySession.agentStatus = ZshellAgentStatus(
+                alias: "Muted Agent", kind: .codex, phase: phase,
+                authority: .integration, reason: "fixture", updatedAt: Date(), processID: nil,
+                unseen: phase == .done, progress: nil, attention: attention, tasks: [])
+            policyService.agentChanged(in: policySession, previous: previous)
+        }
+        policyAgent(.working); policyAgent(.done)
+        policyAgent(.working); policyAgent(.blocked, attention: .approval)
+        policyAgent(.blocked, attention: .approval)
+        await settle()
+        precondition(policyDelivery.delivered.count == 3 && policyHistory.filtered(.pending).count == 1)
+        let approval = policyHistory.filtered(.pending).first!
+        precondition(policyDelivery.delivered.last?.id == approval.id)
+        policyAgent(.working); policyAgent(.blocked, attention: .error)
+        await settle()
+        precondition(policyDelivery.delivered.count == 4 && policyDelivery.delivered.last?.isFailure == true)
+        policyAgent(.working)
+        AppSettings.shared.notifyOnAgentAttention = false
+        policyAgent(.blocked, attention: .input)
+        await settle()
+        precondition(policyDelivery.delivered.count == 4 && policyHistory.filtered(.pending).count == 1)
+        AppSettings.shared.notifyOnAgentAttention = true
+        print(
+            "PASS muted projects still deliver deduplicated approval and error attention, suppress completion, and respect global attention settings"
+        )
+
+        muted.notificationsMuted = false
+        policyDelivery.defersSettings = true
+        policyService.post(message: "Queued before mute", sessionID: policySession.id, kind: .command)
+        muted.notificationsMuted = true
+        policyDelivery.finishSettings()
+        await settle()
+        precondition(policyDelivery.delivered.count == 4)
+        muted.notificationsMuted = false
+        policyService.post(message: "Queued before transfer", sessionID: policySession.id)
+        assign(policySession, to: audible)
+        audible.notificationsMuted = true
+        policyDelivery.finishSettings()
+        await settle()
+        precondition(policyDelivery.delivered.count == 4)
+        audible.notificationsMuted = false
+        policyService.post(message: "Live owner beats old project", sessionID: policySession.id)
+        firstManager.projects.removeAll()
+        policyDelivery.finishSettings()
+        await settle()
+        precondition(policyDelivery.delivered.last?.message == "Live owner beats old project")
+        print("PASS delayed settings delivery rechecks mute and current ownership after a tab moves across windows")
+
+        policyService.post(message: "Queued before close", sessionID: policySession.id)
+        ZshellAutomationRouter.contexts[policySession.id] = nil
+        secondManager.projects.removeAll()
+        policyDelivery.finishSettings()
+        await settle()
+        precondition(policyDelivery.delivered.count == 5)
+        print("PASS closing a project cancels queued ordinary delivery without deleting its history")
+
+        secondManager.projects = [audible]
+        assign(policySession, to: audible)
+        policyDelivery.current = .init(status: .undetermined)
+        policyService.post(message: "Waiting for authorization", sessionID: policySession.id)
+        policyDelivery.finishSettings()
+        await settle()
+        precondition(policyDelivery.authorizationRequests == 1)
+        audible.notificationsMuted = true
+        policyDelivery.authorization?(true)
+        await settle()
+        precondition(policyDelivery.delivered.count == 5)
+        print("PASS muting during authorization prevents the queued banner after access is granted")
+
+        audible.notificationsMuted = false
+        policyService.post(message: "Muted before permission request", sessionID: policySession.id)
+        audible.notificationsMuted = true
+        policyDelivery.finishSettings()
+        await settle()
+        precondition(policyDelivery.authorizationRequests == 1)
+        print("PASS muting during a settings lookup avoids a new authorization prompt")
+
+        audible.notificationsMuted = false
+        policyService.post(message: "Authorization starter", sessionID: policySession.id)
+        policyDelivery.finishSettings()
+        await settle()
+        precondition(policyDelivery.authorizationRequests == 2)
+        audible.notificationsMuted = true
+        policyAgent(.working); policyAgent(.blocked, attention: .approval)
+        policyService.post(message: "Muted ordinary must not replace approval", sessionID: policySession.id)
+        policyDelivery.authorization?(true)
+        await settle()
+        precondition(policyDelivery.delivered.count == 6 && policyDelivery.delivered.last?.isPending == true)
+        print("PASS a muted ordinary event cannot displace pending approval during authorization")
+
+        let policyLoadingHistory = TerminalNotificationHistoryStore(url: root.appendingPathComponent("policy-loading/records.json"))
+        let policyLoadingDelivery = NotificationDeliveryFixture()
+        policyLoadingDelivery.current = .init(status: .allowed)
+        let policyLoadingService = TerminalNotificationService(history: policyLoadingHistory, delivery: policyLoadingDelivery)
+        audible.notificationsMuted = false
+        policyLoadingService.post(message: "Loading command", sessionID: policySession.id, kind: .command)
+        audible.notificationsMuted = true
+        await policyLoadingHistory.flush()
+        await settle()
+        precondition(policyLoadingHistory.records.count == 1 && policyLoadingDelivery.delivered.isEmpty)
+        precondition(policyLoadingDelivery.settingsRequests == 0)
+        await policyHistory.flush()
+        TerminalManager.automationManagers.removeAll()
+        ZshellAutomationRouter.contexts.removeAll()
+        print("PASS history-load completion rechecks current project mute before requesting delivery")
     }
 }

@@ -5,14 +5,23 @@ import UserNotifications
 
 @MainActor
 private final class NotificationSurfaceDelivery: TerminalNotificationDelivery {
+    var allowsDelivery = false
+    var defersSettings = false
+    var settingsCompletions: [@Sendable (TerminalNotificationAuthorization) -> Void] = []
+    var delivered: [TerminalNotificationRecord] = []
     func configure(delegate: any UNUserNotificationCenterDelegate) {}
     func settings(_ completion: @escaping @Sendable (TerminalNotificationAuthorization) -> Void) {
-        completion(.init(status: .denied))
+        if defersSettings { settingsCompletions.append(completion) } else { completion(.init(status: allowsDelivery ? .allowed : .denied)) }
+    }
+    func finishSettings() {
+        let callbacks = settingsCompletions
+        settingsCompletions.removeAll()
+        callbacks.forEach { $0(.init(status: allowsDelivery ? .allowed : .denied)) }
     }
     func authorize(_ completion: @escaping @Sendable (Bool) -> Void) {
         preconditionFailure("The fixture must never request notification permission")
     }
-    func deliver(_ record: TerminalNotificationRecord) { preconditionFailure("System delivery is disabled") }
+    func deliver(_ record: TerminalNotificationRecord) { delivered.append(record) }
     func remove(ids: [UUID]) {}
 }
 
@@ -52,7 +61,8 @@ struct TerminalNotificationSurfaceTests {
         QuickTerminalOffscreen.install()
         let root = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
         let history = TerminalNotificationHistoryStore(url: root.appendingPathComponent("notifications/records.json"))
-        let service = TerminalNotificationService(history: history, delivery: NotificationSurfaceDelivery())
+        let delivery = NotificationSurfaceDelivery()
+        let service = TerminalNotificationService(history: history, delivery: delivery)
         TerminalNotificationService.shared = service
         service.configure()
         try wait("notification history did not load") { !history.isLoading }
@@ -269,6 +279,122 @@ struct TerminalNotificationSurfaceTests {
         clear.performClick(nil)
         try wait("clear history action did not remove all records") { history.records.isEmpty }
         try check(history.records.isEmpty, "native clear-history action removes all records")
+
+        project2.customName = "Policy fixture"
+        let sidebar = ProjectSidebarNSView(manager: second, tabDrag: TabSplitDragCoordinator(), bottomBarHeight: 32)
+        sidebar.frame = NSRect(x: 0, y: 0, width: 180, height: 520)
+        windows[1].contentView?.addSubview(sidebar)
+        sidebar.refresh()
+        sidebar.layoutSubtreeIfNeeded()
+        guard
+            let projectRow = descendants(sidebar).compactMap({ $0 as? WorkspaceItemView }).first(where: {
+                ($0.accessibilityLabel() ?? "").hasPrefix("Policy fixture")
+            })
+        else { preconditionFailure("Project sidebar row is missing") }
+        func choose(_ title: String) throws {
+            for item in projectRow.menuItems?() ?? [] {
+                if case .action(let label, let enabled, let handler) = item, label == title, enabled {
+                    handler(); sidebar.refresh(); sidebar.layoutSubtreeIfNeeded(); return
+                }
+            }
+            throw NSError(domain: "NotificationSurface", code: 4, userInfo: [NSLocalizedDescriptionKey: "Missing project action: \(title)"])
+        }
+        try choose(String(localized: "Mute Notifications"))
+        try check(project2.notificationsMuted, "native project menu mutes its own project")
+        try check(
+            (projectRow.accessibilityValue() as? String)?.contains(String(localized: "Notifications Muted")) == true
+                && projectRow.toolTip?.contains(String(localized: "Notifications Muted")) == true,
+            "muted project exposes its state to accessibility and its tooltip")
+        let images = descendants(projectRow).compactMap { $0 as? NSImageView }
+        try check(images.contains { !$0.isHidden && $0.image != nil }, "muted project keeps a visible state icon at minimum sidebar width")
+        try choose(String(localized: "Unmute Notifications"))
+        try check(
+            !project2.notificationsMuted
+                && (projectRow.accessibilityValue() as? String)?.contains(String(localized: "Notifications Muted")) != true
+                && projectRow.toolTip?.contains(String(localized: "Notifications Muted")) != true,
+            "unmuting resets sidebar accessibility and tooltip state")
+
+        delivery.allowsDelivery = true
+        try choose(String(localized: "Mute Notifications"))
+        send("printf '\\033]777;notify;Fixture;Muted PTY notice\\033\\\\'", to: session2)
+        try wait("muted PTY notification did not reach history") { history.records.contains { $0.message == "Muted PTY notice" } }
+        pump(0.1)
+        try check(delivery.delivered.isEmpty, "real backend keeps muted terminal notifications in history without delivery")
+        send("printf '\\a'", to: session2)
+        try wait("muted PTY bell did not reach history") { history.records.contains { $0.kind == .bell } }
+        try check(delivery.delivered.isEmpty, "real backend records muted bells without delivery")
+        pump(1.3)
+        send("false", to: session2)
+        try wait("muted command failure did not reach history") {
+            history.records.contains { $0.kind == .command && $0.isFailure && $0.message.hasPrefix("false failed") }
+        }
+        try check(delivery.delivered.isEmpty, "real command failures remain in muted project history")
+        try wait("muted project original zsh can arm a reminder") { session2.canNotifyWhenNextCommandFinishes }
+        let countBeforeReminder = history.records.count
+        try check(session2.armNextCommandNotification(), "project mute keeps the one-shot reminder available")
+        send("true", to: session2)
+        try wait("muted one-shot reminder did not finish in history") {
+            history.records.count == countBeforeReminder + 1 && session2.nextCommandNotification == nil
+        }
+        try check(
+            history.records.first?.kind == .command && history.records.first?.target.projectID == project2.id
+                && delivery.delivered.isEmpty,
+            "muted one-shot reminder records exactly one command result without delivery")
+        AgentAutomationMonitor.shared.unregister(session2)
+        session2.agentStatus = ZshellAgentStatus(
+            alias: "Policy Agent", kind: .codex, phase: .blocked, authority: .integration, reason: "fixture",
+            updatedAt: Date(), processID: nil, unseen: false, progress: nil, attention: .approval, tasks: [])
+        try wait("muted project approval did not deliver") { delivery.delivered.contains { $0.isPending } }
+        try check(
+            history.filtered(.pending).count == 1 && delivery.delivered.last?.target.projectID == project2.id,
+            "muted project approval retains its project routing and macOS delivery candidate")
+        session2.agentStatus = nil
+
+        try choose(String(localized: "Unmute Notifications"))
+        let destination = first.newProject()
+        destination.notificationsMuted = true
+        delivery.defersSettings = true
+        service.post(message: "Before cross-window move", sessionID: session2.id)
+        let tab = project2.selectedTab!
+        let moved = second.moveTab(id: tab.id, from: project2.id, to: destination.id, in: ObjectIdentifier(first))
+        try check(
+            moved.succeeded && destination.sessions.contains { $0 === session2 }, "tab transfer keeps the real session across windows")
+        delivery.finishSettings()
+        pump(0.1)
+        try check(delivery.delivered.count == 1, "queued delivery uses the muted destination project after transfer")
+        destination.notificationsMuted = false
+        service.post(message: "New owner", sessionID: session2.id)
+        delivery.finishSettings()
+        try wait("unmuted destination notification did not deliver") { delivery.delivered.count == 2 }
+        try check(delivery.delivered.last?.target.projectID == destination.id, "new notifications resolve the transferred project's UUID")
+
+        service.post(message: "Before project closes", sessionID: session2.id)
+        first.close(destination)
+        delivery.finishSettings()
+        pump(0.1)
+        try check(
+            delivery.delivered.count == 2 && history.records.contains { $0.message == "Before project closes" },
+            "closing a real project drops queued delivery and preserves notification history")
+        project2.notificationsMuted = true
+        pump(0.6)
+        let saved = SessionStore.load().flatMap(\.projects).first { $0.customName == "Policy fixture" }
+        try check(saved?.notificationsMuted == true, "project mute autosaves in the existing window snapshot")
+        first.windowClosed()
+        second.windowClosed()
+        let restoredManager = TerminalManager()
+        defer { restoredManager.windowClosed() }
+        guard let restoredProject = restoredManager.projects.first(where: { $0.customName == "Policy fixture" }) else {
+            preconditionFailure("Muted project did not restore")
+        }
+        try check(
+            restoredProject.notificationsMuted && restoredProject.id != project2.id
+                && restoredProject.conversationHistoryProjectID == project2.conversationHistoryProjectID,
+            "reopening the saved workspace restores mute using the existing persistent identity")
+        restoredManager.close(restoredProject)
+        pump(0.6)
+        try check(
+            !SessionStore.load().flatMap(\.projects).contains { $0.customName == "Policy fixture" },
+            "explicit project close removes its saved mute policy")
         try check(QuickTerminalOffscreen.isSafe(), "fixture windows remain offscreen and do not take focus")
     }
 }
