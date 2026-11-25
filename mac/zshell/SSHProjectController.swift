@@ -187,6 +187,8 @@ final class SSHProjectController: NSObject {
 
     private let groupField = NSComboBox()
     private let hostField = NSTextField()
+    private let configHostsButton = NSButton()
+    private let configHostPicker = SSHConfigHostPickerController()
     private let userField = NSTextField()
     private let portField = NSTextField()
     private let directoryField = NSTextField()
@@ -247,12 +249,17 @@ final class SSHProjectController: NSObject {
         SSHProjectStore.shared.objectWillChange.sink { [weak self] _ in
             DispatchQueue.main.async { self?.reloadList() }
         }.store(in: &lifetime)
+        NotificationCenter.default.publisher(for: AppLocalization.didChange)
+            .receive(on: DispatchQueue.main).sink { [weak self] _ in
+                self?.configHostsButton.title = String(localized: "SSH Config Hosts")
+            }.store(in: &lifetime)
     }
 
     private var lifetime: [AnyCancellable] = []
 
     func present(for manager: TerminalManager) {
         guard let host = AppWindowPresentation.hostWindow(relativeTo: manager.presentationWindow) else { return }
+        configHostPicker.close()
         self.manager = manager
         hostWindow = host
         let window = self.window ?? makeWindow()
@@ -482,9 +489,22 @@ final class SSHProjectController: NSObject {
         privateKeyPathRow.spacing = 6
         privateKeyPathRow.arrangedSubviews.last?.setContentHuggingPriority(.required, for: .horizontal)
 
+        configHostsButton.title = String(localized: "SSH Config Hosts")
+        configHostsButton.bezelStyle = .rounded
+        configHostsButton.controlSize = .small
+        configHostsButton.target = self
+        configHostsButton.action = #selector(chooseConfigHost)
+        configHostsButton.setAccessibilityIdentifier("ssh-project-config-hosts")
+        configHostsButton.setContentHuggingPriority(.required, for: .horizontal)
+        configHostsButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+        hostField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        let hostRow = NSStackView(views: [hostField, configHostsButton])
+        hostRow.orientation = .horizontal
+        hostRow.spacing = 6
+
         let grid = NSGridView(views: [
             formRow(String(localized: "Group", comment: "SSH project form label for the group."), groupField),
-            formRow(String(localized: "Host", comment: "SSH project form label for the host."), hostField),
+            formRow(String(localized: "Host", comment: "SSH project form label for the host."), hostRow),
             formRow(String(localized: "User", comment: "SSH project form label for the user."), userField),
             formRow(String(localized: "Port", comment: "SSH project form label for the port."), portField),
             formRow(
@@ -571,6 +591,15 @@ final class SSHProjectController: NSObject {
 
     @objc private func authenticationChanged() {
         updateAuthenticationFields()
+    }
+
+    @objc private func chooseConfigHost() {
+        guard let window, displayMode == .form else { return }
+        configHostPicker.present(on: window, selecting: hostField.stringValue) { [weak self, weak window] host in
+            guard let self, let window, window.isVisible, self.window === window, self.displayMode == .form else { return }
+            if let host { self.hostField.stringValue = host }
+            window.makeFirstResponder(self.hostField)
+        }
     }
 
     @objc private func choosePrivateKeyFile() {
