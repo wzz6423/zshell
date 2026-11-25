@@ -204,6 +204,10 @@ final class AppMenuController: NSObject, NSMenuDelegate {
                 TerminalOutputExportController.shared.canSave()
             }
         ) { TerminalOutputExportController.shared.save() }
+        command(
+            terminal, title: { String(localized: "Save Redacted Output") },
+            enabled: { TerminalSharingPreviewController.shared.canSave() }
+        ) { TerminalSharingPreviewController.shared.save() }
         let bookmarks = addMenu(to: terminal, identifier: .bookmarkedCommands, title: { String(localized: "Bookmarked Commands") })
         bookmarks.delegate = TerminalCommandBookmarkController.shared
         terminal.addItem(.separator())

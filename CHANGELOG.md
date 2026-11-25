@@ -26,6 +26,9 @@ the original feature bullet instead of adding separate entries for them.
 - Quick commands support text and dropdown parameters with saved defaults and
   a command preview before inserting or running them in the original terminal.
 
+- Preview, edit, and locally redact suspected secrets before copying selected
+  terminal text, copying a command's output, or saving retained terminal output.
+
 ## [0.1.18]
 
 ### Added

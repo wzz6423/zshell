@@ -48,6 +48,14 @@ Choose **Terminal → Save Terminal Output…** or the same action in the termin
 
 Both backends and Quick Terminal support this action. Only the buffer the backend currently retains is included; output already discarded from scrollback is unavailable. A full-screen program exports its active buffer.
 
+## Share with redaction [#share-with-redaction]
+
+Use **Copy with Redaction** for selected terminal text, or **Copy Output with Redaction** on a command block. **Terminal → Save Redacted Output** previews the pane’s retained output before saving a UTF-8 text file. The preview keeps the original pane’s snapshot when you switch panes.
+
+The preview checks text locally and replaces suspected GitHub, OpenAI, Anthropic, Slack and AWS tokens, JWTs, Bearer credentials, and common API key or password assignments with `[REDACTED]`. Review and edit the preview, then choose **Copy Preview** or **Save Preview**. **Include Original Secrets** explicitly switches to the original text. **Cancel** discards the preview without copying or saving.
+
+Detection can miss secrets. Review the entire preview before sharing. Text stays in memory during review; a temporary terminal capture is removed after reading or cancellation. Previews support up to 2 MiB and work with both backends, read-only panes, and Quick Terminal. Ordinary copy and save actions keep their existing behavior.
+
 ## Shell completion [#shell-completion]
 
 Enable **Settings → Terminal → Input → Shell completions** (`terminal.shell-completions`, on by default) for inline command, argument and path suggestions. It applies to new local zsh shells and new shared remote zsh sessions with a compatible Zshell server; open a new session after changing the switch.

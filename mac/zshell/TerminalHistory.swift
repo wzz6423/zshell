@@ -21,6 +21,8 @@ enum TerminalHistorySerializer {
     nonisolated struct LogCapture: Sendable {
         private let file: CaptureFile
 
+        enum ReadFailure: Error { case unreadable, tooLarge }
+
         fileprivate init(file: CaptureFile) { self.file = file }
 
         /// The emulator has already interpreted VT. Only its styled dump is
@@ -30,6 +32,20 @@ enum TerminalHistorySerializer {
             guard let data = try? Data(contentsOf: file.fileURL),
                 let text = String(data: data, encoding: .utf8)
             else { return nil }
+            return plainLogText(in: text)
+        }
+
+        func read(maxBytes: Int) throws -> String {
+            defer { removeCaptureFile(file) }
+            guard maxBytes > 0, maxBytes < Int.max else { throw ReadFailure.tooLarge }
+            guard let handle = try? FileHandle(forReadingFrom: file.fileURL) else { throw ReadFailure.unreadable }
+            defer { try? handle.close() }
+            guard let size = try? handle.seekToEnd() else { throw ReadFailure.unreadable }
+            guard size <= UInt64(maxBytes) else { throw ReadFailure.tooLarge }
+            do { try handle.seek(toOffset: 0) } catch { throw ReadFailure.unreadable }
+            guard let data = try? handle.read(upToCount: maxBytes + 1) else { throw ReadFailure.unreadable }
+            guard data.count <= maxBytes else { throw ReadFailure.tooLarge }
+            guard let text = String(data: data, encoding: .utf8) else { throw ReadFailure.unreadable }
             return plainLogText(in: text)
         }
 
