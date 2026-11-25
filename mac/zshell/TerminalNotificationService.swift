@@ -161,7 +161,7 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         let preference: DeliveryPreference =
             kind == .agent
             ? (isPending ? .agentAttention : .agentCompletion) : .unrestricted
-        guard allowsDelivery(preference) else { return }
+        guard allowsDelivery(preference, target: record.target) else { return }
         if history.isLoading {
             waitingForHistory = Array(
                 (waitingForHistory + [(record.eventKey, preference)])
@@ -309,16 +309,38 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         }
     }
 
-    private func allowsDelivery(_ preference: DeliveryPreference) -> Bool {
-        switch preference {
-        case .unrestricted: true
-        case .agentAttention: AppSettings.shared.notifyOnAgentAttention
-        case .agentCompletion: AppSettings.shared.notifyOnAgentCompletion
+    static func allowsProjectNotifications(for sessionID: UUID) -> Bool {
+        ZshellAutomationRouter.context(forSession: sessionID).map { !$0.project.notificationsMuted } ?? true
+    }
+
+    private static func allowsProjectNotifications(for target: TerminalNotificationTarget) -> Bool {
+        // Tabs retain terminal IDs when moved; their current owner decides
+        // delivery even if the queued record still names the former project.
+        if let id = target.terminalID, let context = ZshellAutomationRouter.context(forSession: id) {
+            return !context.project.notificationsMuted
         }
+        guard let id = target.projectID else { return true }
+        let project = TerminalManager.automationManagers.lazy.flatMap(\.projects).first { $0.id == id }
+        return project.map { !$0.notificationsMuted } ?? false
+    }
+
+    private func allowsDelivery(_ preference: DeliveryPreference, target: TerminalNotificationTarget) -> Bool {
+        switch preference {
+        case .unrestricted: break
+        case .agentAttention: return AppSettings.shared.notifyOnAgentAttention
+        case .agentCompletion:
+            guard AppSettings.shared.notifyOnAgentCompletion else { return false }
+        }
+        return Self.allowsProjectNotifications(for: target)
+    }
+
+    private func allowsDelivery(_ candidate: DeliveryCandidate) -> Bool {
+        guard let record = history.record(id: candidate.id) else { return false }
+        return allowsDelivery(candidate.preference, target: record.target)
     }
 
     private func requestDelivery(_ candidate: DeliveryCandidate) {
-        guard allowsDelivery(candidate.preference) else { return }
+        guard allowsDelivery(candidate) else { return }
         // Only an open permission prompt coalesces to the latest banner; events
         // that arrive during a settings lookup are all still eligible.
         if isRequestingAuthorization {
@@ -353,7 +375,7 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
 
     private func requestAuthorization(upgradingExistingAuthorization: Bool = false) {
         guard !isRequestingAuthorization else { return }
-        deliveryCandidates.removeAll { !allowsDelivery($0.preference) }
+        deliveryCandidates.removeAll { !allowsDelivery($0) }
         guard upgradingExistingAuthorization || !deliveryCandidates.isEmpty else { return }
         isRequestingAuthorization = true
         deliveryCandidates = Array(deliveryCandidates.suffix(1))
@@ -373,7 +395,7 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         let ids = deliveryCandidates
         deliveryCandidates.removeAll()
         for candidate in ids {
-            guard allowsDelivery(candidate.preference), let record = history.record(id: candidate.id),
+            guard let record = history.record(id: candidate.id), allowsDelivery(candidate.preference, target: record.target),
                 !record.isRead
             else { continue }
             delivery.deliver(record)

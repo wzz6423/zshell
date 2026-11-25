@@ -2140,6 +2140,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 return ProjectSnapshot(
                     customName: project.customName,
                     isPinned: project.isPinned,
+                    notificationsMuted: project.notificationsMuted,
                     markerColorHex: project.markerColor?.hex,
                     customDirectory: project.customDirectory,
                     groupID: project.groupID,
@@ -2271,6 +2272,7 @@ final class TerminalManager: nonisolated ObservableObject {
             )
             project.customName = Project.normalizedCustomName(saved.customName)
             project.conversationHistoryProjectID = saved.conversationHistoryProjectID ?? UUID()
+            project.notificationsMuted = saved.notificationsMuted
             project.markerColor = saved.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
             project.customDirectory = saved.customDirectory
             // A group may have been deleted while this window was closed or

@@ -26,6 +26,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     @Published var customName: String?
     @Published var isPinned: Bool
     @Published var markerColor: ProjectTabMarkerColor?
+    @Published var notificationsMuted = false
     /// User-pinned project directory ("Set Project Directory…" on the
     /// project row). While it exists, the file tree and git panels anchor
     /// here. Nil means automatic, following the terminal's foreground

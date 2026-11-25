@@ -300,7 +300,9 @@ final class ProjectSidebarNSView: NSView {
         let title = project.sharedHost.map { "\(project.name) — \($0.name)" } ?? project.name
         row.apply(
             title: title, subtitle: subtitle,
-            icon: NSImage(systemSymbolName: project.isRemote ? "network" : "folder", accessibilityDescription: nil),
+            icon: NSImage(
+                systemSymbolName: project.notificationsMuted ? "bell.slash" : (project.isRemote ? "network" : "folder"),
+                accessibilityDescription: nil),
             selected: project.id == manager.selectedProjectID, pinned: project.isPinned,
             marker: groupColor ?? project.markerColor, rollup: project.agentRollup, sidebar: true,
             indent: project.groupID == nil ? 0 : groupMemberIndent, scale: fontScale, shortcut: shortcut,
@@ -308,7 +310,12 @@ final class ProjectSidebarNSView: NSView {
             action: { [weak manager, weak project] in
                 if let project { manager?.close(project) }
             })
-        row.toolTip = [project.name, project.customDirectory ?? subtitle].compactMap { $0 }.joined(separator: "\n")
+        let notificationState = project.notificationsMuted ? String(localized: "Notifications Muted") : nil
+        row.toolTip = [project.name, project.customDirectory ?? subtitle, notificationState].compactMap { $0 }.joined(separator: "\n")
+        if let notificationState {
+            row.setAccessibilityValue(
+                [row.accessibilityValue() as? String, notificationState].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
+        }
         row.onSelect = { [weak manager, weak project] in if let project { manager?.selectedProjectID = project.id } }
         row.onRename = { [weak row, weak project] in
             guard let project else { return }
@@ -743,6 +750,10 @@ final class ProjectSidebarNSView: NSView {
                 manager?.setPinned(!project.isPinned, for: project)
             },
             .action(title: String(localized: "Rename…")) { [weak row] in row?.onRename?() },
+            .action(title: project.notificationsMuted ? String(localized: "Unmute Notifications") : String(localized: "Mute Notifications"))
+            {
+                [weak project] in project?.notificationsMuted.toggle()
+            },
         ]
         if project.sharedHost != nil {
             items += [

@@ -22,7 +22,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-notification-surface-", dir="/tm
     args = ["xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
             "-target", f"{platform.machine()}-apple-macos15.6",
             "-module-cache-path", str(temporary / "ModuleCache"),
-            "-I", str(products), "-I", str(products / "include"), "-F", str(products)]
+            "-I", str(products), "-I", str(products / "include"), "-F", str(products),
+            "-F", str(ROOT / "mac/Vendor/Sparkle/Sparkle.xcframework/macos-arm64_x86_64")]
     for modulemap in (build / "Intermediates.noindex/GeneratedModuleMaps").glob("*.modulemap"):
         args += ["-Xcc", f"-fmodule-map-file={modulemap}"]
     for include in ("STTextView/Sources/STObjCLandShim/include", "swift-cmark/src/include",
@@ -30,9 +31,11 @@ with tempfile.TemporaryDirectory(prefix="zshell-notification-surface-", dir="/tm
         path = ROOT / "mac/Vendor" / include
         args += ["-I", str(path), "-Xcc", f"-fmodule-map-file={path / 'module.modulemap'}"]
     args += ["-I", str(ROOT / "mac/Vendor/alacritty-bridge/include"),
+             "-I", str(ROOT / "mac/Vendor/libghostty-spm/GhosttyKit.xcframework/macos-arm64_arm64e_x86_64/Headers"),
              "-I", str(ROOT / "mac/Vendor/tree-sitter/lib/include"), str(library),
              "-Xlinker", "-rpath", "-Xlinker", str(products),
              "-Xlinker", "-rpath", "-Xlinker", str(library.parent),
+             "-Xlinker", "-rpath", "-Xlinker", str(app / "Contents/Frameworks"),
              str(ROOT / "mac/tests/TerminalNotificationSurfaceTests.swift"),
              str(ROOT / "mac/tests/QuickTerminalOffscreen.swift"), "-o", str(probe)]
     subprocess.run(args, cwd=ROOT, check=True)
@@ -46,10 +49,12 @@ with tempfile.TemporaryDirectory(prefix="zshell-notification-surface-", dir="/tm
         shutil.copy2(probe, binary)
         (bundle / "Resources").symlink_to(app / "Contents/Resources")
         domain = "sh.zshell.notification-test." + uuid.uuid4().hex
-        (bundle / "Info.plist").write_bytes(plistlib.dumps({
+        info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
+        info.update({
             "CFBundleIdentifier": domain, "CFBundleExecutable": binary.name,
             "CFBundlePackageType": "APPL", "LSUIElement": True,
-        }))
+        })
+        (bundle / "Info.plist").write_bytes(plistlib.dumps(info))
         home = temporary / backend
         home.mkdir()
         (home / "tmp").mkdir()
