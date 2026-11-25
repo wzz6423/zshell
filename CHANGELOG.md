@@ -14,6 +14,14 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
+## [Unreleased]
+
+### Added
+
+- Collect terminal selections and command output in an editable, multiline
+  agent context draft per project, then copy it and focus a local agent for
+  manual review and paste without submitting terminal input.
+
 ## [0.1.18]
 
 ### Added

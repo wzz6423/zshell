@@ -430,6 +430,11 @@ extension ZshellTerminalView: TerminalSurfaceCommandRecordsDelegate {
         return semanticCommandText(id: location.blockID, part: part.nativeValue)
     }
 
+    func commandText(at location: TerminalCommandOutputLocation, part: TerminalCommandTextPart, maxBytes: Int) -> String? {
+        guard commandRecordState.owns(location) else { return nil }
+        return semanticCommandText(id: location.blockID, part: part.nativeValue, maxBytes: maxBytes)
+    }
+
     @discardableResult
     func revealCommand(at location: TerminalCommandOutputLocation) -> Bool {
         commandRecordState.owns(location) && revealSemanticCommand(id: location.blockID, select: false)

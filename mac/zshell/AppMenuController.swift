@@ -205,6 +205,9 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         ) { TerminalOutputExportController.shared.save() }
         terminal.addItem(.separator())
         _ = addMenu(to: terminal, identifier: .agents, title: { String(localized: "Agents") })
+        managed(terminal, title: { String(localized: "Agent Context Draft") }, enabled: { $0.selectedProject != nil }) {
+            AgentContextDraftController.shared.show(in: $0)
+        }
         _ = addMenu(to: terminal, identifier: .notifications, title: { String(localized: "Notifications") })
 
         let windows = addMenu(to: menu, identifier: .window, title: { String(localized: "Window") })

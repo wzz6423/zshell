@@ -285,6 +285,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         readViewportText(maxLines: maxLines, maxColumns: maxColumns)
     }
 
+    func readSelectedText(maxBytes: Int) -> String? { readSelectionText(maxBytes: maxBytes) }
+
     func readVisibleSnapshot() -> TerminalViewportSnapshot? {
         guard let size = viewportGridMetrics,
             size.columns > 0, size.rows > 0,
