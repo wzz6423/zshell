@@ -38,6 +38,15 @@ Project…**. Add a host, optional user and port, and the remote directory to
 open. Choose **SSH Agent**, **Password**, **Private Key File**, or **Private Key
 Text** for authentication, then save the connection and select **Connect**.
 
+Use **SSH Config Hosts** beside the host field to search named `Host` entries
+from `~/.ssh/config` and its included configuration files. Choose an alias to
+fill the host field, then save and connect as usual. User, port, authentication,
+and remote directory fields keep your existing values. Leave user and port
+blank to inherit those settings from OpenSSH. Discovery reads configuration
+files without connecting or running `Match exec`; it does not change your SSH
+configuration. If `ZSHELL_SSH_CONFIG_FILE` is set to a readable absolute file,
+the picker uses that file. Relative includes still start from `~/.ssh`.
+
 Saved connections stay available after relaunch. Use the optional **Group**
 field to organize the connection list, and its edit and delete buttons to
 maintain entries. Passwords and pasted private keys are saved in macOS Keychain;

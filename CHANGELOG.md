@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Search named hosts from your SSH configuration and choose an alias when
+  creating or editing a saved SSH project.
 - Collect terminal selections and command output in an editable, multiline
   agent context draft per project, then copy it and focus a local agent for
   manual review and paste without submitting terminal input.
