@@ -28,6 +28,7 @@ extension ZshellTerminalView {
             } ?? TerminalLaunchSettings.defaultTerm
         launchShellIntegration =
             launch.foregroundProcessProvider == nil && !launch.usesZsh
+                && launch.interactiveShell.map({ ($0 as NSString).lastPathComponent != "bash" }) == true
             ? Self.shellIntegration(for: launch.interactiveShell) : "none"
         supportsInputSelection = launch.usesZsh
         let controller = TerminalController(
@@ -329,6 +330,14 @@ extension ZshellTerminalView: TerminalSurfaceCommandFinishedDelegate {
             .commandFinished(exitCode: exitCode, durationNanos: durationNanos)
         )
     }
+}
+
+extension ZshellTerminalView: TerminalSurfaceLifecycleDelegate {
+    func terminalDidAttachSurface(_ surface: TerminalSurface) {
+        surface.onInput = { [weak self] in self?.events?.terminalDidReceiveInput() }
+    }
+
+    func terminalDidDetachSurface() {}
 }
 
 extension ZshellTerminalView: TerminalSurfaceOpenURLDelegate {

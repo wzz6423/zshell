@@ -186,8 +186,11 @@ be pending or running, and the latest 256 finished results remain until this
 app session ends. Closing a pane stops unfinished tasks. Results cannot be
 read from another project.
 
-Command results require an empty prompt in the original local zsh that Zshell
-launched. New splits wait up to 30 seconds for that prompt. Nested shells, SSH,
+Command results require a ready, empty prompt in the original local zsh or Bash
+that Zshell launched. Bash startup files must preserve `PROMPT_COMMAND`, enable
+`promptvars` and keep `extdebug` disabled. After editing Bash input, clear it and
+submit an empty line before requesting a task. New splits wait up to 30 seconds
+for that prompt. Nested shells, SSH,
 and custom startup programs cannot provide command results; `--wait` rejects
 unsupported execution before sending the command. Direct `exit`, `logout`, and
 `exec` are rejected because they cannot return a result to the original shell;

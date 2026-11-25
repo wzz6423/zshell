@@ -404,6 +404,7 @@ protocol TerminalBackendEvents: AnyObject {
     func terminalDidChangeCellSize(_ size: CGSize)
     func terminalDidRingBell()
     func terminalDidReportShellIntegration(_ event: TerminalShellIntegrationEvent)
+    func terminalDidReceiveInput()
     func terminalDidUpdateCommandRecords(_ records: [TerminalCommandRecord])
 
     /// The child process is gone, or is about to be. `processAlive` is false
@@ -437,6 +438,7 @@ protocol TerminalBackendEvents: AnyObject {
 }
 
 extension TerminalBackendEvents {
+    func terminalDidReceiveInput() {}
     func terminalDidUpdateCommandRecords(_ records: [TerminalCommandRecord]) {}
     func terminalDidResignFocus() {}
     func terminalDidCancelAgentInterrupt() {}

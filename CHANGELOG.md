@@ -31,6 +31,8 @@ the original feature bullet instead of adding separate entries for them.
   for the current session, including read-only panes and Quick Terminal.
 - Quick commands support text and dropdown parameters with saved defaults and
   a command preview before inserting or running them in the original terminal.
+- Retain automation command results, exit status and duration in original local
+  Bash sessions with compatible prompt hooks.
 
 - Preview, edit, and locally redact suspected secrets before copying selected
   terminal text, copying a command's output, or saving retained terminal output.

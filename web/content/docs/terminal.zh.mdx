@@ -69,6 +69,9 @@ Zshell 加载内置 zsh-completions 和 zsh-autosuggestions，不修改 `.zshrc`
 ## 你的 shell，原封不动 [#your-shell-unchanged]
 
 每个会话启动你账户的登录 shell，所以提示符、别名、函数和 dotfiles 都和其他终端里一样加载。
+
+原始本地 Bash 会话可以在两个后端保留自动化命令结果。Zshell 保留原有登录参数、启动文件和 DEBUG trap。单次提示符钩子要求启动配置保留继承的 `PROMPT_COMMAND`，启用 `promptvars`，并关闭 `extdebug`。普通手动命令和 Bash 输入补全保留原有行为；Zshell 内置建议、提示符编辑和提示队列仍用于 zsh。空白提示符要求见[命令结果](/docs/automation#wait-for-command-results)。
+
 Zshell 额外设置了能力与身份变量：
 
 | 变量 | 值 |

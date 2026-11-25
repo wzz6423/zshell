@@ -100,6 +100,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     private let persistentPTY: PersistentPTY?
     private var preservesLaunchArtifacts = false
     private var commandExecutionStartedAtNanos: UInt64?
+    private var bashInputPromptSequence: UInt64?
     /// Session-scoped material such as SSH askpass files must survive pane
     /// transfers, then be released only after the terminal process ends.
     private var retainedSessionResources: [AnyObject] = []
@@ -199,12 +200,16 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             ?? commandArguments.flatMap { $0.isEmpty ? nil : $0 }
             ?? profileCommand ?? requestedCommand
         let shellPath = directCommand?.first ?? Self.loginShell()
+        let usesBashIntegration =
+            remoteConnection == nil && remotePasteTarget == nil
+            && TerminalBashShellIntegration.interactiveArguments(directCommand ?? [shellPath])
         let initialAppearance = initialProfile?.appearance ?? TerminalProfileAppearance()
         launchTerminalProfileID = initialProfile?.id
         let backend = AppSettings.shared.terminalBackend
         let artifacts =
             existingPTY.map {
-                let integration = $0.launchDirectoryURL?.appendingPathComponent("zsh-integration", isDirectory: true)
+                let integration = $0.launchDirectoryURL?.appendingPathComponent(
+                    usesBashIntegration ? "bash-integration" : "zsh-integration", isDirectory: true)
                 return LaunchArtifacts(
                     directoryURL: $0.launchDirectoryURL, pidFileURL: nil,
                     replayFileURL: nil,
@@ -215,14 +220,14 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             ?? Self.makeLaunchArtifacts(
                 restoredHistory: restoredHistory,
                 backend: backend,
-                shellPath: directCommand == nil ? shellPath : nil,
+                shellPath: directCommand == nil || usesBashIntegration ? shellPath : nil,
                 persistentSessionID: preserve ? sessionID : nil
             )
         let launchScript = Self.makeLaunchScript(
             backend: backend,
             shellPath: shellPath,
             commandArguments: directCommand,
-            initializationCommand: directCommand == nil && !isRestoredSession
+            initializationCommand: (directCommand == nil || usesBashIntegration) && !isRestoredSession
                 ? launchSettings.initializationCommand : nil,
             pidFileURL: artifacts.pidFileURL,
             replayFileURL: artifacts.replayFileURL,
@@ -259,7 +264,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             program: "/bin/sh",
             arguments: ["-c", script],
             commandLine: Self.ghosttyCommandLine(for: script),
-            interactiveShell: directCommand == nil ? shellPath : nil,
+            interactiveShell: directCommand == nil || usesBashIntegration ? shellPath : nil,
             workingDirectory: directory,
             environment: environment,
             reportsLocalWorkingDirectory: remoteConnection == nil
@@ -313,7 +318,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         launchDirectoryURL = artifacts.directoryURL
         shellPidFileURL = artifacts.pidFileURL
         supportsCommandTaskShellIntegration =
-            directCommand == nil
+            (directCommand == nil || usesBashIntegration)
             && artifacts.shellIntegrationDirectoryURL != nil
         title = (shellPath as NSString).lastPathComponent
         agentStatus = nil
@@ -827,8 +832,14 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     }
 
     static var canLaunchCommandTaskShell: Bool {
-        configuredStartupCommand() == nil
-            && (loginShell() as NSString).lastPathComponent == "zsh"
+        if let startup = configuredStartupCommand() {
+            return TerminalBashShellIntegration.interactiveArguments(startup)
+        }
+        return ["zsh", "bash"].contains((loginShell() as NSString).lastPathComponent)
+    }
+
+    static var commandTaskStartupArguments: [String]? {
+        configuredStartupCommand().flatMap { TerminalBashShellIntegration.interactiveArguments($0) ? $0 : nil }
     }
 
     /// PID of the root terminal process. The launch shim records its own PID
@@ -1006,7 +1017,16 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         } else {
             commands.append("unset TERM_PROGRAM_VERSION")
         }
-        if let commandArguments {
+        if let shellIntegrationDirectoryURL,
+            (shellPath as NSString).lastPathComponent == "bash"
+        {
+            commands.append(
+                TerminalBashShellIntegration.bootstrap(
+                    in: shellIntegrationDirectoryURL.deletingLastPathComponent(),
+                    initialization: initializationCommand))
+            let argv = (commandArguments ?? [shellPath, "-l"]).map(shellQuote).joined(separator: " ")
+            commands.append("exec \(argv)")
+        } else if let commandArguments {
             let argv = commandArguments.map(shellQuote).joined(separator: " ")
             // `env` resolves argv[0] against the caller's PATH. Every argument
             // is quoted independently, so no command text is reparsed or
@@ -1083,9 +1103,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         in directory: URL,
         shellPath: String?
     ) throws -> URL? {
-        guard let shellPath,
-            (shellPath as NSString).lastPathComponent == "zsh"
-        else { return nil }
+        guard let shellPath else { return nil }
+        if (shellPath as NSString).lastPathComponent == "bash" {
+            return try TerminalBashShellIntegration.makeArtifacts(in: directory)
+        }
+        guard (shellPath as NSString).lastPathComponent == "zsh" else { return nil }
 
         let integrationDirectory =
             directory
@@ -1535,6 +1557,30 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
             TerminalCommandTaskStore.shared.observeCompletion(in: self)
             ZshellAutomationEventHub.shared.commandFinished(in: self)
         }
+    }
+
+    func terminalDidReceiveInput() {
+        guard shellName == "bash" else { return }
+        let sequence = bashCommandTaskPromptSequence ?? 0
+        let isBusy =
+            commandLifecycle.phase == .executing
+            || surface.foregroundPid != shellPid
+        bashInputPromptSequence = isBusy && sequence < UInt64.max ? sequence + 1 : sequence
+    }
+
+    var bashCommandTaskPromptSequence: UInt64? {
+        guard let directory = commandTaskDirectoryURL?.deletingLastPathComponent(), let shellPID = shellPid else { return nil }
+        return TerminalBashShellIntegration.readPromptSequence(shellPID: shellPID, directory: directory)
+    }
+
+    var bashCommandTaskPromptIsReady: Bool {
+        guard let sequence = bashCommandTaskPromptSequence,
+            let shellPID = shellPid, let directory = commandTaskDirectoryURL?.deletingLastPathComponent(),
+            TerminalBashShellIntegration.persistentInputIsClean(shellPID: shellPID, directory: directory, promptSequence: sequence)
+        else { return false }
+        // Bash 3.2 cannot inspect Readline's draft. Any input remains dirty
+        // until a later prompt; startup input also survives the first prompt.
+        return TerminalBashShellIntegration.inputIsClean(promptSequence: sequence, inputSequence: bashInputPromptSequence)
     }
 
     func terminalDidUpdateCommandRecords(_ records: [TerminalCommandRecord]) {

@@ -1622,6 +1622,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     private func write(_ bytes: [UInt8]) -> Bool {
         guard !isReadOnly, let handle else { return false }
         guard !bytes.isEmpty else { return true }
+        events?.terminalDidReceiveInput()
         bytes.withUnsafeBufferPointer { pointer in
             zshell_alacritty_write(handle, pointer.baseAddress, pointer.count)
         }

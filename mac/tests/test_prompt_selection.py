@@ -66,6 +66,7 @@ class PromptSelectionTests(unittest.TestCase):
                         str(SOURCE.parent / "TerminalCommandTaskShellIntegration.swift"),
                         str(SOURCE.parent / "TerminalCommandNotificationResult.swift"),
                         str(SOURCE.parent / "TerminalNextCommandNotification.swift"),
+                        str(SOURCE.parent / "TerminalBashShellIntegration.swift"),
                         str(SOURCE.parent / "TerminalShellCompletions.swift"),
                         "-o", str(cls.helper)], check=True)
 

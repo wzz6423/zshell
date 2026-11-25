@@ -17,6 +17,7 @@ import GhosttyKit
 public final class TerminalSurface {
     private var surface: ghostty_surface_t?
     private var hasBeenFreed = false
+    public var onInput: (() -> Void)?
 
     init(_ surface: ghostty_surface_t) {
         self.surface = surface
@@ -34,6 +35,7 @@ public final class TerminalSurface {
             TerminalDebugLog.log(.input, "surface key ignored: missing surface")
             return false
         }
+        if event.action != GHOSTTY_ACTION_RELEASE { onInput?() }
         let result = ghostty_surface_key(s, event)
         TerminalDebugLog.log(
             .input,
@@ -48,6 +50,7 @@ public final class TerminalSurface {
             TerminalDebugLog.log(.input, "surface text ignored: missing surface")
             return false
         }
+        if !text.isEmpty { onInput?() }
         TerminalDebugLog.log(
             .input,
             "surface text=\(TerminalDebugLog.describe(text))"
@@ -123,6 +126,8 @@ public final class TerminalSurface {
             TerminalDebugLog.log(.actions, "binding action ignored: missing surface")
             return false
         }
+        let kind = action.split(separator: ":", maxSplits: 1).first.map(String.init) ?? action
+        if ["text", "esc", "csi", "paste_from_clipboard", "paste_from_selection"].contains(kind) { onInput?() }
         let result = action.withCString { cStr in
             ghostty_surface_binding_action(s, cStr, UInt(action.utf8.count))
         }

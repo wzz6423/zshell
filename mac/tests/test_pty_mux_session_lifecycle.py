@@ -58,7 +58,7 @@ final class PersistentTerminalState {
 """)
     sources = [ROOT / "mac/zshell" / name for name in (
         "PTYMux.swift", "PTYMuxSession.swift", "PTYMuxSessionStore.swift", "PTYMuxObserverFrame.swift",
-        "PersistentCLIConnection.swift", "ProcessWorkingDirectory.swift",
+        "PersistentCLIConnection.swift", "ProcessWorkingDirectory.swift", "TerminalBashShellIntegration.swift",
     )]
     if options.source_ref:
         previous = temporary / "PTYMuxSession.swift"
