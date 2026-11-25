@@ -14,7 +14,9 @@ using.
 
 ## Wait for command results
 
-For finite commands such as tests or a build, your agent can wait for the command’s own exit status and duration, then read saved recent terminal output. If a wait times out, the command keeps running and the same task can be waited on again. Waiting does not take focus. This requires an empty prompt in the original local zsh that Zshell launched; nested shells, SSH, and custom startup programs do not support command results. Recent terminal output can include earlier commands or prompts and is bounded, so ask the agent to save complete output to a file when needed.
+For finite commands such as tests or a build, your agent can wait for the command’s own exit status and duration, then read saved recent terminal output. If a wait times out, the command keeps running and the same task can be waited on again. Waiting does not take focus. This requires a ready, empty prompt in the original local zsh or Bash that Zshell launched; nested shells, SSH, and custom startup programs do not support command results. Recent terminal output can include earlier commands or prompts and is bounded, so ask the agent to save complete output to a file when needed.
+
+Bash works with the account's Bash login shell or a local Bash startup program using only `-i` and `-l` flags. Login files must preserve the inherited `PROMPT_COMMAND`, leave `promptvars` enabled and keep `extdebug` disabled. Replacing or clearing that hook keeps the normal shell available but leaves command results unsupported. After editing Bash input, clear it and submit an empty line before requesting a task; Zshell cannot inspect Bash 3.2's live Readline draft. Finite automation tasks retain their own result even when the command runs a subprocess. Bash command lifecycle reports apply to these tasks; ordinary manually entered commands keep their native behavior.
 
 Direct `exit`, `logout`, and `exec` are rejected because they end or replace the original shell; use `/bin/sh -c` for those commands in a subprocess.
 

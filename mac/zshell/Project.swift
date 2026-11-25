@@ -683,6 +683,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let session = makeSession(
             directory: directory,
             resolvedLocalDirectory: localDirectory,
+            commandArguments: usesConfiguredStartupCommand ? nil : TerminalSession.commandTaskStartupArguments,
             launchSettings: launchSettings.applying(tab.launchSettingsOverride),
             usesConfiguredStartupCommand: usesConfiguredStartupCommand
         )

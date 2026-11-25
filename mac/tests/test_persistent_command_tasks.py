@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--source", type=Path, default=ROOT / "mac/zshell/TerminalSession.swift")
 args = parser.parse_args()
 source = args.source.read_text()
-adoption = source[source.index("        let artifacts = existingPTY.map {"):
+adoption = source[source.index("        let artifacts =\n"):
                   source.index("        let launchScript = Self.makeLaunchScript(")]
 support = source[source.index("        supportsCommandTaskShellIntegration ="):
                  source.index("        title =", source.index("        supportsCommandTaskShellIntegration ="))]
@@ -32,7 +32,7 @@ struct Adoption {
         freshLaunches += 1
         return LaunchArtifacts(directoryURL: nil, pidFileURL: nil, replayFileURL: nil, shellIntegrationDirectoryURL: nil)
     }
-    static func supports(_ root: URL?, directCommand: [String]? = nil) -> Bool {
+    static func supports(_ root: URL?, directCommand: [String]? = nil, usesBashIntegration: Bool = false) -> Bool {
         let existingPTY: ExistingPTY? = ExistingPTY(launchDirectoryURL: root)
         let restoredHistory: String? = nil
         let backend = 0
@@ -62,8 +62,14 @@ fixture += adoption + support + r'''
         ]
         try FileManager.default.removeItem(at: integration)
         let missingIsUnsupported = !Adoption.supports(root)
+        let bash = root.appendingPathComponent("bash-integration", isDirectory: true)
+        try FileManager.default.createDirectory(at: bash, withIntermediateDirectories: false)
+        let bashSupported = Adoption.supports(root, directCommand: ["/bin/bash", "-il"], usesBashIntegration: true)
+        let bashDoesNotImpersonateZsh = !Adoption.supports(root)
         var failures = 0
-        for (name, passed) in results + [("shells without retained integration stay unsupported", missingIsUnsupported)] {
+        for (name, passed) in results + [("shells without retained integration stay unsupported", missingIsUnsupported),
+            ("adopted original Bash retains command-task support", bashSupported),
+            ("Bash artifacts cannot impersonate original zsh integration", bashDoesNotImpersonateZsh)] {
             print("\(passed ? "PASS" : "FAIL") \(name)")
             if !passed { failures += 1 }
         }

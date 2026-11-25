@@ -166,7 +166,7 @@ final class TerminalCommandTaskStore {
     static var unsupportedMessage: String {
         String(
             localized:
-                "Command results require an empty prompt in Zshell's original zsh shell. Nested shells and other startup programs are unsupported."
+                "Command results require a ready, empty prompt in Zshell's original local zsh or Bash shell. Nested shells and other startup programs are unsupported."
         )
     }
 
@@ -233,8 +233,12 @@ final class TerminalCommandTaskStore {
 
 extension TerminalSession {
     var isCommandTaskShellReady: Bool {
-        guard isShellAvailableForAutomation, terminalPromptQueueIsReady,
-            processExecutablePath(pid: shellPid ?? 0).map({ ($0 as NSString).lastPathComponent == "zsh" }) == true,
+        guard isShellAvailableForAutomation,
+            let executable = processExecutablePath(pid: shellPid ?? 0),
+            ["zsh", "bash"].contains((executable as NSString).lastPathComponent)
+        else { return false }
+        if (executable as NSString).lastPathComponent == "bash" { return bashCommandTaskPromptIsReady }
+        guard terminalPromptQueueIsReady,
             let directory = commandTaskDirectoryURL?.deletingLastPathComponent(),
             let shellPID = shellPid,
             let ready = try? String(

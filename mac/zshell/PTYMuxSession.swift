@@ -146,6 +146,8 @@ final class PTYMuxSession: @unchecked Sendable {
     let command: [String]
     let bindingToken: String
     let launchDirectoryURL: URL?
+    private let usesBashIntegration: Bool
+    private var lastBashInputPromptSequence: UInt64?
 
     private let master: Int32
     private let state: PersistentTerminalState
@@ -177,6 +179,10 @@ final class PTYMuxSession: @unchecked Sendable {
         self.command = command
         self.bindingToken = bindingToken
         self.launchDirectoryURL = launchDirectoryURL
+        usesBashIntegration =
+            launchDirectoryURL.map {
+                FileManager.default.fileExists(atPath: $0.appendingPathComponent("bash-integration/bashrc").path)
+            } ?? false
         self.state = state
         self.columns = columns
         self.rows = rows
@@ -219,6 +225,20 @@ final class PTYMuxSession: @unchecked Sendable {
             guard attachment === client || observers[ObjectIdentifier(client)] === client,
                 !processExited
             else { return }
+            if !bytes.isEmpty, usesBashIntegration, let launchDirectoryURL {
+                let prompt = TerminalBashShellIntegration.readPromptSequence(shellPID: pid, directory: launchDirectoryURL) ?? 0
+                let foreground = masterClosed ? 0 : tcgetpgrp(master)
+                let sequence = foreground != pid && prompt < UInt64.max ? prompt + 1 : prompt
+                if sequence != lastBashInputPromptSequence {
+                    if TerminalBashShellIntegration.recordPersistentInput(
+                        shellPID: pid, directory: launchDirectoryURL, inputSequence: sequence)
+                    {
+                        lastBashInputPromptSequence = sequence
+                    } else {
+                        try? FileManager.default.removeItem(at: launchDirectoryURL.appendingPathComponent("command-task-ready.pid"))
+                    }
+                }
+            }
             enqueueInput(bytes)
         }
     }

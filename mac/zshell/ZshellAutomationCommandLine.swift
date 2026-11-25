@@ -1187,7 +1187,7 @@ enum ZshellAutomationCommandLine {
             and never steal focus unless --focus is explicit. `run` accepts argv
             and quotes each argument for the target shell. `send` is raw input.
             All successful results are JSON; reads do not mark agent output seen.
-            Commands in the original zsh shell return a stable task_id. --wait and
+            Commands in the original local zsh or Bash shell return a stable task_id. --wait and
             `wait --task` exit with the command's own status and include task.exit_code,
             task.duration_ms, and bounded task.output. Output is a recent screen snapshot,
             may include earlier commands or the prompt, and sets output_complete=false.
@@ -1195,7 +1195,10 @@ enum ZshellAutomationCommandLine {
             and leaves the task running so it can be waited on again. Task results
             remain in this app session until the oldest of 256 retained results expires.
             There can be at most 64 pending or running tasks. A new split waits up to
-            30 seconds for an empty original zsh prompt. Running --wait against the caller's
+            30 seconds for an empty original shell prompt. Bash login files must preserve
+            PROMPT_COMMAND with promptvars enabled and extdebug disabled. After editing Bash input,
+            submit an empty line before requesting a result. Bash lifecycle reports apply to tasks.
+            Running --wait against the caller's
             pane, or waiting for an active task in that pane, is rejected.
             Nested shells, SSH, and custom startup programs do not support command results.
             Arguments are control-free, at most 256, 16 KiB each and 64 KiB quoted total.

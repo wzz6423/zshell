@@ -109616,113 +109616,6 @@
         }
       }
     },
-    "Command results require an empty prompt in Zshell's original zsh shell. Nested shells and other startup programs are unsupported.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Command results require an empty prompt in Zshell's original zsh shell. Nested shells and other startup programs are unsupported."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "命令结果要求 Zshell 原始 zsh 中的空白提示符。不支持嵌套 shell 或其他启动程序。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "命令結果需要 Zshell 原始 zsh 中的空白提示字元。不支援巢狀 shell 或其他啟動程式。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コマンド結果には Zshell が起動した元の zsh の空のプロンプトが必要です。入れ子のシェルや他の起動プログラムには対応していません。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "명령 결과를 얻으려면 Zshell의 원래 zsh 셸에 빈 프롬프트가 필요합니다. 중첩 셸과 다른 시작 프로그램은 지원하지 않습니다."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les résultats de commande exigent une invite vide dans le shell zsh initial de Zshell. Les shells imbriqués et les autres programmes de démarrage ne sont pas pris en charge."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Befehlsergebnisse erfordern eine leere Eingabeaufforderung in der ursprünglichen zsh von Zshell. Verschachtelte Shells und andere Startprogramme werden nicht unterstützt."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Los resultados requieren un indicador vacío en el zsh original de Zshell. No se admiten shells anidados ni otros programas de inicio."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Os resultados exigem um prompt vazio no zsh original do Zshell. Shells aninhados e outros programas de inicialização não são compatíveis."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I risultati richiedono un prompt vuoto nella shell zsh originale di Zshell. Le shell annidate e gli altri programmi di avvio non sono supportati."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Opdrachtresultaten vereisen een lege prompt in de oorspronkelijke zsh-shell van Zshell. Geneste shells en andere opstartprogramma's worden niet ondersteund."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Для получения результатов нужна пустая строка приглашения исходной zsh в Zshell. Вложенные оболочки и другие программы запуска не поддерживаются."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "تتطلب نتائج الأوامر موجهًا فارغًا في صدفة zsh الأصلية لـ Zshell. لا تُدعم الصدف المتداخلة وبرامج بدء التشغيل الأخرى."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ผลลัพธ์คำสั่งต้องใช้พรอมต์ว่างในเชลล์ zsh เดิมของ Zshell ไม่รองรับเชลล์ซ้อนและโปรแกรมเริ่มต้นอื่น"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hasil perintah memerlukan prompt kosong di shell zsh asli Zshell. Shell bersarang dan program awal lain tidak didukung."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kết quả lệnh yêu cầu dấu nhắc trống trong shell zsh ban đầu của Zshell. Không hỗ trợ shell lồng nhau và chương trình khởi động khác."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Komut sonuçları, Zshell'in özgün zsh kabuğunda boş bir istem gerektirir. İç içe kabuklar ve diğer başlangıç programları desteklenmez."
-          }
-        }
-      }
-    },
     "No command was provided after `--`.": {
       "extractionState": "manual",
       "localizations": {
@@ -192120,6 +192013,113 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bildirimler Sessize Alındı"
+          }
+        }
+      }
+    },
+    "Command results require a ready, empty prompt in Zshell's original local zsh or Bash shell. Nested shells and other startup programs are unsupported.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command results require a ready, empty prompt in Zshell's original local zsh or Bash shell. Nested shells and other startup programs are unsupported."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令结果要求 Zshell 原始本地 zsh 或 Bash 中的就绪空白提示符。不支持嵌套 shell 或其他启动程序。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令結果需要 Zshell 原始本機 zsh 或 Bash 中就緒的空白提示字元。不支援巢狀 shell 或其他啟動程式。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンド結果には、Zshell が起動した元のローカル zsh または Bash の、入力可能な空のプロンプトが必要です。入れ子のシェルや他の起動プログラムには対応していません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "명령 결과에는 Zshell의 원래 로컬 zsh 또는 Bash 셸에서 준비된 빈 프롬프트가 필요합니다. 중첩 셸과 다른 시작 프로그램은 지원하지 않습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les résultats de commande exigent une invite vide et prête dans le shell local zsh ou Bash initial de Zshell. Les shells imbriqués et les autres programmes de démarrage ne sont pas pris en charge."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Befehlsergebnisse erfordern eine bereite, leere Eingabeaufforderung in der ursprünglichen lokalen zsh- oder Bash-Shell von Zshell. Verschachtelte Shells und andere Startprogramme werden nicht unterstützt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los resultados de comandos requieren un indicador vacío y listo en el shell local zsh o Bash original de Zshell. No se admiten shells anidados ni otros programas de inicio."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os resultados de comandos exigem um prompt vazio e pronto no shell local zsh ou Bash original do Zshell. Shells aninhados e outros programas de inicialização não são compatíveis."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I risultati dei comandi richiedono un prompt vuoto e pronto nella shell locale zsh o Bash originale di Zshell. Le shell annidate e altri programmi di avvio non sono supportati."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opdrachtresultaten vereisen een lege, gereedstaande prompt in de oorspronkelijke lokale zsh- of Bash-shell van Zshell. Geneste shells en andere opstartprogramma’s worden niet ondersteund."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Для результатов команд нужна готовая пустая строка ввода в исходной локальной оболочке zsh или Bash, запущенной Zshell. Вложенные оболочки и другие программы запуска не поддерживаются."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تتطلب نتائج الأوامر موجّهًا فارغًا وجاهزًا في صدفة zsh أو Bash المحلية الأصلية التي شغّلها Zshell. الصدف المتداخلة وبرامج بدء التشغيل الأخرى غير مدعومة."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ผลลัพธ์คำสั่งต้องใช้พรอมต์ที่ว่างและพร้อมในเชลล์ zsh หรือ Bash ภายในเครื่องดั้งเดิมของ Zshell ไม่รองรับเชลล์ซ้อนและโปรแกรมเริ่มต้นอื่น"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hasil perintah memerlukan prompt kosong yang siap di shell zsh atau Bash lokal asli Zshell. Shell bertingkat dan program startup lainnya tidak didukung."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kết quả lệnh yêu cầu dấu nhắc trống và sẵn sàng trong shell zsh hoặc Bash cục bộ gốc của Zshell. Không hỗ trợ shell lồng nhau và các chương trình khởi động khác."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komut sonuçları, Zshell’in başlattığı özgün yerel zsh veya Bash kabuğunda hazır ve boş bir istem gerektirir. İç içe kabuklar ve diğer başlangıç programları desteklenmez."
           }
         }
       }
