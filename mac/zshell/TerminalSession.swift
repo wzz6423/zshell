@@ -91,7 +91,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     let supportsCommandTaskShellIntegration: Bool
     private var cachedShellPid: pid_t?
     private var lastHistorySnapshot: String?
-    private var isTerminating = false
+    private(set) var isTerminating = false
     private var teardownTask: Task<Void, Never>?
     private let persistentPTY: PersistentPTY?
     private var preservesLaunchArtifacts = false
@@ -106,6 +106,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     var remoteAgentGeneration: UInt64?
     var acknowledgedRemoteAgentGeneration: UInt64?
     private var clipboardPasteTask: Task<Void, Never>?
+    private var quickCommandController: QuickCommandInvocationWindowController?
     private var clipboardPasteGeneration: UInt64 = 0
     private var unsafePasteConfirmations: [ObjectIdentifier: (TerminalClipboardRequest, NSAlert)] = [:]
     let browserInputGate = BrowserAccessInputGate()
@@ -435,17 +436,28 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// Zshell window becomes key while the menu is open.
     private func configureQuickCommandMenu() {
         surface.splitTarget.onInsertQuickCommand = { [weak self] preset in
-            self?.sendCommand(preset.command)
+            self?.invokeQuickCommand(preset, run: false)
         }
         surface.splitTarget.onRunQuickCommand = { [weak self] preset in
-            guard let self else { return }
-            self.sendCommand(preset.command)
-            self.sendEnter()
+            self?.invokeQuickCommand(preset, run: true)
         }
         surface.splitTarget.onManageQuickCommands = { [weak self] in
             guard let self else { return }
             QuickCommandEditor.show(relativeTo: self.surface.window)
         }
+    }
+
+    private func invokeQuickCommand(_ preset: QuickCommandPreset, run: Bool) {
+        guard !isTerminating, !hasExited, !isReadOnly, preset.isValid else { return }
+        guard !preset.parameters.isEmpty else {
+            if sendCommand(preset.command), run { sendEnter() }
+            return
+        }
+        guard let window = surface.window, window.attachedSheet == nil else { return }
+        let controller = QuickCommandInvocationWindowController(preset: preset, session: self, run: run)
+        controller.onClose = { [weak self] in self?.quickCommandController = nil }
+        quickCommandController = controller
+        controller.present(relativeTo: window)
     }
 
     /// Reconfigures the surface in place when appearance or terminal settings
@@ -507,6 +519,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     func terminate() {
         guard !isTerminating, !hasExited || persistentPTY != nil else { return }
         cancelPromptQueueDispatch()
+        quickCommandController?.dismiss()
         TerminalNotificationService.shared.terminalClosed(self)
         isTerminating = true
         remoteConnection?.stopMonitoring()
@@ -546,6 +559,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         guard !isTerminating else { return }
         commandBookmarks.close()
         cancelPromptQueueDispatch()
+        quickCommandController?.dismiss()
         promptQueueBar.setPaneVisible(false)
         AgentAutomationMonitor.shared.unregister(self)
         if let remoteConnection {
@@ -1603,6 +1617,7 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
     }
 
     func terminalDidClose(processAlive: Bool) {
+        quickCommandController?.dismiss()
         guard !isTerminating else { return }
         AgentAutomationMonitor.shared.unregister(self)
         TerminalNotificationService.shared.terminalClosed(self)

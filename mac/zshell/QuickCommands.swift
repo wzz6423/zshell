@@ -6,25 +6,6 @@
 import AppKit
 import Foundation
 
-struct QuickCommandPreset: Codable, Equatable, Identifiable {
-    let id: UUID
-    var name: String
-    var command: String
-
-    init(id: UUID = UUID(), name: String, command: String) {
-        self.id = id
-        self.name = name
-        self.command = command
-    }
-
-    var isValid: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && name.rangeOfCharacter(from: .controlCharacters) == nil
-            && command.rangeOfCharacter(from: .controlCharacters) == nil
-    }
-}
-
 @MainActor
 final class QuickCommandStore {
     static let shared = QuickCommandStore()
@@ -148,6 +129,8 @@ final class QuickCommandEditorWindowController: NSWindowController,
     private let tableView = NSTableView()
     private let nameField = NSTextField()
     private let commandField = NSTextField()
+    private let parameterEditor = QuickCommandParameterEditorView()
+    private let validationLabel = NSTextField(wrappingLabelWithString: "")
     private let addButton = NSButton()
     private let removeButton = NSButton()
     private let saveButton = NSButton()
@@ -157,7 +140,7 @@ final class QuickCommandEditorWindowController: NSWindowController,
     init() {
         presets = QuickCommandStore.shared.presets
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 360),
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 540),
             styleMask: [.titled, .closable, .resizable],
             backing: .buffered,
             defer: false
@@ -165,7 +148,7 @@ final class QuickCommandEditorWindowController: NSWindowController,
         window.title = String(localized: "Quick Commands")
         window.identifier = NSUserInterfaceItemIdentifier("quick-commands")
         window.isReleasedWhenClosed = false
-        window.contentMinSize = NSSize(width: 500, height: 320)
+        window.contentMinSize = NSSize(width: 760, height: 500)
         super.init(window: window)
         configureContent()
         select(row: presets.isEmpty ? -1 : 0)
@@ -212,6 +195,14 @@ final class QuickCommandEditorWindowController: NSWindowController,
         updateSaveEnabled()
     }
 
+    func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+        if selector == #selector(NSResponder.insertNewline(_:)) {
+            window?.selectNextKeyView(control)
+            return true
+        }
+        return false
+    }
+
     private func configureContent() {
         guard let content = window?.contentView else { return }
         let scrollView = NSScrollView()
@@ -228,6 +219,17 @@ final class QuickCommandEditorWindowController: NSWindowController,
 
         configureField(nameField, placeholder: String(localized: "Name"))
         configureField(commandField, placeholder: String(localized: "Command"))
+        nameField.identifier = NSUserInterfaceItemIdentifier("quick-command-name")
+        commandField.identifier = NSUserInterfaceItemIdentifier("quick-command-command")
+        parameterEditor.onChange = { [weak self] in self?.updateSaveEnabled() }
+        validationLabel.textColor = .secondaryLabelColor
+        validationLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        let templateHelp = NSTextField(
+            wrappingLabelWithString: String(
+                localized: "Use {{name}} for each parameter as a separate, unquoted argument."
+            ))
+        templateHelp.textColor = .secondaryLabelColor
+        templateHelp.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
 
         addButton.title = String(localized: "Add")
         addButton.bezelStyle = .rounded
@@ -241,6 +243,7 @@ final class QuickCommandEditorWindowController: NSWindowController,
         removeButton.setAccessibilityLabel(String(localized: "Remove Quick Command"))
 
         saveButton.title = String(localized: "Save")
+        saveButton.identifier = NSUserInterfaceItemIdentifier("quick-command-save")
         saveButton.bezelStyle = .rounded
         saveButton.keyEquivalent = "\r"
         saveButton.target = self
@@ -251,9 +254,10 @@ final class QuickCommandEditorWindowController: NSWindowController,
             action: #selector(cancel)
         )
         cancelButton.bezelStyle = .rounded
+        cancelButton.identifier = NSUserInterfaceItemIdentifier("quick-command-cancel")
         cancelButton.keyEquivalent = "\u{1b}"
 
-        let fieldStack = NSStackView(views: [nameField, commandField])
+        let fieldStack = NSStackView(views: [nameField, commandField, templateHelp, parameterEditor, validationLabel])
         fieldStack.orientation = .vertical
         fieldStack.alignment = .width
         fieldStack.spacing = 10
@@ -277,6 +281,7 @@ final class QuickCommandEditorWindowController: NSWindowController,
             fieldStack.leadingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: 16),
             fieldStack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
             fieldStack.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            fieldStack.bottomAnchor.constraint(lessThanOrEqualTo: footer.topAnchor, constant: -16),
             footer.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 20),
             footer.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
             footer.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -16),
@@ -285,6 +290,7 @@ final class QuickCommandEditorWindowController: NSWindowController,
 
     private func configureField(_ field: NSTextField, placeholder: String) {
         field.placeholderString = placeholder
+        field.setAccessibilityLabel(placeholder)
         field.delegate = self
         field.isEnabled = false
     }
@@ -293,6 +299,7 @@ final class QuickCommandEditorWindowController: NSWindowController,
         guard presets.indices.contains(selectedRow) else { return }
         presets[selectedRow].name = nameField.stringValue
         presets[selectedRow].command = commandField.stringValue
+        presets[selectedRow].parameters = parameterEditor.parameters
     }
 
     private func select(row: Int, reloadTable: Bool = true) {
@@ -302,13 +309,16 @@ final class QuickCommandEditorWindowController: NSWindowController,
             tableView.selectRowIndexes(IndexSet(integer: selectedRow), byExtendingSelection: false)
             nameField.stringValue = presets[selectedRow].name
             commandField.stringValue = presets[selectedRow].command
+            parameterEditor.setParameters(presets[selectedRow].parameters)
         } else {
             tableView.deselectAll(nil)
             nameField.stringValue = ""
             commandField.stringValue = ""
+            parameterEditor.setParameters([])
         }
         nameField.isEnabled = selectedRow >= 0
         commandField.isEnabled = selectedRow >= 0
+        parameterEditor.isHidden = selectedRow < 0
         removeButton.isEnabled = selectedRow >= 0
         updateSaveEnabled()
     }
@@ -318,8 +328,10 @@ final class QuickCommandEditorWindowController: NSWindowController,
         if candidate.indices.contains(selectedRow) {
             candidate[selectedRow].name = nameField.stringValue
             candidate[selectedRow].command = commandField.stringValue
+            candidate[selectedRow].parameters = parameterEditor.parameters
         }
         let hasEditedRow = candidate.indices.contains(selectedRow)
+        validationLabel.stringValue = candidate.first(where: { !$0.isValid })?.validationError?.localizedDescription ?? ""
         saveButton.isEnabled =
             candidate.allSatisfy(\.isValid)
             && (candidate.isEmpty || hasEditedRow)

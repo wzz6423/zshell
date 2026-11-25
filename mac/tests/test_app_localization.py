@@ -24,7 +24,7 @@ SHARED_TEXT = {
     "Branches", "Browser", "Camera", "Cookies", "Cookies: %lld", "Conflict", "Cursor", "Detached HEAD", "Editor", "File", "Font",
     "General", "Git", "Git (⇧⌘G)", "Help", "Host", "Info", "Info (⇧⌘I)",
     "Interface", "Microphone", "Name", "Normal", "OK", "Optional", "Options", "PORTS",
-    "Password", "Port", "Program", "Project", "Services", "Session", "Sessions", "Status",
+    "Password", "Port", "Program", "Project", "Services", "Session", "Sessions", "Status", "Parameters",
     "Stop", "System", "Tab", "Tab %lld", "Tab %lld, %@", "Tabs", "Terminal", "Trackpad",
     "Type", "Updates", "Visual", "WORKTREES", "Zoom", "detached HEAD",
     "example.com", "worktree",
