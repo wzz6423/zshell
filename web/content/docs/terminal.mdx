@@ -194,6 +194,38 @@ replaces a selected input range; repeating a phrase intentionally remains suppor
 
 Choose **Terminal → Read Only** or **Read Only** in the terminal context menu to lock that pane. Click its lock button to unlock. Output, selection, copy, search, and scrollback remain available; keyboard and mouse input to terminal programs, paste, file drops, quick commands, queued sends, browser access input, and automation input are blocked. Drafts and queued prompts stay in place, and unlocking does not resend rejected input. CLI input requests return `terminal_read_only`. The lock stays with the same pane across tab changes and Quick Terminal hiding; new terminals start unlocked, and locks are not restored after app restarts.
 
+## Quick commands [#quick-commands]
+
+Right-click a terminal and choose **Manage Quick Commands** to edit your saved
+commands. Add a parameter, give it a name such as `environment` or `branch`, and
+choose **Text** or **Dropdown**. Text parameters can have an empty default;
+dropdown parameters need unique choices, one per line, and a default from that list.
+
+Use each parameter as a separate, unquoted argument:
+
+```sh
+./deploy --environment {{environment}} --branch {{branch}}
+```
+
+Choose **Insert into Terminal** or **Run Command** from the saved command's menu.
+Fill in the values and review **Command Preview**. Each value is inserted literally
+as one shell argument, including spaces and quotes. Repeated placeholders use the
+same value. **Insert into Terminal** leaves the command at the prompt; **Run Command**
+submits it once. Return in a parameter field moves focus and does not run the command.
+Cancel and invocation values do not change the saved defaults.
+
+Parameterized commands require an empty prompt in the original local zsh, with
+no queued prompts or pending/running command task. Read-only panes, closed terminals,
+nested shells, foreground programs, and changed project or pane targets cannot
+receive them. Fixed commands keep their existing Insert/Run behavior.
+
+Templates support one simple command, quoted static arguments and static environment
+assignments such as `env MODE=staging`. Placeholders inside quotes or joined to other
+text, pipes, redirections, command/variable expansions and compound shell commands
+are rejected. Names use letters, digits and underscores, starting with a letter or
+underscore. Values are single-line text. Limits are 16 parameters, 100 choices per
+parameter, 4 KiB per value and 16 KiB for the template or resulting command.
+
 ## Foreground application shortcuts
 
 When a terminal application's shortcuts conflict with Zshell, right-click its

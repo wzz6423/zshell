@@ -23,6 +23,8 @@ the original feature bullet instead of adding separate entries for them.
   manual review and paste without submitting terminal input.
 - Bookmark command blocks and return to their output from the Terminal menu
   for the current session, including read-only panes and Quick Terminal.
+- Quick commands support text and dropdown parameters with saved defaults and
+  a command preview before inserting or running them in the original terminal.
 
 ## [0.1.18]
 
