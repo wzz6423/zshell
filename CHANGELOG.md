@@ -37,6 +37,14 @@ the original feature bullet instead of adding separate entries for them.
 - Preview, edit, and locally redact suspected secrets before copying selected
   terminal text, copying a command's output, or saving retained terminal output.
 
+### Fixed
+
+- Vertically center settings titles beside their icons when no description is shown.
+- Remember a project's last local shell directory when opening its next session,
+  including after a relaunch.
+- Keep shells in the installed app running when quitting a Debug build launched
+  from one of its terminals.
+
 ## [0.1.18]
 
 ### Added

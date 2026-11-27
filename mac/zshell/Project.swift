@@ -32,6 +32,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// here. Nil means automatic, following the terminal's foreground
     /// repository and working directory (see `panelRoot(followingSessionAt:)`).
     @Published var customDirectory: String?
+    /// Used when the project no longer owns a local terminal.
+    var lastSessionDirectory: String?
     /// The sidebar group this project sits under, nil when ungrouped. The
     /// group's kind decides where new terminals of the project start: a
     /// folder group starts them in its folder (the group's directory sits
@@ -264,9 +266,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         if case .session(let session)? = focusedContent {
             return session
         }
-        return selectedTab?.sessions.first
-            ?? selectedTab?.contextSession
-            ?? sessions.first
+        if let session = selectedTab?.sessions.first { return session }
+        // An editor can outlive its context terminal or still reference one moved to another project.
+        if let session = selectedTab?.contextSession, sessionObservations[session.id] != nil { return session }
+        return sessions.first
     }
 
     /// Whether the selected tab's focused pane can be split (false for diffs).
@@ -605,12 +608,13 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     var newSessionDirectoryContext: TerminalSessionDirectory.Context {
-        guard !isRemote, let session = selectedSession else { return .init() }
-        let directory = session.currentDirectoryPath
+        guard !isRemote else { return .init() }
+        let session = selectedSession
+        guard let directory = session?.currentDirectoryPath ?? lastSessionDirectory else { return .init() }
         return .init(
             currentDirectory: directory,
             projectDirectory: AppSettings.shared.newSessionDirectoryPolicy == .project
-                ? panelRoot(followingSessionAt: directory, foregroundAt: session.foregroundDirectoryPath).root : nil
+                ? panelRoot(followingSessionAt: directory, foregroundAt: session?.foregroundDirectoryPath).root : nil
         )
     }
 
@@ -996,6 +1000,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 }
                 return
             }
+            if !isRemote { lastSessionDirectory = session.currentDirectoryPath }
             if terminate {
                 // Capture while the shell is still alive. Only closes the
                 // user initiated reach the reopen stack; a shell that exits
@@ -1458,6 +1463,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     func detachTabForTransfer(id: UUID) -> PaneTab? {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return nil }
         let tab = tabs[index]
+        if !isRemote, let session = selectedSession { lastSessionDirectory = session.currentDirectoryPath }
         tab.tabGroupID = nil
         unregisterTransferOwnership(of: tab)
         recentTabIDs.removeAll { $0 == id }

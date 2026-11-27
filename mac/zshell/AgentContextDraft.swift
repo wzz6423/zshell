@@ -161,7 +161,8 @@ final class AgentContextDraftMenuTarget: NSObject, NSMenuItemValidation {
         let text: String?
         let source: AgentContextDraft.Source
         if let location {
-            text = surface.commandRegion(at: location) == nil
+            text =
+                surface.commandRegion(at: location) == nil
                 ? nil : surface.commandText(at: location, part: .output, maxBytes: AgentContextDraft.maximumBytes)
             let command = surface.commandRecords.first { $0.outputLocation == location }?.command
             source = .init(kind: .commandOutput, terminalTitle: session.title, command: command)
@@ -171,12 +172,14 @@ final class AgentContextDraftMenuTarget: NSObject, NSMenuItemValidation {
         }
         let controller = AgentContextDraftController.shared
         guard let text, !text.isEmpty else {
-            controller.show(for: context.project, manager: context.manager,
+            controller.show(
+                for: context.project, manager: context.manager,
                 error: String(localized: "The source is unavailable or exceeds 256 KiB. Select a smaller range."))
             return
         }
         let appended = context.project.agentContextDraft.append(text, source: source)
-        controller.show(for: context.project, manager: context.manager,
+        controller.show(
+            for: context.project, manager: context.manager,
             error: appended ? nil : String(localized: "The draft can hold 256 KiB and 64 sources. Remove text before adding more."))
     }
 }

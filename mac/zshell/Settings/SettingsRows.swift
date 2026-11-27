@@ -8,12 +8,15 @@ import AppKit
 /// Multiline editors stay top-aligned so their first control remains beside
 /// the title, while single controls center beside the row's text.
 final class SettingsRow: NSView {
+    private let control: NSView
+    private let labels: SettingsLabelColumn
     private let descriptionLabel: NSTextField?
     private let stack = NSStackView()
     private var compoundWidths: [NSLayoutConstraint] = []
     private var compactWidth: CGFloat?
 
     init(title: String, description: String? = nil, control: NSView, symbolName: String? = nil, symbolColor: NSColor? = nil) {
+        self.control = control
         let titleLabel = NSTextField(wrappingLabelWithString: title)
         titleLabel.font = SettingsMetrics.rowTitleFont
         titleLabel.maximumNumberOfLines = 0
@@ -35,22 +38,26 @@ final class SettingsRow: NSView {
         textStack.orientation = .vertical
         textStack.alignment = .leading
         textStack.spacing = 3
+        // Hiding a description must also shrink the column so its title can recenter.
+        textStack.setHuggingPriority(.required, for: .vertical)
         for label in textStack.arrangedSubviews {
             label.widthAnchor.constraint(equalTo: textStack.widthAnchor).isActive = true
         }
 
-        super.init(frame: .zero)
-
+        descriptionLabel?.isHidden = description?.isEmpty == true
         let descriptor = SettingsRowSymbols.icon(for: title, control: control)
-        let labels = SettingsLabelColumn(
+        labels = SettingsLabelColumn(
             text: textStack,
             symbolName: symbolName ?? descriptor.name,
-            symbolColor: symbolColor ?? descriptor.category.iconColor
+            symbolColor: symbolColor ?? descriptor.category.iconColor,
+            alignment: description?.isEmpty == false ? .top : .centerY
         )
+        super.init(frame: .zero)
+
         stack.addArrangedSubview(labels)
         stack.addArrangedSubview(control)
         stack.orientation = .horizontal
-        stack.alignment = control is NSControl || description == nil ? .centerY : .top
+        stack.alignment = control is NSControl ? .centerY : labels.alignment
         stack.spacing = SettingsMetrics.labelControlGap
         stack.distribution = .fill
         labels.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -93,7 +100,12 @@ final class SettingsRow: NSView {
     /// Replaces the explanation under the title, for rows whose text depends on
     /// the value they show.
     func setDescription(_ text: String) {
-        descriptionLabel?.stringValue = text
+        guard let descriptionLabel else { return }
+        descriptionLabel.stringValue = text
+        guard descriptionLabel.isHidden != text.isEmpty else { return }
+        descriptionLabel.isHidden = text.isEmpty
+        labels.alignment = text.isEmpty ? .centerY : .top
+        if stack.orientation == .horizontal, !(control is NSControl) { stack.alignment = labels.alignment }
     }
 
     override func layout() {
@@ -102,7 +114,7 @@ final class SettingsRow: NSView {
             if (stack.orientation == .vertical) != compact {
                 NSLayoutConstraint.deactivate(compoundWidths)
                 stack.orientation = compact ? .vertical : .horizontal
-                stack.alignment = compact ? .leading : .top
+                stack.alignment = compact ? .leading : labels.alignment
                 if compact { NSLayoutConstraint.activate(compoundWidths) }
             }
         }
@@ -110,16 +122,16 @@ final class SettingsRow: NSView {
     }
 }
 
-/// The taller of the icon and the text sets the row height without shifting their tops.
+/// The icon stays beside the first line when a row includes an explanation.
 private final class SettingsLabelColumn: NSStackView {
-    init(text: NSView, symbolName: String, symbolColor: NSColor) {
+    init(text: NSView, symbolName: String, symbolColor: NSColor, alignment: NSLayoutConstraint.Attribute) {
         super.init(frame: .zero)
 
         let icon = SettingsIconView(symbolName: symbolName, color: symbolColor, size: SettingsMetrics.rowIconSize)
         addArrangedSubview(icon)
         addArrangedSubview(text)
         orientation = .horizontal
-        alignment = .top
+        self.alignment = alignment
         spacing = SettingsMetrics.iconLabelGap
         distribution = .fill
         setHuggingPriority(.defaultLow, for: .horizontal)
@@ -376,7 +388,8 @@ final class SettingsSliderRow: NSView {
         let labels = SettingsLabelColumn(
             text: titleLabel,
             symbolName: symbolName ?? descriptor.name,
-            symbolColor: symbolColor ?? descriptor.category.iconColor
+            symbolColor: symbolColor ?? descriptor.category.iconColor,
+            alignment: description?.isEmpty == false ? .top : .centerY
         )
         var views: [NSView] = [labels, slider, valueLabel]
         if let stepper { views.append(stepper) }
@@ -398,7 +411,7 @@ final class SettingsSliderRow: NSView {
             valueLabel.widthAnchor.constraint(equalToConstant: SettingsMetrics.sliderValueWidth),
             labels.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor, multiplier: 0.42),
         ]
-        if let description {
+        if let description, !description.isEmpty {
             let label = NSTextField(wrappingLabelWithString: description)
             label.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
             label.textColor = .secondaryLabelColor

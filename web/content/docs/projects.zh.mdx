@@ -9,7 +9,7 @@ description: Zshell 如何组织你的工作——侧边栏里的项目、作为
 
 一个项目就是一件正在做的事——实际用起来通常就是一个仓库——有自己的终端、标签页和面板状态。
 
-<kbd>Cmd</kbd>+<kbd>N</kbd> 创建带有一个终端的项目。[启动目录策略](/docs/configuration#terminalnew-session-directory)默认使用活跃本地会话的目录，没有可用会话时使用主目录。文件与 Git 面板跟随包含该目录的仓库。
+<kbd>Cmd</kbd>+<kbd>N</kbd> 创建带有一个终端的项目。[启动目录策略](/docs/configuration#terminalnew-session-directory)默认使用所选项目当前或上次保存的本地 shell 目录。两者都不可用时，使用主目录。文件与 Git 面板跟随包含该目录的仓库。
 
 想省掉这次 `cd`，在 Finder 里右键一个文件夹，选 **服务 → New Zshell Project Here**——它会作为一个项目打开，终端已经在里面启动好了。
 
@@ -92,7 +92,7 @@ Directory** 则交还自动判断。
 | 下一个 / 上一个标签页 | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | 关闭当前窗格 | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-新建本地会话优先使用显式或固定的项目目录，其次使用侧栏分组目录，再应用配置的[启动目录策略](/docs/configuration#terminalnew-session-directory)。分屏保留来源窗格的目录。
+新建本地会话优先使用显式或固定的项目目录，其次使用侧栏分组目录，再应用配置的[启动目录策略](/docs/configuration#terminalnew-session-directory)。分屏保留来源窗格的目录。即使退出并重新打开 Zshell，项目也会记住最后一个本地 shell 的目录。
 
 双击项目侧栏的空白处，可在当前项目中新建会话；未选择项目时会新建项目。可在 **设置 → 外观 → 项目侧栏** 中关闭此操作，也可右键空白处选择 **新建会话** 或 **侧栏设置…**。
 

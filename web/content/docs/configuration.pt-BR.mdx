@@ -213,7 +213,7 @@ Escolhem o executável e vetor de argumentos para terminais criados depois da al
 
 `"current"` · `"project"` · `"home"` · `"custom"` — padrão `"current"`
 
-Escolha **Ajustes → Terminal → Diretório de novas sessões**. Atual usa o diretório do shell local ativo, inclusive no primeiro terminal de um novo projeto. Sem shell local, usa a pasta pessoal. Projeto usa a raiz mostrada em Arquivos e Git (o repositório mais próximo ou o checkout em primeiro plano); fora de um repositório, usa o diretório atual. Pessoal sempre usa a pasta da conta. A regra também vale para o primeiro Terminal rápido e cada novo espaço do Terminal rápido.
+Escolha **Ajustes → Terminal → Diretório de novas sessões**. Atual usa o diretório do shell local ativo, inclusive no primeiro terminal de um novo projeto. Quando não há um shell local aberto no projeto, as opções Atual e Projeto usam o último diretório de shell salvo como ponto de partida, mesmo após reiniciar o Zshell. Se esse diretório estiver indisponível, Atual usa a pasta pessoal. Projeto usa a raiz mostrada em Arquivos e Git (o repositório mais próximo ou o checkout em primeiro plano); fora de um repositório, usa o diretório atual. Pessoal sempre usa a pasta da conta. A regra também vale para o primeiro Terminal rápido e cada novo espaço do Terminal rápido.
 
 Diretórios explícitos do Finder, CLI, modelos de espaço de trabalho, worktrees, sessões restauradas, pastas fixadas ao projeto ou grupos da barra lateral têm prioridade. Divisões mantêm o diretório do painel de origem. SSH e sessões remotas compartilhadas mantêm o diretório do host remoto. Alterar o ajuste não reinicia terminais abertos nem espaços reutilizados do Terminal rápido.
 

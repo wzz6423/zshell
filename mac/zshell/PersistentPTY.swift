@@ -9,7 +9,7 @@ final class PersistentPTY: @unchecked Sendable {
     let shellPID: pid_t
     let bindingToken: String
     let launchDirectoryURL: URL?
-    let workingDirectory: String
+    private var lastWorkingDirectory: String
     private let lock = NSLock()
     private var foreground: pid_t
     private var monitor: DispatchSourceTimer?
@@ -25,7 +25,12 @@ final class PersistentPTY: @unchecked Sendable {
         foreground = pid_t(info["foregroundPid"]?.intValue ?? pid)
         bindingToken = info["bindingToken"]?.stringValue ?? ""
         launchDirectoryURL = info["launchDirectory"]?.stringValue.map { URL(fileURLWithPath: $0) }
-        workingDirectory = info["workingDirectory"]?.stringValue ?? NSHomeDirectory()
+        lastWorkingDirectory = info["workingDirectory"]?.stringValue ?? NSHomeDirectory()
+    }
+
+    var workingDirectory: String {
+        get { lock.withLock { lastWorkingDirectory } }
+        set { lock.withLock { lastWorkingDirectory = newValue } }
     }
 
     var foregroundPID: pid_t? {
@@ -100,10 +105,13 @@ final class PersistentPTY: @unchecked Sendable {
             guard let self,
                 let response = try? PTYMuxCommandLine.exchange(
                     method: "get", params: ["id": .string(self.id.uuidString)], timeout: 0.2
-                ), let value = response.result?.objectValue?["foregroundPid"]?.intValue
+                ), let info = response.result?.objectValue, let value = info["foregroundPid"]?.intValue
             else { return }
             self.lock.lock()
             self.foreground = pid_t(value)
+            if info["running"]?.boolValue == true, let directory = info["workingDirectory"]?.stringValue {
+                self.lastWorkingDirectory = directory
+            }
             self.lock.unlock()
         }
         monitor = timer

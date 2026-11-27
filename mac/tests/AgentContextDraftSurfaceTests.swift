@@ -79,11 +79,12 @@ struct AgentContextDraftSurfaceTests {
             controller.close(restoreFocus: false)
             if clipboard.changeCount == ownedClipboardCount {
                 clipboard.clearContents()
-                clipboard.writeObjects(savedClipboard.map { entries in
-                    let item = NSPasteboardItem()
-                    for (type, data) in entries { item.setData(data, forType: type) }
-                    return item
-                })
+                clipboard.writeObjects(
+                    savedClipboard.map { entries in
+                        let item = NSPasteboardItem()
+                        for (type, data) in entries { item.setData(data, forType: type) }
+                        return item
+                    })
             }
             manager.windowClosed()
             pump(0.2)
@@ -115,12 +116,16 @@ struct AgentContextDraftSurfaceTests {
                     with: .rightMouseDown, location: source.surface.convert(point, to: nil), modifierFlags: [],
                     timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
                     context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
-                if source.surface.commandLocation(for: event) == location { return TerminalContextMenu.make(for: source.surface, event: event, linkTarget: nil) }
+                if source.surface.commandLocation(for: event) == location {
+                    return TerminalContextMenu.make(for: source.surface, event: event, linkTarget: nil)
+                }
             }
             throw DraftFailure.failed("clicked command not found")
         }
         func item(_ identifier: String, _ menu: NSMenu) throws -> NSMenuItem {
-            guard let item = menu.items.first(where: { $0.identifier?.rawValue == identifier }) else { throw DraftFailure.failed("menu item missing: " + identifier) }
+            guard let item = menu.items.first(where: { $0.identifier?.rawValue == identifier }) else {
+                throw DraftFailure.failed("menu item missing: " + identifier)
+            }
             return item
         }
         func invoke(_ item: NSMenuItem) throws {
@@ -128,7 +133,9 @@ struct AgentContextDraftSurfaceTests {
             try check(NSApp.sendAction(action, to: item.target, from: item), "native menu dispatch")
         }
         func button(_ identifier: String) throws -> NSButton {
-            guard let button = descendants(controller.panel?.contentView).first(where: { $0.identifier?.rawValue == identifier }) as? NSButton else {
+            guard
+                let button = descendants(controller.panel?.contentView).first(where: { $0.identifier?.rawValue == identifier }) as? NSButton
+            else {
                 throw DraftFailure.failed("button missing: " + identifier)
             }
             return button
@@ -149,14 +156,18 @@ struct AgentContextDraftSurfaceTests {
         try check(clipboard.string(forType: .string) == "DRAFT_CLIPBOARD_SENTINEL", "capturing output does not touch clipboard")
         try check(try button("draft-focus").isEnabled == false, "no agent disables focus")
         try check(try button("draft-copy").isEnabled, "copy works without a target")
-        try check(!descendants(controller.panel?.contentView).contains { $0.identifier?.rawValue == "draft-insert" }, "no unchecked terminal insert action")
+        try check(
+            !descendants(controller.panel?.contentView).contains { $0.identifier?.rawValue == "draft-insert" },
+            "no unchecked terminal insert action")
         controller.close()
         try check(project.agentContextDraft.text == output, "closing retains draft")
         try check(source.surface.selectCommand(at: record.outputLocation!), "native command selection")
         let selection = source.surface.readSelectedText(maxBytes: 262_144)
         try check(selection?.contains("中文😀") == true, "native selection Unicode")
         try check(source.surface.readSelectedText(maxBytes: 1) == nil, "oversized selection fails without truncation")
-        try check(source.surface.commandText(at: record.outputLocation!, part: .output, maxBytes: 1) == nil, "oversized block fails without truncation")
+        try check(
+            source.surface.commandText(at: record.outputLocation!, part: .output, maxBytes: 1) == nil,
+            "oversized block fails without truncation")
         let selectionItem = try item("zshell-draft-selection", TerminalContextMenu.make(for: source.surface, linkTarget: nil))
         try invoke(selectionItem)
         try check(project.agentContextDraft.text == output + "\n\n" + selection!, "selection appends instead of replacing")
@@ -166,7 +177,9 @@ struct AgentContextDraftSurfaceTests {
         controller.editor.string = edited
         controller.textDidChange(Notification(name: NSText.didChangeNotification))
         let cancelled = controller.textView(controller.editor, doCommandBy: #selector(NSResponder.cancelOperation(_:)))
-        try check(cancelled && controller.panel?.isVisible == false && project.agentContextDraft.text == edited, "Escape keeps edited multiline draft")
+        try check(
+            cancelled && controller.panel?.isVisible == false && project.agentContextDraft.text == edited,
+            "Escape keeps edited multiline draft")
         controller.show(for: project, manager: manager)
         try check(controller.editor.string == edited, "reopening restores edited draft")
         controller.copyDraft(nil)
@@ -184,7 +197,9 @@ struct AgentContextDraftSurfaceTests {
         controller.editor.undoManager?.registerUndo(withTarget: controller.editor) { $0.string = "UNDO_FROM_A" }
         try check(controller.editor.undoManager?.canUndo == true, "editor undo stack active")
         controller.show(for: other, manager: manager)
-        try check(controller.editor.undoManager?.canUndo != true && controller.editor.string == "OTHER_PROJECT_DRAFT", "switching projects clears undo history")
+        try check(
+            controller.editor.undoManager?.canUndo != true && controller.editor.string == "OTHER_PROJECT_DRAFT",
+            "switching projects clears undo history")
         controller.close()
         try check(project.agentContextDraft.text == edited, "other project's editor cannot overwrite original draft")
 
@@ -196,13 +211,17 @@ struct AgentContextDraftSurfaceTests {
         try agentFixture.write(to: fixture, atomically: true, encoding: .utf8)
         agent.sendCommand("/usr/bin/python3 " + quote(fixture.path) + " " + quote(capture.path), asPaste: true)
         agent.sendEnter()
-        try wait("native foreground fixture recognized") { agent.isAutomationAgentRunning(kind: .claude) && FileManager.default.fileExists(atPath: capture.path) }
+        try wait("native foreground fixture recognized") {
+            agent.isAutomationAgentRunning(kind: .claude) && FileManager.default.fileExists(atPath: capture.path)
+        }
         func status(_ phase: ZshellAgentPhase) {
-            agent.updateAutomationAgentStatus(alias: "fixture", kind: .claude, phase: phase, authority: .integration,
+            agent.updateAutomationAgentStatus(
+                alias: "fixture", kind: .claude, phase: phase, authority: .integration,
                 reason: "Fixture", processID: agent.surface.foregroundPid, unseen: false)
         }
         status(.idle)
-        guard let context = ZshellAutomationRouter.context(forSession: agent.id), let target = AgentContextDraftTarget(context: context) else {
+        guard let context = ZshellAutomationRouter.context(forSession: agent.id), let target = AgentContextDraftTarget(context: context)
+        else {
             throw DraftFailure.failed("native target missing")
         }
         project.agentContextDraft.target = target
@@ -222,7 +241,9 @@ struct AgentContextDraftSurfaceTests {
         controller.reload()
         agent.surface.isReadOnly = true
         controller.reload()
-        try check(try button("draft-copy").isEnabled && button("draft-focus").isEnabled, "read-only blocked target keeps manual copy and navigation")
+        try check(
+            try button("draft-copy").isEnabled && button("draft-focus").isEnabled,
+            "read-only blocked target keeps manual copy and navigation")
         controller.focusAgent(nil)
         try wait("focus selects original agent project") { manager.selectedProjectID == project.id && project.selectedSession === agent }
         try check(try Data(contentsOf: capture) == before, "copy and focus send no PTY bytes and no Enter")
@@ -288,13 +309,19 @@ struct AgentContextDraftSurfaceTests {
         let draft = AgentContextDraft()
         let combined = "a" + String(repeating: "\u{0301}", count: 400)
         let source = AgentContextDraft.Source(kind: .selection, terminalTitle: combined, command: combined)
-        try check(source.terminalTitle.utf8.count <= 320 && (source.command?.utf8.count ?? 0) <= 320, "source labels bounded by bytes with combining characters")
+        try check(
+            source.terminalTitle.utf8.count <= 320 && (source.command?.utf8.count ?? 0) <= 320,
+            "source labels bounded by bytes with combining characters")
         try check(draft.append("中文😀\nsecond line", source: source), "multiline draft append")
         try check(draft.append("\ntrailing spaces  ", source: source), "whitespace source preserved")
         try check(draft.text == "中文😀\nsecond line\n\n\ntrailing spaces  ", "exact multiline append separators")
         let text = draft.text
-        try check(!draft.append(String(repeating: "x", count: AgentContextDraft.maximumBytes), source: source) && draft.text == text, "oversized append retains old draft")
-        try check(!draft.edit(String(repeating: "x", count: AgentContextDraft.maximumBytes + 1)) && draft.text == text, "oversized edit retains old draft")
+        try check(
+            !draft.append(String(repeating: "x", count: AgentContextDraft.maximumBytes), source: source) && draft.text == text,
+            "oversized append retains old draft")
+        try check(
+            !draft.edit(String(repeating: "x", count: AgentContextDraft.maximumBytes + 1)) && draft.text == text,
+            "oversized edit retains old draft")
         let limit = AgentContextDraft()
         for _ in 0 ..< 64 { _ = limit.append("x", source: source) }
         try check(!limit.append("y", source: source) && limit.sources.count == 64, "source count bounded")
@@ -335,23 +362,23 @@ struct AgentContextDraftSurfaceTests {
     private static func quote(_ value: String) -> String { "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'" }
 
     private static let agentFixture = """
-    import codecs, json, os, select, signal, sys, tty
-    from pathlib import Path
-    signal.signal(signal.SIGTTOU, signal.SIG_IGN)
-    if os.getpid() != os.getpgrp(): os.setpgid(0, 0)
-    os.tcsetpgrp(0, os.getpgrp())
-    tty.setraw(0)
-    output = Path(sys.argv[1])
-    received = bytearray()
-    def save(): output.write_text(json.dumps({'bytes': list(received)}))
-    save()
-    sys.stdout.write('CLAUDE_FIXTURE_READY\\r\\n'); sys.stdout.flush()
-    while True:
-        if not select.select([0], [], [], 0.05)[0]: continue
-        data = os.read(0, 4096)
-        if not data or b'\\x03' in data: break
-        received.extend(data)
+        import codecs, json, os, select, signal, sys, tty
+        from pathlib import Path
+        signal.signal(signal.SIGTTOU, signal.SIG_IGN)
+        if os.getpid() != os.getpgrp(): os.setpgid(0, 0)
+        os.tcsetpgrp(0, os.getpgrp())
+        tty.setraw(0)
+        output = Path(sys.argv[1])
+        received = bytearray()
+        def save(): output.write_text(json.dumps({'bytes': list(received)}))
         save()
-        sys.stdout.write('INPUT_RECEIVED\\r\\n'); sys.stdout.flush()
-    """
+        sys.stdout.write('CLAUDE_FIXTURE_READY\\r\\n'); sys.stdout.flush()
+        while True:
+            if not select.select([0], [], [], 0.05)[0]: continue
+            data = os.read(0, 4096)
+            if not data or b'\\x03' in data: break
+            received.extend(data)
+            save()
+            sys.stdout.write('INPUT_RECEIVED\\r\\n'); sys.stdout.flush()
+        """
 }

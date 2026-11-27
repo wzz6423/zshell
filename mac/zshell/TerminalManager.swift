@@ -2143,6 +2143,7 @@ final class TerminalManager: nonisolated ObservableObject {
                     notificationsMuted: project.notificationsMuted,
                     markerColorHex: project.markerColor?.hex,
                     customDirectory: project.customDirectory,
+                    lastSessionDirectory: project.lastSessionDirectory,
                     groupID: project.groupID,
                     conversationHistoryProjectID: project.conversationHistoryProjectID,
                     tabGroups: project.tabGroups,
@@ -2275,6 +2276,7 @@ final class TerminalManager: nonisolated ObservableObject {
             project.notificationsMuted = saved.notificationsMuted
             project.markerColor = saved.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
             project.customDirectory = saved.customDirectory
+            project.lastSessionDirectory = saved.lastSessionDirectory
             // A group may have been deleted while this window was closed or
             // by another live window. Treat an orphaned id as ungrouped so the
             // restored project never disappears from the sidebar.
