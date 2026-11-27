@@ -295,6 +295,7 @@ struct SessionSnapshot: Codable {
         /// automatic (the closest git repository, never persisted).
         /// Optional so older snapshots still decode.
         var customDirectory: String?
+        var lastSessionDirectory: String?
         /// The sidebar project group this project belongs to; nil when
         /// ungrouped. Optional so snapshots written before grouping existed
         /// still decode.
@@ -311,7 +312,8 @@ struct SessionSnapshot: Codable {
         var selectedTabIndex: Int?
 
         enum CodingKeys: String, CodingKey {
-            case customName, isPinned, notificationsMuted, markerColorHex, customDirectory, groupID, conversationHistoryProjectID,
+            case customName, isPinned, notificationsMuted, markerColorHex, customDirectory, lastSessionDirectory, groupID,
+                conversationHistoryProjectID,
                 tabGroups, launchSettings,
                 location, tabs, selectedTabIndex
         }
@@ -322,6 +324,7 @@ struct SessionSnapshot: Codable {
             notificationsMuted: Bool = false,
             markerColorHex: String? = nil,
             customDirectory: String?,
+            lastSessionDirectory: String? = nil,
             groupID: UUID? = nil,
             conversationHistoryProjectID: UUID? = nil,
             tabGroups: [SessionTabGroup] = [],
@@ -335,6 +338,7 @@ struct SessionSnapshot: Codable {
             self.notificationsMuted = notificationsMuted
             self.markerColorHex = markerColorHex
             self.customDirectory = customDirectory
+            self.lastSessionDirectory = lastSessionDirectory
             self.groupID = groupID
             self.conversationHistoryProjectID = conversationHistoryProjectID
             self.tabGroups = tabGroups
@@ -353,6 +357,7 @@ struct SessionSnapshot: Codable {
             customDirectory = try container.decodeIfPresent(
                 String.self, forKey: .customDirectory
             )
+            lastSessionDirectory = try container.decodeIfPresent(String.self, forKey: .lastSessionDirectory)
             groupID = try container.decodeIfPresent(UUID.self, forKey: .groupID)
             conversationHistoryProjectID = try container.decodeIfPresent(UUID.self, forKey: .conversationHistoryProjectID)
             tabGroups = try container.decodeIfPresent([SessionTabGroup].self, forKey: .tabGroups) ?? []
@@ -378,6 +383,7 @@ struct SessionSnapshot: Codable {
             if notificationsMuted { try container.encode(true, forKey: .notificationsMuted) }
             try container.encodeIfPresent(markerColorHex, forKey: .markerColorHex)
             try container.encodeIfPresent(customDirectory, forKey: .customDirectory)
+            try container.encodeIfPresent(lastSessionDirectory, forKey: .lastSessionDirectory)
             try container.encodeIfPresent(groupID, forKey: .groupID)
             try container.encodeIfPresent(conversationHistoryProjectID, forKey: .conversationHistoryProjectID)
             if !tabGroups.isEmpty { try container.encode(tabGroups, forKey: .tabGroups) }

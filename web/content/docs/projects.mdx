@@ -8,7 +8,7 @@ description: How Zshell groups your work — projects in the sidebar, sessions a
 A project is one piece of work — in practice, one repository — with its own
 terminals, tabs, and panel state.
 
-<kbd>Cmd</kbd>+<kbd>N</kbd> creates a project with one terminal. Its [starting-directory policy](/en/docs/configuration#terminalnew-session-directory) defaults to the active local session’s directory, or your home directory when none is available. Files and Git follow the repository containing that directory.
+<kbd>Cmd</kbd>+<kbd>N</kbd> creates a project with one terminal. Its [starting-directory policy](/en/docs/configuration#terminalnew-session-directory) defaults to the selected project’s active or last saved local shell directory. If neither is available, it uses your home directory. Files and Git follow the repository containing that directory.
 
 To skip the `cd`, right-click a folder in Finder and choose **Services → New
 Zshell Project Here** — it opens as a project with its terminal already started
@@ -114,7 +114,7 @@ is set to — with its own working directory and scrollback.
 | Next / previous tab | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | Close the focused pane | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-A new local session uses an explicit or pinned project directory first, then its sidebar group’s directory, then the configured [starting-directory policy](/en/docs/configuration#terminalnew-session-directory). Splits keep their source pane’s directory.
+A new local session uses an explicit or pinned project directory first, then its sidebar group’s directory, then the configured [starting-directory policy](/en/docs/configuration#terminalnew-session-directory). Splits keep their source pane’s directory. The project remembers its last local shell directory even after you quit and reopen Zshell.
 
 Double-click empty space in the project sidebar to create a session in the selected project, or a new project if none is selected. Turn this action off in **Settings → Appearance → Project Sidebar**, or right-click empty sidebar space for **New Session** and **Sidebar Settings…**.
 

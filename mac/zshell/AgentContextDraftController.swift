@@ -168,7 +168,8 @@ final class AgentContextDraftController: NSObject, NSWindowDelegate, NSTextViewD
 
     func reload() {
         guard let project, let manager else { return }
-        let candidates = manager.projects.contains(where: { $0 === project })
+        let candidates =
+            manager.projects.contains(where: { $0 === project })
             ? ZshellAutomationRouter.projectContexts(project, manager: manager).compactMap(AgentContextDraftTarget.init) : []
         if project.agentContextDraft.target == nil { project.agentContextDraft.target = candidates.first }
         let selected = project.agentContextDraft.target
@@ -183,7 +184,8 @@ final class AgentContextDraftController: NSObject, NSWindowDelegate, NSTextViewD
             targetPicker.lastItem?.representedObject = target
         }
         if targetPicker.numberOfItems == 0 { targetPicker.addItem(withTitle: String(localized: "No active agents in this project")) }
-        if let selected, let item = targetPicker.itemArray.first(where: { ($0.representedObject as? AgentContextDraftTarget) == selected }) {
+        if let selected, let item = targetPicker.itemArray.first(where: { ($0.representedObject as? AgentContextDraftTarget) == selected })
+        {
             targetPicker.select(item)
         }
         targetPicker.isEnabled = !candidates.isEmpty
@@ -207,9 +209,11 @@ final class AgentContextDraftController: NSObject, NSWindowDelegate, NSTextViewD
         focusButton.isEnabled = context != nil
         if let session = context?.session, let status = session.agentStatus {
             let phase = session.isReadOnly ? String(localized: "Read Only") : status.phase.statusDescription
-            statusLabel.stringValue = phase + "\n" + String(localized: "Copy the draft, then focus the agent to review its input and paste manually.")
+            statusLabel.stringValue =
+                phase + "\n" + String(localized: "Copy the draft, then focus the agent to review its input and paste manually.")
         } else if draft.target != nil {
-            statusLabel.stringValue = String(localized: "The selected agent exited, changed identity, or moved to another project. Choose an active agent.")
+            statusLabel.stringValue = String(
+                localized: "The selected agent exited, changed identity, or moved to another project. Choose an active agent.")
         } else {
             statusLabel.stringValue = String(localized: "No active agents in this project")
         }

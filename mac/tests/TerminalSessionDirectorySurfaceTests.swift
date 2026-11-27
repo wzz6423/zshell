@@ -19,7 +19,6 @@ struct TerminalSessionDirectorySurfaceTests {
     static var checks = 0
     static var windows: [UUID: NSWindow] = [:]
     static var sessions: [TerminalSession] = []
-    static var markerIndex = 0
 
     static func pump(_ duration: TimeInterval) {
         let deadline = Date().addingTimeInterval(duration)
@@ -70,21 +69,25 @@ struct TerminalSessionDirectorySurfaceTests {
             print("DIRECTORY_DIAGNOSTIC visible=\(session.surface.readVisibleText(maxLines: 100, maxColumns: 200) ?? "nil")")
             throw error
         }
-        markerIndex += 1
-        let marker = root.appendingPathComponent("cwd-\(markerIndex).txt")
+        let marker = root.appendingPathComponent("cwd-\(UUID().uuidString).txt")
         session.sendCommand("pwd -P > " + TerminalSession.shellQuote(marker.path))
         session.sendEnter()
         try wait(label + " shell reports cwd") { (try? String(contentsOf: marker, encoding: .utf8))?.isEmpty == false }
         let reported = try String(contentsOf: marker, encoding: .utf8).trimmingCharacters(in: .newlines)
+        if SessionWorktreeService.canonical(reported) != SessionWorktreeService.canonical(directory) {
+            print("DIRECTORY_DIAGNOSTIC expected=\(directory) reported=\(reported)")
+        }
         try check(
             SessionWorktreeService.canonical(reported) == SessionWorktreeService.canonical(directory),
             label + " real PTY cwd")
         try check(
             session.shellPid.flatMap(processWorkingDirectory(pid:)).map(SessionWorktreeService.canonical)
                 == SessionWorktreeService.canonical(directory), label + " kernel cwd")
-        try check(
-            SessionWorktreeService.canonical(session.currentDirectoryPath) == SessionWorktreeService.canonical(directory),
-            label + " session cwd")
+        // OSC 7 can arrive on a later main-loop turn than the shell's marker.
+        let expected = SessionWorktreeService.canonical(directory)
+        try wait(label + " session cwd") {
+            SessionWorktreeService.canonical(session.currentDirectoryPath) == expected
+        }
     }
 
     static func newSession(_ project: Project) throws -> TerminalSession {
@@ -100,8 +103,75 @@ struct TerminalSessionDirectorySurfaceTests {
         try check(result.status == 0, "fixture git " + arguments[0])
     }
 
+    static func emptyProjectDirectories(_ manager: TerminalManager, repo: URL, current: URL, root: URL, phase: String) throws {
+        let settings = AppSettings.shared
+        let project = manager.selectedProject!
+        settings.newSessionDirectoryPolicy = .current
+        if phase == "restore" {
+            try check(project.tabs.isEmpty && project.customDirectory == nil, "restored empty automatic project")
+            try verify(newSession(project), directory: current.path, root: root, label: "first session after relaunch")
+            return
+        }
+
+        project.closeAll()
+        for persistent in [false, true] {
+            settings.preserveTerminalSessions = persistent
+            // The custom shell has no Zshell integration and need not send OSC 7.
+            settings.terminalStartupProgram = persistent ? "/bin/zsh" : ""
+            settings.terminalStartupArguments = persistent ? "-i" : ""
+            let source = project.newSession(directory: repo.path)!
+            try verify(source, directory: repo.path, root: root, label: "initial directory")
+            source.sendCommand("cd -- " + TerminalSession.shellQuote(current.path))
+            source.sendEnter()
+            if persistent {
+                let pid = source.shellPid!
+                // A parked terminal can exit without the UI asking for its new directory.
+                try wait("shell changes directory") {
+                    processWorkingDirectory(pid: pid).map(SessionWorktreeService.canonical)
+                        == SessionWorktreeService.canonical(current.path)
+                }
+                pump(1)
+                source.sendCommand("exit")
+                source.sendEnter()
+                try wait("persistent shell exits") { Darwin.kill(pid, 0) != 0 && errno == ESRCH }
+                // A backend can leave the exited terminal on screen until the user closes it.
+                if !project.sessions.isEmpty { project.closeFocusedPane() }
+            } else {
+                try verify(source, directory: current.path, root: root, label: "changed shell directory")
+                project.closeFocusedPane()
+            }
+            try check(project.sessions.isEmpty, "the last session leaves the project")
+            for (policy, expected) in [(NewSessionDirectoryPolicy.current, current), (.project, repo)] {
+                settings.newSessionDirectoryPolicy = policy
+                try verify(newSession(project), directory: expected.path, root: root, label: "empty project " + policy.rawValue)
+                project.closeFocusedPane()
+            }
+        }
+
+        settings.newSessionDirectoryPolicy = .current
+        let moved = project.newSession(directory: current.path)!
+        let tabID = project.selectedTabID!
+        let file = root.appendingPathComponent("context.txt")
+        try "fixture".write(to: file, atomically: true, encoding: .utf8)
+        project.openFile(file.path)
+        let result = manager.moveTabToNewProject(id: tabID, from: project.id, in: nil)
+        try check(result.succeeded && project.sessions.isEmpty, "transfer leaves only the editor in the source project")
+        try verify(moved, directory: current.path, root: root, label: "transferred shell")
+        moved.sendCommand("cd -- " + TerminalSession.shellQuote(repo.path))
+        moved.sendEnter()
+        try verify(moved, directory: repo.path, root: root, label: "destination shell changes directory")
+        manager.selectedProjectID = project.id
+        try verify(newSession(project), directory: current.path, root: root, label: "source after transfer")
+        project.closeAll()
+        let legacy = try JSONDecoder().decode(SessionSnapshot.ProjectSnapshot.self, from: Data(#"{"tabs":[]}"#.utf8))
+        try check(legacy.lastSessionDirectory == nil, "legacy snapshot decodes without a last directory")
+    }
+
     static func main() throws {
         if RemoteSessionRelay.shouldRun { RemoteSessionRelay.run() }
+        if PTYMuxCommandLine.shouldRunChild { PTYMuxCommandLine.runChild() }
+        if PTYMuxCommandLine.shouldRunRelay { PTYMuxRelay.run() }
+        if PTYMuxCommandLine.shouldRunDaemon { PTYMuxCommandLine.runDaemon() }
         setbuf(stdout, nil)
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.prohibited)
@@ -166,6 +236,11 @@ struct TerminalSessionDirectorySurfaceTests {
             managerWindow.orderOut(nil)
             manager.windowClosed()
             NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: NSApp)
+        }
+        if let phase = ProcessInfo.processInfo.environment["ZSHELL_DIRECTORY_TEST_EMPTY_PROJECT_PHASE"] {
+            try emptyProjectDirectories(manager, repo: repo, current: current, root: root, phase: phase)
+            print("\(backend.rawValue): \(checks) empty-project directory checks passed (\(phase))")
+            return
         }
         for content in project.tabs.flatMap(\.allContents) {
             project.closeContent(content, confirmWorktree: false, recordClosedSession: false)

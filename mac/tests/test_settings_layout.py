@@ -67,7 +67,7 @@ final class ProbePane: SettingsPaneViewController {
     let cursorBlinking = TerminalCursorBlinkingSettingsView(frame: .zero)
     let wrappedTitle = SettingsRow(
         title: String(localized: "Double-click empty space to create a session"),
-        description: String(localized: "Copy Finder files and folders into local projects. File → Import Files… is always available."),
+        description: "",
         control: SettingsSwitch { _ in }
     )
     let editorRow = SettingsRow(title: String(localized: "External editor"), control: SettingsSwitch { _ in })
@@ -100,7 +100,7 @@ final class ProbePane: SettingsPaneViewController {
     )
     let ordinarySlider = SettingsSliderRow(
         title: String(localized: "Line height"), range: 0.75...2, format: .percent,
-        step: 0.05, showsStepper: true, onChange: { _ in }
+        step: 0.05, showsStepper: true, description: "", onChange: { _ in }
     )
     var contrastChanges: [Double] = []
     lazy var contrast = SettingsSliderRow(
@@ -122,19 +122,28 @@ final class ProbePane: SettingsPaneViewController {
         [view] + view.subviews.flatMap(descendants)
     }
 
-    @MainActor static func iconMatchesTitle(in row: NSView, size: CGFloat = 32, topAligned: Bool = false) -> Bool {
+    enum TitleAlignment { case firstLine, center, top }
+
+    @MainActor static func iconMatchesTitle(in row: NSView, size: CGFloat = 32, alignment: TitleAlignment = .firstLine) -> Bool {
         guard let icon = descendants(row).compactMap({ $0 as? SettingsIconView }).first,
               let title = descendants(row).compactMap({ $0 as? NSTextField }).first(where: {
                   $0.font?.pointSize == NSFont.systemFontSize
               }), let font = title.font else { return false }
         let bounds = row.convert(icon.bounds, from: icon)
         let titleBounds = row.convert(title.bounds, from: title)
-        let titleCenter = titleBounds.maxY - title.firstBaselineOffsetFromTop + (font.ascender + font.descender) / 2
+        let aligned: Bool
+        switch alignment {
+        case .firstLine:
+            let center = titleBounds.maxY - title.firstBaselineOffsetFromTop + (font.ascender + font.descender) / 2
+            aligned = abs(bounds.midY - center) <= 1
+        case .center:
+            aligned = abs(bounds.midY - titleBounds.midY) <= 1 && abs(bounds.midY - row.bounds.midY) <= 1
+        case .top:
+            aligned = abs(bounds.maxY - titleBounds.maxY) <= 1 && bounds.minY >= 0 && bounds.maxY <= row.bounds.maxY + 1
+        }
         return abs(bounds.width - size) < 0.5
             && abs(bounds.width - bounds.height) < 0.5
-            && (topAligned ? abs(bounds.maxY - titleBounds.maxY) <= 1
-                && bounds.minY >= 0 && bounds.maxY <= row.bounds.maxY + 1
-                : abs(bounds.midY - titleCenter) <= 1)
+            && aligned
             && bounds.maxX < titleBounds.minX && bounds.minX >= 0
     }
 
@@ -273,6 +282,8 @@ final class ProbePane: SettingsPaneViewController {
                 for hasError in [false, true, false] {
                     pane.cellWidth.setValue(hasError ? 2 : 0.75)
                     pane.contrast.setValue(hasError ? 21 : 1)
+                    pane.wrappedTitle.setDescription(hasError
+                        ? String(localized: "Copy Finder files and folders into local projects. File → Import Files… is always available.") : "")
                     toolService.states[.quietMD] = RecommendedToolState(
                         hasCheckedInstallation: true, installedVersion: "1", location: .external,
                         latestVersion: hasError ? "2" : "1"
@@ -299,6 +310,7 @@ final class ProbePane: SettingsPaneViewController {
                     }
                     let labels = text.arrangedSubviews.compactMap { $0 as? NSTextField }
                         .filter { !$0.isHidden }
+                    let wrappedLabels = descendants(pane.wrappedTitle).compactMap { $0 as? NSTextField }.filter { !$0.isHidden }
                     let sliderStack = pane.cellWidth.subviews.first as! NSStackView
                     let slider = sliderStack.arrangedSubviews.compactMap { $0 as? NSSlider }.first!
                     let contrastStack = pane.contrast.subviews.first as! NSStackView
@@ -329,18 +341,21 @@ final class ProbePane: SettingsPaneViewController {
                             abs($0.frame.width - $0.fittingSize.width) <= 2 && $0.frame.minX >= 0
                                 && $0.frame.maxX <= toolActions.bounds.maxX + 2
                         },
-                        "cellWidthIconSquare": iconMatchesTitle(in: pane.cellWidth, topAligned: true),
+                        "cellWidthIconSquare": iconMatchesTitle(in: pane.cellWidth, alignment: .center),
                         "cellWidthSliderFits": slider.frame.width > 40 && slider.frame.maxX <= pane.cellWidth.bounds.maxX,
                         "cellWidthLabelsFit": descendants(sliderStack).compactMap { $0 as? NSTextField }.allSatisfy {
                             $0.frame.height + 1 >= $0.cell!.cellSize(forBounds: NSRect(
                                 x: 0, y: 0, width: $0.frame.width, height: 10000
                             )).height
                         },
-                        "contrastIconSquare": iconMatchesTitle(in: pane.contrast, topAligned: true),
-                        "sharedIconsMatchTitleTops": [pane.wrappedTitle, pane.editorRow,
-                            pane.ordinarySlider, pane.presence, pane.gitProxy, pane.proxyAddress, pane.backendRow].allSatisfy {
-                                iconMatchesTitle(in: $0, topAligned: true)
+                        "contrastIconSquare": iconMatchesTitle(in: pane.contrast, alignment: .top),
+                        "wrappedTitleAligned": iconMatchesTitle(in: pane.wrappedTitle, alignment: hasError ? .top : .center),
+                        "sharedIconsMatchTitleTops": [pane.presence, pane.gitProxy, pane.proxyAddress, pane.backendRow].allSatisfy {
+                                iconMatchesTitle(in: $0, alignment: .top)
                             },
+                        "sharedTitlesCentered": [pane.editorRow, pane.ordinarySlider].allSatisfy {
+                            iconMatchesTitle(in: $0, alignment: .center)
+                        },
                         "generalLabelsFit": [pane.presence, pane.gitProxy, pane.proxyAddress].allSatisfy { row in
                             let stack = row.subviews.first as! NSStackView
                             return descendants(stack.arrangedSubviews.first!).compactMap { $0 as? NSTextField }.allSatisfy {
@@ -375,7 +390,7 @@ final class ProbePane: SettingsPaneViewController {
                                 && abs(icon.frame.width - icon.frame.height) < 0.5
                                 && icon.frame.maxX <= name.frame.minX
                         },
-                        "wrappedTitleFits": descendants(pane.wrappedTitle).compactMap { $0 as? NSTextField }.allSatisfy {
+                        "wrappedTitleFits": wrappedLabels.count == (hasError ? 2 : 1) && wrappedLabels.allSatisfy {
                             $0.frame.height + 1 >= $0.cell!.cellSize(forBounds: NSRect(
                                 x: 0, y: 0, width: $0.frame.width, height: 10000
                             )).height
@@ -497,7 +512,9 @@ class SettingsLayoutTests(unittest.TestCase):
                     self.assertTrue(sample["cellWidthSliderFits"], sample)
                     self.assertTrue(sample["cellWidthLabelsFit"], sample)
                     self.assertTrue(sample["contrastIconSquare"], sample)
+                    self.assertTrue(sample["wrappedTitleAligned"], sample)
                     self.assertTrue(sample["sharedIconsMatchTitleTops"], sample)
+                    self.assertTrue(sample["sharedTitlesCentered"], sample)
                     self.assertTrue(sample["generalLabelsFit"], sample)
                     self.assertTrue(sample["generalControlsCentered"], sample)
                     self.assertTrue(sample["compoundLayoutFits"], sample)

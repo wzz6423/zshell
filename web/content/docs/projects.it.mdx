@@ -7,7 +7,7 @@ description: Come Zshell organizza il lavoro — progetti nella barra laterale, 
 
 Un progetto è un'attività, in pratica un repository, con terminali, schede e stato dei pannelli propri.
 
-<kbd>Cmd</kbd>+<kbd>N</kbd> crea un progetto con un terminale. La [regola della cartella iniziale](/it/docs/configuration#terminalnew-session-directory) usa per impostazione predefinita la cartella della sessione locale attiva, o quella personale se non è disponibile. File e Git seguono il repository che la contiene.
+<kbd>Cmd</kbd>+<kbd>N</kbd> crea un progetto con un terminale. La [regola della cartella iniziale](/it/docs/configuration#terminalnew-session-directory) usa per impostazione predefinita la cartella della shell locale attiva nel progetto selezionato o l’ultima cartella salvata. Se nessuna delle due è disponibile, usa la cartella personale. File e Git seguono il repository che la contiene.
 
 Per saltare il `cd`, fai clic destro su una cartella nel Finder e scegli **Servizi → Nuovo progetto Zshell qui**: si apre come progetto con il terminale già avviato al suo interno.
 
@@ -66,7 +66,7 @@ Ogni progetto può contenere tutte le sessioni necessarie, mostrate come schede 
 | Scheda successiva / precedente | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | Chiudi il pannello attivo | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-Una nuova sessione locale usa prima la cartella esplicita o fissata del progetto, poi quella del gruppo e infine la [regola iniziale configurata](/it/docs/configuration#terminalnew-session-directory). Le divisioni conservano la cartella del pannello di origine.
+Una nuova sessione locale usa prima la cartella esplicita o fissata del progetto, poi quella del gruppo e infine la [regola iniziale configurata](/it/docs/configuration#terminalnew-session-directory). Le divisioni conservano la cartella del pannello di origine. Il progetto ricorda la directory dell’ultima shell locale anche dopo aver chiuso e riaperto Zshell.
 
 Un doppio clic nello spazio vuoto della barra laterale crea una sessione nel progetto selezionato, oppure un progetto se nessuno è selezionato. Disattiva l’azione in **Impostazioni → Aspetto → Barra laterale dei progetti**. Il menu contestuale dello spazio vuoto offre anche **Nuova sessione** e **Impostazioni della barra laterale…**.
 

@@ -7,7 +7,7 @@ description: Como o Zshell organiza seu trabalho — projetos na barra lateral, 
 
 Um projeto é uma unidade de trabalho, na prática um repositório, com seus próprios terminais, abas e estado dos painéis.
 
-<kbd>Cmd</kbd>+<kbd>N</kbd> cria um projeto com um terminal. A [política de diretório inicial](/pt-BR/docs/configuration#terminalnew-session-directory) usa por padrão a pasta da sessão local ativa, ou a pasta pessoal quando não há uma. Arquivos e Git seguem o repositório que contém essa pasta.
+<kbd>Cmd</kbd>+<kbd>N</kbd> cria um projeto com um terminal. A [política de diretório inicial](/pt-BR/docs/configuration#terminalnew-session-directory) usa por padrão a pasta do shell local ativo no projeto selecionado ou a última pasta salva. Se nenhuma delas estiver disponível, usa a pasta pessoal. Arquivos e Git seguem o repositório que contém essa pasta.
 
 Para pular o `cd`, clique com o botão direito em uma pasta no Finder e escolha **Serviços → Novo Projeto Zshell Aqui**: ela abre como projeto com o terminal já iniciado dentro.
 
@@ -66,7 +66,7 @@ Cada projeto comporta quantas sessões você precisar, exibidas como abas no top
 | Próxima / aba anterior | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | Fechar painel em foco | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-Uma nova sessão local usa primeiro o diretório explícito ou fixado do projeto, depois o do grupo e por fim a [política inicial configurada](/pt-BR/docs/configuration#terminalnew-session-directory). As divisões mantêm o diretório do painel de origem.
+Uma nova sessão local usa primeiro o diretório explícito ou fixado do projeto, depois o do grupo e por fim a [política inicial configurada](/pt-BR/docs/configuration#terminalnew-session-directory). As divisões mantêm o diretório do painel de origem. O projeto mantém o diretório do último shell local mesmo depois de fechar e reabrir o Zshell.
 
 Clique duas vezes em um espaço vazio da barra lateral para criar uma sessão no projeto selecionado, ou um projeto se nenhum estiver selecionado. Desative a ação em **Ajustes → Aparência → Barra lateral de projetos**. O menu de contexto desse espaço também oferece **Nova sessão** e **Ajustes da barra lateral…**.
 

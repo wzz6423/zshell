@@ -213,7 +213,7 @@ Kies het uitvoerbare programma en de argumentvector voor terminals die hierna wo
 
 `"current"` · `"project"` · `"home"` · `"custom"` — standaard `"current"`
 
-Kies **Instellingen → Terminal → Map voor nieuwe sessies**. Huidig gebruikt de map van de actieve lokale shell, ook voor de eerste terminal van een nieuw project. Zonder lokale shell wordt de thuismap gebruikt. Project gebruikt de hoofdmap die Bestanden en Git tonen (de dichtstbijzijnde repository of checkout op de voorgrond); buiten een repository wordt de huidige map gebruikt. Thuis gebruikt altijd de map van het account. Dit geldt ook voor de eerste snelle terminal en elke nieuwe werkruimte daarvan.
+Kies **Instellingen → Terminal → Map voor nieuwe sessies**. Huidig gebruikt de map van de actieve lokale shell, ook voor de eerste terminal van een nieuw project. Als het project geen open lokale shell heeft, gebruiken Huidig en Project de laatst opgeslagen shellmap als uitgangspunt, ook na een herstart. Is die map niet beschikbaar, dan gebruikt Huidig de thuismap. Project gebruikt de hoofdmap die Bestanden en Git tonen (de dichtstbijzijnde repository of checkout op de voorgrond); buiten een repository wordt de huidige map gebruikt. Thuis gebruikt altijd de map van het account. Dit geldt ook voor de eerste snelle terminal en elke nieuwe werkruimte daarvan.
 
 Een expliciete map uit Finder, de CLI, een werkruimtesjabloon, een worktree, een herstelde sessie, een vastgezette projectmap of een zijbalkgroep heeft voorrang. Splitsingen behouden de map van hun bronpaneel. SSH en gedeelde externe sessies behouden de map op de externe host. Een wijziging herstart geopende terminals en hergebruikte snelle werkruimtes niet.
 

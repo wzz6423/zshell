@@ -89,7 +89,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     private static let persistedHistoryLineLimit = 500
 
     private let shellPath: String
-    private let launchWorkingDirectory: String
+    private var lastKnownWorkingDirectory: String
     private let launchDirectoryURL: URL?
     private let shellPidFileURL: URL?
     let supportsCommandTaskShellIntegration: Bool
@@ -314,7 +314,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         }
         reconnectedToPersistentPTY = existingPTY != nil
         cachedShellPid = pty?.shellPID
-        launchWorkingDirectory = directory
+        lastKnownWorkingDirectory = directory
         launchDirectoryURL = artifacts.directoryURL
         shellPidFileURL = artifacts.pidFileURL
         supportsCommandTaskShellIntegration =
@@ -667,17 +667,18 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     }
 
     /// Best-effort live shell directory: OSC 7 first, kernel process metadata
-    /// second, then the directory used to launch this session.
+    /// second. Retain the last kernel observation after the shell exits.
     var currentDirectoryPath: String {
         if let dir = workingDirectory {
             if let url = URL(string: dir), url.isFileURL { return url.path }
             if dir.hasPrefix("/") { return dir }
         }
         if let remoteConnection { return remoteConnection.projectDirectory }
-        if let shellPid, let path = processWorkingDirectory(pid: shellPid) {
+        if !hasExited, let shellPid, let path = processWorkingDirectory(pid: shellPid) {
+            if let persistentPTY { persistentPTY.workingDirectory = path } else { lastKnownWorkingDirectory = path }
             return path
         }
-        return launchWorkingDirectory
+        return persistentPTY?.workingDirectory ?? lastKnownWorkingDirectory
     }
 
     /// Working directory of the terminal's foreground job, when that job is

@@ -213,7 +213,7 @@ Scelgono l'eseguibile e la lista di argomenti per i terminali creati da quel mom
 
 `"current"` · `"project"` · `"home"` · `"custom"` — predefinito `"current"`
 
-Scegli **Impostazioni → Terminale → Directory delle nuove sessioni**. Corrente usa la directory della shell locale attiva, anche per il primo terminale di un nuovo progetto. Senza una shell locale usa la cartella personale. Progetto usa la radice mostrata in File e Git (il repository più vicino o il checkout in primo piano); fuori da un repository usa la directory corrente. Personale usa sempre la cartella dell'account. Vale anche per il primo Terminale rapido e per ogni suo nuovo spazio di lavoro.
+Scegli **Impostazioni → Terminale → Directory delle nuove sessioni**. Corrente usa la directory della shell locale attiva, anche per il primo terminale di un nuovo progetto. Se nel progetto non ci sono shell locali aperte, Corrente e Progetto usano come punto di partenza l’ultima directory della shell salvata, anche dopo il riavvio. Se tale directory non è disponibile, Corrente usa la cartella personale. Progetto usa la radice mostrata in File e Git (il repository più vicino o il checkout in primo piano); fuori da un repository usa la directory corrente. Personale usa sempre la cartella dell'account. Vale anche per il primo Terminale rapido e per ogni suo nuovo spazio di lavoro.
 
 Hanno precedenza le directory esplicite di Finder, CLI, modelli di spazio di lavoro, worktree, sessioni ripristinate, cartelle fissate al progetto o gruppi della barra laterale. Le divisioni mantengono la directory del riquadro di origine. SSH e le sessioni remote condivise mantengono la directory sull'host remoto. Cambiare l'impostazione non riavvia i terminali aperti o gli spazi riutilizzati del Terminale rapido.
 
