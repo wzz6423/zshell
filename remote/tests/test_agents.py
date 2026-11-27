@@ -92,8 +92,12 @@ payload={"hook_event_name":"SessionStart","session_id":session,"cwd":os.getcwd()
 def hook(fields, environment=None):
     result=subprocess.run([server,"hook","claude"], input=json.dumps(fields),text=True,capture_output=True,env=environment)
     return {"status":result.returncode,"stderr":result.stderr}
+def publish(name, value):
+    pending = root / (name + ".tmp")
+    pending.write_text(json.dumps(value))
+    pending.replace(root / (name + ".json"))
 result=hook(payload)
-(root/"started.json").write_text(json.dumps({"session":session,"argv":sys.argv[1:],"cwd":os.getcwd(),"status":result["status"],"stderr":result["stderr"]}))
+publish("started", {"session":session,"argv":sys.argv[1:],"cwd":os.getcwd(),"status":result["status"],"stderr":result["stderr"]})
 print("AGENT_READY",flush=True)
 tty.setraw(sys.stdin.fileno())
 interrupt_behavior="idle"
@@ -115,7 +119,7 @@ while True:
             env=dict(os.environ)
             env.update(fields.pop("environment",{}))
             response=hook(fields,env)
-        (root/"response.json").write_text(json.dumps(response))
+        publish("response", response)
     if select.select([sys.stdin],[],[],0)[0]:
         data=os.read(sys.stdin.fileno(),256)
         if data in (b"\x1b",b"\x03",b"\x1b[27u"):
@@ -175,7 +179,9 @@ sys.exit(result.returncode)
             def report(fields):
                 response_path = root / "response.json"
                 response_path.unlink(missing_ok=True)
-                (root / "command.json").write_text(json.dumps(fields))
+                pending = root / "command.tmp"
+                pending.write_text(json.dumps(fields))
+                pending.replace(root / "command.json")
                 return wait(lambda: json.loads(response_path.read_text()) if response_path.exists() else None)
 
             master, slave = pty.openpty()
