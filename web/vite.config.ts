@@ -31,6 +31,8 @@ export default defineConfig({
   // `import.meta.env.BASE_URL` so there is only one place to change it.
   base: '/zshell/',
   server: { port: 3000 },
+  // Prerender requests must use the same loopback address the preview server listens on.
+  preview: { host: '127.0.0.1' },
   resolve: { tsconfigPaths: true },
   plugins: [
     mdx(),
