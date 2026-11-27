@@ -51,10 +51,10 @@ enum PaneContent { case session(TerminalSession) }
     var isRemote = false
     var selectedTabID: UUID?
     var sessions: [TerminalSession] = []
-    func newSession(directory: String? = nil, commandArguments: [String]? = nil, environmentPath: String? = nil) -> TerminalSession? {
+    func newSession(directory: String? = nil, commandArguments: [String]? = nil, environmentPath: String? = nil, focus: Bool = true) -> TerminalSession? {
         let session = TerminalSession()
         sessions.append(session)
-        selectedTabID = session.id
+        if focus { selectedTabID = session.id }
         return session
     }
     func closeContent(_ content: PaneContent, confirmWorktree: Bool, recordClosedSession: Bool = true) {
@@ -160,6 +160,7 @@ enum PaneContent { case session(TerminalSession) }
         check(!noProject.ok && noProject.error?.code == "project_required", "external control requires an explicit project")
         let new = await ZshellSessionAutomationRouter.routeExternal(request("session.new", project: second.id, peer: getppid()))
         check(new.ok && second.sessions.count == 1 && first.sessions.count == 1, "external new session targets only the explicitly selected project")
+        check(second.selectedTabID == nil, "background session creation preserves the tab selection")
         check(new.result?.objectValue?["is_caller"]?.boolValue == false, "external creation does not mark its new session as the caller")
         let ownList = await ZshellSessionAutomationRouter.routeExternal(request("session.list", project: first.id, peer: getpid()))
         check(ownList.result?.arrayValue?.first?.objectValue?["is_caller"]?.boolValue == true, "cleared-environment pane commands retain their calling session identity")

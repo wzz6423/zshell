@@ -58,6 +58,15 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
         keepAwakeRow,
     ])
 
+    private let sortProjectsSwitch = SettingsSwitch { AppSettings.shared.sortProjectsByUsage = $0 }
+    private let sortTabsSwitch = SettingsSwitch { AppSettings.shared.sortTabsByUsage = $0 }
+    private lazy var workspaceGroup = SettingsGroup(
+        header: String(localized: "Workspace"),
+        rows: [
+            SettingsRow(title: String(localized: "Sort projects by usage"), control: sortProjectsSwitch),
+            SettingsRow(title: String(localized: "Sort tabs by usage"), control: sortTabsSwitch),
+        ])
+
     private let gitProxySwitch = SettingsSwitch { AppSettings.shared.gitProxyEnabled = $0 }
     private let pullRequestStatusSwitch = SettingsSwitch { AppSettings.shared.showPullRequestStatus = $0 }
     private let gitProxyField = NSTextField()
@@ -97,7 +106,7 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
         gitProxyField.placeholderString = GitProxy.defaultAddress
         gitProxyField.delegate = self
         gitProxyField.widthAnchor.constraint(equalToConstant: 200).isActive = true
-        return [languageGroup, gitGroup, resetRow]
+        return [languageGroup, workspaceGroup, gitGroup, resetRow]
     }
 
     override func viewDidLoad() {
@@ -113,6 +122,8 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
         presencePopUp.select(settings.applicationPresence)
         syncKeepAwake()
         toolbarPopUp.select(settings.toolbarVisibility)
+        sortProjectsSwitch.isOn = settings.sortProjectsByUsage
+        sortTabsSwitch.isOn = settings.sortTabsByUsage
         pullRequestStatusSwitch.isOn = settings.showPullRequestStatus
         gitProxySwitch.isOn = settings.gitProxyEnabled
         gitGroup.setRowHidden(!SettingsVisibility.current.gitProxyEnabled, at: 2)

@@ -522,11 +522,12 @@ final class SessionTabsNSView: NSView {
 
     private func refresh() {
         guard let project else { contentWidth = 0; return }
-        var items = project.tabs.filter { $0.tabGroupID == nil }.map { Item.tab($0.id) }
+        let tabs = project.tabsInStripOrder
+        var items = tabs.filter { $0.tabGroupID == nil }.map { Item.tab($0.id) }
         for group in project.tabGroups {
             items.append(.group(group.id))
             if !group.isCollapsed {
-                items += project.tabs.filter { $0.tabGroupID == group.id }.map { .tab($0.id) }
+                items += tabs.filter { $0.tabGroupID == group.id }.map { .tab($0.id) }
             }
         }
         let current = Set(items)
@@ -962,7 +963,7 @@ final class SessionTabsNSView: NSView {
         if project.tabs.count > 1 {
             items.append(.action(title: String(localized: "Close Others")) { project.closeOthers(tab) })
         }
-        if project.tabs.last?.id != tab.id {
+        if project.tabsInStripOrder.last?.id != tab.id {
             items.append(.action(title: String(localized: "Close Tabs to the Right")) { project.closeToRight(of: tab) })
         }
         if project.hasFiles || project.hasDiffs {

@@ -16,6 +16,7 @@ import WebKit
 @MainActor
 final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     nonisolated let id = UUID()
+    var selectionCount = 0
     var conversationHistoryProjectID = UUID()
     let agentContextDraft = AgentContextDraft()
 
@@ -43,18 +44,42 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// Existing PTYs intentionally keep the environment they started with.
     @Published var launchSettings = TerminalLaunchSettings()
     @Published var tabs: [PaneTab] = [] {
-        didSet { ZshellAutomationEventHub.shared.topologyChanged() }
-    }
-    @Published private(set) var tabGroups: [SessionTabGroup] = []
-    private var isRestoringTabs = false
-    @Published var selectedTabID: UUID? {
         didSet {
+            cachedUsageOrder = nil
+            tabSelectionCycle = nil
             ZshellAutomationEventHub.shared.topologyChanged()
-            if !isRestoringTabs { revealSelectedTabGroup() }
-            guard selectedTabID != oldValue, let selectedTabID else { return }
-            recentTabIDs.removeAll { $0 == selectedTabID }
-            recentTabIDs.insert(selectedTabID, at: 0)
         }
+    }
+    @Published private(set) var tabGroups: [SessionTabGroup] = [] {
+        didSet {
+            cachedUsageOrder = nil
+            tabSelectionCycle = nil
+        }
+    }
+    private var cachedUsageOrder: [PaneTab]?
+    private var tabSelectionCycle: WorkspaceSelectionCycle?
+    private var isRestoringTabs = false
+    @Published private var activeTabID: UUID?
+    var selectedTabID: UUID? {
+        get { activeTabID }
+        set { selectTab(newValue, countingUsage: true) }
+    }
+
+    func selectTab(_ tabID: UUID?, countingUsage: Bool) {
+        tabSelectionCycle = nil
+        let previous = activeTabID
+        activeTabID = tabID
+        ZshellAutomationEventHub.shared.topologyChanged()
+        if !isRestoringTabs { revealSelectedTabGroup() }
+        guard let tabID, tabID != previous else { return }
+        if countingUsage, !isRestoringTabs, previous != nil, manager?.selectedProjectID == id,
+            let tab = selectedTab, tab.selectionCount < .max
+        {
+            tab.selectionCount += 1
+            cachedUsageOrder = nil
+        }
+        recentTabIDs.removeAll { $0 == tabID }
+        recentTabIDs.insert(tabID, at: 0)
     }
 
     /// Tab IDs newest-used first. Kept here rather than in the switcher
@@ -227,7 +252,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             guard let tab = tabs.first(where: { $0.id == id }) else { continue }
             add(tab)
         }
-        tabs.forEach(add)
+        tabsInStripOrder.forEach(add)
         return ordered
     }
 
@@ -365,7 +390,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         launchSettings: TerminalLaunchSettings? = nil,
         remoteSessionID: UUID? = nil,
         usesConfiguredStartupCommand: Bool = true,
-        usesConfiguredInitializationCommand: Bool = true
+        usesConfiguredInitializationCommand: Bool = true,
+        focus: Bool = true
     ) -> TerminalSession? {
         let localDirectory = isRemote ? nil : sessionDirectory(directory, context: directoryContext)
         if let localDirectory, TerminalManager.isRemovingWorktree(containing: localDirectory) {
@@ -388,7 +414,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         // of the tab it was closed in; a plain new session has none.
         tab.customName = Project.normalizedCustomName(tabTitle)
         insertNextToSelected(tab)
-        selectedTabID = tab.id
+        if focus { selectedTabID = tab.id }
         return session
     }
 
@@ -582,13 +608,12 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         return session
     }
 
-    func attachRemoteSession(_ info: RemoteSessionInfo) {
+    func attachRemoteSession(_ info: RemoteSessionInfo, countingUsage: Bool = true) {
         guard sharedHost != nil, let id = UUID(uuidString: info.sessionId),
             !sessions.contains(where: { $0.remoteConnection?.sessionID == id })
         else { return }
         let session = makeSession(isRestoredSession: true, remoteSessionID: id)
-        let tab = makeTab(content: .session(session))
-        append(tab)
+        append(PaneTab(content: .session(session)), countingUsage: countingUsage)
     }
 
     func updateSharedHost(_ host: RemoteHost) throws {
@@ -1057,8 +1082,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     /// Closes every tab positioned to the right of `tab` in the strip.
     func closeToRight(of tab: PaneTab) {
-        guard let index = tabs.firstIndex(where: { $0.id == tab.id }) else { return }
-        closeBatch(Array(tabs[(index + 1)...]).flatMap(\.allContents))
+        let order = tabsInStripOrder
+        guard let index = order.firstIndex(where: { $0.id == tab.id }) else { return }
+        closeBatch(order.suffix(from: index + 1).flatMap(\.allContents))
     }
 
     /// Closes every file pane while leaving other content in split tabs open.
@@ -1207,8 +1233,17 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         return tabGroups.first { $0.id == id }
     }
 
+    /// Keep the manual sequence for drag-and-drop and session snapshots.
+    var tabsInStripOrder: [PaneTab] {
+        guard AppSettings.shared.sortTabsByUsage else { return tabs }
+        if let cachedUsageOrder { return cachedUsageOrder }
+        let ordered = orderedTabs(in: tabGroupPositions, byUsage: true)
+        cachedUsageOrder = ordered
+        return ordered
+    }
+
     var visibleTabs: [PaneTab] {
-        tabs.filter { tabGroup(id: $0.tabGroupID)?.isCollapsed != true }
+        tabsInStripOrder.filter { tabGroup(id: $0.tabGroupID)?.isCollapsed != true }
     }
 
     @discardableResult
@@ -1319,22 +1354,28 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// "Close Tabs to the Right" all describe the same sequence. Fixed tabs
     /// occupy their own section and leave a group when pinned.
     private func normalizeTabOrder() {
-        let positions = Dictionary(
-            uniqueKeysWithValues: tabGroups.enumerated().map {
-                ($0.element.id, $0.offset)
-            })
+        let positions = tabGroupPositions
         for tab in tabs where tab.isPinned || tab.tabGroupID.map({ positions[$0] == nil }) == true {
             if tab.tabGroupID != nil { tab.tabGroupID = nil }
         }
+        let ordered = orderedTabs(in: positions, byUsage: false)
+        if ordered.map(\.id) != tabs.map(\.id) { tabs = ordered }
+    }
+
+    private var tabGroupPositions: [UUID: Int] {
+        Dictionary(uniqueKeysWithValues: tabGroups.enumerated().map { ($0.element.id, $0.offset) })
+    }
+
+    private func orderedTabs(in positions: [UUID: Int], byUsage: Bool) -> [PaneTab] {
         func section(_ tab: PaneTab) -> Int {
             if tab.isPinned { return -2 }
             return tab.tabGroupID.flatMap { positions[$0] } ?? -1
         }
-        let ordered = tabs.enumerated().sorted {
-            let first = section($0.element), second = section($1.element)
-            return first == second ? $0.offset < $1.offset : first < second
-        }.map(\.element)
-        if ordered.map(\.id) != tabs.map(\.id) { tabs = ordered }
+        return tabs.sorted {
+            let first = section($0), second = section($1)
+            if first != second { return first < second }
+            return byUsage && $0.selectionCount > $1.selectionCount
+        }
     }
 
     // MARK: - Tab selection
@@ -1464,14 +1505,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return nil }
         let tab = tabs[index]
         if !isRemote, let session = selectedSession { lastSessionDirectory = session.currentDirectoryPath }
-        tab.tabGroupID = nil
         unregisterTransferOwnership(of: tab)
         recentTabIDs.removeAll { $0 == id }
-        tabs.remove(at: index)
-        if selectedTabID == id {
-            let neighbor = min(index, tabs.count - 1)
-            selectedTabID = neighbor >= 0 ? tabs[neighbor].id : nil
-        }
+        removeTab(at: index)
+        tab.tabGroupID = nil
         return tab
     }
 
@@ -1490,7 +1527,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         registerTransferOwnership(of: tab)
         tabs.append(tab)
         normalizeTabOrder()
-        selectedTabID = tab.id
+        selectTab(tab.id, countingUsage: false)
     }
 
     private func registerTransferOwnership(of tab: PaneTab) {
@@ -1567,12 +1604,15 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         shiftSelection(by: -1)
     }
 
+    func resetTabSelectionCycle() {
+        tabSelectionCycle = nil
+    }
+
     private func shiftSelection(by offset: Int) {
-        guard !tabs.isEmpty,
-            let current = tabs.firstIndex(where: { $0.id == selectedTabID })
-        else { return }
-        let next = (current + offset + tabs.count) % tabs.count
-        selectedTabID = tabs[next].id
+        let cycle = tabSelectionCycle ?? WorkspaceSelectionCycle(tabsInStripOrder.map(\.id))
+        guard let next = cycle.destination(from: selectedTabID, by: offset) else { return }
+        selectedTabID = next
+        if AppSettings.shared.sortTabsByUsage { tabSelectionCycle = cycle }
     }
 
     // MARK: - Layout mutation plumbing
@@ -1673,6 +1713,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             isPinned: snap.isPinned
         )
         tab.customName = snap.customName
+        tab.selectionCount = snap.selectionCount
         tab.tabGroupID = tabGroup(id: snap.tabGroupID)?.id
         tab.markerColor = snap.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
         tab.launchSettingsOverride = snap.launchSettingsOverride
@@ -1789,10 +1830,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     /// Appends a tab and selects it — used while restoring, which builds tabs
     /// in saved order.
-    func append(_ tab: PaneTab) {
+    func append(_ tab: PaneTab, countingUsage: Bool = true) {
         register(tab)
         tabs.append(tab)
-        selectedTabID = tab.id
+        selectTab(tab.id, countingUsage: countingUsage)
     }
 
     /// Removes the pane holding `contentID` from whichever tab owns it, and
@@ -1826,12 +1867,22 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         }
         tabObservations[tabID] = nil
         recentTabIDs.removeAll { $0 == tabID }
-        tabs.remove(at: index)
-        if selectedTabID == tabID {
-            let neighbor = min(index, tabs.count - 1)
-            selectedTabID = neighbor >= 0 ? tabs[neighbor].id : nil
-        }
+        removeTab(at: index)
         // Emptying the project does not close it — the project row stays in the
         // sidebar until the user explicitly closes it.
+    }
+
+    private func removeTab(at index: Int) {
+        let removedID = tabs[index].id
+        guard selectedTabID == removedID else {
+            tabs.remove(at: index)
+            return
+        }
+        let order = tabsInStripOrder
+        let neighbor = order.firstIndex(where: { $0.id == removedID }).flatMap { position in
+            order.dropFirst(position + 1).first ?? order.prefix(position).last
+        }
+        tabs.remove(at: index)
+        selectTab(neighbor?.id, countingUsage: false)
     }
 }

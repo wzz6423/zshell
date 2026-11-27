@@ -220,28 +220,22 @@ final class ProjectSidebarNSView: NSView {
     }
 
     func refresh() {
-        var items: [Item] = []
-        for item in manager.sidebarTopLevelItems {
-            items.append(item)
-            guard case .group(let id) = item,
-                let group = groupStore.group(id: id),
-                !group.isCollapsed
-            else { continue }
-            items += manager.projects.filter { $0.groupID == id }.map { .project($0.id) }
-        }
+        let items = manager.sidebarRows()
+        let projects = Dictionary(uniqueKeysWithValues: manager.projects.map { ($0.id, $0) })
         let valid = Set(items)
         for key in rows.keys where !valid.contains(key) { rows.removeValue(forKey: key)?.removeFromSuperview() }
+        if order != items { revealSelection = true }
         order = items
         let shortcuts = Dictionary(
-            uniqueKeysWithValues: manager.visibleSidebarProjects.prefix(9).enumerated().map {
-                ($0.element.id, "⌘\($0.offset + 1)")
+            uniqueKeysWithValues: items.lazy.compactMap(\.projectID).prefix(9).enumerated().map {
+                ($0.element, "⌘\($0.offset + 1)")
             })
         for item in items {
             let row = rows[item] ?? WorkspaceItemView(frame: .zero)
             if rows[item] == nil { rows[item] = row; document.addSubview(row) }
             switch item {
             case .project(let id):
-                guard let project = manager.projects.first(where: { $0.id == id }) else { continue }
+                guard let project = projects[id] else { continue }
                 configure(row, project: project, shortcut: shortcuts[id])
             case .group(let id):
                 guard let group = groupStore.group(id: id) else { continue }

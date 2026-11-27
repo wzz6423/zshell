@@ -346,7 +346,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
             }
         }
         if let tabsMenu {
-            let tabs = Array((manager?.selectedProject?.tabs ?? []).prefix(9))
+            let tabs = Array((manager?.selectedProject?.tabsInStripOrder ?? []).prefix(9))
             let ids = Set(tabs.map(\.id))
             for id in tabItems.keys.filter({ !ids.contains($0) }) {
                 if let item = tabItems.removeValue(forKey: id) { tabsMenu.removeItem(item) }
@@ -364,7 +364,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
                         }
                     ) { [weak self] in
                         guard let manager = self?.manager,
-                            let index = manager.selectedProject?.tabs.firstIndex(where: { $0.id == id })
+                            let index = manager.selectedProject?.tabsInStripOrder.firstIndex(where: { $0.id == id })
                         else { return }
                         manager.selectTab(index: index)
                     }

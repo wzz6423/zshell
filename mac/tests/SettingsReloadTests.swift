@@ -120,6 +120,17 @@ struct SettingsReloadTests {
         withExtendedLifetime(observation) {}
         wait({ FileManager.default.fileExists(atPath: url.path) }, "initial config save")
         check(!settings.focusFollowsMouse, "pointer focus is disabled by default")
+        check(!settings.sortProjectsByUsage && !settings.sortTabsByUsage, "workspace order is manual by default")
+        settings.sortProjectsByUsage = true
+        let projectOrderConfig = TOML.parseStrictly(text: settings.serializedConfig()).values
+        check(
+            projectOrderConfig["workspace.sort-projects-by-usage"] == .bool(true)
+                && projectOrderConfig["workspace.sort-tabs-by-usage"] == nil && !settings.isAtDefaults,
+            "project sorting can be exported independently")
+        settings.applyImported(["workspace.sort-tabs-by-usage": .bool(true)])
+        check(!settings.sortProjectsByUsage && settings.sortTabsByUsage, "import applies each sorting switch independently")
+        settings.resetToDefaults()
+        check(!settings.sortProjectsByUsage && !settings.sortTabsByUsage, "reset restores manual workspace order")
         check(
             !settings.browserAccessEnabled && settings.browserAccessInterface == "loopback" && settings.browserAccessPort == 7443,
             "browser access defaults remain local and disabled")

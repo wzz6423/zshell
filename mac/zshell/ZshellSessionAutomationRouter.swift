@@ -155,17 +155,15 @@ enum ZshellSessionAutomationRouter {
                     base: base, commandArguments: argv, environmentPath: request.params["path"]?.stringValue, focus: focus)
             } else {
                 guard request.params["worktree_path"] == nil, request.params["base"] == nil else { return invalidParams(request) }
-                let previous = project.selectedTabID
                 guard
                     let created = project.newSession(
                         directory: directory, commandArguments: argv,
-                        environmentPath: request.params["path"]?.stringValue)
+                        environmentPath: request.params["path"]?.stringValue, focus: focus)
                 else {
                     return failure(request, "worktree_busy", "The target worktree is being removed.")
                 }
                 session = created
                 if focus { manager.selectedProjectID = project.id }
-                if !focus { project.selectedTabID = previous }
                 guard await session.waitUntilStarted() else {
                     project.closeContent(.session(session), confirmWorktree: false, recordClosedSession: false)
                     return failure(request, "session_start_failed", "The terminal could not start.")

@@ -91,6 +91,39 @@ struct SidebarGroupOrderingRegression {
         )
         check(withNewProject.last == .project(projectC), "new top-level rows append without disturbing saved order")
 
+        let memberA = UUID(), memberB = UUID(), memberC = UUID()
+        let topLevel: [ProjectSidebarItem] = [
+            .project(projectA), .group(groupA), .project(projectB), .project(projectC), .group(groupB),
+        ]
+        let members = [groupA: [memberA, memberB, memberC]]
+        let usage = [
+            projectA: (false, 1), projectB: (false, 8), projectC: (true, 0),
+            memberA: (false, 3), memberB: (false, 7), memberC: (false, 3),
+        ]
+        check(
+            ProjectSidebarOrder.rows(in: topLevel, members: members, collapsedGroups: [], usage: usage)
+                == [.project(projectC), .group(groupA), .project(memberB), .project(memberA), .project(memberC),
+                    .project(projectB), .project(projectA), .group(groupB)],
+            "ranking keeps pins first, headers in position, and equal-frequency group members in manual order"
+        )
+        check(
+            ProjectSidebarOrder.rows(in: topLevel, members: members, collapsedGroups: [groupA], usage: usage)
+                == [.project(projectC), .group(groupA), .project(projectB), .project(projectA), .group(groupB)],
+            "visible ranking excludes collapsed members"
+        )
+        check(
+            ProjectSidebarOrder.rows(in: topLevel, members: members, collapsedGroups: [], usage: [:])
+                == [.project(projectA), .group(groupA), .project(memberA), .project(memberB), .project(memberC),
+                    .project(projectB), .project(projectC), .group(groupB)],
+            "turning sorting off reveals the manual order of both ungrouped projects and group members"
+        )
+        let visibleTopLevel = ProjectSidebarOrder.rows(in: topLevel, members: [:], collapsedGroups: [], usage: usage)
+        check(
+            ProjectSidebarOrder.moving(.group(groupA), to: .project(projectA), in: topLevel, targetOrder: visibleTopLevel)
+                == [.project(projectA), .project(projectB), .project(projectC), .group(groupA), .group(groupB)],
+            "dragging a group uses the visible drop position and preserves manual project order"
+        )
+
         print("Sidebar group ordering regression: \(checks - failures) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }
@@ -130,16 +163,20 @@ struct SessionSnapshotRegression {
     static func main() throws {
         let legacy = try JSONDecoder().decode(
             SessionSnapshot.self,
-            from: Data(#"{"projects":[]}"#.utf8)
+            from: Data(#"{"projects":[{"tabs":[{"session":{"workingDirectory":"/tmp"}}]}]}"#.utf8)
         )
-        guard legacy.sidebarOrder == nil else { exit(1) }
+        guard legacy.sidebarOrder == nil, legacy.projects[0].selectionCount == 0,
+            legacy.projects[0].tabs[0].selectionCount == 0 else { exit(1) }
 
         let groupID = UUID()
+        var tab = legacy.projects[0].tabs[0]
+        tab.selectionCount = 7
         let project = SessionSnapshot.ProjectSnapshot(
             customName: nil,
+            selectionCount: 4,
             customDirectory: nil,
             groupID: groupID,
-            tabs: [],
+            tabs: [tab],
             selectedTabIndex: nil
         )
         let current = SessionSnapshot(
@@ -156,7 +193,8 @@ struct SessionSnapshotRegression {
         )
         guard restored.sidebarOrder == [.group(groupID)] else { exit(1) }
         guard restored.projects.first?.groupID == groupID else { exit(1) }
-        print("PASS sidebar order and project group membership survive a snapshot round trip")
+        guard restored.projects[0].selectionCount == 4, restored.projects[0].tabs[0].selectionCount == 7 else { exit(1) }
+        print("PASS legacy counts start at zero; sidebar order, group membership and counts survive a snapshot round trip")
     }
 }
 '''
@@ -172,8 +210,8 @@ sidebar = SIDEBAR_SOURCE.read_text()
 manager = MANAGER_SOURCE.read_text()
 session = SESSION_SOURCE.read_text()
 content = CONTENT_SOURCE.read_text()
-assert "for item in manager.sidebarTopLevelItems" in sidebar
-assert "items += manager.projects.filter { $0.groupID == id }" in sidebar
+assert "let items = manager.sidebarRows()" in sidebar
+assert "sidebarRows(includingCollapsed: includingCollapsed)" in manager
 assert "manager.moveSidebarItem(item, to: target)" in sidebar
 assert "tabDrag.updateGroupDrag(" in sidebar
 assert "tabDrag.commitGroupDrag()" in sidebar

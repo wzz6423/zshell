@@ -419,6 +419,7 @@ struct PaneLayoutGeometry {
 @MainActor
 final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     nonisolated let id = UUID()
+    var selectionCount = 0
 
     /// User-assigned tab name; when nil the tab title follows the focused
     /// pane's content (terminal title, file name, diff title) — the same

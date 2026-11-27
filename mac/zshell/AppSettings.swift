@@ -281,6 +281,14 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var sortProjectsByUsage: Bool {
+        didSet { save() }
+    }
+
+    @Published var sortTabsByUsage: Bool {
+        didSet { save() }
+    }
+
     /// Scale applied to application chrome while terminal and editor content
     /// keep their separately configured font size.
     @Published var interfaceScale: Double {
@@ -707,6 +715,8 @@ final class AppSettings: nonisolated ObservableObject {
             ? sidebarSize
             : Self.defaultSidebarFontSize
         sidebarDoubleClickNewSession = toml["sidebar.double-click-new-session"]?.bool ?? true
+        sortProjectsByUsage = toml["workspace.sort-projects-by-usage"]?.bool ?? false
+        sortTabsByUsage = toml["workspace.sort-tabs-by-usage"]?.bool ?? false
         let interfaceScale =
             toml["interface.scale"]?.double
             ?? Self.defaultInterfaceScale
@@ -952,6 +962,8 @@ final class AppSettings: nonisolated ObservableObject {
             && fontSize == Self.defaultFontSize
             && sidebarFontSize == Self.defaultSidebarFontSize
             && sidebarDoubleClickNewSession
+            && !sortProjectsByUsage
+            && !sortTabsByUsage
             && interfaceScale == Self.defaultInterfaceScale
             && !fontThicken
             && fontThickenStrength == Self.defaultFontThickenStrength
@@ -1033,6 +1045,8 @@ final class AppSettings: nonisolated ObservableObject {
         keepAwakeMode = .off
         resetFont()
         sidebarDoubleClickNewSession = true
+        sortProjectsByUsage = false
+        sortTabsByUsage = false
         language = .system
         theme = .system
         themeDark = Theme.defaultDarkThemeName
@@ -1262,6 +1276,8 @@ final class AppSettings: nonisolated ObservableObject {
                 ? sidebarSize
                 : Self.defaultSidebarFontSize)
         assign(\.sidebarDoubleClickNewSession, toml["sidebar.double-click-new-session"]?.bool ?? true)
+        assign(\.sortProjectsByUsage, toml["workspace.sort-projects-by-usage"]?.bool ?? false)
+        assign(\.sortTabsByUsage, toml["workspace.sort-tabs-by-usage"]?.bool ?? false)
         let scale = toml["interface.scale"]?.double ?? Self.defaultInterfaceScale
         assign(
             \.interfaceScale,
@@ -1537,6 +1553,8 @@ final class AppSettings: nonisolated ObservableObject {
             lines.append("sidebar.font-size = \(TOML.number(sidebarFontSize))")
         }
         if !sidebarDoubleClickNewSession { lines.append("sidebar.double-click-new-session = false") }
+        if sortProjectsByUsage { lines.append("workspace.sort-projects-by-usage = true") }
+        if sortTabsByUsage { lines.append("workspace.sort-tabs-by-usage = true") }
         if interfaceScale != Self.defaultInterfaceScale {
             lines.append("interface.scale = \(TOML.number(interfaceScale))")
         }

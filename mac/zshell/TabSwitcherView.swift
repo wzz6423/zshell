@@ -134,7 +134,7 @@ final class TabSwitcherController: ObservableObject {
         let ordered = orderedTabIDs.compactMap { id in
             project.tabs.first { $0.id == id }
         }
-        return ordered.isEmpty ? project.tabs : ordered
+        return ordered.isEmpty ? project.tabsInStripOrder : ordered
     }
 
     private func cycle(in manager: TerminalManager, reverse: Bool) -> Bool {
@@ -347,6 +347,7 @@ struct TabSwitcherOverlay: View {
     var body: some View {
         GeometryReader { geometry in
             let tabs = controller.orderedTabs(in: project)
+            let stripOrder = project.tabsInStripOrder
             let columnCount = columnsPerRow(count: tabs.count, available: geometry.size.width)
 
             ZStack {
@@ -364,7 +365,7 @@ struct TabSwitcherOverlay: View {
                             ForEach(tabs, id: \.id) { tab in
                                 TabSwitcherCard(
                                     tab: tab,
-                                    index: project.tabs.firstIndex { $0.id == tab.id } ?? 0,
+                                    index: stripOrder.firstIndex { $0.id == tab.id } ?? 0,
                                     isHighlighted: tab.id == controller.highlightedTabID,
                                     terminalPreviews: controller.terminalPreviews,
                                     highlight: {
