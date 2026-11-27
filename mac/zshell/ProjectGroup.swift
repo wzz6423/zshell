@@ -85,6 +85,11 @@ struct ProjectGroup: Identifiable, Codable, Equatable {
 enum ProjectSidebarItem: Hashable {
     case project(UUID)
     case group(UUID)
+
+    var projectID: UUID? {
+        if case .project(let id) = self { return id }
+        return nil
+    }
 }
 
 enum ProjectSidebarOrder {
@@ -109,14 +114,45 @@ enum ProjectSidebarOrder {
     static func moving(
         _ item: ProjectSidebarItem,
         to target: ProjectSidebarItem?,
-        in order: [ProjectSidebarItem]
+        in order: [ProjectSidebarItem],
+        targetOrder: [ProjectSidebarItem]? = nil
     ) -> [ProjectSidebarItem] {
         guard let sourceIndex = order.firstIndex(of: item), target != item else { return order }
-        let targetIndex = target.flatMap(order.firstIndex(of:)) ?? order.endIndex
+        let targetIndex = target.flatMap((targetOrder ?? order).firstIndex(of:)) ?? order.endIndex
         var result = order
         result.remove(at: sourceIndex)
         result.insert(item, at: min(targetIndex, result.endIndex))
         return result
+    }
+
+    static func rows(
+        in topLevel: [ProjectSidebarItem], members: [UUID: [UUID]], collapsedGroups: Set<UUID>,
+        usage: [UUID: (isPinned: Bool, count: Int)]
+    ) -> [ProjectSidebarItem] {
+        func ranked(_ ids: [UUID]) -> [UUID] {
+            guard !usage.isEmpty else { return ids }
+            return ids.sorted {
+                let lhs = usage[$0] ?? (isPinned: false, count: 0)
+                let rhs = usage[$1] ?? (isPinned: false, count: 0)
+                return lhs.isPinned == rhs.isPinned ? lhs.count > rhs.count : lhs.isPinned
+            }
+        }
+
+        // Only project slots take part in ranking. Headers retain their manual positions.
+        var ungrouped = (usage.isEmpty ? [] : ranked(topLevel.compactMap(\.projectID))).makeIterator()
+        var rows: [ProjectSidebarItem] = []
+        for item in topLevel {
+            switch item {
+            case .project:
+                rows.append(ungrouped.next().map(ProjectSidebarItem.project) ?? item)
+            case .group(let id):
+                rows.append(item)
+                if !collapsedGroups.contains(id), let ids = members[id] {
+                    rows.append(contentsOf: ranked(ids).map(ProjectSidebarItem.project))
+                }
+            }
+        }
+        return rows
     }
 }
 

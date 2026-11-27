@@ -226,16 +226,15 @@ extension TerminalManager {
             try Task.checkCancellation()
             throw AgentConversationHistoryError.differentProject
         }
-        let previousSelection = selectedProjectID
-        let project = requestedProject ?? sharedProject(host: host, directory: directory)
+        let project = requestedProject ?? sharedProject(host: host, directory: directory, focus: false)
         let previousTab = project.selectedTabID
-        project.attachRemoteSession(info)
+        project.attachRemoteSession(info, countingUsage: focus)
         guard let session = project.sessions.first(where: { $0.remoteConnection?.sessionID == remoteID }) else {
             throw AgentConversationHistoryError.notFound
         }
         session.agentConversationForkSource = record.identity
         let context = ConversationContext(manager: self, project: project, session: session)
-        if focus { Self.revealSession(id: session.id) } else { selectedProjectID = previousSelection; project.selectedTabID = previousTab }
+        if focus { Self.revealSession(id: session.id) } else { project.selectTab(previousTab, countingUsage: false) }
         try await confirmConversationFork(context, source: record.identity, timeout: timeout)
         return context
     }
@@ -276,15 +275,14 @@ extension TerminalManager {
         if let requestedProject, !projects.contains(where: { $0 === requestedProject }) {
             throw AgentConversationHistoryError.differentProject
         }
-        let previousSelection = selectedProjectID
-        let project = requestedProject ?? sharedProject(host: host, directory: directory)
-        project.attachRemoteSession(info)
+        let project = requestedProject ?? sharedProject(host: host, directory: directory, focus: false)
+        project.attachRemoteSession(info, countingUsage: focus)
         guard let session = project.sessions.first(where: { $0.remoteConnection?.sessionID == remoteID }) else {
             throw AgentConversationHistoryError.notFound
         }
         session.agentConversationHistoryID = record.id
         if record.isArchived { try store.setArchived(false, id: id) }
-        if focus { Self.revealSession(id: session.id) } else { selectedProjectID = previousSelection }
+        if focus { Self.revealSession(id: session.id) }
         return .init(manager: self, project: project, session: session)
     }
 }

@@ -59,10 +59,15 @@ struct ClosedSessionRecord: Equatable {
 final class TerminalManager: nonisolated ObservableObject {
     nonisolated let conversationHistoryWindowID = UUID()
     @Published var projects: [Project] = [] {
-        didSet { ZshellAutomationEventHub.shared.topologyChanged() }
+        didSet {
+            projectCycle = nil
+            ZshellAutomationEventHub.shared.topologyChanged()
+        }
     }
     @Published private var preferredSidebarOrder: [ProjectSidebarItem] = []
+    private var projectCycle: WorkspaceSelectionCycle?
     private var isRestoringProjects = false
+    private var isSynchronizingRemoteHost = false
     @Published var selectedProjectID: UUID? {
         willSet {
             // Diff hosts are expensive WebKit trees. Once a project has put
@@ -75,10 +80,17 @@ final class TerminalManager: nonisolated ObservableObject {
             }
         }
         didSet {
+            projectCycle = nil
             ZshellAutomationEventHub.shared.topologyChanged()
-            guard !isRestoringProjects, let project = selectedProject,
-                var group = projectGroup(id: project.groupID), group.isCollapsed
-            else { return }
+            guard !isRestoringProjects, let project = selectedProject else { return }
+            if oldValue != project.id { project.resetTabSelectionCycle() }
+            // Startup and the fallback after closing a project are automatic selections.
+            if !isSynchronizingRemoteHost, let oldValue, oldValue != project.id, project.selectionCount < Int.max,
+                projects.contains(where: { $0.id == oldValue })
+            {
+                project.selectionCount += 1
+            }
+            guard var group = projectGroup(id: project.groupID), group.isCollapsed else { return }
             group.isCollapsed = false
             ProjectGroupStore.shared.update(group)
         }
@@ -179,6 +191,7 @@ final class TerminalManager: nonisolated ObservableObject {
     private var retainedDiffProjectIDs: Set<UUID> = []
     private var projectCounter = 0
     private var settingsObservation: AnyCancellable?
+    private var orderObservations = Set<AnyCancellable>()
     private var translucencyObservation: AnyCancellable?
     private var accessibilityDisplayObserver: NSObjectProtocol?
     private var autosaveObservation: AnyCancellable?
@@ -345,6 +358,16 @@ final class TerminalManager: nonisolated ObservableObject {
         groupObservation = ProjectGroupStore.shared.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.objectWillChange.send() }
+        AppSettings.shared.$sortProjectsByUsage.removeDuplicates().dropFirst()
+            .sink { [weak self] _ in
+                self?.projectCycle = nil
+                self?.objectWillChange.send()
+            }.store(in: &orderObservations)
+        AppSettings.shared.$sortTabsByUsage.removeDuplicates().dropFirst()
+            .sink { [weak self] _ in
+                self?.projects.forEach { $0.resetTabSelectionCycle() }
+                self?.objectWillChange.send()
+            }.store(in: &orderObservations)
         // Every project/tab/selection change re-publishes through the manager,
         // so a debounced sink snapshots layout after mutations settle without
         // reading live terminal contents.
@@ -495,6 +518,7 @@ final class TerminalManager: nonisolated ObservableObject {
     /// retain a stale id and disappear from both grouped and ungrouped lists.
     func deleteProjectGroup(_ group: ProjectGroup) {
         for manager in Self.registry {
+            manager.projectCycle = nil
             for project in manager.projects where project.groupID == group.id {
                 project.groupID = nil
             }
@@ -512,10 +536,13 @@ final class TerminalManager: nonisolated ObservableObject {
     func synchronizeRemoteHost(_ host: RemoteHost, projects listings: [RemoteProjectListing]) throws {
         for project in projects where project.sharedHost?.id == host.id { try project.updateSharedHost(host) }
         let selection = selectedProjectID
+        // Catalog insertion uses selection to position each new project beside the previous one.
+        isSynchronizingRemoteHost = true
+        defer { isSynchronizingRemoteHost = false }
         for listing in listings {
             let project = sharedProject(host: host, directory: listing.directory)
             AgentConversationHistoryStore.shared.importRemote(listing.conversations, host: host, project: project)
-            for info in listing.sessions where projectContaining(info) == nil { project.attachRemoteSession(info) }
+            for info in listing.sessions where projectContaining(info) == nil { project.attachRemoteSession(info, countingUsage: false) }
         }
         if let selection { selectedProjectID = selection }
     }
@@ -533,11 +560,11 @@ final class TerminalManager: nonisolated ObservableObject {
         return projects.first { $0.sessions.contains { $0.remoteConnection?.sessionID == id } }
     }
 
-    func sharedProject(host: RemoteHost, directory: String) -> Project {
+    func sharedProject(host: RemoteHost, directory: String, focus: Bool = true) -> Project {
         if let project = projects.first(where: { $0.sharedHost?.id == host.id && $0.remoteDirectory == directory }) { return project }
         let project = makeProject(location: .shared(host: host, directory: directory), createInitialSession: false)
         project.customName = (directory as NSString).lastPathComponent
-        insert(project)
+        insert(project, focus: focus)
         return project
     }
 
@@ -632,7 +659,7 @@ final class TerminalManager: nonisolated ObservableObject {
         insert(project)
     }
 
-    private func insert(_ project: Project) {
+    private func insert(_ project: Project, focus: Bool = true) {
         // New projects are unpinned. Keep the existing adjacent insertion within
         // that section; a pinned selection starts the regular section instead.
         if let selectedProjectID,
@@ -644,7 +671,7 @@ final class TerminalManager: nonisolated ObservableObject {
             let destination = projects.firstIndex(where: { !$0.isPinned }) ?? projects.endIndex
             projects.insert(project, at: destination)
         }
-        selectedProjectID = project.id
+        if focus { selectedProjectID = project.id }
     }
 
     /// The manager hosted by the active Zshell window. AppKit menu commands use
@@ -882,11 +909,11 @@ final class TerminalManager: nonisolated ObservableObject {
 
     private func remove(_ project: Project) {
         guard let index = projects.firstIndex(where: { $0.id == project.id }) else { return }
+        let order = selectedProjectID == project.id && AppSettings.shared.sortProjectsByUsage ? sidebarOrderedProjects : projects
         projects.remove(at: index)
         projectObservations[project.id] = nil
-        if selectedProjectID == project.id {
-            let neighbor = min(index, projects.count - 1)
-            selectedProjectID = neighbor >= 0 ? projects[neighbor].id : nil
+        if selectedProjectID == project.id, let position = order.firstIndex(where: { $0.id == project.id }) {
+            selectedProjectID = (order.dropFirst(position + 1).first ?? order.prefix(position).last)?.id
         }
         retainedDiffProjectIDs.remove(project.id)
         // Nothing left to inspect once the last project is gone, so collapse
@@ -922,10 +949,8 @@ final class TerminalManager: nonisolated ObservableObject {
         projects = reorderedProjects
     }
 
-    /// Matches the displayed sidebar sequence, including group placement.
-    /// Collapsed members stay available to the palette and next/previous
-    /// navigation, while number shortcuts describe only the visible rows.
-    var sidebarTopLevelItems: [ProjectSidebarItem] {
+    /// Dragging and session snapshots always use the underlying manual order.
+    private var sidebarTopLevelItems: [ProjectSidebarItem] {
         let groups = ProjectGroupStore.shared.groups
         let groupIDs = Set(groups.map(\.id))
         let projectIDs = projects.compactMap { project in
@@ -940,25 +965,43 @@ final class TerminalManager: nonisolated ObservableObject {
 
     func moveSidebarItem(_ item: ProjectSidebarItem, to target: ProjectSidebarItem?) {
         let current = sidebarTopLevelItems
-        let moved = ProjectSidebarOrder.moving(item, to: target, in: current)
+        var targetOrder: [ProjectSidebarItem]?
+        if case .group = item, AppSettings.shared.sortProjectsByUsage {
+            // A header drops into a visible slot even when the project in that slot has moved.
+            let topLevel = Set(current)
+            targetOrder = sidebarRows().filter(topLevel.contains)
+        }
+        let moved = ProjectSidebarOrder.moving(item, to: target, in: current, targetOrder: targetOrder)
         guard moved != current else { return }
         preferredSidebarOrder = moved
         persistSidebarGrouping()
     }
 
-    var sidebarOrderedProjects: [Project] {
-        sidebarTopLevelItems.flatMap { item -> [Project] in
-            switch item {
-            case .project(let id):
-                return projects.first(where: { $0.id == id }).map { [$0] } ?? []
-            case .group(let id):
-                return projects.filter { $0.groupID == id }
-            }
+    func sidebarRows(includingCollapsed: Bool = false) -> [ProjectSidebarItem] {
+        var members: [UUID: [UUID]] = [:]
+        var usage: [UUID: (isPinned: Bool, count: Int)] = [:]
+        let sortByUsage = AppSettings.shared.sortProjectsByUsage
+        for project in projects {
+            if let id = project.groupID { members[id, default: []].append(project.id) }
+            if sortByUsage { usage[project.id] = (project.isPinned, project.selectionCount) }
+        }
+        let collapsed = includingCollapsed ? [] : Set(ProjectGroupStore.shared.groups.filter(\.isCollapsed).map(\.id))
+        return ProjectSidebarOrder.rows(in: sidebarTopLevelItems, members: members, collapsedGroups: collapsed, usage: usage)
+    }
+
+    private func sidebarProjects(includingCollapsed: Bool) -> [Project] {
+        let byID = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
+        return sidebarRows(includingCollapsed: includingCollapsed).compactMap { row in
+            row.projectID.flatMap { byID[$0] }
         }
     }
 
+    var sidebarOrderedProjects: [Project] {
+        sidebarProjects(includingCollapsed: true)
+    }
+
     var visibleSidebarProjects: [Project] {
-        sidebarOrderedProjects.filter { projectGroup(id: $0.groupID)?.isCollapsed != true }
+        sidebarProjects(includingCollapsed: false)
     }
 
     func selectProject(index: Int) {
@@ -976,12 +1019,11 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     private func shiftProjectSelection(by offset: Int) {
-        let ordered = sidebarOrderedProjects
-        guard !ordered.isEmpty,
-            let current = ordered.firstIndex(where: { $0.id == selectedProjectID })
-        else { return }
-        let next = (current + offset + ordered.count) % ordered.count
-        selectedProjectID = ordered[next].id
+        let cycling = AppSettings.shared.sortProjectsByUsage
+        let cycle = (cycling ? projectCycle : nil) ?? WorkspaceSelectionCycle(sidebarRows(includingCollapsed: true).compactMap(\.projectID))
+        guard let next = cycle.destination(from: selectedProjectID, by: offset) else { return }
+        selectedProjectID = next
+        if cycling { projectCycle = cycle }
     }
 
     // MARK: - Sessions
@@ -1639,7 +1681,9 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     func selectTab(index: Int) {
-        selectedProject?.select(index: index)
+        guard let project = selectedProject else { return }
+        let order = project.tabsInStripOrder
+        if order.indices.contains(index) { project.selectedTabID = order[index].id }
     }
 
     // MARK: - Browser
@@ -2027,6 +2071,7 @@ final class TerminalManager: nonisolated ObservableObject {
     // MARK: - Persistence
 
     private func persistSidebarGrouping() {
+        projectCycle = nil
         Self.saveAll(captureTerminalHistory: false)
     }
 
@@ -2129,6 +2174,7 @@ final class TerminalManager: nonisolated ObservableObject {
                         focusedPaneIndex: focusedPaneIndex,
                         customName: tab.customName,
                         isPinned: tab.isPinned,
+                        selectionCount: tab.selectionCount,
                         markerColorHex: tab.markerColor?.hex,
                         tabGroupID: tab.tabGroupID,
                         launchSettingsOverride: tab.launchSettingsOverride,
@@ -2140,6 +2186,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 return ProjectSnapshot(
                     customName: project.customName,
                     isPinned: project.isPinned,
+                    selectionCount: project.selectionCount,
                     notificationsMuted: project.notificationsMuted,
                     markerColorHex: project.markerColor?.hex,
                     customDirectory: project.customDirectory,
@@ -2272,6 +2319,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 createInitialSession: false
             )
             project.customName = Project.normalizedCustomName(saved.customName)
+            project.selectionCount = saved.selectionCount
             project.conversationHistoryProjectID = saved.conversationHistoryProjectID ?? UUID()
             project.notificationsMuted = saved.notificationsMuted
             project.markerColor = saved.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))

@@ -77,15 +77,13 @@ extension TerminalManager {
             guard projects.contains(where: { $0 === project }) else {
                 throw SessionWorktreeError(message: String(localized: "The project closed before the worktree session could start."))
             }
-            let previousTab = project.selectedTabID
             session = project.newSession(
                 directory: worktree.path, commandArguments: commandArguments,
-                environmentPath: environmentPath, tabTitle: branch, worktree: worktree)
+                environmentPath: environmentPath, tabTitle: branch, worktree: worktree, focus: focus)
             guard let session else {
                 throw SessionWorktreeError(message: String(localized: "The worktree is being removed. Try again after cleanup finishes."))
             }
             if focus { selectedProjectID = project.id }
-            if !focus { project.selectedTabID = previousTab }
             guard await session.waitUntilStarted(), projects.contains(where: { $0 === project }),
                 project.sessions.contains(where: { $0.id == session.id })
             else {

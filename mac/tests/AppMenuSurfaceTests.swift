@@ -94,14 +94,16 @@ private final class AppMenuProbe {
             guard AppMenuController.submenu(group, in: mainMenu) === original else { fail("刷新替换了子菜单：\(group)") }
         }
         verifyMenuCommands(in: mainMenu)
-        settle()
-        if let removalObservation { NotificationCenter.default.removeObserver(removalObservation) }
-        removalObservation = nil
-        guard missingCount == 0 else { fail("窗口或菜单动作期间顶部菜单被移除") }
-        guard QuickTerminalOffscreen.isSafe() else { fail("测试结束时离屏隔离失效") }
-        cleanup()
-        print("PASS \(CommandLine.arguments[1]): 主菜单和所有顶部菜单项保持原实例")
-        exit(0)
+        Task {
+            await verifyWindowLifecycle(menu: mainMenu, opener: AppMenuController.shared.openWindow)
+            if let removalObservation { NotificationCenter.default.removeObserver(removalObservation) }
+            removalObservation = nil
+            guard missingCount == 0 else { fail("窗口或菜单动作期间顶部菜单被移除") }
+            guard QuickTerminalOffscreen.isSafe() else { fail("测试结束时离屏隔离失效") }
+            cleanup()
+            print("PASS \(CommandLine.arguments[1]): 主菜单和所有顶部菜单项保持原实例")
+            exit(0)
+        }
     }
 
     private func verifyMenuCommands(in menu: NSMenu) {
@@ -413,7 +415,6 @@ private final class AppMenuProbe {
         check(projects.items.count == 3 && tabs.items.last?.isSeparatorItem == true, "关闭全部项目后动态菜单残留")
         file.update()
         check(newSessionItem.isEnabled, "无项目工作区的新建会话动作意外禁用")
-        verifyWindowLifecycle(menu: menu, opener: originalOpener)
         print("PASS \(CommandLine.arguments[1]): 原动作、快捷键、动态 ID、17 种语言及系统菜单")
     }
 
@@ -469,15 +470,136 @@ private final class AppMenuProbe {
         print("PASS \(CommandLine.arguments[1]): 真实 Chrome 会话预览、24 标签页导入及关闭后回到终端")
     }
 
-    private func verifyWindowLifecycle(menu: NSMenu, opener: (() -> Void)?) {
+    private func verifyUsageSorting(manager: TerminalManager, menu: NSMenu) async {
+        let first = manager.newProject(), second = manager.newProject(), hot = manager.newProject()
+        first.customName = "First project"
+        second.customName = "Second project"
+        hot.customName = "Reopen fixture"
+        for project in [first, hot, second, hot, second, hot] { manager.selectedProjectID = project.id }
+        let firstTab = hot.selectedTab!
+        firstTab.customName = "First tab"
+        hot.newSession(tabTitle: "Second tab")
+        let secondTab = hot.selectedTab!
+        hot.newSession(tabTitle: "Frequent tab")
+        let hotTab = hot.selectedTab!
+        for tab in [firstTab, hotTab, secondTab, hotTab, firstTab, hotTab] { hot.selectedTabID = tab.id }
+        let visits = hotTab.selectionCount
+        hot.selectedTabID = hotTab.id
+        guard visits > secondTab.selectionCount, visits == hotTab.selectionCount else { fail("Tab reselection changed the count") }
+
+        func views(_ root: NSView) -> [NSView] { [root] + root.subviews.flatMap(views) }
+        let pane = SettingsGeneralPane()
+        let switches = views(pane.view).compactMap { $0 as? SettingsSwitch }
+        guard let projectSwitch = switches.first(where: { $0.accessibilityLabel() == "Sort projects by usage" }),
+            let tabSwitch = switches.first(where: { $0.accessibilityLabel() == "Sort tabs by usage" }),
+            let windowRoot = fixtureWindow?.contentView?.superview,
+            let projectMenu = AppMenuController.submenu(.projects, in: menu),
+            let tabMenu = AppMenuController.submenu(.tabs, in: menu)
+        else { fail("Missing usage sorting controls or workspace menus") }
+        func firstRow(in parent: NSView?, position: KeyPath<NSRect, CGFloat>) -> String? {
+            guard let parent else { return nil }
+            return views(parent).compactMap { $0 as? WorkspaceItemView }
+                .min { $0.frame[keyPath: position] < $1.frame[keyPath: position] }?
+                .accessibilityLabel()?.components(separatedBy: ", ").first
+        }
+        func checkOrder(project: String, tab: String) async {
+            let deadline = ContinuousClock.now + .seconds(3)
+            var actual: [String?] = []
+            repeat {
+                try? await Task.sleep(for: .milliseconds(20))
+                windowRoot.layoutSubtreeIfNeeded()
+                let hierarchy = views(windowRoot)
+                let sidebar = hierarchy.compactMap { $0 as? ProjectSidebarNSView }.first
+                let strip = hierarchy.compactMap { $0 as? SessionTabsNSView }.last { !$0.isHiddenOrHasHiddenAncestor }
+                actual = [
+                    firstRow(in: sidebar, position: \.minY), firstRow(in: strip, position: \.minX),
+                    projectMenu.items.first(where: { $0.keyEquivalent == "1" })?.title,
+                    tabMenu.items.first(where: { $0.keyEquivalent == "1" })?.title,
+                ]
+                if actual == [project, tab, project, tab] { return }
+            } while ContinuousClock.now < deadline
+            fail("Expected \(project) and \(tab) in the workspace and menus, got \(actual)")
+        }
+        await checkOrder(project: "First project", tab: "First tab")
+        projectSwitch.performClick(nil)
+        await checkOrder(project: "Reopen fixture", tab: "First tab")
+        tabSwitch.performClick(nil)
+        await checkOrder(project: "Reopen fixture", tab: "Frequent tab")
+        projectSwitch.performClick(nil)
+        await checkOrder(project: "First project", tab: "Frequent tab")
+        tabSwitch.performClick(nil)
+        await checkOrder(project: "First project", tab: "First tab")
+        projectSwitch.performClick(nil)
+        tabSwitch.performClick(nil)
+        var visitedProjects = Set<UUID>(), visitedTabs = Set<UUID>()
+        for _ in 0 ..< 3 {
+            hot.selectNext()
+            visitedTabs.insert(hot.selectedTabID!)
+        }
+        for _ in 0 ..< 3 {
+            manager.selectNextProject()
+            visitedProjects.insert(manager.selectedProjectID!)
+        }
+        guard visitedProjects.count == 3, visitedTabs.count == 3, manager.selectedProject === hot else {
+            fail("Repeated navigation did not cycle through all three ranked projects and tabs")
+        }
+        let countBeforeSync = hot.selectionCount
+        let host = try! RemoteHost(name: "Sorting fixture", address: "tailscale://127.0.0.1:1")
+        let directories = ["/first-remote", "/second-remote"]
+        do {
+            try manager.synchronizeRemoteHost(host, projects: directories.map { RemoteProjectListing(directory: $0, sessions: []) })
+        } catch { fail("Could not apply the catalog fixture: \(error)") }
+        let imported = manager.projects.filter { $0.sharedHost?.id == host.id }
+        guard manager.selectedProject === hot, hot.selectionCount == countBeforeSync,
+            imported.map(\.remoteDirectory) == directories, imported.allSatisfy({ $0.selectionCount == 0 })
+        else { fail("Synchronizing remote projects changed the selection, inflated counts, or reversed their manual order") }
+        imported.forEach(manager.close)
+        manager.selectedProjectID = first.id
+        let a = first.selectedTab!
+        first.newSession()
+        let b = first.selectedTab!
+        first.newSession()
+        let c = first.selectedTab!
+        first.newSession()
+        let pinned = first.selectedTab!
+        first.setPinned(true, for: pinned)
+        let group = first.createTabGroup(containing: a)
+        first.moveTab(b.id, toGroup: group.id)
+        first.moveTab(c.id, toGroup: group.id)
+        for _ in 0 ..< 3 {
+            first.selectedTabID = a.id
+            first.selectedTabID = c.id
+        }
+        guard first.tabs.map(\.id) == [pinned.id, a.id, b.id, c.id],
+            first.tabsInStripOrder.map(\.id) == [pinned.id, c.id, a.id, b.id]
+        else { fail("Ranking moved the pinned tab or lost manual group order") }
+        let beforeClose = a.selectionCount
+        first.close(c)
+        guard first.selectedTabID == a.id, a.selectionCount == beforeClose else {
+            fail("Closing the selected tab should focus its visual neighbor without recording a visit")
+        }
+        for _ in 0 ..< 3 {
+            first.selectedTabID = pinned.id
+            first.selectedTabID = b.id
+        }
+        first.closeToRight(of: b)
+        guard first.tabsInStripOrder.map(\.id) == [pinned.id, b.id] else {
+            fail("Close Tabs to the Right should remove only tabs after the target in the strip")
+        }
+        manager.selectedProjectID = hot.id
+        print("PASS independent usage sorting in AppKit, matching shortcuts, manual order and keyboard traversal")
+    }
+
+    private func verifyWindowLifecycle(menu: NSMenu, opener: (() -> Void)?) async {
         guard let manager = fixtureManager, let window = fixtureWindow,
             let opener
         else { fail("工作区 opener 未保持") }
-        manager.newProject().customName = "Reopen fixture"
+        await verifyUsageSorting(manager: manager, menu: menu)
+        let counts = manager.projects.map { [$0.selectionCount] + $0.tabs.map(\.selectionCount) }
         window.setContentSize(NSSize(width: 940, height: 610))
         let frameName = window.frameAutosaveName
         window.close()
-        settle()
+        try? await Task.sleep(for: .milliseconds(100))
         guard TerminalManager.automationManagers.isEmpty else { fail("最后窗口关闭未清理唯一 manager") }
         AppMenuController.shared.refresh()
         let file = AppMenuController.submenu(.file, in: menu)!
@@ -496,9 +618,10 @@ private final class AppMenuProbe {
             fail("关闭窗口未保存原 main-AppWindow-N frame")
         }
         opener()
-        settle()
+        try? await Task.sleep(for: .milliseconds(100))
         guard let reopened = TerminalManager.activeWindowManager,
             reopened.selectedProject?.name == "Reopen fixture",
+            reopened.projects.map({ [$0.selectionCount] + $0.tabs.map(\.selectionCount) }) == counts,
             reopened.presentationWindow?.frameAutosaveName == frameName
         else {
             fail("最后窗口关闭后重开未恢复会话与 autosave 名")

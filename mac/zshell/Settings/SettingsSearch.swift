@@ -92,6 +92,12 @@ enum SettingsSearchIndex {
                 keywords: "keep-awake sleep caffeinate " + KeepAwakeMode.allCases.map(\.title).joined(separator: " ")),
             item(.general, String(localized: "Toolbar"), keywords: "toolbar.visibility"),
             item(
+                .general, String(localized: "Sort projects by usage"), section: String(localized: "Workspace"),
+                keywords: "workspace.sort-projects-by-usage automatic sorting frequency sidebar"),
+            item(
+                .general, String(localized: "Sort tabs by usage"), section: String(localized: "Workspace"),
+                keywords: "workspace.sort-tabs-by-usage automatic sorting frequency tabs"),
+            item(
                 .general, String(localized: "Use proxy for Git"), section: String(localized: "Git"),
                 description: String(
                     localized: "Applies to Git panel actions, pull request status, and Git in terminals opened afterwards."),
