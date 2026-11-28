@@ -3,7 +3,7 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
 import { SceneLabel } from '../components/Hud';
 import { AgentIcon, BranchIcon, DiffIcon, GlobeIcon, TerminalIcon } from '../components/Icons';
 import { FOOTNOTES } from '../data/product';
-import { during, linear, pop, SPRING } from '../lib/motion';
+import { during, linear, pop, ramp, SPRING } from '../lib/motion';
 import { color, type Tone } from '../theme';
 import { SCENES } from '../timeline';
 import { AgentsCard, BentoCard, ReviewCard, type CardProps } from './BentoCards';
@@ -34,11 +34,12 @@ export const BentoGrid = () => {
   const tempo = 540 / SCENES.bentoGrid.duration;
   const frame = useCurrentFrame() * tempo;
   const fps = useVideoConfig().fps * tempo;
-  const chrome = during(frame, 6, 530, 14);
+  const chrome = during(frame, 4, 532, 16);
+  const sceneOpacity = Math.min(ramp(frame, [0, 16]), ramp(frame, [520, 540], [1, 0]));
 
   return (
-    <AbsoluteFill style={{ opacity: linear(frame, [522, 540], [1, 0]) }}>
-      <SceneLabel index="14" en="Everything in one window" zh="一个窗口，全部就位" opacity={chrome} />
+    <AbsoluteFill style={{ opacity: sceneOpacity }}>
+      <SceneLabel index="12" en="Everything in one window" zh="一个窗口，全部就位" opacity={chrome} />
 
       <div
         style={{

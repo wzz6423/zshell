@@ -4,7 +4,7 @@ import { ReturnIcon } from '../components/Icons';
 import { Lockup } from '../components/Lockup';
 import { PromptLine } from '../components/Terminal';
 import { PRODUCT } from '../data/product';
-import { during, linear, mix, pop, ramp, SPRING } from '../lib/motion';
+import { during, mix, pop, ramp, SPRING } from '../lib/motion';
 import { alpha, color } from '../theme';
 import { SCENES } from '../timeline';
 
@@ -13,8 +13,9 @@ const ENTER_AT = 128;
 const LOCKUP_AT = 168;
 
 export const Outro = () => {
+  const rawFrame = useCurrentFrame();
   const tempo = 420 / SCENES.outro.duration;
-  const frame = useCurrentFrame() * tempo;
+  const frame = rawFrame * tempo;
   const fps = useVideoConfig().fps * tempo;
 
   const promptIn = ramp(frame, [6, 30]);
@@ -24,7 +25,7 @@ export const Outro = () => {
   const details = pop(frame, fps, LOCKUP_AT + 56, SPRING.smooth);
 
   return (
-    <AbsoluteFill style={{ opacity: linear(frame, [0, 14]) }}>
+    <AbsoluteFill style={{ opacity: ramp(rawFrame, [0, 18]) }}>
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
         <div
           style={{

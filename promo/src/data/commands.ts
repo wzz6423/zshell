@@ -96,7 +96,7 @@ export type Hud = {
 
 export const HUDS: Hud[] = [
   { id: 'background', from: 196, to: 318, en: 'Background pane · focus stays put', zh: '后台窗格 · 焦点不动', tone: 'cyan' },
-  { id: 'status', from: 322, to: 440, en: 'Real exit status & duration', zh: '真实退出码与耗时', tone: 'amber' },
+  { id: 'status', from: 322, to: 440, en: 'Real exit status · zsh & Bash', zh: '真实退出码 · 支持 zsh 与 Bash', tone: 'amber' },
   { id: 'agents', from: 478, to: 606, en: '9 agent CLIs, one interface', zh: '9 种编码智能体，同一接口', tone: 'violet' },
   { id: 'lifecycle', from: 648, to: 772, en: 'State reported by the agent itself', zh: '状态由智能体原生上报', tone: 'green' },
 ];

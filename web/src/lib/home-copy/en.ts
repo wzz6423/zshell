@@ -27,7 +27,7 @@ const copy: HomeCopy = {
   },
   video: {
     title: 'Launch film',
-    musicCredit: { before: 'Music: ', after: ". 00:00–02:40 excerpt." },
+    musicCredit: { before: 'Music: ', after: ". 00:00–01:40 excerpt." },
   },
   preview: {
     label: 'Workspace illustration',

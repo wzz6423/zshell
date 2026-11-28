@@ -10,11 +10,11 @@ import { cursorOpacity } from '../lib/typing';
 import { alpha, color } from '../theme';
 import { SCENES } from '../timeline';
 
-const COLLAPSE_FROM = 172;
-const COLLAPSE_TO = 246;
-const WINDOW_AT = 244;
-const TITLE_AT = 318;
-const FRAMES_PER_LINE = 7;
+const COLLAPSE_FROM = 156;
+const COLLAPSE_TO = 226;
+const WINDOW_AT = 224;
+const TITLE_AT = 278;
+const FRAMES_PER_LINE = 6.5;
 
 const LegacyPanel = ({ file, frame, fps }: { file: LegacyFile; frame: number; fps: number }) => {
   const enter = pop(frame, fps, file.at, SPRING.snappy);
@@ -58,20 +58,22 @@ const LegacyPanel = ({ file, frame, fps }: { file: LegacyFile; frame: number; fp
 };
 
 export const Awakening = () => {
+  const rawFrame = useCurrentFrame();
   const tempo = 420 / SCENES.awakening.duration;
-  const frame = useCurrentFrame() * tempo;
+  const frame = rawFrame * tempo;
   const fps = useVideoConfig().fps * tempo;
 
-  const loneCursor = 1 - linear(frame, [24, 40]);
-  const caption = during(frame, 70, COLLAPSE_FROM + 10, 16);
-  const flash = during(frame, COLLAPSE_TO - 26, COLLAPSE_TO + 34, 22);
+  const loneCursor = 1 - linear(frame, [22, 36]);
+  const caption = during(frame, 64, COLLAPSE_FROM + 10, 16);
+  const flash = during(frame, COLLAPSE_TO - 24, COLLAPSE_TO + 32, 20);
   const windowIn = pop(frame, fps, WINDOW_AT, SPRING.bouncy);
   const settle = pop(frame, fps, TITLE_AT, SPRING.camera);
+  const fadeOut = ramp(rawFrame, [SCENES.awakening.duration - 18, SCENES.awakening.duration], [1, 0]);
 
   return (
-    <AbsoluteFill style={{ opacity: linear(frame, [402, 420], [1, 0]) }}>
+    <AbsoluteFill style={{ opacity: fadeOut }}>
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', fontSize: 64, opacity: loneCursor }}>
-        <Cursor opacity={cursorOpacity(frame, false)} />
+        <Cursor opacity={cursorOpacity(rawFrame, false)} />
       </AbsoluteFill>
 
       {LEGACY_FILES.map((file) => (
@@ -110,19 +112,19 @@ export const Awakening = () => {
               </div>
               <div>
                 <span style={{ color: color.cyan, fontWeight: 700 }}>{PROMPT.symbol} </span>
-                <Cursor opacity={cursorOpacity(frame, false)} />
+                <Cursor opacity={cursorOpacity(rawFrame, false)} />
               </div>
             </div>
           }
           style={{
-            opacity: Math.min(1, windowIn * 1.4) * mix(1, 0.55, settle),
-            transform: `translateY(${mix(0, 262, settle)}px) scale(${mix(0.3, 0.88, windowIn) * mix(1, 0.66, settle)})`,
+            opacity: Math.min(1, windowIn * 1.4) * mix(1, 0.58, settle),
+            transform: `translateY(${mix(0, 266, settle)}px) scale(${mix(0.3, 0.88, windowIn) * mix(1, 0.66, settle)})`,
           }}
         />
       </AbsoluteFill>
 
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 118, display: 'flex', justifyContent: 'center' }}>
-        <Lockup at={(TITLE_AT + 8) / tempo} />
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 112, display: 'flex', justifyContent: 'center' }}>
+        <Lockup at={(TITLE_AT + 4) / tempo} />
       </div>
     </AbsoluteFill>
   );

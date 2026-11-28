@@ -107,3 +107,30 @@ export const LockIcon = (props: IconProps) => (
     <path d="M8.500 10.500V7.500a3.500 3.500 0 0 1 7 0v3" />
   </Svg>
 );
+
+export const BellIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M18 8a6 6 0 0 0-12 0c0 6-2.5 8-2.5 8h17S18 14 18 8" />
+    <path d="M10.3 20a2 2 0 0 0 3.4 0" />
+  </Svg>
+);
+
+export const BellOffIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M8.7 4.2A6 6 0 0 1 18 8c0 2.5.6 4.4 1.2 5.7M6 8c0 6-2.5 8-2.5 8h12" />
+    <path d="M10.3 20a2 2 0 0 0 3.4 0M3 3l18 18" />
+  </Svg>
+);
+
+export const BookmarkIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M6.5 4.5h11a1 1 0 0 1 1 1v15l-6.5-4-6.5 4v-15a1 1 0 0 1 1-1z" />
+  </Svg>
+);
+
+export const ShieldIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M12 3.5l7 3v5.5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6.5l7-3z" />
+    <path d="M9.5 12.2l1.8 1.8 3.6-3.8" />
+  </Svg>
+);
