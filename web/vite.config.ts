@@ -50,14 +50,15 @@ export default defineConfig({
         { path: '/zh-Hans' },
         { path: '/changelog' },
         // Not pages: the search index, the release the download buttons point
-        // at, and the sidebar tree and titles for one language. Each response is
-        // JSON rather than HTML, so it lands at its literal path — `api/search`
-        // is where Fumadocs' static search client looks, and the other two are
-        // what a page fetches when the browser navigates to it rather than
-        // loading it as a prerendered document.
+        // at, the changelog contributor count, and the sidebar tree and titles
+        // for one language. Each response is JSON rather than HTML, so it lands
+        // at its literal path — `api/search` is where Fumadocs' static search
+        // client looks, and the rest are what a page fetches when the browser
+        // navigates to it rather than loading it as a prerendered document.
         { path: '/api/search' },
         ...i18n.languages.filter((lang) => lang !== i18n.defaultLanguage).map((lang) => ({ path: `/api/search-index/${lang}` })),
         { path: '/api/release' },
+        { path: '/api/contributors' },
         ...i18n.languages.map((lang) => ({ path: `/api/docs/${lang}` })),
         ...docsPages(),
       ],

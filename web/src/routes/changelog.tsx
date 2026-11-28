@@ -1,50 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 import changelogSource from '../../../CHANGELOG.md?raw'
 import { SiteLayout } from '@/components/site-layout'
-
-const CONTRIBUTORS_URL =
-  'https://api.github.com/repos/wzz6423/zshell/contributors?per_page=1&anon=1'
-const FALLBACK_CONTRIBUTOR_COUNT = 2
-
-async function getContributorCount() {
-  try {
-    const headers: Record<string, string> = {
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'zshell.sh',
-    }
-    const token = process.env.GITHUB_TOKEN
-    if (token) headers.Authorization = `Bearer ${token}`
-
-    const response = await fetch(CONTRIBUTORS_URL, {
-      headers,
-      signal: AbortSignal.timeout(2500),
-    })
-
-    if (!response.ok) {
-      console.error(
-        `Failed to fetch contributors: ${response.status} ${response.statusText}`,
-      )
-      return FALLBACK_CONTRIBUTOR_COUNT
-    }
-    if (response.status === 204) return 0
-
-    const lastPage = response.headers
-      .get('link')
-      ?.match(/[?&]page=(\d+)[^>]*>;\s*rel="last"/)?.[1]
-    if (lastPage) return Number(lastPage)
-
-    const contributors: unknown = await response.json()
-    return Array.isArray(contributors)
-      ? contributors.length
-      : FALLBACK_CONTRIBUTOR_COUNT
-  } catch (error) {
-    console.error('Failed to fetch contributors:', error)
-    return FALLBACK_CONTRIBUTOR_COUNT
-  }
-}
+import { loadContributorCount } from '@/lib/contributors'
 
 export const Route = createFileRoute('/changelog')({
-  loader: getContributorCount,
+  loader: () => loadContributorCount(),
+  staleTime: Infinity,
   head: () => ({
     meta: [
       { title: 'Changelog — Zshell' },
