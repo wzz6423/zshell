@@ -67,7 +67,7 @@ const REATTACH_AT = 330;
 const REMOTE_JOB = ['Compiling 41 / 96', 'Compiling 58 / 96', 'Compiling 77 / 96', 'Compiling 96 / 96'];
 
 export const RemoteCard = ({ frame, fps }: CardProps) => {
-  const link = 1 - pop(frame, fps, DROP_AT, SPRING.snappy) + pop(frame, fps, REATTACH_AT, SPRING.snappy);
+  const link = Math.max(0, Math.min(1, 1 - pop(frame, fps, DROP_AT, SPRING.snappy) + pop(frame, fps, REATTACH_AT, SPRING.snappy)));
   const attached = link > 0.5;
   const tone = attached ? color.green : color.amber;
   // The job keeps advancing through the gap: that is the whole point.

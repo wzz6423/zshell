@@ -2,7 +2,7 @@
 
 **简体中文** | [English](README.md)
 
-**Zshell** 原生 macOS 终端工作空间的产品发布宣传片，时长 2 分 40 秒，以代码编写并渲染
+**Zshell** 原生 macOS 终端工作空间的产品发布宣传片，时长 1 分 40 秒，以代码编写并渲染
 为 MP4，配乐是 Scott Buckley 创作的温暖 synthwave 曲目。
 
 ## 技术栈
@@ -47,23 +47,23 @@ faststart。封面取自 4.5 秒处的标题与工作空间展示。
 
 ## 时间线
 
-只有一个合成 `LaunchVideo`：60 fps，共 9600 帧。
+只有一个合成 `LaunchVideo`：60 fps，共 6000 帧。
 [`src/timeline.ts`](src/timeline.ts) 定义每个场景的起始帧和长度，各场景从自己的第零帧
 开始计数。
 
 | 场景 | 秒数 | 源文件 | 展示内容 |
 | --- | --- | --- | --- |
 | 1 · 终端苏醒 | 0–5 | [`Awakening.tsx`](src/scenes/Awakening.tsx) | Shell 与 tmux 配置文件堆叠，收缩成一个点，再展开为一个 Zshell 窗口。 |
-| 2 · 速度与核心工作流 | 5–15 | [`Workflow.tsx`](src/scenes/Workflow.tsx) | 输入并执行三条自动化命令：返回真实退出状态的后台分屏、启动代理、向代理发送提示。 |
-| 3 · 内部机制 | 15–27 | [`UnderTheHood.tsx`](src/scenes/UnderTheHood.tsx) | 窗口倾斜并拆为四层，依次展示架构、两种终端后端、自动化边界和事件流。 |
-| 4 · 完整功能介绍 | 27–147 | [`Catalog.tsx`](src/scenes/catalog/Catalog.tsx) | 十个章节展示项目与面板、外观与光标、终端交互、搜索与 Quick Terminal 控制、文件与编辑器、Git 与 PR、浏览器、代理识别与协作、持久会话与会话信息，以及包含 Quiet.md 的偏好设置和工具。 |
-| 5 · 功能网格 | 147–154 | [`BentoGrid.tsx`](src/scenes/BentoGrid.tsx) | 展示 Git 暂存、提交与推送，轮次审查、代理状态、worktree 会话、远程会话、全局 Quick Terminal 与配套浏览器访问，并使用中英文标签。 |
-| 6 · 结尾与开始使用 | 154–160 | [`Outro.tsx`](src/scenes/Outro.tsx) | 自动输入 Homebrew 安装命令，随后保留 Logo 和仓库地址。 |
+| 2 · 速度与核心工作流 | 5–14 | [`Workflow.tsx`](src/scenes/Workflow.tsx) | 输入并执行三条自动化命令：返回真实退出状态（支持本地 zsh 与 Bash）的后台分屏、启动代理、向代理发送提示。 |
+| 3 · 内部机制 | 14–25 | [`UnderTheHood.tsx`](src/scenes/UnderTheHood.tsx) | 窗口倾斜并拆为四层，依次展示架构、两种终端后端、自动化边界和事件流。 |
+| 4 · 完整功能介绍 | 25–85 | [`Catalog.tsx`](src/scenes/catalog/Catalog.tsx) | 八个精炼章节展示项目与 OpenSSH 主机发现、项目静默、分屏与模板；输入补全、键盘提示、命令块操作、会话书签、只读模式与脱敏分享；文件树、搜索、预览与草稿恢复；可编辑 diff 与 GitHub PR；项目浏览器、数据导入、本地扩展与浏览器自动化；AI 审批、提示词队列、上下文草稿、会话分叉与程序上报；会话保活、运行信息、自动配置、单次命令完成提醒与前台快捷键；外观主题、参数化快捷命令、系统权限助手、包含 Quiet.md 的推荐工具与更新。 |
+| 5 · 功能网格 | 85–94 | [`BentoGrid.tsx`](src/scenes/BentoGrid.tsx) | 展示 Git 暂存、提交与推送，轮次审查、代理状态、worktree 会话、远程 `zshell-server` 会话、全局 Quick Terminal 与配套浏览器访问，并使用中英文标签。 |
+| 6 · 结尾与开始使用 | 94–100 | [`Outro.tsx`](src/scenes/Outro.tsx) | 自动输入 Homebrew 安装命令，随后保留 Logo 和仓库地址。 |
 
 ## 说明
 
 - 打包的配乐是 [Scott Buckley 的《Electric Dreams》](https://www.scottbuckley.com.au/library/electric-dreams/)
-  中连续 160 秒（00:00–02:40）的片段，采用
+  中连续 100 秒（00:00–01:40）的片段，采用
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 许可。合成在 Studio 播放和
   视频导出时都使用 `public/audio/electric-dreams-tour.mp3`。来源、编辑设置和可复现的
   FFmpeg 命令记录在 [`public/audio/ATTRIBUTION.md`](public/audio/ATTRIBUTION.md)。
@@ -72,7 +72,7 @@ faststart。封面取自 4.5 秒处的标题与工作空间展示。
 
   > 'Electric Dreams' by Scott Buckley - released under CC-BY 4.0.
   > www.scottbuckley.com.au. https://creativecommons.org/licenses/by/4.0/
-  > 00:00–02:40 excerpt. [Attribution and edit details](public/audio/ATTRIBUTION.md).
+  > 00:00–01:40 excerpt. [Attribution and edit details](public/audio/ATTRIBUTION.md).
 
 - 命令、功能名称和设置以应用源码为准。命令、参数、JSON 字段、快捷键、配置键和限制
   取自 [`web/content/docs`](../web/content/docs) 与

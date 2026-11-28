@@ -27,7 +27,7 @@ const copy: HomeCopy = {
   },
   video: {
     title: '宣传片',
-    musicCredit: { before: '配乐：', after: "。使用 00:00–02:40 片段。" },
+    musicCredit: { before: '配乐：', after: "。使用 00:00–01:40 片段。" },
   },
   preview: {
     label: '工作区示意',

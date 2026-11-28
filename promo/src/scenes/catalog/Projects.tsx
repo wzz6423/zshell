@@ -1,92 +1,301 @@
-import { FolderIcon, TerminalIcon } from '../../components/Icons';
-import { linear, mix } from '../../lib/motion';
+import { BellOffIcon, FolderIcon, SearchIcon, TerminalIcon } from '../../components/Icons';
+import { mix, ramp } from '../../lib/motion';
 import { typedLength } from '../../lib/typing';
 import { alpha, color } from '../../theme';
-import { Action, Badge, Code, Done, ListRow, Panel, Setting, Shell, Terminal, type ChapterSpec, type DemoProps } from './Frame';
+import {
+  Action,
+  Badge,
+  Code,
+  Done,
+  ListRow,
+  Overlay,
+  Panel,
+  Setting,
+  Shell,
+  Terminal,
+  pressAt,
+  revealAt,
+  type ChapterSpec,
+  type DemoProps,
+} from './Frame';
 
-const Side = ({ frame, grouped = false }: { frame: number; grouped?: boolean }) => (
-  <>
-    <div style={{ fontSize: 17, color: color.muted, padding: 12 }}>{grouped ? 'Workspace' : 'Projects'}</div>
-    <ListRow active trailing={<Badge>main</Badge>}><FolderIcon /> app</ListRow>
-    <ListRow indent={18}><TerminalIcon /> zsh</ListRow>
-    <ListRow><FolderIcon /> website</ListRow>
-    {frame > 50 ? <ListRow active={frame > 140}><FolderIcon /> design-system</ListRow> : null}
-    <ListRow><FolderIcon /> devbox (SSH)</ListRow>
-    {grouped ? <><div style={{ marginTop: 16, padding: 12, fontSize: 19, color: color.violet }}>{frame >= 55 && frame < 85 ? '▸ Client work' : '▾ Client work'}</div>{frame < 55 || frame >= 85 ? <><ListRow indent={18}>api · pinned</ListRow><ListRow indent={18}>docs</ListRow></> : null}</> : null}
-    <div style={{ marginTop: 24, padding: 12, color: color.muted, fontSize: 18 }}>New Group · New Project</div>
-  </>
-);
+const ProjectsStepOne = ({ frame, fps }: DemoProps) => {
+  const openPress = pressAt(frame, 42);
+  const projectAdded = revealAt(frame, fps, 46);
+  const sshPicker = revealAt(frame, fps, 76) * (1 - revealAt(frame, fps, 138));
+  const sshPicked = frame >= 124;
+  const connectPress = pressAt(frame, 148);
+  const connected = revealAt(frame, fps, 154);
+  const muted = revealAt(frame, fps, 118);
+  const typedCmd = 'bun run dev'.slice(0, typedLength('bun run dev', frame, 56, 98));
+  const typedSsh = 'dev'.slice(0, typedLength('dev', frame, 82, 102));
 
-const ProjectDemo = ({ step, frame }: DemoProps) => {
-  const p = linear(frame, [40, 130]);
-  if (step === 0) return (
-    <Shell title="Projects — local and SSH" sidebar={<Side frame={frame} />}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 28, padding: 30, height: '100%' }}>
-        <Panel title="New Zshell Project Here">
-          <div style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 16, fontSize: 26 }}><FolderIcon size={36} color={color.blue} /> design-system</div>
-          <div style={{ padding: 24, backgroundColor: alpha(color.blue, 5), borderTop: `1px solid ${color.line}` }}><Action active={frame >= 55}>Open in Zshell</Action></div>
-          <Terminal frame={frame} directory="~/src/design-system" command={'bun run dev'.slice(0, typedLength('bun run dev', frame, 80, 135))}><div style={{ color: color.green, marginTop: 14, opacity: linear(frame, [150, 175]) }}>VITE ready · localhost:3000</div></Terminal>
-        </Panel>
-        <Panel title="New SSH Project…">
-          <Setting label="Host" value="devbox" /><Setting label="User" value="developer" /><Setting label="Port" value="22" /><Setting label="Directory" value="~/work/api" /><Setting label="Authentication" value="SSH Agent" />
-          <div style={{ padding: 20, display: 'flex', gap: 16 }}><Action active={frame > 120}>Connect</Action>{frame > 170 ? <Done>Linked directory opened</Done> : null}</div>
-          <div style={{ padding: '0 20px', color: color.muted, fontSize: 19 }}>SSH Agent · Password · Private Key File · Private Key Text</div>
-          {frame > 185 ? <div style={{ padding: 20 }}><Badge>Saved connection · Edit / Delete</Badge></div> : null}
-        </Panel>
-      </div>
-    </Shell>
-  );
-  if (step === 1) return (
-    <Shell title="Grouped projects and sessions" sidebar={<Side frame={frame} grouped />} toolbar={<div style={{ display: 'flex', gap: 10 }}><Badge active={frame < 48}>build · pinned</Badge>{frame < 55 || frame >= 85 ? <Badge tone="violet">{frame > 24 ? 'review' : 'frontend'}</Badge> : null}<Badge active={false}>docs</Badge><Badge tone="violet">{frame >= 55 && frame < 85 ? '▸' : '▾'} Tab group</Badge><Badge active={frame >= 85 && frame < 115}>Tab Switcher · Ctrl+Tab</Badge></div>}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.8fr', gap: 30, padding: 30 }}>
-        <div>{frame >= 105 && frame < 145 ? <Shell title="Window 2 — website"><Terminal frame={frame} command="git status"><Badge>review tab moved · same running shell</Badge><div style={{ color: color.green, marginTop: 20 }}>On branch main</div></Terminal></Shell> : <Terminal frame={frame} command={frame >= 199 ? 'echo $$' : 'git status'}><div style={{ color: color.green }}>On branch main</div><div>working tree clean</div>{frame >= 199 ? <><div style={{ marginTop: 24 }}>5186</div><Badge>Closed tab reopened as a new shell</Badge></> : frame >= 145 ? <div style={{ marginTop: 24 }}><Badge>{frame >= 178 ? 'Automatic title · automatic directory' : 'Project root pinned'}</Badge></div> : <div style={{ marginTop: 30 }}><Badge tone="violet">{frame >= 85 ? 'Groups reordered' : frame >= 55 ? 'Group collapsed' : frame >= 25 ? 'review · color marker applied' : 'frontend'}</Badge></div>}</Terminal>}</div>
-        <Panel title={frame < 145 ? 'Session and group menus' : 'Project directory'}>
-          {frame < 145 ? <><ListRow active={frame < 28}>Rename…</ListRow><ListRow active={frame >= 28 && frame < 48}>Set Color Marker… · Pin Tab</ListRow><ListRow active={frame >= 48 && frame < 85}>Move to Group · Collapse</ListRow><ListRow active={frame >= 85 && frame < 105}>Move Tab to Project…</ListRow><ListRow active={frame >= 105}>Move to New Window</ListRow><ListRow>Use Automatic Title</ListRow><ListRow>Plain Group · Folder Group…</ListRow><ListRow>Reorder · Remove Group</ListRow></> : <><Setting label="Current Directory" value="~/src/app/packages/ui" /><Setting label="Project Directory" value={frame >= 178 ? '~/src/app (AUTO)' : '~/src/app · pinned'} /><ListRow active={frame < 178}>Set Project Directory…</ListRow><ListRow active={frame >= 178 && frame < 199}>Use Automatic Directory</ListRow><ListRow active={frame >= 199}>Reopen Closed Session · Cmd+Shift+T</ListRow></>}
-        </Panel>
-      </div>
-    </Shell>
-  );
-  if (step === 2) {
-    const zoom = frame >= 168 && frame < 215;
-    const reordered = frame >= 133;
-    const equalized = frame >= 100;
-    const narrow = frame < 34;
-    return <Shell title="Split, focus, resize, and zoom" toolbar={<div style={{ display: 'flex', gap: 12 }}><Badge active={narrow}>Command Palette · Cmd+P</Badge><Badge active={!narrow && frame < 70}>Right / Down / Left / Up</Badge><Badge active={frame >= 70 && frame < 100}>Opt+Cmd+arrows</Badge><Badge active={frame >= 100 && frame < 133}>Equalize · Ctrl+Cmd+=</Badge><Badge active={frame >= 133 && frame < 168}>Drag pane / tab</Badge><Badge active={zoom}>Zoom</Badge></div>}>
-      <div style={{ display: 'grid', gridTemplateColumns: zoom || narrow ? '1fr' : `${equalized ? 1 : mix(1, 1.5, p)}fr 1fr`, gap: 4, height: '100%', padding: 20 }}>
-        <div style={{ border: `2px solid ${frame > 75 ? color.blue : color.line}`, borderRadius: 9, overflow: 'hidden' }}><Terminal frame={frame} command="bun run dev"><div style={{ color: color.green }}>Local: http://localhost:3000</div><div style={{ fontSize: 20, marginTop: 25, color: color.muted }}>{zoom ? 'Active pane zoomed' : 'Focus ring follows the selected pane'}</div></Terminal></div>
-        {!zoom && !narrow ? <div style={{ display: 'grid', gridTemplateRows: frame < 56 ? '1fr' : '1fr 1fr', gap: 4 }}><Panel title={reordered ? 'logs · pane moved to top' : 'tests'}>{reordered ? <Code lines={['[server] ready', '[watch] source changed', '[build] complete']} /> : <Terminal fontSize={22} frame={frame} command="bun test"><div style={{ color: color.green }}>37 pass · 0 fail</div></Terminal>}</Panel>{frame >= 56 ? <Panel title={reordered ? 'tests · tab dropped into split' : 'logs'}>{reordered ? <Terminal fontSize={22} frame={frame} command="bun test"><div style={{ color: color.green }}>37 pass · 0 fail</div></Terminal> : <Code lines={['[server] ready', '[watch] source changed', '[build] complete']} />}</Panel> : null}</div> : null}
-      </div>
-      {narrow ? <Panel title="Commands" style={{ position: 'absolute', left: '25%', right: '25%', top: 110, boxShadow: `0 20px 60px ${alpha(color.shadow, 20)}` }}><div className="font-mono" style={{ padding: 20, fontSize: 25, borderBottom: `1px solid ${color.line}` }}>{'split'.slice(0, typedLength('split', frame, 4, 19)) || 'Search commands…'}</div><ListRow active trailing={<Badge>Cmd+D</Badge>}>Split Right</ListRow><ListRow trailing={<Badge>Cmd+Shift+D</Badge>}>Split Down</ListRow><ListRow>Split Left</ListRow><ListRow>Split Up</ListRow><div style={{ padding: 18, textAlign: 'right' }}><Action active={frame >= 24}>Return · Split Right</Action></div></Panel> : null}
-    </Shell>;
-  }
   return (
-    <Shell title={frame < 120 ? 'Quick Launch' : 'Workspace Templates'}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 36, padding: 36 }}>
-        <Panel title="Quick Launch · Cmd+O">
-          <ListRow active>Frontend dev <Badge>bun run dev</Badge></ListRow><ListRow>SSH devbox <Badge active={false}>developer@devbox</Badge></ListRow><ListRow>Build release <Badge active={false}>make build</Badge></ListRow>
-          <Setting label="Working directory" value="~/src/app" /><Setting label="Group" value="Daily work" />
-          <div style={{ padding: 20, display: 'flex', gap: 14 }}><Action active={frame < 80}>Launch in new project</Action><Action>New / Edit / Delete</Action></div>
-          {frame >= 65 ? <div style={{ padding: '0 20px 20px' }}><Done>Frontend dev · fresh project running</Done></div> : null}
+    <Shell
+      title="Projects — local, OpenSSH & sidebar groups"
+      sidebar={
+        <>
+          <div style={{ fontSize: 14, letterSpacing: 0.6, color: color.muted, padding: '4px 12px 10px' }}>PROJECTS</div>
+          <ListRow active trailing={<Badge style={{ padding: '3px 9px', fontSize: 14 }}>main</Badge>}>
+            <FolderIcon size={18} color={color.blue} /> app
+          </ListRow>
+          <ListRow indent={16} style={{ fontSize: 17, padding: '8px 14px' }}>
+            <TerminalIcon size={16} color={color.muted} /> zsh
+          </ListRow>
+          <ListRow
+            trailing={
+              muted > 0.01 ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', opacity: muted, color: color.amber }}>
+                  <BellOffIcon size={17} />
+                </span>
+              ) : undefined
+            }
+          >
+            <FolderIcon size={18} color={color.muted} /> website
+          </ListRow>
+          <div
+            style={{
+              maxHeight: `${projectAdded * 52}px`,
+              opacity: projectAdded,
+              overflow: 'hidden',
+              transform: `translateY(${(1 - projectAdded) * -6}px)`,
+            }}
+          >
+            <ListRow active={frame >= 46 && frame < 118}>
+              <FolderIcon size={18} color={color.blue} /> design-system
+            </ListRow>
+          </div>
+          <ListRow>
+            <FolderIcon size={18} color={color.muted} /> devbox (SSH)
+          </ListRow>
+          <div style={{ marginTop: 14, padding: '6px 12px', fontSize: 16, fontWeight: 600, color: color.violet }}>
+            ▾ Client work
+          </div>
+          <ListRow indent={14} style={{ fontSize: 17, padding: '7px 14px' }}>api · pinned</ListRow>
+          <ListRow indent={14} style={{ fontSize: 17, padding: '7px 14px' }}>docs</ListRow>
+          <Overlay progress={muted} style={{ marginTop: 16 }}>
+            <Badge tone="amber" style={{ fontSize: 14, padding: '6px 10px', whiteSpace: 'normal', lineHeight: 1.35 }}>
+              <BellOffIcon size={15} /> website muted · agent alerts kept
+            </Badge>
+          </Overlay>
+        </>
+      }
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.05fr', gap: 26, padding: 26, height: '100%', boxSizing: 'border-box' }}>
+        <Panel title="Finder Service · New Zshell Project Here" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '18px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${color.line}`, backgroundColor: alpha(color.blue, 4) }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 23, fontWeight: 600 }}>
+              <FolderIcon size={30} color={color.blue} /> design-system
+            </div>
+            <Action active={frame >= 30} press={openPress}>Open in Zshell</Action>
+          </div>
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <Terminal
+              frame={frame}
+              directory="~/src/design-system"
+              command={typedCmd}
+              typing={frame >= 56 && frame < 98}
+              fontSize={22}
+              after={
+                <div style={{ marginTop: 14, color: color.green, opacity: ramp(frame, [104, 120]), transform: `translateY(${(1 - ramp(frame, [104, 120])) * 6}px)` }}>
+                  VITE ready · http://localhost:3000
+                </div>
+              }
+            />
+          </div>
         </Panel>
-        <Panel title="Save Project as Template">
-          <Setting label="Name" value="Frontend workspace" /><Setting label="Project Root" value="~/src/new-app" /><Setting label="Panes" value="dev · tests · browser" /><Setting label="Startup commands" value="bun run dev / bun test --watch" /><Setting label="Browser URL" value="http://localhost:3000" />
-          <div style={{ padding: 20, display: 'flex', gap: 14 }}><Action active={frame >= 100 && frame < 155}>Apply Template</Action><Action active={frame >= 155 && frame < 200}>Edit / Import / Export</Action></div>
-          {frame > 150 ? <div style={{ padding: '0 20px 24px' }}>{frame >= 200 ? <><Setting label="Remote Host" value="devbox · saved host" /><Setting label="Remote Directory" value="~/src/new-app" /><Done>Remote template · new shared project</Done></> : <Done>New tabs, panes and startup commands created</Done>}</div> : null}
+
+        <Panel title="New SSH Project…" style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
+          <Setting
+            label="Host"
+            focus={sshPicker > 0.1 || sshPicked}
+            value={
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                <span className="font-mono" style={{ color: sshPicked ? color.fg : color.faint }}>{sshPicked ? 'devbox' : 'Select host…'}</span>
+                <Badge active={sshPicker > 0.1} style={{ padding: '4px 10px', fontSize: 15 }}>SSH Config Hosts</Badge>
+              </span>
+            }
+          />
+          <Setting label="User / Port" value="Inherit from ~/.ssh/config" />
+          <Setting label="Remote Directory" value="~/work/api" />
+          <Setting label="Authentication" value="SSH Agent · Key · Password" />
+          <div style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <Action active={sshPicked} press={connectPress}>Connect</Action>
+            <Done progress={connected}>Saved SSH project connected</Done>
+          </div>
+          <div style={{ marginTop: 'auto', padding: '14px 20px', borderTop: `1px solid ${color.line}`, fontSize: 17, color: color.muted }}>
+            Sidebar groups · Mute Notifications · Pin &amp; color markers · Saved SSH auth
+          </div>
+
+          <Overlay
+            progress={sshPicker}
+            style={{ position: 'absolute', left: 20, right: 20, top: 96, zIndex: 3 }}
+          >
+            <Panel title="SSH Config Hosts · ~/.ssh/config" style={{ boxShadow: `0 22px 50px ${alpha(color.shadow, 20)}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${color.line}`, fontSize: 19 }}>
+                <SearchIcon size={19} color={color.blue} />
+                <span className="font-mono">{typedSsh || 'Filter named Host aliases…'}</span>
+              </div>
+              <ListRow active={frame >= 104} trailing={<Badge style={{ fontSize: 14, padding: '3px 9px' }}>~/.ssh/config</Badge>}>
+                <span className="font-mono">devbox</span>
+              </ListRow>
+              <ListRow trailing={<span className="font-mono" style={{ fontSize: 16, color: color.muted }}>10.0.4.18</span>}>
+                <span className="font-mono">dev-staging</span>
+              </ListRow>
+            </Panel>
+          </Overlay>
         </Panel>
       </div>
     </Shell>
   );
 };
 
+const ProjectsStepTwo = ({ frame, fps }: DemoProps) => {
+  const palette = revealAt(frame, fps, 6) * (1 - revealAt(frame, fps, 54));
+  const splitPress = pressAt(frame, 46);
+  const splitRight = revealAt(frame, fps, 56, true);
+  const splitDown = revealAt(frame, fps, 92, true);
+  const equalize = revealAt(frame, fps, 118, true);
+  const templatesSheet = revealAt(frame, fps, 146);
+  const applyPress = pressAt(frame, 186);
+  const applied = revealAt(frame, fps, 192);
+  const query = 'split'.slice(0, typedLength('split', frame, 12, 34));
+
+  // Smoothly expand right pane, then equalize proportions without snapping.
+  const leftShare = mix(1, mix(1.42, 1, equalize), splitRight);
+  const rightShare = splitRight;
+
+  return (
+    <Shell
+      title="app — splits, tab groups & workspace templates"
+      toolbar={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <Badge active>build · pinned</Badge>
+          <Badge tone="violet">▾ review · Tab group</Badge>
+          <Badge active={false}>Ctrl+Tab Switcher</Badge>
+          <Badge active={false}>Cmd+Shift+T Reopen</Badge>
+          <span style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
+            <Badge active={palette > 0.2}>Cmd+P Palette</Badge>
+            <Badge active={equalize > 0.3 && templatesSheet < 0.2}>Ctrl+Cmd+= Equalize</Badge>
+            <Badge active={templatesSheet > 0.3} tone="violet">Cmd+O Quick Launch · Templates</Badge>
+          </span>
+        </div>
+      }
+    >
+      <div style={{ display: 'flex', gap: 10, height: '100%', padding: 20, boxSizing: 'border-box' }}>
+        <div
+          style={{
+            flex: leftShare,
+            minWidth: 0,
+            border: `2px solid ${alpha(color.blue, mix(18, 70, splitRight))}`,
+            borderRadius: 11,
+            overflow: 'hidden',
+          }}
+        >
+          <Terminal
+            frame={frame}
+            command="bun run dev"
+            fontSize={22}
+            after={
+              <>
+                <div style={{ color: color.green, marginTop: 12 }}>Local: http://localhost:3000</div>
+                <div style={{ fontSize: 18, marginTop: 14, color: color.muted }}>
+                  Focus ring · Opt+Cmd+arrows · Zoom · Move tab across windows
+                </div>
+              </>
+            }
+          />
+        </div>
+
+        {rightShare > 0.01 ? (
+          <div style={{ flex: rightShare, minWidth: 0, opacity: Math.min(1, rightShare * 1.4), display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
+            <Panel title="tests · split right" style={{ flex: 1, minHeight: 0 }}>
+              <Terminal
+                fontSize={20}
+                frame={frame}
+                command="bun test"
+                after={<div style={{ color: color.green, marginTop: 10 }}>37 pass · 0 fail</div>}
+              />
+            </Panel>
+            {splitDown > 0.01 ? (
+              <Panel title="logs · split down" style={{ flex: splitDown, minHeight: 0, opacity: Math.min(1, splitDown * 1.4), overflow: 'hidden' }}>
+                <Code lines={['[server] ready', '[watch] source changed', '[build] complete']} style={{ fontSize: 18 }} />
+              </Panel>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      <Overlay
+        progress={palette}
+        style={{ position: 'absolute', left: '26%', right: '26%', top: 72, zIndex: 4 }}
+      >
+        <Panel title="Command Palette · Cmd+P" style={{ boxShadow: `0 24px 64px ${alpha(color.shadow, 22)}` }}>
+          <div className="font-mono" style={{ padding: '14px 20px', fontSize: 22, borderBottom: `1px solid ${color.line}` }}>
+            {query || <span style={{ color: color.faint }}>Search commands…</span>}
+          </div>
+          <ListRow active trailing={<Badge style={{ fontSize: 15, padding: '4px 10px' }}>Cmd+D</Badge>}>Split Right</ListRow>
+          <ListRow trailing={<Badge active={false} style={{ fontSize: 15, padding: '4px 10px' }}>Cmd+Shift+D</Badge>}>Split Down</ListRow>
+          <ListRow trailing={<Badge active={false} style={{ fontSize: 15, padding: '4px 10px' }}>Cmd+Shift+Return</Badge>}>Toggle Pane Zoom</ListRow>
+          <div style={{ padding: '12px 18px', textAlign: 'right', borderTop: `1px solid ${color.line}` }}>
+            <Action active press={splitPress}>Return · Split Right</Action>
+          </div>
+        </Panel>
+      </Overlay>
+
+      <Overlay
+        progress={templatesSheet}
+        style={{ position: 'absolute', inset: 22, display: 'grid', gridTemplateColumns: '0.92fr 1.08fr', gap: 22, padding: 24, borderRadius: 14, backgroundColor: alpha(color.surface, 96), border: `1px solid ${color.lineStrong}`, boxShadow: `0 24px 64px ${alpha(color.shadow, 18)}`, zIndex: 5 }}
+      >
+        <Panel title="Quick Launch · Cmd+O">
+          <ListRow active trailing={<Badge style={{ fontSize: 15, padding: '3px 10px' }}>bun run dev</Badge>}>Frontend dev</ListRow>
+          <ListRow trailing={<Badge active={false} style={{ fontSize: 15, padding: '3px 10px' }}>devbox</Badge>}>SSH devbox</ListRow>
+          <ListRow trailing={<Badge active={false} style={{ fontSize: 15, padding: '3px 10px' }}>make build</Badge>}>Build release</ListRow>
+          <Setting label="Directory" value="~/src/app" />
+          <Setting label="Group" value="Daily work" />
+          <div style={{ padding: 16, fontSize: 17, color: color.muted }}>Launch any entry in a fresh project from the app or zshell CLI.</div>
+        </Panel>
+        <Panel title="Workspace Templates · Local & Remote">
+          <Setting label="Template" value="Frontend workspace" />
+          <Setting label="Layout" value="dev · tests · browser (localhost:3000)" />
+          <Setting label="Target" value="Local root or saved remote host (devbox)" />
+          <Setting label="Portability" value="Save · Edit · Import / Export JSON" />
+          <div style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <Action active press={applyPress}>Apply Template</Action>
+            <Done progress={applied}>Tabs, splits &amp; startup commands created</Done>
+          </div>
+        </Panel>
+      </Overlay>
+    </Shell>
+  );
+};
+
+const ProjectBody = (props: DemoProps) =>
+  props.step === 0 ? <ProjectsStepOne {...props} /> : <ProjectsStepTwo {...props} />;
+
 export const projectsChapter: ChapterSpec = {
-  id: 'projects', en: 'Projects & panes', zh: '项目、会话与分屏',
+  id: 'projects',
+  en: 'Projects & panes',
+  zh: '项目、会话与分屏',
+  nav: '项目与分屏',
   steps: [
-    { en: 'Local folders and saved SSH connections', zh: '从 Finder 开项目，保存 SSH 连接' },
-    { en: 'Group, pin, rename and move your sessions', zh: '分组、固定、标色与跨窗口移动' },
-    { en: 'Split, focus, resize and zoom', zh: '分屏、焦点、调整大小与放大' },
-    { en: 'Launch entries and reusable workspace templates', zh: '快速启动与可复用工作区模板' },
+    { en: 'Local folders, OpenSSH hosts & muted projects', zh: '本地项目、SSH Config 发现、分组与项目静默' },
+    { en: 'Smooth splits, Command Palette & templates', zh: '命令面板分屏、标签分组、快速启动与模板' },
   ],
-  features: ['local projects', 'Finder Services', 'saved SSH authentication', 'SSH project roots reached through directory symlinks', 'plain and folder groups', 'group reorder and color', 'project pin and directory', 'session rename and automatic titles', 'tab groups and pin', 'tab switcher', 'move sessions across projects and windows', 'reopen closed session', 'command palette search and command execution', 'split both directions', 'pane focus ring and keyboard navigation', 'resize equalize and zoom', 'Quick Launch command and SSH entries', 'workspace template save edit apply import export'],
-  sources: ['web/content/docs/projects.mdx', 'web/content/docs/panes.mdx', 'web/content/docs/quick-launch.mdx', 'mac/zshell/WorkspaceTemplateController.swift', 'mac/zshell/TerminalManager.swift', 'mac/zshell/CommandPaletteView.swift', 'mac/zshell/RemoteFileService.swift'],
-  Body: ProjectDemo,
+  features: [
+    'local projects and Finder Services',
+    'saved SSH connections and OpenSSH SSH Config Hosts discovery',
+    'sidebar plain and folder groups, pinning, color markers and persistent project Mute Notifications',
+    'command palette search, split right/down/left/up, equalize, zoom, tab groups, tab switcher and reopen closed session',
+    'Quick Launch command/SSH entries and local/remote Workspace Templates',
+  ],
+  sources: [
+    'web/content/docs/projects.mdx',
+    'web/content/docs/panes.mdx',
+    'web/content/docs/quick-launch.mdx',
+    'web/content/docs/terminal.mdx',
+    'mac/zshell/WorkspaceTemplateController.swift',
+    'mac/zshell/CommandPaletteView.swift',
+  ],
+  Body: ProjectBody,
 };

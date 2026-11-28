@@ -9,7 +9,7 @@ export const typedLength = (text: string, frame: number, from: number, to: numbe
   if (frame <= from) return 0;
   if (frame >= to) return text.length;
 
-  const weights = Array.from(text, (char, index) => {
+  const weights = Array.from(text, (_char, index) => {
     const jitter = 0.55 + random(`${text}:${index}`) * 0.9;
     return PAUSE_AFTER.has(text[index - 1] ?? '') ? jitter * 1.7 : jitter;
   });

@@ -37,7 +37,7 @@ export const CONFIG_PATH = '~/.config/zshell/config.toml';
 export const CONFIG_SLICE = [
   '# Read while Zshell is running.',
   'theme-light = "Catppuccin Latte"',
-  'font-family = "IBM Plex Mono"',
+  'terminal.term = "xterm-256color"',
   'terminal.backend = "alacritty"',
   'terminal.restore-history = true',
 ];

@@ -1,155 +1,274 @@
 import type { CSSProperties } from 'react';
+import { Img } from 'remotion';
+import icon from '../../../../web/public/zshell-icon.png';
 import { Keycap } from '../../components/Hud';
-import { TerminalIcon } from '../../components/Icons';
-import { linear } from '../../lib/motion';
-import { typedLength } from '../../lib/typing';
+import { BellIcon } from '../../components/Icons';
+import { ramp } from '../../lib/motion';
 import { alpha, color } from '../../theme';
-import { Action, Badge, Code, Done, Group, ListRow, Panel, Setting, Shell, Terminal, type ChapterSpec, type DemoProps } from './Frame';
-
-const PersistenceDemo = ({ frame }: DemoProps) => {
-  const enabled = frame >= 31 && frame < 179;
-  const quit = frame >= 98 && frame < 145;
-  const reconnected = frame >= 145;
-  const history = frame >= 179;
-  const compile = Math.floor(24 + 72 * linear(frame, [47, 178]));
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '630px 1fr', gap: 24, height: '100%' }}>
-      <Shell title="Settings — Terminal"><div style={{ padding: 26 }}><Group title="Sessions"><Setting label="Keep sessions running after quitting" checked={enabled} focus={frame < 179} /><div style={{ padding: 19, fontSize: 21, color: color.muted, lineHeight: 1.6 }}>New terminals keep shells, agents, and servers running when Zshell quits.</div></Group><Group title="History"><Setting label="Restore session history on relaunch" checked={history} focus={history} /></Group><Panel title="Zshell"><ListRow active={quit}>Quit Zshell <Keycap size={17} pressed={quit ? 1 : 0}>Cmd + Q</Keycap></ListRow><ListRow>Quit and End All Sessions</ListRow></Panel><div style={{ marginTop: 28 }}><Badge tone={quit ? 'amber' : 'blue'}>{quit ? 'App closed' : reconnected ? 'Reopened' : 'Open a new terminal'}</Badge></div></div></Shell>
-      <Shell title={quit ? 'Desktop' : 'app — restored workspace'} sidebar={!quit ? <><ListRow>Work</ListRow><ListRow active>app</ListRow><ListRow indent={16}>api</ListRow><ListRow>Personal</ListRow><ListRow indent={16}>notes</ListRow></> : undefined} toolbar={!quit ? <div style={{ display: 'flex', gap: 15 }}><Badge active={!history}>server</Badge><Badge active={history}>tests</Badge><Badge active={false}>docs</Badge></div> : undefined}>
-        {quit ? <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 28, backgroundColor: color.raised }}><div style={{ width: 116, height: 116, borderRadius: 25, display: 'flex', alignItems: 'center', justifyContent: 'center', color: color.blue, backgroundColor: color.surface, border: `1px solid ${color.lineStrong}` }}><TerminalIcon size={72} /></div><div style={{ fontSize: 34 }}>Zshell</div><Action active={frame >= 131}>Open</Action></div> : <div style={{ height: '100%', display: 'grid', gridTemplateRows: '1fr 218px' }}>
-          {history ? <Panel title="tests — restored scrollback"><div className="font-mono" style={{ padding: 20, fontSize: 23, lineHeight: 1.6 }}><div style={{ color: color.faint }}>› pnpm test<br />2 tests passed · 1.28 s</div><div style={{ height: 1, backgroundColor: color.line, margin: '12px 0' }} /><div>› echo $$</div><div>4183</div><div>› <span style={{ display: 'inline-block', width: 3, height: 25, verticalAlign: 'text-bottom', backgroundColor: color.blue }} /></div></div></Panel> : <div className="font-mono" style={{ padding: 22, fontSize: 23, lineHeight: 1.6 }}>
-            <div style={{ color: color.muted }}>› echo $$</div><div>3421</div><div style={{ marginTop: 12 }}>› pnpm run dev</div><div style={{ color: color.green }}>Local: http://localhost:3000</div><div style={{ marginTop: 12 }}>Compiling {compile} / 96</div>{reconnected ? <div style={{ marginTop: 15 }}><Done>Same shell · pid 3421</Done></div> : null}
-          </div>}
-          <Panel title="Browser — http://localhost:3000"><div style={{ display: 'flex', gap: 20, alignItems: 'center', padding: 22 }}><div style={{ fontSize: 27 }}>Workspace preview</div><Badge>app</Badge></div><div style={{ padding: '0 22px 22px', fontSize: 21, color: color.muted }}>Projects: app · api · docs</div></Panel>
-        </div>}
-      </Shell>
-    </div>
-  );
-};
-
-const RemoteDemo = ({ frame }: DemoProps) => {
-  const detached = frame >= 81 && frame < 139;
-  const reattached = frame >= 139;
-  const controlled = frame >= 161;
-  const pairing = frame >= 71;
-  const approved = frame >= 142;
-  const revoked = frame >= 226;
-  const quickVisible = frame >= 65 && frame < 98 || frame >= 121 && frame < 142;
-  const query = 'git status'.slice(0, typedLength('git status', frame, 162, 191));
-  const compiled = Math.floor(40 + 56 * linear(frame, [39, 207]));
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '760px 1fr', gap: 24, height: '100%' }}>
-      <Shell title="Remote Hosts — devbox"><div style={{ padding: 22 }}>
-        {frame < 63 ? <Group title="Remote Hosts"><Setting label="Name" value="devbox" /><Setting label="Address" value={frame < 37 ? 'ssh://demo@devbox:22' : 'tailscale://devbox:7373'} focus /><Setting label="Server Executable" value="~/.local/bin/zshell-server" /><Setting label="Remote Directory" value="~/src/app" /><div style={{ display: 'flex', gap: 12, padding: 16 }}><Action>Install / Update Server</Action><Action active>Connect Host</Action></div><ListRow>Open Remote Project</ListRow></Group> : <Panel title="devbox — shared remote session"><div className="font-mono" style={{ padding: 22, fontSize: 24, lineHeight: 1.8 }}><div style={{ color: color.muted }}>~/src/app · session 72f3</div><div>› go build ./...</div><div style={{ marginTop: 13 }}>Compiling {detached ? 57 : compiled} / 96</div>{reattached ? <div style={{ marginTop: 15 }}><Done>Screen and scrollback restored</Done></div> : null}</div><div style={{ display: 'flex', gap: 12, padding: '0 20px 20px' }}><Badge tone={detached ? 'amber' : 'green'}>{detached ? 'Detached' : 'Connected'}</Badge><Action active={detached ? frame >= 129 : frame >= 72 && frame < 89}>{detached ? 'Reconnect' : 'Detach Remote Session'}</Action>{reattached ? <Action active={frame >= 150 && frame < 174}>Take Terminal Control</Action> : null}</div><div style={{ padding: '0 20px 20px', fontSize: 19, lineHeight: 1.5, color: color.muted }}>Connected clients: 2<div>{controlled ? 'This client controls terminal input and size.' : 'Another client controls terminal input and size.'}</div></div></Panel>}
-        <Panel title={approved ? 'Mac workspace · app — zsh' : 'Quick Terminal'} style={{ marginTop: 20 }}>
-          {approved ? <div className="font-mono" style={{ padding: 18, fontSize: 22, lineHeight: 1.6 }}>› {query}{frame >= 191 ? <><div>On branch main</div><div style={{ color: color.green }}>working tree clean</div></> : null}</div> : <><div style={{ padding: 16, display: 'flex', gap: 13, alignItems: 'center' }}><Keycap size={17} pressed={frame >= 60 && frame < 76 || frame >= 96 && frame < 108 || frame >= 119 && frame < 129 ? 1 : 0}>Cmd + I</Keycap><Badge active={quickVisible}>Reuse workspace</Badge><span style={{ marginLeft: 'auto', fontSize: 18, color: color.muted }}>Pin</span></div>{quickVisible ? <div className="font-mono" style={{ padding: '0 20px 16px', fontSize: 22, lineHeight: 1.6 }}>› pnpm run dev<div style={{ color: color.green }}>Local: http://localhost:3000</div></div> : <Setting label="Session behavior" value="Reuse workspace" />}</>}
-          {frame < 63 ? <Setting label="Opacity" progress={0.65} /> : null}
-        </Panel>
-      </div></Shell>
-      <Shell title="Settings — Browser · Browser Access"><div style={{ padding: 22 }}><Group title="Browser Access"><Setting label="Enable browser access" checked={frame >= 22} /><Setting label="Listen on" value={frame >= 46 ? 'LAN · 192.168.1.12' : 'Localhost Only'} focus={frame >= 46 && frame < 71} /><Setting label="HTTPS port" value="7443" /><div style={{ display: 'flex', gap: 12, padding: 14 }}><Action>Export TLS Certificate…</Action><Action>Open Private Network Page</Action></div></Group>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20 }}>
-          <div><Group title={approved ? 'Authorized Clients' : 'Pairing Requests'}>{pairing ? <><ListRow trailing={<Badge tone="blue">438221</Badge>}>Phone</ListRow><div style={{ padding: 14, display: 'flex', gap: 12 }}><Action active={frame >= 133 && frame < 152 || revoked}>{approved ? 'Revoke' : 'Approve'}</Action>{!approved ? <Action>Deny</Action> : null}</div>{approved ? <ListRow>Revoke All Clients</ListRow> : null}</> : <div style={{ height: 140 }} />}</Group><div style={{ fontSize: 20, color: color.muted, lineHeight: 1.7 }}>https://192.168.1.12:7443<div>Mac · local terminal panes</div></div></div>
-          <Panel title="Phone · Zshell" style={{ borderRadius: 23, borderWidth: 3 }}>{!approved ? <div style={{ padding: 18, fontSize: 22 }}><div style={{ marginBottom: 18 }}>Browser Access</div><div style={{ color: color.muted, fontSize: 18 }}>Client name</div><ListRow>Phone</ListRow><div style={{ marginTop: 10 }}><Action active={pairing}>Request Pairing</Action></div>{pairing ? <div className="font-mono" style={{ color: color.blue, marginTop: 24, textAlign: 'center', fontSize: 30 }}>438221</div> : null}</div> : <div style={{ padding: 18, fontSize: 20 }}><Badge tone={revoked ? 'red' : 'green'}>{revoked ? 'Disconnected' : 'Connected'}</Badge><div style={{ margin: '20px 0 10px', color: color.muted }}>app — zsh</div><div className="font-mono" style={{ fontSize: 20, lineHeight: 1.8 }}>› {query}{frame >= 191 ? <><div>On branch main</div><div style={{ color: color.green }}>working tree clean</div></> : null}</div><div style={{ marginTop: 22, fontSize: 18, color: color.muted }}>Resize terminal to browser <span style={{ color: color.fg }}>Off</span></div></div>}</Panel>
-        </div>
-      </div></Shell>
-    </div>
-  );
-};
-
-const InfoDemo = ({ frame }: DemoProps) => {
-  const remote = frame >= 126;
-  const menu = frame >= 46 && frame < 97 || frame >= 160 && frame < 200;
-  const ended = frame >= 98 && !remote;
-  const copied = frame >= 174 && frame < 220;
-  const controlled = frame >= 212;
-  return (
-    <Shell title={remote ? 'devbox — remote session info' : 'app — session info'}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 720px', height: '100%' }}>
-        <div style={{ borderRight: `1px solid ${color.line}`, position: 'relative' }}>
-          <Terminal frame={frame} fontSize={25}>
-            <div style={{ color: color.muted }}>{remote ? 'demo@devbox:~/src/app/api' : '~/src/app/api'}</div><div style={{ marginTop: 18 }}>› pnpm run dev</div><div style={{ color: color.green }}>Local: http://localhost:3000</div><div style={{ marginTop: 16 }}>{remote ? 'Watching changes on devbox…' : ended ? 'Terminated: 15' : 'Watching src/routes.ts…'}</div>{remote ? <div style={{ marginTop: 28 }}><Badge tone={controlled ? 'green' : 'blue'}>{controlled ? 'This client controls terminal input and size.' : 'Another client controls terminal input and size.'}</Badge></div> : null}
-            {frame >= 25 && frame < 46 ? <Panel title="Default Browser" style={{ marginTop: 35 }}><div style={{ padding: 18, fontSize: 22, borderBottom: `1px solid ${color.line}` }}>http://localhost:3000</div><div style={{ padding: 22, fontSize: 30 }}>Workspace preview</div></Panel> : null}
-          </Terminal>
-          {copied ? <div style={{ position: 'absolute', left: 32, right: 32, bottom: 26 }}><Panel title="Clipboard"><Code lines={['5217']} /></Panel></div> : null}
-        </div>
-        <div style={{ padding: 26 }}>
-          <Group title="Info"><Setting label="CURRENT DIRECTORY" value={remote ? '~/src/app/api' : '/Users/demo/src/app/api'} /><Setting label="PROJECT DIRECTORY" value={remote ? '~/src/app' : '/Users/demo/src/app'} /></Group>
-          <Group title="PROCESSES" style={{ position: 'relative' }}><ListRow trailing={<span style={{ color: color.muted, fontSize: 20 }}>{remote ? '22% · 84 MiB' : '0% · 12 MiB'}</span>}>{remote ? 'node  5217' : 'zsh  3418'}</ListRow>{!ended && !remote ? <ListRow active trailing={<span style={{ color: color.muted, fontSize: 20 }}>18% · 84 MiB</span>}>node 3421</ListRow> : null}{menu ? <Panel style={{ position: 'absolute', right: 0, top: 83, width: 360, zIndex: 2, boxShadow: `0 18px 40px ${alpha(color.shadow, 15)}` }}>{!remote ? <><ListRow active={frame >= 84}>Terminate</ListRow><ListRow>Force Kill</ListRow></> : null}<ListRow active={remote}>Copy PID</ListRow><ListRow>Copy Executable Path</ListRow></Panel> : null}</Group>
-          {!remote ? <Group title="PORTS">{ended ? <ListRow>No listening ports</ListRow> : <ListRow active={frame >= 25 && frame < 46} trailing={<Action active={frame >= 84 && frame < 98}>Kill Process (node)</Action>}>3000 node</ListRow>}<div style={{ padding: '4px 17px 16px', fontSize: 20, color: color.muted }}>Open in Browser · Copy URL</div></Group> : <Group title="Remote connection"><Setting label="Status" value="Connected · devbox" /><div style={{ padding: 15 }}><Action active={frame >= 199 && frame < 225}>Take Terminal Control</Action></div></Group>}
-        </div>
-      </div>
-    </Shell>
-  );
-};
+import {
+  Action,
+  Badge,
+  Code,
+  Done,
+  Group,
+  ListRow,
+  Overlay,
+  Panel,
+  Setting,
+  Shell,
+  Terminal,
+  pressAt,
+  revealAt,
+  type ChapterSpec,
+  type DemoProps,
+} from './Frame';
 
 const profilePalette: CSSProperties = {
-  '--color-surface': '#eff1f5', '--color-raised': '#e6e9ef', '--color-fg': '#4c4f69',
-  '--color-muted': '#6c6f85', '--color-faint': '#9ca0b0', '--color-blue': '#8839ef',
-  '--color-line': '#ccd0da', '--color-line-strong': '#acb0be',
+  '--color-surface': '#eff1f5',
+  '--color-raised': '#e6e9ef',
+  '--color-fg': '#4c4f69',
+  '--color-muted': '#6c6f85',
+  '--color-faint': '#9ca0b0',
+  '--color-blue': '#8839ef',
+  '--color-line': '#ccd0da',
+  '--color-line-strong': '#acb0be',
 } as CSSProperties;
 
-const ProfileDemo = ({ frame }: DemoProps) => {
-  const matched = frame >= 48;
-  const launch = frame >= 119;
-  const newPane = frame >= 186;
-  const original = frame >= 218;
+const PersistenceAndProfilesStep = ({ frame, fps }: DemoProps) => {
+  const persistOn = revealAt(frame, fps, 24, true);
+  const reconnected = revealAt(frame, fps, 76);
+  const profileMatched = revealAt(frame, fps, 108);
+  const killPress = pressAt(frame, 152);
+  const portKilled = revealAt(frame, fps, 158);
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '740px 1fr', gap: 24, height: '100%' }}>
-      <Shell title="Terminal Profiles — Review"><div style={{ padding: 24 }}>
-        {!launch ? <><Group title="Automatic matching"><Setting label="Enable automatic matching" checked /><Setting label="Host pattern" value="localhost" /><Setting label="User pattern" value="demo" /><Setting label="Directory pattern" value="*/src/app*" /><Setting label="Foreground program pattern" value="zsh" focus={matched} /></Group><Group title="Appearance"><Setting label="Light theme" value="Catppuccin Latte" /><Setting label="Font family" value="SF Mono" /><Setting label="Font size" value="27" /><Setting label="Cursor Shape" value="Block" /><Setting label="Cursor blinking" value="On" /></Group></> : <><Group title="New terminals"><Setting label="Environment Variables" value="PROJECT_MODE=review" focus={frame < 162} /><Setting label="Initialization Command" value={'printf "Ready for review\\n"'} /><Setting label="Startup program" value="Inherit" /><div style={{ padding: 14, fontSize: 20, lineHeight: 1.5, color: color.muted }}>Appearance applies immediately. Environment and startup settings apply only to new terminals.</div></Group><div style={{ textAlign: 'right', marginBottom: 16 }}><Action active={frame >= 128 && frame < 155}>Save</Action></div><Group title="Terminal context menu"><ListRow active={!original}>Automatic</ListRow><ListRow active={original}>Original Settings</ListRow><ListRow>Review</ListRow><ListRow>Manage Terminal Profiles…</ListRow></Group></>}
-      </div></Shell>
-      <Shell title="app — profile matching" toolbar={<div style={{ display: 'flex', gap: 14, alignItems: 'center' }}><Badge tone={matched && !original ? 'violet' : 'blue'}>{matched && !original ? 'Review' : 'Original Settings'}</Badge>{newPane ? <Action active>New Session</Action> : null}</div>}>
-        <div style={{ height: '100%', display: 'grid', gridTemplateRows: newPane ? 'minmax(0, 1fr) 245px' : '1fr' }}>
-          <div style={{ minHeight: 0, overflow: 'hidden', ...(matched && !original ? profilePalette : {}) }}><Terminal frame={frame} fontSize={newPane ? 23 : matched && !original ? 27 : 24} shape={matched && !original ? 'block' : 'bar'} style={{ padding: newPane ? 20 : 28, lineHeight: newPane ? 1.45 : 1.7, fontFamily: matched && !original ? '"SF Mono", Menlo, monospace' : undefined }}>
-            <div style={{ color: color.muted }}>localhost · demo · zsh</div><div>pid 3418 · ~/src/app</div><div style={{ marginTop: newPane ? 12 : 30 }}>› echo $&#123;PROJECT_MODE:-unset&#125;</div><div>unset</div>{matched ? <div style={{ marginTop: newPane ? 12 : 28 }}><Badge tone="violet">{original ? 'Original Settings' : 'Review'}</Badge></div> : null}
-          </Terminal></div>
-          {newPane ? <Panel title="app — new terminal" style={profilePalette}><div className="font-mono" style={{ padding: 20, fontSize: 23, lineHeight: 1.65, color: color.fg }}><div>Ready for review</div><div>› echo $PROJECT_MODE</div><div style={{ color: color.green }}>review</div><div>› <span style={{ display: 'inline-block', width: 14, height: 25, backgroundColor: color.blue, verticalAlign: 'text-bottom' }} /></div></div></Panel> : null}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, height: '100%' }}>
+      <Shell title="Session Persistence & Info · Cmd+Shift+I">
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14, height: '100%', boxSizing: 'border-box' }}>
+          <Group title="Settings · Terminal · Sessions & History" style={{ marginBottom: 0 }}>
+            <Setting label="Keep sessions running after quitting" checked={persistOn} focus={persistOn > 0.1 && persistOn < 0.95} />
+            <Setting label="Restore session history on relaunch" checked={1} />
+            <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <Badge active={false} style={{ fontSize: 14, padding: '4px 9px' }}>Quit vs Quit &amp; End All</Badge>
+              <Done progress={reconnected} style={{ fontSize: 15 }}>Reconnected · live pid 3421</Done>
+            </div>
+          </Group>
+
+          <Group title="Info · Processes & Listening Ports" style={{ marginBottom: 0, flex: 1 }}>
+            <Setting label="CURRENT / PROJECT DIR" value="~/src/app/api → ~/src/app (AUTO)" />
+            <ListRow style={{ padding: '8px 16px', fontSize: 17 }} trailing={<span style={{ color: color.muted, fontSize: 16 }}>0% · 12 MiB</span>}>
+              <span className="font-mono">zsh  3418</span>
+            </ListRow>
+            <ListRow
+              active={portKilled < 0.5}
+              style={{ padding: '8px 16px', fontSize: 17 }}
+              trailing={
+                portKilled > 0.5 ? (
+                  <Done progress={portKilled} style={{ fontSize: 14, padding: '3px 9px' }}>Terminated</Done>
+                ) : (
+                  <Action active press={killPress} tone="red" style={{ fontSize: 14, padding: '4px 10px' }}>Kill Process (node)</Action>
+                )
+              }
+            >
+              <span className="font-mono">3000 · node 3421</span>
+              <span style={{ color: color.muted, fontSize: 15 }}>18% · 84 MiB</span>
+            </ListRow>
+            <div style={{ padding: '6px 16px 10px', fontSize: 15, color: color.muted }}>
+              Open in Browser · Copy URL · Terminate / Force Kill · Copy PID
+            </div>
+          </Group>
+        </div>
+      </Shell>
+
+      <Shell
+        title="Terminal Profiles — Automatic Matching"
+        toolbar={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Badge tone={profileMatched > 0.5 ? 'violet' : 'blue'}>
+              {profileMatched > 0.5 ? 'Profile: Review (matched)' : 'Original Settings'}
+            </Badge>
+            <span style={{ marginLeft: 'auto', fontSize: 16, color: color.muted }}>Live appearance · env for new panes</span>
+          </div>
+        }
+      >
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box' }}>
+          <Group title="Match conditions · wildcards * ?" style={{ marginBottom: 0 }}>
+            <Setting label="Host / User" value="localhost · demo" />
+            <Setting label="Directory / Program" value="*/src/app* · zsh" focus={profileMatched > 0.3} />
+            <Setting label="New terminal env" value="PROJECT_MODE=review" />
+          </Group>
+
+          <Panel
+            title={profileMatched > 0.5 ? 'app — Review theme · Block cursor' : 'app — Original theme · Bar cursor'}
+            style={{
+              flex: 1,
+              ...(profileMatched > 0.5 ? profilePalette : {}),
+              borderColor: profileMatched > 0.5 ? alpha(color.violet, 45) : color.line,
+            }}
+          >
+            <Terminal
+              frame={frame}
+              fontSize={21}
+              shape={profileMatched > 0.5 ? 'block' : 'bar'}
+              command="echo $PROJECT_MODE"
+              after={
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ color: color.green }}>{profileMatched > 0.5 ? 'review (new pane)' : 'unset'}</span>
+                  <Done progress={profileMatched} style={{ fontSize: 14 }}>Switched live · pid 3418 kept</Done>
+                </div>
+              }
+            />
+          </Panel>
         </div>
       </Shell>
     </div>
   );
 };
 
-const SessionsBody = (props: DemoProps) => {
-  if (props.step === 0) return <PersistenceDemo {...props} />;
-  if (props.step === 1) return <RemoteDemo {...props} />;
-  if (props.step === 2) return <InfoDemo {...props} />;
-  return <ProfileDemo {...props} />;
+const AlertsAndForegroundStep = ({ frame, fps }: DemoProps) => {
+  const armed = revealAt(frame, fps, 24);
+  const progress = ramp(frame, [36, 128]);
+  const finished = revealAt(frame, fps, 132);
+  const blockedKeys = revealAt(frame, fps, 60, true);
+  const osc52 = revealAt(frame, fps, 126) * (1 - revealAt(frame, fps, 188));
+  const allowClipPress = pressAt(frame, 174);
+  const clipAllowed = revealAt(frame, fps, 182);
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 24, height: '100%' }}>
+      <Shell
+        title="app — Next-Command Alert & Notifications"
+        titleTrailing={
+          <Badge
+            tone={finished > 0.5 ? 'green' : 'blue'}
+            style={{ padding: '3px 9px', fontSize: 14, opacity: armed, transform: `scale(${0.9 + armed * 0.1})` }}
+          >
+            <BellIcon size={14} /> {finished > 0.5 ? 'Notified' : 'Armed'}
+          </Badge>
+        }
+        toolbar={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Action active={armed > 0.4 && finished < 0.5} press={pressAt(frame, 20)} style={{ padding: '6px 12px', fontSize: 15 }}>
+              <BellIcon size={15} /> {armed > 0.4 && finished < 0.5 ? 'Cancel Next Command Notification' : 'Notify When Next Command Finishes'}
+            </Action>
+          </div>
+        }
+      >
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Slim OSC 9;4 progress bar directly above the terminal */}
+          <div style={{ height: 5, backgroundColor: alpha(color.fg, 8), flexShrink: 0 }}>
+            <div style={{ height: '100%', width: `${progress * 100}%`, backgroundColor: finished > 0.5 ? color.green : color.blue }} />
+          </div>
+
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <Terminal frame={frame} fontSize={20} command="">
+              <div>› bun run build</div>
+              <div style={{ marginTop: 10, color: finished > 0.5 ? color.green : color.muted }}>
+                {finished > 0.5 ? 'Build complete · 32s · Exit 0' : `Compiling modules… ${Math.round(progress * 100)}% (OSC 9;4)`}
+              </div>
+              <div style={{ marginTop: 18, fontSize: 16, color: color.muted }}>
+                One-time local zsh reminder works even when automatic alerts are off.
+              </div>
+            </Terminal>
+          </div>
+
+          <Panel title="Notification History · All / Unread / Failed / Pending" style={{ margin: '0 18px 18px' }}>
+            <ListRow active={finished > 0.5} style={{ padding: '9px 14px', fontSize: 17 }} trailing={<Action active={finished > 0.5} style={{ padding: '4px 10px', fontSize: 14 }}>Show Pane</Action>}>
+              app · bun run build · 32s · Exit 0
+            </ListRow>
+            <div style={{ padding: '2px 14px 10px', fontSize: 15, color: color.muted }}>
+              Long-running (5/10/30/60s) · Failed commands · Bell · OSC 777
+            </div>
+          </Panel>
+
+          <Overlay progress={finished} style={{ position: 'absolute', right: 18, top: 22, width: 390, zIndex: 4 }}>
+            <Panel title="macOS Notification Center" style={{ boxShadow: `0 20px 48px ${alpha(color.shadow, 18)}` }}>
+              <div style={{ padding: '12px 16px' }}>
+                <div style={{ fontSize: 18, fontWeight: 600 }}>Zshell — Command finished</div>
+                <div style={{ fontSize: 16, color: color.muted, marginTop: 4 }}>bun finished — 32s, exit 0 · click to jump</div>
+              </div>
+            </Panel>
+          </Overlay>
+        </div>
+      </Shell>
+
+      <Shell
+        title="Foreground Keys, Images & Clipboard"
+        toolbar={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Badge active={blockedKeys > 0.5}>Block Zshell Commands</Badge>
+            <Keycap size={15} pressed={pressAt(frame, 88)}>Ctrl + Return</Keycap>
+            <span style={{ marginLeft: 'auto', fontSize: 15, color: color.muted }}>Per-pane shortcut routing</span>
+          </div>
+        }
+      >
+        <div style={{ position: 'relative', padding: 20, display: 'flex', flexDirection: 'column', gap: 14, height: '100%', boxSizing: 'border-box' }}>
+          <Setting label="Block Zshell Commands (pane)" checked={blockedKeys} focus={blockedKeys > 0.1 && blockedKeys < 0.95} />
+
+          <Panel title="Inline terminal image rendering (both backends)">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: 18 }}>
+              <Img src={icon} style={{ width: 92, height: 92 }} />
+              <div style={{ fontSize: 18, lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 600 }}>Claude Code · foreground app</div>
+                <div style={{ color: color.muted, marginTop: 4 }}>
+                  Modified keys (Ctrl+Return) route cleanly to the active TUI.
+                </div>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel title="OSC 52 clipboard protection" style={{ marginTop: 'auto' }}>
+            <Code lines={["printf '\\e]52;c;?\\a'", clipAllowed > 0.5 ? '→ clipboard returned after approval' : '→ awaits explicit macOS approval']} style={{ fontSize: 17 }} />
+            <div style={{ padding: '0 16px 14px' }}>
+              <Done progress={clipAllowed}>Approved clipboard read</Done>
+            </div>
+          </Panel>
+
+          <Overlay progress={osc52} style={{ position: 'absolute', inset: 16, display: 'grid', placeItems: 'center', backgroundColor: alpha(color.surface, 76), zIndex: 5 }}>
+            <Panel title="Authorize Clipboard Access" style={{ width: '92%', boxShadow: `0 22px 54px ${alpha(color.shadow, 22)}` }}>
+              <div style={{ padding: '16px 18px', fontSize: 18 }}>
+                A terminal program requested to read your macOS clipboard.
+              </div>
+              <div style={{ padding: '0 18px 16px', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                <Action style={{ fontSize: 16, padding: '6px 14px' }}>Deny</Action>
+                <Action active press={allowClipPress} style={{ fontSize: 16, padding: '6px 14px' }}>Allow</Action>
+              </div>
+            </Panel>
+          </Overlay>
+        </div>
+      </Shell>
+    </div>
+  );
 };
 
+const SessionsBody = (props: DemoProps) =>
+  props.step === 0 ? <PersistenceAndProfilesStep {...props} /> : <AlertsAndForegroundStep {...props} />;
+
 export const sessionsChapter: ChapterSpec = {
-  id: 'sessions', en: 'Keep your session in reach', zh: '会话、设备和运行状态，一直在手边',
+  id: 'sessions',
+  en: 'Sessions, profiles & alerts',
+  zh: '会话保活、终端配置与单次提醒',
+  nav: '会话与提醒',
   steps: [
-    { en: 'Return to a live shell · restore the layout', zh: '重连同一进程，恢复布局与历史' },
-    { en: 'Detach remotely · pair another screen', zh: '远程接续，在 Mac 批准浏览器配对' },
-    { en: 'Inspect processes, directories and ports', zh: '查看目录、进程用量与端口' },
-    { en: 'Match a profile · start a fresh environment', zh: '按场景匹配外观，新终端应用环境' },
+    { en: 'Session persistence, Info panel & Terminal Profiles', zh: '退出保活重连、进程端口信息与自动终端配置' },
+    { en: 'Next-command alerts, progress & foreground keys', zh: '单次完成提醒、OSC 进度、前台快捷键与剪贴板授权' },
   ],
   features: [
-    'Keep sessions running after quitting applies to newly opened local terminals and reconnects to the same live PID',
-    'Project/tab/pane layout restoration is independent of process preservation and static scrollback restoration',
-    'Restore session history on relaunch presents old output above a fresh shell when the original process is unavailable',
-    'Normal Quit versus Quit and End All Sessions; host restarts end live processes',
-    'Remote Hosts saved SSH and Tailscale connections, Install / Update Server, Connect Host and Open Remote Project',
-    'Shared remote sessions detach and reconnect to the same host job, output screen and scrollback',
-    'Remote controller/client state and Take Terminal Control; ordinary SSH is not claimed to preserve shared jobs',
-    'Global Quick Terminal Cmd+I, reusable shell, hide/reopen preservation, pin and opacity',
-    'Browser settings include Browser Access, Enable browser access, Listen on private interface, HTTPS port, TLS certificate export',
-    'Phone Request Pairing, matching code, Mac Approve/Deny, shared local-terminal input and Revoke/Revoke All Clients',
-    'Browser Access attaches existing main-window local panes only and does not expose the independent Quick Terminal',
-    'Info current/project directories, process PID, CPU percentage and memory, local Terminate/Force Kill and listening ports',
-    'Open in Browser, Copy URL, local Kill Process; remote process inspection permits copies without local PID signalling',
-    'Automatic Terminal Profiles match host/user/directory/foreground-program conditions and apply theme/font/cursor live',
-    'Profile environment and initialization apply only to newly opened terminals; Original Settings preserves current processes',
+    'Keep sessions running after quitting (reconnect same live PID) vs Quit and End All Sessions, plus Restore session history on relaunch',
+    'Session Info (Cmd+Shift+I): Current/Project directories, Processes PID/CPU/Memory, Terminate/Force Kill, listening Ports Open/Kill',
+    'Automatic Terminal Profiles matching host, user, directory and foreground program; live theme/font/cursor updates without restarting processes',
+    'Notify When Next Command Finishes one-time local zsh reminder with armed bell indicator and cancellation',
+    'Long-running/failed/bell/OSC 777 notifications, OSC 9;4 progress bar and Notification History jumping to source pane',
+    'Block Zshell Commands foreground shortcut routing, inline terminal images and explicit OSC 52 clipboard approval',
   ],
   sources: [
-    'mac/zshell/Settings/SettingsTerminalPane.swift', 'mac/zshell/PersistentPTY.swift',
-    'mac/zshell/SessionStore.swift', 'mac/zshell/TerminalHistory.swift', 'mac/zshell/RemoteHostsController.swift',
-    'mac/zshell/RemoteSessionConnection.swift', 'mac/zshell/RemoteProjectInfoView.swift',
-    'mac/zshell/GlobalTerminalOverlay.swift', 'mac/zshell/QuickTerminalWorkspaceView.swift',
-    'mac/zshell/Settings/SettingsBrowserAccessPane.swift', 'mac/zshell/BrowserAccessController.swift', 'mac/zshell/Settings/SettingsBrowserPane.swift',
-    'mac/zshell/SessionInfoPanel.swift', 'mac/zshell/TerminalProfiles.swift',
-    'mac/zshell/TerminalProfileEditor.swift', 'mac/zshell/TerminalProfileSession.swift', 'mac/zshell/TerminalSession.swift',
+    'web/content/docs/terminal.mdx',
+    'web/content/docs/session-info.mdx',
+    'mac/zshell/PersistentPTY.swift',
+    'mac/zshell/SessionInfoPanel.swift',
+    'mac/zshell/TerminalProfiles.swift',
+    'mac/zshell/TerminalNotificationService.swift',
+    'mac/zshell/TerminalContextMenu.swift',
   ],
   Body: SessionsBody,
 };

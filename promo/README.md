@@ -2,7 +2,7 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-A 2-minute 40-second product launch film for **Zshell**, the native terminal
+A 1-minute 40-second product launch film for **Zshell**, the native terminal
 workspace for macOS, written as code and rendered to MP4 with a warm
 synthwave score by Scott Buckley.
 
@@ -50,22 +50,22 @@ to `main` and the website deployment succeeds.
 
 ## Timeline
 
-One composition, `LaunchVideo`: 9600 frames at 60 fps.
+One composition, `LaunchVideo`: 6000 frames at 60 fps.
 [`src/timeline.ts`](src/timeline.ts) holds the start and length of every scene,
 and each scene counts frames from its own zero.
 
 | Scene | Seconds | Source | Shows |
 | --- | --- | --- | --- |
 | 1 · The Terminal Awakening | 0–5 | [`Awakening.tsx`](src/scenes/Awakening.tsx) | Shell and tmux config files pile up, collapse into a point, and open as one Zshell window. |
-| 2 · Speed & Core Workflow | 5–15 | [`Workflow.tsx`](src/scenes/Workflow.tsx) | Three automation commands are typed and run: a background split that returns the real exit status, an agent start, and an agent prompt. |
-| 3 · Under the Hood | 15–27 | [`UnderTheHood.tsx`](src/scenes/UnderTheHood.tsx) | The window tilts apart into four layers, then four chapters: architecture, the two terminal backends, the automation boundary, and the event stream. |
-| 4 · Complete Feature Tour | 27–147 | [`Catalog.tsx`](src/scenes/catalog/Catalog.tsx) | Ten chapters demonstrate projects and panes, appearance and cursors, terminal interaction, search and Quick Terminal controls, files and editor, Git and PRs, browser, agent recognition and coordination, persistent sessions and session info, and preferences and tools including Quiet.md. |
-| 5 · Feature Bento Grid | 147–154 | [`BentoGrid.tsx`](src/scenes/BentoGrid.tsx) | Git staging, commits and push; turn review; agent status; worktree sessions; remote sessions; global Quick Terminal and paired browser access, with English and Chinese labels. |
-| 6 · Outro & Get Started | 154–160 | [`Outro.tsx`](src/scenes/Outro.tsx) | The Homebrew install command types itself, then the logo and the repository address hold. |
+| 2 · Speed & Core Workflow | 5–14 | [`Workflow.tsx`](src/scenes/Workflow.tsx) | Three automation commands are typed and run: a background split returning the real exit status (local zsh & Bash), an agent start, and an agent prompt. |
+| 3 · Under the Hood | 14–25 | [`UnderTheHood.tsx`](src/scenes/UnderTheHood.tsx) | The window tilts apart into four layers, then four chapters: architecture, the two terminal backends, the automation boundary, and the event stream. |
+| 4 · Complete Feature Tour | 25–85 | [`Catalog.tsx`](src/scenes/catalog/Catalog.tsx) | Eight focused chapters demonstrate projects, OpenSSH host discovery, project mute, splits and templates; prompt editing, completions, hints, command blocks, bookmarks, Read-Only mode and redacted sharing; files, search, previews and drafts; live editable diffs and GitHub PRs; project browser, imports, extensions and browser automation; AI agent approvals, Prompt Queue, Agent Context Draft, forks and program reports; session persistence, Info, profiles, next-command alerts and foreground keys; appearance, parameterized quick commands, macOS Permissions helper, recommended tools including Quiet.md and updates. |
+| 5 · Feature Bento Grid | 85–94 | [`BentoGrid.tsx`](src/scenes/BentoGrid.tsx) | Git staging, commits and push; turn review; agent status; worktree sessions; remote `zshell-server` sessions; global Quick Terminal and paired browser access, with English and Chinese labels. |
+| 6 · Outro & Get Started | 94–100 | [`Outro.tsx`](src/scenes/Outro.tsx) | The Homebrew install command types itself, then the logo and the repository address hold. |
 
 ## Notes
 
-- The bundled score is a continuous 160-second excerpt (00:00–02:40) from
+- The bundled score is a continuous 100-second excerpt (00:00–01:40) from
   [“Electric Dreams” by Scott Buckley](https://www.scottbuckley.com.au/library/electric-dreams/),
   licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
   The composition uses `public/audio/electric-dreams-tour.mp3` for both Studio
@@ -77,7 +77,7 @@ and each scene counts frames from its own zero.
 
   > 'Electric Dreams' by Scott Buckley - released under CC-BY 4.0.
   > www.scottbuckley.com.au. https://creativecommons.org/licenses/by/4.0/
-  > 00:00–02:40 excerpt. [Attribution and edit details](public/audio/ATTRIBUTION.md).
+  > 00:00–01:40 excerpt. [Attribution and edit details](public/audio/ATTRIBUTION.md).
 
 - Commands, feature names and settings reflect the owning application source.
   Commands, flags, JSON fields, shortcuts, config keys, and limits are copied

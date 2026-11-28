@@ -94,7 +94,7 @@ const Stack = ({ frame, fps, activeLayer }: { frame: number; fps: number; active
             <span className="font-mono" style={{ color: color.cyan }}>{LAYERS[0].index}</span>
             {LAYERS[0].en}
           </div>
-          <WorkflowWindow frame={779} fps={fps} />
+          <WorkflowWindow frame={780} fps={fps} cursorFrame={SCENES.workflow.duration - 1} />
           <div style={{ position: 'absolute', inset: 0, borderRadius: 16, border: `3px solid ${alpha(color.cyan, 70 * explode)}` }} />
         </div>
       </div>
@@ -103,9 +103,10 @@ const Stack = ({ frame, fps, activeLayer }: { frame: number; fps: number; active
 };
 
 const Chapter = ({ chapter, frame, children }: { chapter: (typeof CHAPTERS)[number]; frame: number; children: ReactNode }) => {
-  const visible = during(frame, chapter.from, chapter.to, 16);
+  const enter = ramp(frame, [chapter.from, chapter.from + 24]);
+  const exit = ramp(frame, [chapter.to - 18, chapter.to], [1, 0]);
+  const visible = Math.min(enter, exit);
   if (visible <= 0) return null;
-  const enter = ramp(frame, [chapter.from, chapter.from + 26]);
   return (
     <div
       style={{
@@ -114,7 +115,7 @@ const Chapter = ({ chapter, frame, children }: { chapter: (typeof CHAPTERS)[numb
         top: 196,
         width: 838,
         opacity: visible,
-        transform: `translateX(${(1 - enter) * 44}px)`,
+        transform: `translateX(${(1 - enter) * 38 - (1 - exit) * 20}px)`,
       }}
     >
       <div className="font-sans" style={{ fontSize: 50, fontWeight: 700, letterSpacing: -1.4, lineHeight: 1.12, color: color.fg }}>{chapter.en}</div>
@@ -291,15 +292,17 @@ const Extension = ({ frame, fps }: { frame: number; fps: number }) => (
 );
 
 export const UnderTheHood = () => {
+  const rawFrame = useCurrentFrame();
   const tempo = 840 / SCENES.underTheHood.duration;
-  const frame = useCurrentFrame() * tempo;
+  const frame = rawFrame * tempo;
   const fps = useVideoConfig().fps * tempo;
   const active = CHAPTERS.find((chapter) => frame >= chapter.from && frame < chapter.to);
-  const chrome = during(frame, 40, 830, 16);
+  const chrome = during(frame, 40, 826, 18);
+  const fadeOut = ramp(rawFrame, [SCENES.underTheHood.duration - 18, SCENES.underTheHood.duration], [1, 0]);
   const [architecture, backends, security, extension] = CHAPTERS;
 
   return (
-    <AbsoluteFill style={{ opacity: linear(frame, [824, 840], [1, 0]) }}>
+    <AbsoluteFill style={{ opacity: fadeOut }}>
       <Stack frame={frame} fps={fps} activeLayer={active?.layer ?? null} />
 
       <SceneLabel index="03" en="Under the hood" zh="底层架构" opacity={chrome} />
