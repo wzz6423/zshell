@@ -16,6 +16,7 @@ pub const QUERY_REPLY: &[u8] = b"\x1b]7501;?\x1b\\";
 pub struct Scanner {
     state: u8,
     buffer: Vec<u8>,
+    utf8_continuations: u8,
 }
 
 #[derive(Debug, PartialEq)]
@@ -29,6 +30,23 @@ impl Scanner {
     pub fn scan(&mut self, bytes: &[u8]) -> Vec<Osc> {
         let mut output = Vec::new();
         for &byte in bytes {
+            // UTF-8 continuation bytes (0x80..=0xBF) overlap C1 controls such as
+            // ST (0x9C) and OSC (0x9D). Keep them as data so multibyte glyphs
+            // (e.g. ✳, ✓, 在, ❯) never split or swallow OSC sequences.
+            if self.utf8_continuations > 0 && (0x80..=0xbf).contains(&byte) {
+                self.utf8_continuations -= 1;
+                if self.state == 2 {
+                    self.push_osc_byte(byte);
+                }
+                continue;
+            }
+            self.utf8_continuations = match byte {
+                0xc2..=0xdf => 1,
+                0xe0..=0xef => 2,
+                0xf0..=0xf4 => 3,
+                _ => 0,
+            };
+
             match self.state {
                 0 => match byte {
                     0x1b => self.state = 1,
@@ -48,13 +66,7 @@ impl Scanner {
                 2 | 3 => match byte {
                     0x07 | 0x9c => self.end(&mut output),
                     0x1b => self.state = 4,
-                    _ if self.state == 2 => {
-                        self.buffer.push(byte);
-                        if !self.wanted() || self.buffer.len() > MAX_OSC {
-                            self.state = 3;
-                            self.buffer.clear();
-                        }
-                    }
+                    _ if self.state == 2 => self.push_osc_byte(byte),
                     _ => {}
                 },
                 4 => {
@@ -77,6 +89,14 @@ impl Scanner {
             }
         }
         output
+    }
+
+    fn push_osc_byte(&mut self, byte: u8) {
+        self.buffer.push(byte);
+        if !self.wanted() || self.buffer.len() > MAX_OSC {
+            self.state = 3;
+            self.buffer.clear();
+        }
     }
 
     fn begin(&mut self) {
@@ -495,6 +515,158 @@ mod tests {
         let oversized = format!("\x1b]7501;{}\x07", "a".repeat(MAX_OSC + 1));
         assert!(scanner.scan(oversized.as_bytes()).is_empty());
         assert!(scanner.buffer.len() <= MAX_OSC);
+    }
+
+    fn scan_with_chunk_size(bytes: &[u8], chunk_size: usize) -> Vec<Osc> {
+        let mut scanner = Scanner::default();
+        bytes
+            .chunks(chunk_size)
+            .flat_map(|chunk| scanner.scan(chunk))
+            .collect()
+    }
+
+    #[test]
+    fn scanner_preserves_utf8_titles_with_c1_continuation_bytes() {
+        let claude = "\x1b]0;✳ Claude Code\x07";
+        for chunk_size in [claude.len(), 2, 1] {
+            assert_eq!(
+                scan_with_chunk_size(claude.as_bytes(), chunk_size),
+                vec![Osc::Title("✳ Claude Code".as_bytes().to_vec())]
+            );
+        }
+
+        let codex_uuid = "550e8400-e29b-41d4-a716-446655440000";
+        let codex_title = format!("在项目修复 ✓ | {codex_uuid}");
+        let codex_osc = format!("\x1b]2;{codex_title}\x1b\\");
+        for chunk_size in [codex_osc.len(), 2, 1] {
+            let events = scan_with_chunk_size(codex_osc.as_bytes(), chunk_size);
+            assert_eq!(events, vec![Osc::Title(codex_title.as_bytes().to_vec())]);
+            let Osc::Title(bytes) = &events[0] else {
+                unreachable!();
+            };
+            let decoded = std::str::from_utf8(bytes).unwrap();
+            let evidence = crate::codex_binding::TitleEvidence::parse(decoded).unwrap();
+            assert_eq!(evidence.prefix, codex_uuid);
+            assert!(evidence.matches(codex_uuid));
+        }
+
+        // Genuine C1 delimiters (0x9D / 0x9C) still work both standalone and
+        // when wrapping 2-, 3-, and 4-byte UTF-8 glyphs containing 0x9C.
+        let standalone = b"\x9d0;title\x9c";
+        for chunk_size in [standalone.len(), 1] {
+            assert_eq!(
+                scan_with_chunk_size(standalone, chunk_size),
+                vec![Osc::Title(b"title".to_vec())]
+            );
+        }
+
+        let mut c1_utf8 = vec![0x9d];
+        c1_utf8.extend_from_slice("0;Ü ✳ 😜".as_bytes());
+        c1_utf8.push(0x9c);
+        for chunk_size in [c1_utf8.len(), 1] {
+            assert_eq!(
+                scan_with_chunk_size(&c1_utf8, chunk_size),
+                vec![Osc::Title("Ü ✳ 😜".as_bytes().to_vec())]
+            );
+        }
+    }
+
+    #[test]
+    fn scanner_ignores_utf8_c1_bytes_in_ground_and_discarded_osc_states() {
+        let mut ground = "❯".as_bytes().to_vec();
+        ground.push(0x9d);
+        ground.extend_from_slice(b"7501;state=working");
+        ground.push(0x9c);
+        for chunk_size in [ground.len(), 1] {
+            assert_eq!(
+                scan_with_chunk_size(&ground, chunk_size),
+                vec![Osc::Body(b"7501;state=working".to_vec())]
+            );
+        }
+
+        // 2-byte (Ý = C3 9D) and 4-byte (😝 = F0 9F 98 9D) sequences in ground
+        // state must not enter OSC either.
+        let mut ground_2_4 = "Ý😝".as_bytes().to_vec();
+        ground_2_4.push(0x9d);
+        ground_2_4.extend_from_slice(b"0;after");
+        ground_2_4.push(0x9c);
+        for chunk_size in [ground_2_4.len(), 1] {
+            assert_eq!(
+                scan_with_chunk_size(&ground_2_4, chunk_size),
+                vec![Osc::Title(b"after".to_vec())]
+            );
+        }
+
+        // Unwanted OSC (state 3) containing ✳ (E2 9C B3) must stay in state 3
+        // and discard trailing payload instead of letting 0x9C exit OSC early.
+        let mut unwanted = b"\x1b]8;;https://example.com/".to_vec();
+        unwanted.extend_from_slice("✳".as_bytes());
+        unwanted.push(0x9d);
+        unwanted.extend_from_slice(b"0;spoof\x07\x1b]7501;state=idle\x07");
+        for chunk_size in [unwanted.len(), 1] {
+            assert_eq!(
+                scan_with_chunk_size(&unwanted, chunk_size),
+                vec![Osc::Body(b"7501;state=idle".to_vec())]
+            );
+        }
+
+        // Oversized OSC crossing MAX_OSC mid-UTF-8 enters state 3 cleanly and
+        // stays there across subsequent ✳ glyphs until the real terminator.
+        let mut oversized = b"\x1b]0;".to_vec();
+        oversized.extend(std::iter::repeat_n(b'a', MAX_OSC - 3));
+        oversized.extend_from_slice("✳✳".as_bytes());
+        oversized.push(0x9d);
+        oversized.extend_from_slice(b"0;spoof\x07\x1b]7501;state=done\x07");
+        for chunk_size in [oversized.len(), 1] {
+            assert_eq!(
+                scan_with_chunk_size(&oversized, chunk_size),
+                vec![Osc::Body(b"7501;state=done".to_vec())]
+            );
+        }
+    }
+
+    #[test]
+    fn scanner_recovers_from_truncated_and_invalid_utf8_leads() {
+        // Truncated UTF-8 lead bytes followed immediately by BEL or ESC \ must
+        // reset continuation tracking and terminate the OSC normally.
+        let truncated_bel = b"\x1b]0;ok\xe2\x07\x1b]0;next\x07";
+        for chunk_size in [truncated_bel.len(), 1] {
+            assert_eq!(
+                scan_with_chunk_size(truncated_bel, chunk_size),
+                vec![Osc::Title(b"ok\xe2".to_vec()), Osc::Title(b"next".to_vec())]
+            );
+        }
+
+        let truncated_st = b"\x1b]0;ok\xe2\x1b\\\x1b]0;next\x07";
+        for chunk_size in [truncated_st.len(), 1] {
+            assert_eq!(
+                scan_with_chunk_size(truncated_st, chunk_size),
+                vec![Osc::Title(b"ok\xe2".to_vec()), Osc::Title(b"next".to_vec())]
+            );
+        }
+
+        let truncated_ground = b"\xe2\x1b]0;after\x07";
+        for chunk_size in [truncated_ground.len(), 1] {
+            assert_eq!(
+                scan_with_chunk_size(truncated_ground, chunk_size),
+                vec![Osc::Title(b"after".to_vec())]
+            );
+        }
+
+        // Overlong / out-of-range RFC 3629 leads (0xC0, 0xC1, 0xF5..=0xFF) are
+        // not valid UTF-8 starts and must not mask genuine C1 controls.
+        for lead in [0xc0u8, 0xc1, 0xf5, 0xff] {
+            let input = [lead, 0x9d, b'0', b';', b'o', b'k', 0x9c];
+            assert_eq!(
+                scan_with_chunk_size(&input, 1),
+                vec![Osc::Title(b"ok".to_vec())]
+            );
+            let inside = [0x1b, b']', b'0', b';', b'a', lead, 0x9c];
+            assert_eq!(
+                scan_with_chunk_size(&inside, 1),
+                vec![Osc::Title(vec![b'a', lead])]
+            );
+        }
     }
     #[test]
     fn parser_reuses_kero_grammar_and_text_limits() {

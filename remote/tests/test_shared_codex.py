@@ -255,6 +255,11 @@ else:
             title("c", third)
             wait(lambda: conversation(pane_c) == third)
             check(True, "a full provider UUID disambiguates the prefix collision")
+            utf8_title = f"在项目修复 ✓ | {third}"
+            title("c", utf8_title)
+            wait(lambda: b"\x1b]2;" + utf8_title.encode() + b"\x1b\\" in snapshot(pane_c))
+            check(conversation(pane_c) == third,
+                  "UTF-8 titles containing 0x9C continuation bytes preserve shared Codex bindings")
             history = bridge.call("agentHistory", project)["result"]
             check(all(len(item["identity"]["sessionID"]) == 36 for item in history)
                   and not any(item["identity"]["sessionID"] == collision for item in history), "history contains only full IDs that were uniquely bound")

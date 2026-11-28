@@ -419,6 +419,36 @@ fn exit_status_is_preserved_for_a_later_attachment() {
 }
 
 #[test]
+fn utf8_terminal_titles_with_c1_continuation_bytes_survive_late_attachment() {
+    let fixture = Fixture::new();
+    for (osc, expected_title) in [
+        ("\x1b]0;✳ Claude Code\x07", "✳ Claude Code"),
+        (
+            "\x1b]2;在项目修复 ✓ | 550e8400-e29b-41d4-a716-446655440000\x1b\\",
+            "在项目修复 ✓ | 550e8400-e29b-41d4-a716-446655440000",
+        ),
+    ] {
+        let id = new_id().unwrap();
+        let command = format!("printf '%s' '{osc}'; exit 0");
+        fixture.create(&id, vec!["/bin/sh", "-c", &command]);
+        let deadline = Instant::now() + Duration::from_secs(4);
+        while fixture.get(&id)["running"] == true {
+            assert!(Instant::now() < deadline, "Session did not exit");
+            thread::sleep(Duration::from_millis(20));
+        }
+        let (stream, snapshot, _) = fixture.attach(&id, 80, 24);
+        let expected = format!("\x1b]2;{expected_title}\x1b\\");
+        assert!(
+            snapshot
+                .windows(expected.len())
+                .any(|window| window == expected.as_bytes()),
+            "Snapshot missing intact UTF-8 title {expected_title:?}"
+        );
+        stream.shutdown();
+    }
+}
+
+#[test]
 fn exited_sessions_make_room_for_new_sessions() {
     let fixture = Fixture::new();
     let watched = new_id().unwrap();
